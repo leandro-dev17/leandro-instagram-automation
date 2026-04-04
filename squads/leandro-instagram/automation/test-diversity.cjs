@@ -13,19 +13,19 @@ if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 const PROMPTS = [
   {
     name: 'standing-confident',
-    prompt: 'Full body shot from head to toe of a beautiful Brazilian fitness woman, toned athletic curvy build with round glutes, standing confidently with hands on hips, smiling at camera, wearing coral pink high-waist leggings and black sports bra, modern gym background with mirrors, warm cinematic lighting'
+    prompt: 'Full body shot from head to toe of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with long straight dark brown hair, light tan skin, natural makeup, standing confidently with hands on hips smiling directly at camera, wearing yellow high-waist biker shorts and white sports bra white sneakers, modern gym with large mirrors background, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
   },
   {
     name: 'hip-thrust',
-    prompt: 'Full body shot from head to toe of a beautiful Brazilian fitness woman, toned athletic curvy build with round glutes, performing hip thrust on padded bench showing full body side view glutes contracted, wearing navy blue high-waist leggings and matching sports bra, gym background with weights, cinematic warm lighting'
+    prompt: 'Full body shot from head to toe of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with shoulder-length straight black hair, medium brown skin, natural smile, performing hip thrust exercise on padded bench side view, wearing navy blue high-waist leggings and matching navy sports bra, gym with weights rack background, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
   },
   {
     name: 'back-view',
-    prompt: 'Full body shot from head to toe of a beautiful Brazilian fitness woman, toned athletic curvy build with round glutes, back view showing full body with defined glutes and legs looking over shoulder with confident smile, wearing black leggings and white crop top, gym environment, warm lighting'
+    prompt: 'Full body shot from head to toe of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with curly brunette hair tied up, warm medium skin tone, back view looking over shoulder with confident smile, wearing black high-waist leggings and white crop top, real gym environment, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
   },
   {
     name: 'cable-kickback',
-    prompt: 'Full body shot from head to toe of a beautiful Brazilian fitness woman, toned athletic curvy build with round glutes, performing cable kickback showing full body profile with glute extension, wearing colorful tie-dye leggings and beige sports bra, gym with cable machine background, cinematic lighting'
+    prompt: 'Three-quarter body shot from knees to top of head of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with long straight dark hair loose, light tan skin, performing cable kickback exercise profile view, wearing pink high-waist leggings and pink sports bra, gym with cable machine background, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
   }
 ];
 
