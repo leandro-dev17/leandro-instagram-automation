@@ -8,8 +8,20 @@
 const fs = require('fs');
 const path = require('path');
 
+// Carrega variáveis do .env manualmente
+(function loadEnvFile() {
+  const envPath = path.join(__dirname, '../.env');
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const [k, ...v] = line.split('=');
+    if (k && k.trim() && !k.trim().startsWith('#')) {
+      process.env[k.trim()] = v.join('=').trim();
+    }
+  }
+})();
+
 const { generateImage, generateFoodImage } = require('./lib/kie.cjs');
-const { reelPost, recipeDicaReel, singlePost, renderHTML } = require('./lib/renderer.cjs');
+const { reelPost, recipeDicaReel, singlePost, renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA } = require('./lib/renderer.cjs');
 const { generateSmartHTML } = require('./lib/claude-renderer.cjs');
 const { getNextRecipe, getBankStatus } = require('./lib/recipe-manager.cjs');
 
@@ -123,37 +135,99 @@ function buildPublicarMd(dateStr, dayPlan) {
   return lines.join('\n');
 }
 
+// ─── GERADOR DE CONTEÚDO DOS SLIDES VIA CLAUDE ───────────────────────────────
+
+async function generateSlideContent(reel) {
+  const Anthropic = require('C:/Users/lelus/OneDrive/Pictures/BioNexus Digital/node_modules/@anthropic-ai/sdk');
+  const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino focada em resultados reais para mulheres.
+
+Tema do reel: "${reel.headline}"
+Tipo: ${reel.type}
+
+Gere os textos dos 4 slides deste reel em português, diretos e impactantes.
+Responda APENAS com JSON válido, sem texto extra:
+
+{
+  "slide1": {
+    "headline": "Pergunta ou gancho impactante (máx 8 palavras, use ? ou !)",
+    "body": "Frase curta que desperta curiosidade (máx 12 palavras)"
+  },
+  "slide2": {
+    "headline": "Título do desenvolvimento (máx 6 palavras)",
+    "body": "Explicação clara e prática do tema (máx 30 palavras)"
+  },
+  "slide3": {
+    "headline": "A Dica Principal:",
+    "body": "Dica prática e acionável sobre o tema (máx 25 palavras, use verbos de ação)"
+  },
+  "slide4": {
+    "headline": "Quer mais dicas assim?",
+    "body": "Segue @leandro_personall e ativa as notificações para não perder nenhum treino!"
+  }
+}`;
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 600,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  const text = response.content[0].text.trim();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Claude não retornou JSON válido para slides');
+  return JSON.parse(match[0]);
+}
+
 // ─── GERADOR DE REELS ────────────────────────────────────────────────────────
 
 async function generateReels(reels, outputDir) {
-  log('  Gerando 5 Reels...');
+  log('  Gerando 5 Reels (4 slides cada = 20 imagens)...');
   ensureDir(outputDir);
 
   for (let i = 0; i < reels.length; i++) {
     const reel = { ...reels[i], number: i + 1 };
-    const bgPath = path.join(TEMP_DIR, `reel-bg-${i + 1}-${Date.now()}.png`);
+    const reelNum = `0${i + 1}`;
+    log(`  → Reel ${i + 1}/5: gerando conteúdo dos slides via Claude...`);
 
-    log(`  → Reel ${i + 1}/5: gerando imagem (Kie.ai Flux)...`);
-    await generateImage(reel.image_prompt, bgPath);
-
-    let html, strategy;
+    // Gera textos dos 4 slides via Claude
+    let slides;
     try {
-      const result = await generateSmartHTML(reel, bgPath, 'reel');
-      html = result.html;
-      strategy = result.strategy;
-      log(`  → Layout gerado via Claude (${strategy})`);
+      slides = await generateSlideContent(reel);
+      log(`  → Textos dos slides gerados`);
     } catch (err) {
-      log(`  → Claude renderer falhou, usando template padrão: ${err.message}`);
-      html = reelPost(reel, bgPath);
+      log(`  → Claude falhou, usando textos do schedule: ${err.message}`);
+      slides = {
+        slide1: { headline: reel.headline, body: 'Você sabe a resposta?' },
+        slide2: { headline: 'Entenda o motivo', body: reel.body || reel.headline },
+        slide3: { headline: 'A Dica Principal:', body: reel.cta || 'Aplique isso no seu treino!' },
+        slide4: { headline: 'Quer mais dicas assim?', body: 'Segue @leandro_personall para não perder nenhum treino!' }
+      };
     }
 
-    const pngName = `reel-0${i + 1}.png`;
-    await renderHTML(html, path.join(outputDir, pngName), 1080, 1920);
-    log(`  → reel-0${i + 1}.png renderizado`);
+    // Gera 4 imagens Kie.ai (uma por slide) e renderiza cada slide
+    const slideTemplates = [reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA];
+    const slideKeys = ['slide1', 'slide2', 'slide3', 'slide4'];
 
-    if (fs.existsSync(bgPath)) fs.unlinkSync(bgPath);
+    for (let s = 0; s < 4; s++) {
+      const slideNum = s + 1;
+      const bgPath = path.join(TEMP_DIR, `reel-bg-${i + 1}-s${slideNum}-${Date.now()}.png`);
+
+      log(`  → Reel ${i + 1} Slide ${slideNum}/4: gerando imagem (Kie.ai Flux)...`);
+      await generateImage(reel.image_prompt, bgPath);
+
+      const slideData = slides[slideKeys[s]];
+      const html = slideTemplates[s](slideData, bgPath);
+      const pngName = `reel-${reelNum}-slide${slideNum}.png`;
+      await renderHTML(html, path.join(outputDir, pngName), 1080, 1920);
+      log(`  → ${pngName} renderizado`);
+
+      if (fs.existsSync(bgPath)) fs.unlinkSync(bgPath);
+    }
+    log(`  ✅ Reel ${i + 1} concluído (4 slides)`);
   }
-  log('  5 Reels concluídos!');
+  log('  5 Reels concluídos! (20 imagens no total)');
 }
 
 // ─── GERADOR DE REEL DICA DO PERSONAL ────────────────────────────────────────

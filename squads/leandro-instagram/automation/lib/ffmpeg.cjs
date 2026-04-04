@@ -61,4 +61,57 @@ function pngToMp4(inputPng, outputMp4, duration = 6) {
   return outputMp4;
 }
 
-module.exports = { pngToMp4 };
+/**
+ * Converte 4 PNGs (slides) em um único MP4 para publicar como Reel carrossel.
+ * Cada slide tem duração individual configurável, com fade in/out entre slides.
+ * @param {string[]} pngPaths     - Array de caminhos dos PNGs (em ordem)
+ * @param {string}   outputMp4   - Caminho completo do MP4 de saída
+ * @param {number}   secPerSlide - Duração de cada slide em segundos (padrão: 5)
+ */
+function slidesToMp4(pngPaths, outputMp4, secPerSlide = 5) {
+  if (process.platform === 'win32' && !fs.existsSync(FFMPEG)) {
+    throw new Error(`ffmpeg não encontrado em: ${FFMPEG}`);
+  }
+  for (const p of pngPaths) {
+    if (!fs.existsSync(p)) throw new Error(`Slide não encontrado: ${p}`);
+  }
+  if (fs.existsSync(outputMp4)) fs.unlinkSync(outputMp4);
+
+  const fadeDur = 0.4;
+  const n = pngPaths.length;
+
+  // Inputs: -loop 1 -t <sec> -i slide.png para cada slide
+  const inputs = pngPaths.map(p => `-loop 1 -t ${secPerSlide} -i "${p}"`).join(' ');
+
+  // Filter: fade in/out em cada segmento + concat
+  const fadeFilters = pngPaths.map((_, i) => {
+    const fi = `fade=t=in:st=0:d=${fadeDur}`;
+    const fo = `fade=t=out:st=${secPerSlide - fadeDur}:d=${fadeDur}`;
+    return `[${i}:v]${fi},${fo}[v${i}]`;
+  }).join('; ');
+
+  const concatInputs = pngPaths.map((_, i) => `[v${i}]`).join('');
+  const filterComplex = `${fadeFilters}; ${concatInputs}concat=n=${n}:v=1:a=0[out]`;
+
+  const cmd = [
+    `"${FFMPEG}"`,
+    `-y`,
+    inputs,
+    `-filter_complex "${filterComplex}"`,
+    `-map "[out]"`,
+    `-vcodec libx264`,
+    `-pix_fmt yuv420p`,
+    `-movflags +faststart`,
+    `-an`,
+    `"${outputMp4}"`
+  ].join(' ');
+
+  execSync(cmd, { stdio: 'pipe' });
+
+  if (!fs.existsSync(outputMp4)) {
+    throw new Error(`ffmpeg não gerou o arquivo: ${outputMp4}`);
+  }
+  return outputMp4;
+}
+
+module.exports = { pngToMp4, slidesToMp4 };

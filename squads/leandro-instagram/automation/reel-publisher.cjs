@@ -18,7 +18,7 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
-const { pngToMp4 }             = require('./lib/ffmpeg.cjs');
+const { pngToMp4, slidesToMp4 } = require('./lib/ffmpeg.cjs');
 const { uploadVideo, uploadImage } = require('./lib/cloudinary.cjs');
 const { publishReel, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
 const { notifyReel, notifyError } = require('./lib/telegram.cjs');
@@ -62,6 +62,50 @@ function savePublished(dateStr, reelNumber, data) {
   fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
 }
 
+// Gera legenda específica por tema via Claude
+async function generateCaption(reel) {
+  // Carrega .env manualmente
+  const envPath = path.join(__dirname, '../.env');
+  const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
+  let anthropicKey = '';
+  for (const line of envLines) {
+    const [k, ...v] = line.split('=');
+    if (k && k.trim() === 'ANTHROPIC_API_KEY') { anthropicKey = v.join('=').trim(); break; }
+  }
+
+  const Anthropic = require('C:/Users/lelus/OneDrive/Pictures/BioNexus Digital/node_modules/@anthropic-ai/sdk');
+  const client = new Anthropic.default({ apiKey: anthropicKey });
+
+  const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino.
+
+Tema do reel: "${reel.headline}"
+Tipo: ${reel.type}
+
+Gere a legenda completa para publicação. Responda APENAS com JSON válido:
+
+{
+  "caption": "Texto de 3 a 5 linhas sobre o tema, conversacional, com gancho no início e que gere engajamento. Inclua uma pergunta ao público no final.",
+  "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5",
+  "cta": "Segue @leandro_personall para mais dicas de treino feminino! 💪"
+}
+
+Regras:
+- Caption em português brasileiro, tom próximo e motivador
+- Hashtags específicas para o tema (não genéricas)
+- CTA sempre chamando para seguir o perfil`;
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 500,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  const text = response.content[0].text.trim();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Claude não retornou JSON válido para caption');
+  return JSON.parse(match[0]);
+}
+
 async function main() {
   const reelNumber = parseInt(process.argv[2]);
   if (!reelNumber || reelNumber < 1 || reelNumber > 6) {
@@ -70,17 +114,16 @@ async function main() {
     process.exit(1);
   }
 
-  const dateStr   = today();
-  const isDica    = reelNumber === 6;
-  const pngName   = isDica ? 'reel-dica.png' : `reel-0${reelNumber}.png`;
-  const label     = isDica ? 'Dica do Personal' : `Reel ${reelNumber}`;
+  const dateStr = today();
+  const isDica  = reelNumber === 6;
+  const label   = isDica ? 'Dica do Personal' : `Reel ${reelNumber}`;
 
   log('═══════════════════════════════════════════');
   log(`Instagram Reel Publisher — ${label}`);
   log(`Data: ${dateStr}`);
   log('═══════════════════════════════════════════');
 
-  // Carrega plano do dia (para caption/hashtags)
+  // Carrega plano do dia
   const dayPlan = findDayPlan(dateStr);
   if (!dayPlan) {
     const err = `Nenhum cronograma para ${dateStr}. Execute weekly-planner.cjs.`;
@@ -89,40 +132,66 @@ async function main() {
     process.exit(1);
   }
 
-  // Busca dados do reel no schedule
+  const outDir = path.join(ONEDRIVE_DIR, dateStr);
+  if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+
   let caption = '';
   let headline = '';
-  let hashtags = dayPlan.reels_hashtags || '';
+  let mp4Path = '';
 
   if (isDica) {
+    // ── Reel Dica do Personal — lógica original intacta ──
     const dica = dayPlan.dica_receita;
-    headline = dica?.title || 'Dica do Personal';
-    caption  = `${dica?.caption || ''}\n\n${dica?.hashtags || hashtags}`;
+    headline   = dica?.title || 'Dica do Personal';
+    caption    = `${dica?.caption || ''}\n\n${dica?.hashtags || dayPlan.reels_hashtags || ''}`;
+
+    const pngName = 'reel-dica.png';
+    const pngPath = path.join(outDir, pngName);
+    if (!fs.existsSync(pngPath)) {
+      const err = `PNG não encontrado: ${pngPath}`;
+      log(`ERRO: ${err}`); await notifyError('reel-publisher.cjs', err); process.exit(1);
+    }
+    log(`PNG: ${pngName}`);
+    mp4Path = path.join(TEMP_DIR, `reel-dica-${Date.now()}.mp4`);
+    log('🎬 Convertendo PNG → MP4 (6 segundos)...');
+    pngToMp4(pngPath, mp4Path, 6);
+
   } else {
-    const reel = dayPlan.reels?.[reelNumber - 1];
-    headline = reel?.headline || `Reel ${reelNumber}`;
-    caption  = `${reel?.cta || ''}\n\n${hashtags}`;
+    // ── Reels normais — 4 slides → MP4 ──
+    const reelNum = `0${reelNumber}`;
+    const reel    = dayPlan.reels?.[reelNumber - 1];
+    headline      = reel?.headline || `Reel ${reelNumber}`;
+
+    // Verifica os 4 slides
+    const slidePaths = [1, 2, 3, 4].map(s =>
+      path.join(outDir, `reel-${reelNum}-slide${s}.png`)
+    );
+    for (const sp of slidePaths) {
+      if (!fs.existsSync(sp)) {
+        const err = `Slide não encontrado: ${sp}`;
+        log(`ERRO: ${err}`); await notifyError('reel-publisher.cjs', err); process.exit(1);
+      }
+    }
+    log(`Slides: ${slidePaths.map(p => path.basename(p)).join(', ')}`);
+
+    // Converte 4 slides → MP4 (5s por slide = 20s total)
+    mp4Path = path.join(TEMP_DIR, `reel-${reelNum}-${Date.now()}.mp4`);
+    log('🎬 Convertendo 4 slides → MP4 (5s cada = 20s total)...');
+    slidesToMp4(slidePaths, mp4Path, 5);
+
+    // Gera legenda específica via Claude
+    log('✍️  Gerando legenda específica via Claude...');
+    try {
+      const captionData = await generateCaption(reel);
+      caption = `${captionData.caption}\n\n${captionData.hashtags}\n\n${captionData.cta}`;
+      log(`✅ Legenda gerada`);
+    } catch (err) {
+      log(`  → Claude falhou para legenda, usando fallback: ${err.message}`);
+      caption = `${reel?.cta || ''}\n\n${dayPlan.reels_hashtags || ''}\n\nSegue @leandro_personall para mais dicas! 💪`;
+    }
   }
 
-  // Encontra o PNG
-  const outDir = path.join(ONEDRIVE_DIR, dateStr);
-  const pngPath = path.join(outDir, pngName);
-  if (!fs.existsSync(pngPath)) {
-    const err = `PNG não encontrado: ${pngPath}`;
-    log(`ERRO: ${err}`);
-    await notifyError('reel-publisher.cjs', err);
-    process.exit(1);
-  }
-  log(`PNG: ${pngName}`);
-
-  // Converte PNG → MP4
-  if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
-  const mp4Name = pngName.replace('.png', `-${Date.now()}.mp4`);
-  const mp4Path = path.join(TEMP_DIR, mp4Name);
-
-  log('🎬 Convertendo PNG → MP4 (6 segundos)...');
-  pngToMp4(pngPath, mp4Path, 6);
-  log(`✅ MP4 gerado: ${mp4Name}`);
+  log(`✅ MP4 gerado: ${path.basename(mp4Path)}`);
 
   // Carrega credenciais
   const env   = loadEnv();
@@ -135,8 +204,13 @@ async function main() {
   const videoUrl = await uploadVideo(mp4Path);
   log(`✅ URL vídeo: ${videoUrl}`);
 
+  // Capa: para dica usa o PNG único; para reels normais usa slide 1
+  const coverPng = isDica
+    ? path.join(outDir, 'reel-dica.png')
+    : path.join(outDir, `reel-0${reelNumber}-slide1.png`);
+
   log('🖼️  Fazendo upload da capa PNG para Cloudinary...');
-  const coverUrl = await uploadImage(pngPath);
+  const coverUrl = await uploadImage(coverPng);
   log(`✅ URL capa: ${coverUrl}`);
 
   // Publica como Reel no Instagram
@@ -155,7 +229,8 @@ async function main() {
   await notifyReel(reelNumber, headline, postId, dateStr);
 
   // Salva rastreamento
-  savePublished(dateStr, reelNumber, { postId, type: isDica ? 'dica' : 'reel', headline, image: pngName });
+  const imgRef = isDica ? 'reel-dica.png' : `reel-0${reelNumber}-slide1.png`;
+  savePublished(dateStr, reelNumber, { postId, type: isDica ? 'dica' : 'reel', headline, image: imgRef });
 
   // Limpa MP4 temporário
   try { fs.unlinkSync(mp4Path); } catch {}

@@ -256,4 +256,113 @@ async function renderHTML(htmlContent, outputPath, width = 1080, height = 1440) 
   try { fs.unlinkSync(tmpFile); } catch {}
 }
 
-module.exports = { reelPost, recipeDicaReel, singlePost, storyPost, renderHTML };
+// ─── TEMPLATES: 4 SLIDES DE REEL ─────────────────────────────────────────────
+// Slide 1 — Gancho/Pergunta: fundo escuro dramático, pergunta grande centralizada
+
+function reelSlide1Hook(data, bgPath) {
+  const bgUrl = imgToDataUrl(bgPath);
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1920px; font-family:'Inter',sans-serif; overflow:hidden; position:relative; background:#0D1020; }
+  .bg { position:absolute; inset:0; background-image:url('${bgUrl}'); background-size:cover; background-position:center top; }
+  .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(13,16,32,0.55) 0%, rgba(13,16,32,0.75) 100%); }
+  .content { position:relative; z-index:10; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px 80px; text-align:center; }
+  .handle { position:absolute; top:60px; right:80px; font-size:30px; color:rgba(248,246,241,0.65); }
+  .slide-num { font-size:26px; font-weight:700; color:#E8614A; letter-spacing:3px; text-transform:uppercase; margin-bottom:48px; }
+  h1 { font-size:100px; font-weight:900; color:#F8F6F1; line-height:1.0; margin-bottom:48px; }
+  .body { font-size:42px; font-weight:400; color:rgba(248,246,241,0.80); line-height:1.5; }
+</style></head><body>
+  <div class="bg"></div><div class="overlay"></div>
+  <div class="content">
+    <span class="handle">@leandro_personall</span>
+    <div class="slide-num">1 de 4</div>
+    <h1>${escapeHtml(data.headline)}</h1>
+    <p class="body">${escapeHtml(data.body)}</p>
+  </div>
+</body></html>`;
+}
+
+// Slide 2 — Desenvolvimento: fundo com imagem, texto explicativo
+function reelSlide2Dev(data, bgPath) {
+  const bgUrl = imgToDataUrl(bgPath);
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1920px; font-family:'Inter',sans-serif; overflow:hidden; position:relative; background:#0D1020; }
+  .bg { position:absolute; inset:0; background-image:url('${bgUrl}'); background-size:cover; background-position:center top; }
+  .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(13,16,32,0.1) 0%, rgba(13,16,32,0.2) 45%, rgba(13,16,32,0.92) 68%, rgba(13,16,32,0.98) 100%); }
+  .content { position:relative; z-index:10; width:100%; height:100%; display:flex; flex-direction:column; justify-content:flex-end; padding:80px; }
+  .handle { position:absolute; top:60px; right:80px; font-size:30px; color:rgba(248,246,241,0.65); }
+  .slide-num { font-size:26px; font-weight:700; color:#E8614A; letter-spacing:3px; text-transform:uppercase; margin-bottom:28px; }
+  h1 { font-size:86px; font-weight:900; color:#F8F6F1; line-height:1.05; margin-bottom:36px; }
+  .body { font-size:40px; font-weight:400; color:rgba(248,246,241,0.82); line-height:1.55; }
+</style></head><body>
+  <div class="bg"></div><div class="overlay"></div>
+  <div class="content">
+    <span class="handle">@leandro_personall</span>
+    <div class="slide-num">2 de 4</div>
+    <h1>${escapeHtml(data.headline)}</h1>
+    <p class="body">${escapeHtml(data.body)}</p>
+  </div>
+</body></html>`;
+}
+
+// Slide 3 — Dica principal: destaque visual em card laranja
+function reelSlide3Tip(data, bgPath) {
+  const bgUrl = imgToDataUrl(bgPath);
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1920px; font-family:'Inter',sans-serif; overflow:hidden; position:relative; background:#0D1020; }
+  .bg { position:absolute; inset:0; background-image:url('${bgUrl}'); background-size:cover; background-position:center top; }
+  .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(13,16,32,0.1) 0%, rgba(13,16,32,0.2) 45%, rgba(13,16,32,0.92) 65%, rgba(13,16,32,0.98) 100%); }
+  .content { position:relative; z-index:10; width:100%; height:100%; display:flex; flex-direction:column; justify-content:flex-end; padding:80px; }
+  .handle { position:absolute; top:60px; right:80px; font-size:30px; color:rgba(248,246,241,0.65); }
+  .slide-num { font-size:26px; font-weight:700; color:#E8614A; letter-spacing:3px; text-transform:uppercase; margin-bottom:28px; }
+  h1 { font-size:80px; font-weight:900; color:#E8614A; line-height:1.05; margin-bottom:32px; }
+  .tip-card { background:rgba(232,97,74,0.15); border:2px solid #E8614A; border-radius:20px; padding:44px 48px; }
+  .tip-text { font-size:44px; font-weight:700; color:#F8F6F1; line-height:1.45; }
+</style></head><body>
+  <div class="bg"></div><div class="overlay"></div>
+  <div class="content">
+    <span class="handle">@leandro_personall</span>
+    <div class="slide-num">3 de 4</div>
+    <h1>${escapeHtml(data.headline)}</h1>
+    <div class="tip-card"><p class="tip-text">${escapeHtml(data.body)}</p></div>
+  </div>
+</body></html>`;
+}
+
+// Slide 4 — CTA: fundo escuro, botão de seguir em destaque
+function reelSlide4CTA(data, bgPath) {
+  const bgUrl = imgToDataUrl(bgPath);
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1920px; font-family:'Inter',sans-serif; overflow:hidden; position:relative; background:#0D1020; }
+  .bg { position:absolute; inset:0; background-image:url('${bgUrl}'); background-size:cover; background-position:center top; }
+  .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(13,16,32,0.6) 0%, rgba(13,16,32,0.85) 100%); }
+  .content { position:relative; z-index:10; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px 80px; text-align:center; }
+  .handle { position:absolute; top:60px; right:80px; font-size:30px; color:rgba(248,246,241,0.65); }
+  .slide-num { font-size:26px; font-weight:700; color:#E8614A; letter-spacing:3px; text-transform:uppercase; margin-bottom:48px; }
+  h1 { font-size:90px; font-weight:900; color:#F8F6F1; line-height:1.05; margin-bottom:40px; }
+  .body { font-size:40px; color:rgba(248,246,241,0.80); line-height:1.5; margin-bottom:64px; }
+  .btn { background:#E8614A; color:#fff; font-size:40px; font-weight:900; padding:36px 80px; border-radius:100px; letter-spacing:1px; }
+</style></head><body>
+  <div class="bg"></div><div class="overlay"></div>
+  <div class="content">
+    <span class="handle">@leandro_personall</span>
+    <div class="slide-num">4 de 4</div>
+    <h1>${escapeHtml(data.headline)}</h1>
+    <p class="body">${escapeHtml(data.body)}</p>
+    <div class="btn">Seguir @leandro_personall</div>
+  </div>
+</body></html>`;
+}
+
+module.exports = { reelPost, recipeDicaReel, singlePost, storyPost, renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA };
