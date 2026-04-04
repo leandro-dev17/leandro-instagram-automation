@@ -1,0 +1,70 @@
+﻿name: "Fábrica de Carrosséis @leandro_personall"
+code: "leandro-instagram"
+description: >
+  Transforma notícias e temas sobre fitness feminino em carrosséis educativos
+  para o @leandro_personall — do tema à publicação automática no Instagram.
+  Especializado em emagrecimento metabólico e treino feminino por ciclo menstrual.
+icon: "💪"
+version: "1.0.0"
+created: "2026-03-26"
+mode: "econômico"
+
+company: "_bionexus/_memory/company.md"
+preferences: "_bionexus/_memory/preferences.md"
+memory: "_memory/memories.md"
+
+target_audience: "Mulheres que querem emagrecer e entender o próprio ciclo menstrual"
+platform: "Instagram Feed"
+format: "instagram-feed"
+performance_mode: "econômico"
+
+investigation:
+  enriched: false
+  profiles_analyzed: 1
+  date: "2026-03-26"
+  dir: squads/leandro-instagram/_investigations
+
+skills:
+  - web_search
+  - web_fetch
+  - image-creator
+
+data:
+  - pipeline/data/research-brief.md
+  - pipeline/data/domain-framework.md
+  - pipeline/data/quality-criteria.md
+  - pipeline/data/output-examples.md
+  - pipeline/data/anti-patterns.md
+  - pipeline/data/tone-of-voice.md
+
+agents:
+  - id: researcher
+    name: "Nara Notícias"
+    icon: "🔍"
+    path: agents/researcher.agent.md
+
+  - id: creator
+    name: "Ivan Instagram"
+    icon: "✍️"
+    path: agents/creator.agent.md
+
+  - id: designer
+    name: "Diana Design"
+    icon: "🎨"
+    path: agents/designer.agent.md
+
+  - id: reviewer
+    name: "Rosa Revisão"
+    icon: "✅"
+    path: agents/reviewer.agent.md
+
+  - id: publisher
+    name: "Paula Post"
+    icon: "📤"
+    path: agents/publisher.agent.md
+
+pipeline:
+  entry: pipeline/pipeline.yaml
+
+output_dir: output/
+kit_output_dir: "C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram"

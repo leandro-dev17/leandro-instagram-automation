@@ -1,0 +1,518 @@
+name: BioNexus — Publicações Diárias
+
+on:
+  schedule:
+    # Todos os horários em UTC (BRT = UTC-3)
+    - cron: '0 8 * * *'      # 05:00 BRT — Gerador diário
+    - cron: '0 10 * * *'     # 07:00 BRT — Post 1 (motivacional)
+    - cron: '0 11 * * *'     # 08:00 BRT — Story 1
+    - cron: '0 12 * * *'     # 09:00 BRT — Reel 1
+    - cron: '0 14 * * *'     # 11:00 BRT — Reel 2
+    - cron: '0 15 * * *'     # 12:00 BRT — Post 2 (educativo)
+    - cron: '0 16 * * *'     # 13:00 BRT — Reel 3
+    - cron: '30 16 * * *'    # 13:30 BRT — Story 2
+    - cron: '0 17 * * *'     # 14:00 BRT — Reel Dica
+    - cron: '0 19 * * *'     # 16:00 BRT — Reel 4
+    - cron: '0 21 * * *'     # 18:00 BRT — Post 3 (científico)
+    - cron: '0 22 * * *'     # 19:00 BRT — Story 3
+    - cron: '0 23 * * *'     # 20:00 BRT — Reel 5
+  workflow_dispatch:
+    inputs:
+      cron_override:
+        description: 'Simular cron (ex: 0 10 * * *)'
+        required: false
+
+env:
+  AUTOMATION_DIR: squads/leandro-instagram/automation
+  OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+jobs:
+  # ── 05:00 BRT — Gerador diário ─────────────────────────────────────────────
+  daily-generator:
+    if: github.event.schedule == '0 8 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar gerador diário
+        run: node daily-generator.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+      - name: Commitar conteúdo gerado
+        run: |
+          git config user.name "BioNexus Bot"
+          git config user.email "bot@bionexus.local"
+          git add squads/leandro-instagram/automation/schedule/ || true
+          git diff --staged --quiet || git commit -m "chore: conteúdo gerado $(date +%Y-%m-%d\ %H:%M)"
+          git push || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── 07:00 BRT — Post 1 ─────────────────────────────────────────────────────
+  post-07h:
+    if: github.event.schedule == '0 10 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Post 1
+        run: node instagram-publisher.cjs 1
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 08:00 BRT — Story 1 ────────────────────────────────────────────────────
+  story-08h:
+    if: github.event.schedule == '0 11 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Story 1
+        run: node story-publisher.cjs 1
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 09:00 BRT — Reel 1 ─────────────────────────────────────────────────────
+  reel-09h:
+    if: github.event.schedule == '0 12 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install && sudo apt-get install -y ffmpeg
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Reel 1
+        run: node reel-publisher.cjs 1
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 11:00 BRT — Reel 2 ─────────────────────────────────────────────────────
+  reel-11h:
+    if: github.event.schedule == '0 14 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install && sudo apt-get install -y ffmpeg
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Reel 2
+        run: node reel-publisher.cjs 2
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 12:00 BRT — Post 2 ─────────────────────────────────────────────────────
+  post-12h:
+    if: github.event.schedule == '0 15 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Post 2
+        run: node instagram-publisher.cjs 2
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 13:00 BRT — Reel 3 ─────────────────────────────────────────────────────
+  reel-13h:
+    if: github.event.schedule == '0 16 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install && sudo apt-get install -y ffmpeg
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Reel 3
+        run: node reel-publisher.cjs 3
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 13:30 BRT — Story 2 ────────────────────────────────────────────────────
+  story-1330h:
+    if: github.event.schedule == '30 16 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Story 2
+        run: node story-publisher.cjs 2
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 14:00 BRT — Reel Dica ──────────────────────────────────────────────────
+  reel-dica-14h:
+    if: github.event.schedule == '0 17 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install && sudo apt-get install -y ffmpeg
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Reel Dica
+        run: node reel-publisher.cjs 6
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 16:00 BRT — Reel 4 ─────────────────────────────────────────────────────
+  reel-16h:
+    if: github.event.schedule == '0 19 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install && sudo apt-get install -y ffmpeg
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Reel 4
+        run: node reel-publisher.cjs 4
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 18:00 BRT — Post 3 ─────────────────────────────────────────────────────
+  post-18h:
+    if: github.event.schedule == '0 21 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Post 3
+        run: node instagram-publisher.cjs 3
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 19:00 BRT — Story 3 ────────────────────────────────────────────────────
+  story-19h:
+    if: github.event.schedule == '0 22 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Story 3
+        run: node story-publisher.cjs 3
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 20:00 BRT — Reel 5 ─────────────────────────────────────────────────────
+  reel-20h:
+    if: github.event.schedule == '0 23 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install && sudo apt-get install -y ffmpeg
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Publicar Reel 5
+        run: node reel-publisher.cjs 5
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output

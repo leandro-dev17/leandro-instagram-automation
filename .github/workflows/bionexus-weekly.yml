@@ -1,0 +1,95 @@
+name: BioNexus — Planejamento Semanal (Domingo)
+
+on:
+  schedule:
+    - cron: '0 23 * * 0'    # 20:00 BRT domingo — Weekly Insights
+    - cron: '30 23 * * 0'   # 20:30 BRT domingo — Weekly Planner + commit JSON
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Tarefa a executar (insights ou planner)'
+        required: true
+        default: 'planner'
+        type: choice
+        options:
+          - insights
+          - planner
+
+permissions:
+  contents: write
+
+jobs:
+  # ── 20:00 BRT domingo — Weekly Insights ────────────────────────────────────
+  weekly-insights:
+    if: github.event.schedule == '0 23 * * 0' || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'insights')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Weekly Insights
+        run: node weekly-insights.cjs
+        working-directory: squads/leandro-instagram/automation
+
+  # ── 20:30 BRT domingo — Weekly Planner (gera JSON + commita) ───────────────
+  weekly-planner:
+    if: github.event.schedule == '30 23 * * 0' || (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'planner')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Weekly Planner
+        run: node weekly-planner.cjs
+        working-directory: squads/leandro-instagram/automation
+      - name: Commitar JSON semanal gerado
+        run: |
+          git config user.name "BioNexus Bot"
+          git config user.email "bot@bionexus.local"
+          git add squads/leandro-instagram/automation/schedule/
+          git diff --staged --quiet || git commit -m "chore: plano semanal $(date +%Y-%m-%d)"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

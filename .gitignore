@@ -1,0 +1,18 @@
+node_modules/
+.env
+*.log
+squads/*/output/
+_opensquad/_memory/company.md
+_opensquad/_memory/preferences.md
+_opensquad/_browser_profile/
+docs/
+.superpowers/
+temp/
+
+# BioNexus automation — arquivos locais que não devem ir para o GitHub
+squads/leandro-instagram/.env
+squads/leandro-instagram/automation/temp/
+squads/leandro-instagram/automation/logs/
+squads/leandro-instagram/_investigations/
+_bionexus/_browser_profile/
+_bionexus/_memory/

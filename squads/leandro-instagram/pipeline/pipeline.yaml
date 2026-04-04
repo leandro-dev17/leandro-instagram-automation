@@ -1,0 +1,67 @@
+name: "Pipeline — Fábrica de Carrosséis @leandro_personall"
+version: "1.0.0"
+format: "instagram-feed"
+mode: "econômico"
+
+steps:
+  - file: steps/step-01-checkpoint-research-focus.md
+    type: checkpoint
+    label: "Foco da Pesquisa"
+
+  - file: steps/step-02-researcher.md
+    type: agent
+    agent: researcher
+    label: "Nara pesquisa notícias"
+    execution: subagent
+
+  - file: steps/step-03-checkpoint-news-selection.md
+    type: checkpoint
+    label: "Selecionar Notícia"
+
+  - file: steps/step-04-creator-angles.md
+    type: agent
+    agent: creator
+    task: tasks/generate-angles.md
+    label: "Ivan gera 5 ângulos"
+    execution: inline
+
+  - file: steps/step-05-checkpoint-angle-selection.md
+    type: checkpoint
+    label: "Selecionar Ângulo"
+
+  - file: steps/step-06-creator-carousel.md
+    type: agent
+    agent: creator
+    task: tasks/create-carousel.md
+    label: "Ivan cria o carrossel"
+    execution: inline
+
+  - file: steps/step-07-checkpoint-content-approval.md
+    type: checkpoint
+    label: "Aprovar Copy"
+
+  - file: steps/step-08-designer.md
+    type: agent
+    agent: designer
+    label: "Diana cria os slides"
+    execution: inline
+
+  - file: steps/step-09-reviewer.md
+    type: agent
+    agent: reviewer
+    label: "Rosa revisa o conteúdo"
+    execution: inline
+
+  - file: steps/step-10-checkpoint-final-approval.md
+    type: checkpoint
+    label: "Aprovação Final"
+
+  - file: steps/step-11-publisher.md
+    type: agent
+    agent: publisher
+    label: "Paula monta o kit de publicação"
+    execution: inline
+
+on_reject:
+  reviewer_rejects_creator: step-06-creator-carousel.md
+  reviewer_rejects_designer: step-08-designer.md

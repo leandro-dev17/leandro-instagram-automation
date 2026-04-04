@@ -1,0 +1,10 @@
+{
+  "name": "leandro-instagram-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automação de publicações Instagram para @leandro_personall",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "playwright": "^1.49.0"
+  }
+}

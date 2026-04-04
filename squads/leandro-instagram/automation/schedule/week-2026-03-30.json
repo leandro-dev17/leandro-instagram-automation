@@ -1,0 +1,709 @@
+{
+  "week_start": "2026-03-30",
+  "week_end": "2026-04-05",
+  "generated_at": "2026-03-30T18:50:38.087Z",
+  "days": {
+    "2026-03-30": {
+      "day_name": "Segunda-feira",
+      "theme": "Desvendando o Metabolismo Feminino",
+      "reels_hashtags": "#metabolismofeminino #emagrecimentosaudavel #saudedamulher #leandropersonall #treinoconsciente",
+      "reels": [
+        {
+          "number": 1,
+          "type": "motivacional",
+          "headline": "Seu metabolismo NÃO é seu inimigo!",
+          "accent": "inimigo",
+          "body": "Entender seu corpo é o primeiro passo para o emagrecimento real e duradouro.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Comenta se você se sente assim!"
+        },
+        {
+          "number": 2,
+          "type": "educativo",
+          "headline": "O que é GASTO ENERGÉTICO TOTAL?",
+          "accent": "TOTAL",
+          "body": "Não é só o treino! Entenda como seu corpo queima calorias o dia todo.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, side profile standing tall, gym background blurred, hands on hips, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva para não esquecer!"
+        },
+        {
+          "number": 3,
+          "type": "cientifico",
+          "headline": "Seu ciclo afeta seu METABOLISMO basal!",
+          "accent": "METABOLISMO",
+          "body": "Sim, hormônios influenciam o quanto você queima em repouso. Sabia dessa?",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background blurred, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Manda para uma amiga!"
+        },
+        {
+          "number": 4,
+          "type": "dica",
+          "headline": "3 hábitos para ACELERAR seu metabolismo",
+          "accent": "ACELERAR",
+          "body": "Pequenas mudanças diárias fazem uma grande diferença no seu corpo.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "📌 Salva para aplicar!"
+        },
+        {
+          "number": 5,
+          "type": "mitos",
+          "headline": "Mito: 'Metabolismo lento' é sentença!",
+          "accent": "lento",
+          "body": "Não é! Com as estratégias certas, você pode otimizar seu metabolismo.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Qual mito você acredita?"
+        }
+      ],
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Você não está sozinha nessa jornada!",
+          "accent": "sozinha",
+          "body": "Entender as complexidades do metabolismo feminino te liberta de culpas e frustrações.",
+          "caption": "Muitas mulheres se sentem presas a um metabolismo que parece 'lento' ou 'teimoso'. Mas a verdade é que seu corpo é uma máquina incrível, com particularidades que merecem ser compreendidas, não combatidas. Meu papel é te mostrar o caminho para desvendar esses mistérios e trabalhar a favor do seu corpo, com paciência e conhecimento. Você está pronta para essa transformação? ✨",
+          "hashtags": "#emagrecimentofeminino #metabolismoativo #saudefeminina #empoderamentofeminino #autocuidado #vidasaudavel #treinamentopersonalizado #leandropersonall #corpoemforma #mulheresreais #semculpas #equilibriohormonal #fitnessbrasil #bemestar #comunidadefitness",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Me conta, o que você mais gostaria de entender sobre seu metabolismo?"
+        },
+        {
+          "type": "educativo",
+          "headline": "A chave para o metabolismo: Gasto Energético Total",
+          "accent": "Total",
+          "body": "Seu corpo gasta energia de várias formas, não só no treino. Descubra como!",
+          "caption": "O Gasto Energético Total (GET) é a soma de tudo que seu corpo usa energia: Taxa Metabólica Basal (TMB), Efeito Termogênico dos Alimentos (ETA) e Gasto Energético da Atividade Física (GEAF). Entender cada componente te ajuda a otimizar sua queima calórica ao longo do dia, e não apenas nas horas de treino. É um jogo de equilíbrio e estratégias inteligentes! Quer saber mais sobre cada um? 📊",
+          "hashtags": "#gastoenergetico #tmb #eta #geaf #metabolismo #emagrecercomsaude #dicasdesaude #nutricaoesportiva #cienciadotreino #treinointeligente #leandropersonall #saudeebemestar #dietaflexivel #reeducacaoalimentar #performancefeminina",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, side profile standing tall, gym background blurred, hands on hips, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva este post para consultar depois e marca uma amiga que precisa entender isso!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "O IMPACTO hormonal no seu metabolismo basal",
+          "accent": "IMPACTO",
+          "body": "Seu ciclo menstrual influencia diretamente sua queima de calorias em repouso.",
+          "caption": "Estudos mostram que durante a fase lútea (pós-ovulação), a taxa metabólica basal feminina pode aumentar em até 10% devido à elevação dos níveis de progesterona. Isso significa que seu corpo está queimando mais calorias em repouso! Entender essas flutuações hormonais é crucial para ajustar sua alimentação e treino, otimizando seus resultados sem lutar contra sua própria biologia. Fascinante, não é? 🔬",
+          "hashtags": "#hormoniosfemininos #ciclomenstrual #metabolismohormonal #progesterona #faseautea #cienciaefitness #pesquisacientifica #treinopersonalizado #leandropersonall #saudeintegrativa #emagrecimentometabolico #corpoemente #mulheresquetreinam #periodizacaodotreino #informacaodequalidade",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background blurred, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Você já percebeu alguma mudança no seu corpo em diferentes fases do ciclo?"
+        }
+      ],
+      "dica_receita": {
+        "title": "Overnight Oats Proteico de Frutas Vermelhas",
+        "headline": "Overnight Oats\nProteico e Delicioso!",
+        "category": "café da manhã",
+        "ingredients_display": [
+          "✅ 1/2 xícara de aveia em flocos",
+          "✅ 1 scoop de whey protein (baunilha/sem sabor)",
+          "✅ 1/2 xícara de leite vegetal (amêndoa/coco)",
+          "✅ 1/4 xícara de iogurte natural (grego ou vegetal)",
+          "✅ 1 colher de chá de sementes de chia",
+          "✅ Frutas vermelhas a gosto (frescas ou congeladas)",
+          "✅ Adoçante natural (opcional)"
+        ],
+        "caption": "Chega de desculpas para pular o café da manhã! ⚡️ Este Overnight Oats Proteico de Frutas Vermelhas é a solução perfeita para quem busca praticidade, sabor e nutrição. Prepare à noite e acorde com um café da manhã delicioso e pronto para turbinar seu metabolismo!\n\n**Ingredientes:**\n- 1/2 xícara de aveia em flocos\n- 1 scoop de whey protein (baunilha ou sem sabor)\n- 1/2 xícara de leite vegetal (amêndoa, coco, etc.)\n- 1/4 xícara de iogurte natural (grego ou vegetal)\n- 1 colher de chá de sementes de chia\n- Frutas vermelhas a gosto (frescas ou congeladas)\n- Adoçante natural a gosto (mel, estévia, xilitol - opcional)\n\n**Modo de Preparo:**\n1. Em um pote de vidro com tampa, adicione a aveia, o whey protein, as sementes de chia e o adoçante (se usar).\n2. Despeje o leite vegetal e o iogurte. Misture bem até que todos os ingredientes estejam incorporados e a aveia hidratada.\n3. Adicione as frutas vermelhas por cima, ou misture-as se preferir.\n4. Tampe o pote e leve à geladeira por, no mínimo, 4 horas ou, idealmente, durante a noite.\n5. Pela manhã, seu Overnight Oats estará pronto para ser saboreado! Se desejar, adicione mais frutas ou um fio de mel antes de consumir.\n\n**Benefícios para quem treina:** Fonte de proteínas para recuperação muscular, fibras para saciedade e saúde intestinal, e carboidratos complexos para energia duradoura. Perfeito para um pós-treino ou um café da manhã reforçado!\n\n💾 Salva essa receita! Segue @leandro_personall para mais dicas práticas no dia a dia! 🥗\n\nQual sua fruta favorita para adicionar no overnight oats?",
+        "hashtags": "#receitasaudavel #receitafitness #receitaproteica #fitness #saudavel #alimentacaosaudavel #leandropersonall #overnightoats #cafedamanhafit #proteinado #facildefazer #nutricaoesportiva #emagrecimentosaudavel #vidafit #comidareal",
+        "image_prompt": "Professional food photography, a glass jar filled with overnight oats, layered with creamy white oatmeal, mixed berries (strawberries, blueberries, raspberries) on top, a sprinkle of chia seeds, wooden cutting board, natural window light, shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, appetizing, mouth-watering, no text, no watermark, no people"
+      }
+    },
+    "2026-03-31": {
+      "day_name": "Terça-feira",
+      "theme": "Treino e o Ciclo Menstrual: Maximizando Resultados",
+      "reels_hashtags": "#ciclomenstrual #treinofeminino #fasesdociclo #saudedamulher #leandropersonall",
+      "reels": [
+        {
+          "number": 1,
+          "type": "motivacional",
+          "headline": "Não lute contra seu ciclo, TREINE com ele!",
+          "accent": "TREINE",
+          "body": "Seu corpo te dá sinais. Aprenda a ouvi-los e otimize seus resultados.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Você já treina assim?"
+        },
+        {
+          "number": 2,
+          "type": "educativo",
+          "headline": "Fase folicular: energia extra para o treino!",
+          "accent": "folicular",
+          "body": "Aproveite a força e o pique que essa fase do ciclo te oferece.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, squatting with back straight, side profile, face visible, hands resting on knees from far, gym background blurred, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva essa dica!"
+        },
+        {
+          "number": 3,
+          "type": "cientifico",
+          "headline": "Progesterona: amiga ou inimiga no treino?",
+          "accent": "Progesterona",
+          "body": "Entenda como esse hormônio impacta sua performance na fase lútea.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Compartilha com as amigas!"
+        },
+        {
+          "number": 4,
+          "type": "dica",
+          "headline": "Treino na fase lútea: FOCO em recuperação",
+          "accent": "FOCO",
+          "body": "Reduza a intensidade, priorize exercícios de força e mobilidade.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background blurred, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "📌 Salva para seu próximo ciclo!"
+        },
+        {
+          "number": 5,
+          "type": "mitos",
+          "headline": "Mito: Não pode treinar na menstruação!",
+          "accent": "menstruação",
+          "body": "Pode sim! E pode ser um ótimo momento para treinos mais leves e focados.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Quebre esse mito!"
+        }
+      ],
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Seu ciclo é seu SUPERPODER!",
+          "accent": "SUPERPODER",
+          "body": "Aprenda a usar as fases do seu ciclo menstrual para otimizar seus treinos e resultados.",
+          "caption": "Por muito tempo, o ciclo menstrual foi visto como um 'problema' ou um 'obstáculo' para o treino feminino. Mas a verdade é que, ao invés de lutar contra ele, podemos usá-lo a nosso favor! Cada fase traz uma flutuação hormonal que impacta nossa energia, força e capacidade de recuperação. Entender isso é um superpoder que te permite maximizar seus ganhos e respeitar seu corpo. Você está pronta para abraçar essa inteligência corporal? 💪",
+          "hashtags": "#treinoconsciente #mulheresquetreinam #ciclomenstrual #hormoniosfemininos #empoderamentofeminino #saudehormonal #vidafitness #leandropersonall #periodizacaodotreino #respeiteseucorpo #forçafeminina #autoconhecimento #bemestarintegral #performancefeminina #corposaudavel",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Como você se sente treinando em diferentes fases do seu ciclo?"
+        },
+        {
+          "type": "educativo",
+          "headline": "Guia rápido: TREINO ideal para cada fase do ciclo",
+          "accent": "ideal",
+          "body": "Otimize seus resultados adaptando o treino às flutuações hormonais do seu corpo.",
+          "caption": "Seu corpo não é o mesmo todos os dias do mês, e seu treino também não precisa ser! Na fase folicular, com estrogênio em alta, você tem mais energia e tolerância à dor: ideal para treinos de força e alta intensidade. Na fase lútea, com progesterona elevada, foco em recuperação, mobilidade e treinos de volume moderado. Na menstruação, escute seu corpo e opte por atividades mais leves. Quer um plano detalhado para cada fase? ✍️",
+          "hashtags": "#fasefolicular #faselutea #menstruacao #treinoadaptado #ciclomenstrual #treinofeminino #estrogenio #progesterona #dicasdetreino #leandropersonall #periodizacaofeminina #saudeebemestar #mulheresfortes #fitnesscomproposito #cienciadotreino",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, back view walking in gym, ponytail, athletic wear, hands not visible, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva este guia e marca uma amiga para ela também aprender a treinar com o ciclo!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "A ciência por trás da sua energia no ciclo",
+          "accent": "energia",
+          "body": "Hormônios como estrogênio e progesterona modulam sua disposição e força.",
+          "caption": "A pesquisa científica é clara: as flutuações hormonais do ciclo menstrual têm um impacto direto em sua capacidade de performance e níveis de energia. O estrogênio, predominante na fase folicular, está associado ao aumento da força e tolerância à dor, otimizando treinos mais intensos. Já a progesterona, elevada na fase lútea, pode diminuir a capacidade anaeróbica e aumentar a fadiga. Entender esses mecanismos fisiológicos é fundamental para um treino realmente eficiente e sustentável. Qual dessas informações mais te surpreendeu? 🔬",
+          "hashtags": "#fisiologiafeminina #endocrinologia #hormonios #estrogenio #progesterona #cienciaefitness #pesquisacientifica #treinopersonalizado #leandropersonall #saudehormonal #emagrecimentometabolico #mulheresquetreinam #periodizacaodotreino #informacaodequalidade #performanceesportiva",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background blurred, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Você já sentiu essa diferença de energia ao longo do seu ciclo?"
+        }
+      ],
+      "dica_receita": {
+        "title": "Smoothie Verde Detox Pós-Treino",
+        "headline": "Smoothie Verde:\nDetox e Energia!",
+        "category": "pós-treino",
+        "ingredients_display": [
+          "✅ 1 xícara de espinafre fresco",
+          "✅ 1/2 banana congelada",
+          "✅ 1/2 maçã verde (sem sementes)",
+          "✅ 1/2 pepino (sem casca, opcional)",
+          "✅ 1 colher de sopa de sementes de chia ou linhaça",
+          "✅ 1 scoop de whey protein (baunilha/sem sabor)",
+          "✅ 1 xícara de água de coco ou água filtrada",
+          "✅ Gelo a gosto"
+        ],
+        "caption": "Recupere-se e reponha suas energias com este Smoothie Verde Detox Pós-Treino! 🍃 Repleto de nutrientes, vitaminas e proteínas, ele é a pedida perfeita para nutrir seu corpo após o esforço e ajudar na desintoxicação.\n\n**Ingredientes:**\n- 1 xícara de espinafre fresco\n- 1/2 banana congelada (para cremosidade)\n- 1/2 maçã verde (sem sementes)\n- 1/2 pepino (sem casca, opcional, para hidratação)\n- 1 colher de sopa de sementes de chia ou linhaça\n- 1 scoop de whey protein (baunilha ou sem sabor - opcional, para proteína extra)\n- 1 xícara de água de coco ou água filtrada\n- Gelo a gosto\n\n**Modo de Preparo:**\n1. Lave bem todos os ingredientes.\n2. Adicione todos os ingredientes no liquidificador: espinafre, banana congelada, maçã, pepino (se usar), sementes, whey protein (se usar), água de coco (ou água) e gelo.\n3. Bata em velocidade alta até obter uma mistura homogênea e cremosa. Se preferir mais líquido, adicione um pouco mais de água de coco ou água.\n4. Sirva imediatamente em um copo grande.\n\n**Benefícios para quem treina:** Ajuda na recuperação muscular (com whey), fornece antioxidantes para combater radicais livres, hidratação profunda e vitaminas essenciais para o bom funcionamento do organismo. Um verdadeiro abraço para o seu corpo!\n\n💾 Salva essa receita! Segue @leandro_personall para mais dicas práticas no dia a dia! 🥗\n\nQual vegetal você adora adicionar em seus smoothies?",
+        "hashtags": "#smoothieverde #detox #posetreino #receitafit #proteina #saudavel #emagrecimentosaudavel #leandropersonall #alimentacaosaudavel #sucodetox #fitnessfood #receitasimples #vidasaudavel #nutricaoesportiva #energia",
+        "image_prompt": "Professional food photography, a vibrant green smoothie in a tall glass, garnished with a slice of lime and a few chia seeds on top, clear glass, wooden table, natural window light, shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, appetizing, mouth-watering, no text, no watermark, no people"
+      }
+    },
+    "2026-04-01": {
+      "day_name": "Quarta-feira",
+      "theme": "Desvendando o Metabolismo para Emagrecer de Forma Inteligente",
+      "reels_hashtags": "#leandropersonall #emagrecimentometabolico #saudefeminina #treinoparamulheres #metabolismo #fitnessbrasil #personaltrainer #vidasaudavel #mulheresquetreinam #nutricaofeminina #saudeintegral",
+      "reels": [
+        {
+          "number": 1,
+          "type": "motivacional",
+          "headline": "Cansada de Dietas sem Fim?",
+          "accent": "Dietas",
+          "body": "Quebre o ciclo da frustração e entenda seu corpo para resultados duradouros.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Me conta sua maior frustração"
+        },
+        {
+          "number": 2,
+          "type": "educativo",
+          "headline": "Metabolismo: Além das Calorias",
+          "accent": "Metabolismo",
+          "body": "Não é só o que você come, mas como seu corpo usa essa energia.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, side profile standing tall, gym background blurred, hands on hips, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva para consultar depois"
+        },
+        {
+          "number": 3,
+          "type": "cientifico",
+          "headline": "Hormônios e Seu Emagrecimento",
+          "accent": "Hormônios",
+          "body": "Entenda como eles ditam a queima de gordura e o ganho de massa muscular.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Quer saber mais? Comenta!"
+        },
+        {
+          "number": 4,
+          "type": "dica",
+          "headline": "Ative Seu Metabolismo Naturalmente",
+          "accent": "Ative",
+          "body": "Pequenas mudanças com grandes impactos para acelerar a queima calórica.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, squatting with back straight, side profile, face visible, hands resting on knees from far, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "📌 Salva essa dica!"
+        },
+        {
+          "number": 5,
+          "type": "mitos",
+          "headline": "Metabolismo Lento: A Culpa é Sua?",
+          "accent": "Lento",
+          "body": "Desvende a verdade sobre seu ritmo metabólico e o que realmente o afeta.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Qual mito você mais ouve?"
+        }
+      ],
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Sua Jornada de Emagrecimento Pode Ser Diferente",
+          "accent": "Diferente",
+          "body": "Mude a perspectiva e veja resultados duradouros. Não é culpa sua!",
+          "caption": "Quantas vezes você se sentiu frustrada por não conseguir emagrecer, mesmo tentando de tudo? Eu sei que a culpa não é sua. Muitas vezes, o problema não está na sua força de vontade, mas na abordagem que você usa. O emagrecimento metabólico foca em reequilibrar seu corpo para que ele trabalhe a seu favor, não contra você. Que tal começar a entender seu metabolismo e finalmente ter os resultados que você merece? 💪 Qual é o maior desafio que você enfrenta na sua jornada de emagrecimento hoje?",
+          "hashtags": "#leandropersonall #emagrecimentosaudavel #metabolismointeligente #mulheresfitness #saudefeminina #vidaativa #transformacaocorporal #semculpa #corposaudavel #personaltrainer #fitnessbrasil #bemestar #jornadafit #saudeebemestar #motivacaofitness",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Comenta seu maior desafio!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Termogênese: O Segredo da Queima de Gordura",
+          "accent": "Segredo",
+          "body": "Entenda como seu corpo gasta energia e otimize esse processo para emagrecer.",
+          "caption": "Você sabia que seu corpo gasta energia até para digerir alimentos? Isso se chama Termogênese Induzida pela Dieta (TID), e é uma parte importante do seu gasto calórico diário! Alimentos ricos em proteínas, por exemplo, exigem mais energia para serem processados, contribuindo para a queima de gordura. Além disso, o treino de força aumenta seu metabolismo basal, fazendo com que você queime mais calorias mesmo em repouso. Quer aprender a usar a termogênese a seu favor? 🔬 Qual alimento você acha que mais 'trabalha' seu metabolismo?",
+          "hashtags": "#leandropersonall #termogenese #queimadegordura #metabolismo #emagrecercomsaude #personaltrainer #treinofeminino #nutricaoesportiva #emagrecimentoeficiente #saudeintegral #vidasaudavel #dicasfitness #cienciafitness #mulheresquetreinam #corpoemente",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, side profile standing tall, gym background blurred, hands on hips, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva essa dica para sua dieta!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Resistência à Insulina: O Fator Escondido do Emagrecimento",
+          "accent": "Escondido",
+          "body": "A ciência explica por que é tão difícil perder peso com esse desequilíbrio hormonal.",
+          "caption": "A resistência à insulina é um dos maiores obstáculos silenciosos para o emagrecimento feminino. Quando suas células não respondem bem à insulina, o açúcar no sangue permanece alto, e o corpo armazena mais gordura, especialmente na região abdominal. Estudos mostram que o treino de força e uma alimentação com baixo índice glicêmico são estratégias eficazes para reverter esse quadro e otimizar a sensibilidade à insulina. Não é só sobre calorias, é sobre como seu corpo as processa! 💡 Você já investigou seus níveis de insulina?",
+          "hashtags": "#leandropersonall #resistenciaainsulina #emagrecimentometabolico #saudefeminina #cienciafitness #personaltrainer #treinodeforça #nutricaointeligente #equilibriohormonal #saudeintestinal #mulheresreais #dicasdesaude #endocrinologia #metabolismofeminino #vidasaudavel",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Compartilha sua opinião!"
+        }
+      ],
+      "dica_receita": {
+        "title": "Overnight Oats Proteico",
+        "headline": "Overnight Oats Proteico: Café da Manhã \nPrático e Saboroso!",
+        "category": "café da manhã",
+        "ingredients_display": [
+          "✅ 1/2 xícara de aveia em flocos",
+          "✅ 1 scoop de whey protein (sabor baunilha ou sem sabor)",
+          "✅ 1 xícara de leite vegetal (amêndoas, coco) ou desnatado",
+          "✅ 1 colher de chá de sementes de chia",
+          "✅ Frutas picadas (banana, morango, mirtilo) a gosto",
+          "✅ Opcional: mel ou adoçante natural a gosto"
+        ],
+        "caption": "Que tal um café da manhã delicioso, nutritivo e que já fica pronto na noite anterior? O Overnight Oats Proteico é a solução perfeita para quem busca praticidade sem abrir mão da saúde e dos seus macros! 🥣✨\n\n**Ingredientes:**\n- 1/2 x��cara de aveia em flocos\n- 1 scoop de whey protein (baunilha ou sem sabor)\n- 1 xícara de leite vegetal (amêndoas, coco) ou desnatado\n- 1 colher de chá de sementes de chia\n- Frutas picadas (banana, morango, mirtilo) a gosto\n- Opcional: mel ou adoçante natural a gosto\n\n**Modo de Preparo:**\n1. Em um pote de vidro com tampa, adicione a aveia, o whey protein, as sementes de chia e o leite.\n2. Misture bem até que o whey esteja completamente dissolvido e todos os ingredientes incorporados.\n3. Adicione as frutas picadas (reserve algumas para decorar, se quiser).\n4. Tampe o pote e leve à geladeira por pelo menos 4 horas ou, idealmente, durante a noite.\n5. Pela manhã, se desejar, adicione mais frutas frescas ou um fio de mel/adoçante. Sirva gelado!\n\nEste café da manhã é rico em fibras, proteínas e carboidratos de baixo índice glicêmico, proporcionando saciedade por mais tempo e energia para o seu dia. Perfeito para manter o metabolismo ativo desde cedo! 💾 Salva essa receita! Segue @leandro_personall para mais dicas práticas no dia a dia! 🥗 Qual sua fruta favorita para adicionar ao seu Overnight Oats?",
+        "hashtags": "#receitasaudavel #overnightoats #cafedamanhafit #receitafitness #receitaproteica #fitness #saudavel #alimentacaosaudavel #leandropersonall #praticidadefit #comidasaudavel #proteinapura #emagrecimento #vidafit #nutricao",
+        "image_prompt": "Professional food photography, overnight oats in a clear glass jar, layered with oats, almond milk, vanilla whey protein, chia seeds, topped with fresh sliced strawberries, blueberries, and a drizzle of honey, beautiful plating, vibrant and appetizing colors, natural window light, wooden cutting board, shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, mouth-watering, no text, no watermark, no people"
+      }
+    },
+    "2026-04-02": {
+      "day_name": "Quinta-feira",
+      "theme": "Treino e Nutrição Adaptados ao Ciclo Menstrual",
+      "reels_hashtags": "#leandropersonall #ciclomenstrual #saudefeminina #treinoconsciente #nutricaofeminina #hormoniosfemininos #mulheresquetreinam #bemestarhormonal #fitnessfeminino #vidasaudavel #personaltrainer",
+      "reels": [
+        {
+          "number": 1,
+          "type": "educativo",
+          "headline": "Entenda Seu Ciclo Menstrual",
+          "accent": "Ciclo",
+          "body": "Fases, hormônios e como eles impactam sua energia e foco no dia a dia.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva para aprender mais"
+        },
+        {
+          "number": 2,
+          "type": "cientifico",
+          "headline": "Hormônios e Seu Desempenho no Treino",
+          "accent": "Hormônios",
+          "body": "Como estrogênio e progesterona influenciam sua força e recuperação muscular.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Tire suas dúvidas aqui!"
+        },
+        {
+          "number": 3,
+          "type": "dica",
+          "headline": "Treine Inteligente em Cada Fase",
+          "accent": "Inteligente",
+          "body": "Exercícios ideais para maximizar resultados e minimizar desconforto físico.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, squatting with back straight, side profile, face visible, hands resting on knees from far, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "📌 Marca uma amiga!"
+        },
+        {
+          "number": 4,
+          "type": "nutricao",
+          "headline": "Alimente Seu Ciclo, Sinta a Diferença",
+          "accent": "Alimente",
+          "body": "Estratégias nutricionais para cada fase e para aliviar seus sintomas.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🥑 Qual fase você sente mais?"
+        },
+        {
+          "number": 5,
+          "type": "mitos",
+          "headline": "Sempre Treinar Pesado? Nem Sempre!",
+          "accent": "Pesado",
+          "body": "Desmistificando a intensidade ideal de treino durante as fases do ciclo.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, back view walking in gym, ponytail, athletic wear, hands not visible, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Comenta sua experiência!"
+        }
+      ],
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Seu Corpo Fala: Aprenda a Escutar!",
+          "accent": "Escutar",
+          "body": "Empodere-se entendendo a sabedoria do seu ciclo menstrual e suas energias.",
+          "caption": "Nosso corpo é uma máquina incrível, e o ciclo menstrual é um mapa poderoso das nossas energias e necessidades. Quantas vezes você se sentiu culpada por não ter o mesmo pique todos os dias? Entender que isso é normal e faz parte da sua natureza feminina é libertador! Ao invés de lutar contra, aprenda a trabalhar COM seu ciclo. Isso não é apenas sobre treino, é sobre auto-conhecimento, respeito e empoderamento. Comece a ouvir seu corpo e descubra uma nova forma de viver e treinar! ✨ Qual insight sobre seu corpo você gostaria de ter tido antes?",
+          "hashtags": "#leandropersonall #ciclomenstrual #saudefeminina #empoderamentofeminino #treinoconsciente #mulheresreais #autocuidado #conhecaseucorpo #bemestarhormonal #fitnessfeminino #personaltrainer #respeiteseucorpo #vidaleve #saudeholistica #motivacaofitness",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Compartilha sua experiência!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Alimentação Estratégica para Aliviar a TPM",
+          "accent": "Estratégica",
+          "body": "Nutrientes essenciais para um período mais tranquilo, sem inchaço e desconforto.",
+          "caption": "Os sintomas da TPM podem ser desafiadores, mas a alimentação certa pode ser sua maior aliada! Durante a fase lútea, quando a progesterona aumenta, seu corpo pode reter mais líquidos e sentir mais desejo por doces. Estratégias como aumentar a ingestão de magnésio (folhosos escuros, abacate), vitamina B6 (frango, peixe) e ômega-3 (salmão, linhaça) podem fazer uma grande diferença. Além disso, reduzir o consumo de sal e alimentos processados ajuda a combater o inchaço. Que tal experimentar essas dicas e sentir a diferença? 🌿 Quais alimentos te ajudam mais durante a TPM?",
+          "hashtags": "#leandropersonall #tpm #alimentacaoconsciente #saudefeminina #nutricaopersonalizada #ciclomenstrual #bemestar #dicasdenutricao #mulheresfitness #emagrecimentosaudavel #personaltrainer #vidasaudavel #equilibriohormonal #seminchaco #nutricaointeligente",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salva para seu próximo ciclo!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Treino de Força e Hormônios: Uma Conexão Poderosa",
+          "accent": "Poderosa",
+          "body": "Como otimizar seus resultados aproveitando as flutuações hormonais do ciclo.",
+          "caption": "A ciência mostra que as flutuações hormonais do ciclo menstrual podem ser usadas a seu favor no treino de força! Na fase folicular (pré-ovulação), com níveis mais altos de estrogênio, muitas mulheres relatam mais força e resistência, sendo um período excelente para treinos mais intensos e com cargas maiores. Já na fase lútea (pós-ovulação), com o aumento da progesterona, pode haver uma leve queda no desempenho e aumento da temperatura corporal, sendo mais indicado focar em recuperação e treinos de menor volume. Adaptar o treino ao seu ciclo não é uma 'frescura', é ciência! 🔬 Você já tentou periodizar seu treino com base no seu ciclo?",
+          "hashtags": "#leandropersonall #treinodeforça #ciclomenstrual #cienciafitness #hormoniosfemininos #personaltrainer #periodizacaodetreinamento #mulheresquetreinam #desempenhofeminino #saudefeminina #estrogenio #progesterona #musculacaofeminina #fitnessinteligente #bemestar",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Comenta se você sabia disso!"
+        }
+      ],
+      "dica_receita": {
+        "title": "Smoothie Bowl Pós-Treino Energizante",
+        "headline": "Smoothie Bowl Pós-Treino: \nEnergia e Recuperação!",
+        "category": "pós-treino",
+        "ingredients_display": [
+          "✅ 1 banana congelada",
+          "✅ 1/2 xícara de frutas vermelhas congeladas",
+          "✅ 1 scoop de whey protein (sabor baunilha ou frutas)",
+          "✅ 1/2 xícara de leite vegetal (coco ou amêndoas)",
+          "✅ Toppings: granola sem açúcar, sementes de chia, coco ralado"
+        ],
+        "caption": "Chegou do treino e precisa de uma refeição rápida, nutritiva e deliciosa para recuperar as energias? Este Smoothie Bowl Pós-Treino é a combinação perfeita de carboidratos, proteínas e gorduras boas para otimizar sua recuperação muscular e manter a saciedade! 🍓💪\n\n**Ingredientes:**\n- 1 banana congelada\n- 1/2 xícara de frutas vermelhas congeladas (morango, mirtilo, amora)\n- 1 scoop de whey protein (sabor baunilha ou frutas)\n- 1/2 xícara de leite vegetal (coco ou amêndoas)\n- Toppings: granola sem açúcar, sementes de chia, coco ralado (a gosto)\n\n**Modo de Preparo:**\n1. No liquidificador, adicione a banana congelada, as frutas vermelhas congeladas, o whey protein e o leite vegetal.\n2. Bata em alta velocidade até obter uma consistência cremosa e homogênea. Se necessário, adicione um pouco mais de leite vegetal para ajustar a consistência.\n3. Despeje o smoothie em uma tigela.\n4. Decore com seus toppings favoritos: granola, sementes de chia e coco ralado.\n5. Sirva imediatamente e aproveite!\n\nEste smoothie bowl é ideal para reabastecer os estoques de glicogênio, fornecer aminoácidos para a recuperação muscular e te deixar satisfeita. Uma ótima opção para nutrir seu corpo pós-treino, adaptando-se às suas necessidades em qualquer fase do ciclo! 💾 Salva essa receita! Segue @leandro_personall para mais dicas práticas no dia a dia! 🥗 Qual seu topping favorito para smoothie bowls?",
+        "hashtags": "#receitasaudavel #smoothiebowl #posetreino #receitafitness #receitaproteica #fitness #saudavel #alimentacaosaudavel #leandropersonall #recuperacaomuscular #energianatural #comidafit #vidasaudavel #nutricaofuncional #detox",
+        "image_prompt": "Professional food photography, vibrant smoothie bowl with a purple base of frozen berries and banana, topped with fresh granola, white chia seeds, and shredded coconut, beautiful plating, vibrant and appetizing colors, natural window light, marble countertop, shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, mouth-watering, no text, no watermark, no people"
+      }
+    },
+    "2026-04-03": {
+      "day_name": "Sexta-feira",
+      "theme": "Metabolismo e Emagrecimento Feminino: O Guia Essencial",
+      "reels_hashtags": "#metabolismofeminino #emagrecimentosaudavel #saudedamulher #leandropersonall #treinofeminino",
+      "reels": [
+        {
+          "number": 1,
+          "type": "motivacional",
+          "headline": "Seu metabolismo não é um inimigo!",
+          "accent": "inimigo",
+          "body": "Entenda e trabalhe com ele, não contra. Seu corpo é incrível!",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Comente 'SIM' se você está pronta!"
+        },
+        {
+          "number": 2,
+          "type": "educativo",
+          "headline": "Metabolismo Adaptativo: O que é?",
+          "accent": "Adaptativo",
+          "body": "Seu corpo se adapta para sobreviver. Saiba como evitar estagnação.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salve para não esquecer!"
+        },
+        {
+          "number": 3,
+          "type": "cientifico",
+          "headline": "Mulheres e a Termogênese Pós-Alimentar",
+          "accent": "Termogênese",
+          "body": "Como a composição da sua refeição impacta a queima de calorias.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Quer saber mais? Mande um direct!"
+        },
+        {
+          "number": 4,
+          "type": "dica",
+          "headline": "Priorize Proteínas: A Chave Metabólica",
+          "accent": "Proteínas",
+          "body": "Aumente a saciedade e o gasto calórico com a ingestão proteica.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, side profile standing tall, gym background blurred, hands on hips, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "📌 Marque uma amiga para ver!"
+        },
+        {
+          "number": 5,
+          "type": "mitos",
+          "headline": "Mito: Comer pouco SEMPRE acelera!",
+          "accent": "acelera",
+          "body": "Restrição extrema pode desacelerar seu metabolismo. Entenda!",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Qual mito você já ouviu?"
+        }
+      ],
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Sua jornada, suas regras, seu corpo",
+          "accent": "regras",
+          "body": "Emagrecer é sobre saúde, não sobre padrões. Celebre cada conquista!",
+          "caption": "Muitas mulheres sentem que seu metabolismo as sabota. Mas e se eu te disser que ele está apenas tentando te proteger? Entender como ele funciona é o primeiro passo para ter resultados duradouros e sem frustrações. Não se culpe, se informe e se empodere! 💪 Qual é o maior desafio que você enfrenta na sua jornada de emagrecimento?",
+          "hashtags": "#emagrecimentoconsciente #saudefeminina #corpoperfeito #mentalidadefitness #autocuidado #leandropersonall #treinoparamulheres #metabolismointeligente #semculpa #mulheresempoderadas #vidasaudavel #bemestar #fitnessbrasil #saudavelparasempre",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Compartilhe sua experiência nos comentários!"
+        },
+        {
+          "type": "educativo",
+          "headline": "O estresse sabota seu metabolismo?",
+          "accent": "estresse",
+          "body": "Sim! O cortisol atrapalha o emagrecimento. Aprenda a gerenciar.",
+          "caption": "Você sabia que o estresse crônico pode ser um dos maiores inimigos do seu metabolismo e, consequentemente, do seu emagrecimento? O cortisol, conhecido como o hormônio do estresse, pode levar ao acúmulo de gordura abdominal e dificultar a perda de peso. Não é só sobre dieta e treino, é sobre cuidar da sua mente também! 🧘‍♀️ Como você lida com o estresse no seu dia a dia?",
+          "hashtags": "#cortisol #gerenciamentodeestresse #emagrecimentometabolico #saudemental #estilodevidasaudavel #leandropersonall #bemestarintegral #hormoniosfemininos #vidaleve #equilibrio #menteecorpo #stressless #mulheresfit #saudefeminina",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salve essa dica e marque alguém que precisa!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "O Sono: O Segredo para Emagrecer",
+          "accent": "Sono",
+          "body": "Privação de sono desregula hormônios da fome e metabolismo.",
+          "caption": "Um estudo publicado no *Journal of Clinical Endocrinology & Metabolism* mostrou que a privação de sono afeta diretamente os hormônios reguladores do apetite, leptina e grelina, além de impactar a sensibilidade à insulina. Ou seja, dormir bem não é luxo, é essencial para o seu emagrecimento metabólico! Priorize seu sono. 😴 Quantas horas você dorme por noite, em média?",
+          "hashtags": "#sonodequalidade #emagrecerdormindo #hormonios #saudehormonal #cienciadosono #leandropersonall #dormirbem #insulina #leptina #grelina #recuperacao #bemestar #emagrecimentoeficiente #mulheresquetreinam",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Conte pra mim: seu sono é prioridade?"
+        }
+      ],
+      "dica_receita": {
+        "title": "Smoothie Proteico Matinal Energizante",
+        "headline": "Smoothie Proteico\nMatinal Energizante",
+        "category": "café da manhã",
+        "ingredients_display": [
+          "✅ 1 scoop de whey protein (baunilha ou sem sabor)",
+          "✅ 1/2 xícara de frutas vermelhas congeladas",
+          "✅ 1/2 banana madura congelada",
+          "✅ 1 colher de sopa de pasta de amendoim integral",
+          "✅ 1 colher de chá de sementes de chia",
+          "✅ 200ml de leite vegetal (amêndoas, coco ou aveia) ou água"
+        ],
+        "caption": "Comece seu dia com energia e nutrição! ✨ Este Smoothie Proteico Matinal é perfeito para quem busca praticidade e um bom aporte de proteínas no café da manhã, essencial para o emagrecimento metabólico.\n\n**Ingredientes:**\n✅ 1 scoop de whey protein (baunilha ou sem sabor)\n✅ 1/2 xícara de frutas vermelhas congeladas\n✅ 1/2 banana madura congelada\n✅ 1 colher de sopa de pasta de amendoim integral\n✅ 1 colher de chá de sementes de chia\n✅ 200ml de leite vegetal (amêndoas, coco ou aveia) ou água\n\n**Modo de Preparo:**\n1. Em um liquidificador, adicione todos os ingredientes.\n2. Bata em velocidade alta até obter uma mistura homogênea e cremosa.\n3. Se desejar uma consistência mais líquida, adicione um pouco mais de leite vegetal ou água.\n4. Despeje em um copo e consuma imediatamente.\n\n**Benefícios para quem treina:** Rico em proteínas para recuperação muscular, fibras para saciedade e carboidratos para energia. Ideal para otimizar seu metabolismo desde cedo!\n\n💾 Salva essa receita! Segue @leandro_personall para mais dicas práticas no dia a dia! 🥗 Você prefere seu smoothie mais cremoso ou líquido?",
+        "hashtags": "#receitasaudavel #receitafitness #receitaproteica #fitness #saudavel #alimentacaosaudavel #leandropersonall #smoothieproteico #cafedamanhafit #poscafe #energianatural #wheyprotein #frutasvermelhas #chia #pastadeamendoim #emagrecimentofeminino",
+        "image_prompt": "Professional food photography, vibrant red and purple berry smoothie in a tall glass, topped with fresh berries and a sprinkle of chia seeds, beautiful plating, vibrant and appetizing colors, natural window light, marble countertop, shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, mouth-watering, no text, no watermark, no people"
+      }
+    },
+    "2026-04-04": {
+      "day_name": "Sábado",
+      "theme": "Treino Inteligente e Ciclo Menstrual: Maximizando Resultados",
+      "reels_hashtags": "#ciclomenstrual #treinofeminino #saudehormonal #leandropersonall #treinoadaptado",
+      "reels": [
+        {
+          "number": 1,
+          "type": "motivacional",
+          "headline": "Seu corpo não é o mesmo TODO mês!",
+          "accent": "MESMO",
+          "body": "Aprenda a ouvir seu corpo e treinar com sabedoria, não contra ele.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, side profile standing tall, gym background blurred, hands on hips, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Pronta para se conectar com seu corpo?"
+        },
+        {
+          "number": 2,
+          "type": "educativo",
+          "headline": "Fase Folicular: Sua força está aqui!",
+          "accent": "Folicular",
+          "body": "Níveis de estrogênio sobem, trazendo mais energia e foco. Aproveite!",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Guarde essa dica para seu treino!"
+        },
+        {
+          "number": 3,
+          "type": "cientifico",
+          "headline": "Hormônios e Performance no Treino",
+          "accent": "Hormônios",
+          "body": "Entenda como estrogênio e progesterona afetam sua performance.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Perguntas? Deixe nos comentários!"
+        },
+        {
+          "number": 4,
+          "type": "dica",
+          "headline": "Fase Lútea: Foco na recuperação!",
+          "accent": "Lútea",
+          "body": "Reduza a intensidade e priorize exercícios regenerativos e flexibilidade.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, squatting with back straight, side profile, face visible, hands resting on knees from far, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "📌 Marque uma amiga que precisa saber!"
+        },
+        {
+          "number": 5,
+          "type": "mitos",
+          "headline": "Mito: Não treinar na TPM é fraqueza!",
+          "accent": "fraqueza",
+          "body": "Escutar seu corpo é inteligência, não fraqueza. Adapte-se!",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Qual sua opinião sobre isso?"
+        }
+      ],
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Celebre sua força em CADA fase!",
+          "accent": "força",
+          "body": "Seu corpo é cíclico, e isso é uma SUPERPOTÊNCIA. Use a seu favor!",
+          "caption": "Quantas vezes você já se sentiu frustrada por não ter a mesma energia para treinar em todos os dias do mês? É hora de mudar essa perspectiva! Seu corpo feminino funciona em ciclos, e entender isso é LIBERTADOR. Não lute contra ele, aprenda a usá-lo a seu favor. Celebre sua força em cada fase, adaptando seu treino e nutrição. 💪 Você já pensou em adaptar seu treino ao seu ciclo?",
+          "hashtags": "#empoderamentofeminino #treinociclico #ciclomenstrual #saudedamulher #hormoniosfemininos #leandropersonall #forçafeminina #autocuidado #corposaudavel #respeiteseucorpo #vidafitness #mulheresquetreinam #bemestarhormonal #fitnessbrasil",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Compartilhe sua experiência!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Treino ideal para cada fase do ciclo",
+          "accent": "ideal",
+          "body": "Maximize energia na folicular, foque em força e resistência na ovulatória.",
+          "caption": "Saber qual tipo de treino priorizar em cada fase do seu ciclo menstrual pode revolucionar seus resultados e sua relação com o exercício! Na fase folicular, com o estrogênio em alta, você tem mais energia e disposição para treinos intensos. Já na ovulatória, a força atinge seu pico. Mas e na fase lútea, quando a energia tende a cair? Adapte para treinos mais leves e focados em recuperação. Qual fase do ciclo você sente mais dificuldade para treinar?",
+          "hashtags": "#treinoporfases #ciclomenstrualefitness #fasefolicular #faseovulatoria #faselutea #leandropersonall #treinofeminino #saudehormonal #periodizacaofeminina #educacaofisica #mulheresfit #corpoemente #bemestar #fitnessinteligente",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, back view walking in gym, ponytail, athletic wear, hands not visible, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salve para consultar no seu próximo ciclo!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "A Ciência por trás do Treino Cíclico",
+          "accent": "Ciência",
+          "body": "Pesquisas mostram otimização de resultados e menor risco de lesões.",
+          "caption": "Um estudo recente no *Sports Medicine* destacou que a periodização do treino de acordo com as fases do ciclo menstrual pode levar a ganhos significativos de força e massa muscular, além de reduzir o risco de lesões. Isso ocorre porque o corpo feminino responde de forma diferente aos estímulos de treino dependendo dos níveis hormonais. Treinar com inteligência é treinar com ciência! 🔬 Você já tentou periodizar seu treino pelo ciclo?",
+          "hashtags": "#cienciadotreino #periodizacaotreino #ciclomenstrual #pesquisacientifica #treinoparamulheres #leandropersonall #fisiologiafeminina #saudehormonal #gains #massamagra #prevençãodelesões #fitnesscientifico #mulheresfortes #treinoeficiente",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Qual sua maior curiosidade sobre o assunto?"
+        }
+      ],
+      "dica_receita": {
+        "title": "Wrap Proteico Pós-Treino Rápido",
+        "headline": "Wrap Proteico\nPós-Treino Rápido",
+        "category": "pós-treino",
+        "ingredients_display": [
+          "✅ 1 tortilha integral ou de tapioca (grande)",
+          "✅ 100g de frango desfiado ou atum em água",
+          "✅ 2 colheres de sopa de cream cheese light ou requeijão light",
+          "✅ Folhas de alface e rodelas de tomate a gosto",
+          "✅ Pitada de sal e pimenta-do-reino (opcional)"
+        ],
+        "caption": "Pós-treino exige praticidade e nutrição! 💪 Este Wrap Proteico é a solução perfeita para repor as energias e ajudar na recuperação muscular de forma rápida e deliciosa. Ideal para qualquer fase do seu ciclo!\n\n**Ingredientes:**\n✅ 1 tortilha integral ou de tapioca (grande)\n✅ 100g de frango desfiado (cozido) ou atum em água (escorrido)\n✅ 2 colheres de sopa de cream cheese light ou requeijão light\n✅ Folhas de alface e rodelas de tomate a gosto\n✅ Pitada de sal e pimenta-do-reino (opcional)\n\n**Modo de Preparo:**\n1. Em um recipiente, misture o frango desfiado (ou atum) com o cream cheese light, sal e pimenta-do-reino até formar um patê cremoso.\n2. Espalhe essa mistura uniformemente sobre a tortilha integral.\n3. Adicione as folhas de alface e as rodelas de tomate sobre a mistura.\n4. Enrole a tortilha firmemente, formando um wrap.\n5. Se desejar, corte ao meio e sirva imediatamente.\n\n**Benefícios para quem treina:** Alta proteína para reparo muscular, carboidratos para repor glicogênio e fibras para saciedade. Tudo em minutos!\n\n💾 Salva essa receita! Segue @leandro_personall para mais dicas práticas no dia a dia! 🥗 Qual seu lanche pós-treino preferido?",
+        "hashtags": "#receitafit #wrapsaudavel #posetreino #lancheproteico #frangodesfiado #atumfit #leandropersonall #comidasaudavel #receitarapida #alimentacaofitness #dietaetreino #nutricao #saudavel #semdesculpas #mulheresquetreinam",
+        "image_prompt": "Professional food photography, a freshly made chicken or tuna wrap, cut in half, showcasing layers of tortilla, creamy filling, crisp lettuce, and red tomato slices, beautifully plated on a wooden cutting board, vibrant and appetizing colors, natural window light, shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, mouth-watering, no text, no watermark, no people"
+      }
+    },
+    "2026-04-05": {
+      "day_name": "Domingo",
+      "theme": "Desvendando o Metabolismo Feminino e o Ciclo Menstrual para Emagrecimento Sustentável",
+      "reels_hashtags": "#leandropersonall #emagrecimentofeminino #ciclomenstrual #metabolismofeminino #saudedamulher",
+      "reels": [
+        {
+          "number": 1,
+          "type": "motivacional",
+          "headline": "Seu ciclo é um guia para o emagrecimento!",
+          "accent": "GUIA",
+          "body": "Entender seu corpo é o primeiro passo para resultados que duram e te empoderam.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, portrait shot face and shoulders, looking at camera with confidence, arms relaxed at sides, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Conte sua experiência!"
+        },
+        {
+          "number": 2,
+          "type": "educativo",
+          "headline": "Fase Folicular: Maximize sua queima!",
+          "accent": "QUEIMA",
+          "body": "Nessa fase, seu corpo está mais propenso a usar gordura como energia. Saiba como!",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salve essa dica!"
+        },
+        {
+          "number": 3,
+          "type": "cientifico",
+          "headline": "Estrogênio e metabolismo: Conexão Vital!",
+          "accent": "ESTROGÊNIO",
+          "body": "Descubra como esse hormônio influencia sua sensibilidade à insulina.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Entenda mais!"
+        },
+        {
+          "number": 4,
+          "type": "dica",
+          "headline": "Combata a retenção na fase lútea",
+          "accent": "RETENÇÃO",
+          "body": "Dica prática para diminuir o inchaço e manter o foco no seu objetivo.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "📌 Aplique hoje!"
+        },
+        {
+          "number": 5,
+          "type": "mitos",
+          "headline": "Ciclo atrapalha o emagrecimento? MITO!",
+          "accent": "MITO",
+          "body": "Na verdade, ele PODE ser seu aliado se você souber como utilizá-lo.",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, side profile standing tall, gym background blurred, hands on hips, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Comente sua opinião!"
+        }
+      ],
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Sincronize com seu Corpo, Emagreça com PODER",
+          "accent": "PODER",
+          "body": "Seu ciclo menstrual não é um obstáculo, é um guia. Aprenda a ouvi-lo.",
+          "caption": "Emagrecer vai muito além da balança. É sobre conexão, respeito e inteligência com o seu corpo. Mulheres, temos um superpoder: nosso ciclo menstrual! Ele nos dá pistas valiosas sobre quando nosso metabolismo está mais eficiente, quando precisamos de mais energia ou quando é hora de ir com calma. Não lute contra ele, aprenda a usá-lo a seu favor. Qual a maior dificuldade que você sente em relação ao seu ciclo e o emagrecimento? Me conta nos comentários! 👇",
+          "hashtags": "#leandropersonall #emagrecimentofeminino #ciclomenstrual #saudedamulher #metabolismoadaptativo #mulheresquetreinam #autoconhecimento #bemestar #fitnessbrasil #vidaativa #semculpa #corposaudavel #hormoniosfemininos #desvendandoocorpo #poderfeminino",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, medium shot standing confidently, one hand on waist barely visible, looking forward, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💬 Conte sua experiência!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Metabolismo Adaptativo e Seu Ciclo: CUIDADO!",
+          "accent": "CUIDADO",
+          "body": "Entenda como dietas restritivas afetam seu metabolismo feminino.",
+          "caption": "Lembra daquele post sobre metabolismo adaptativo? Pois é, ele é ainda mais relevante para nós, mulheres, por conta das flutuações hormonais do ciclo menstrual. Dietas extremamente restritivas, especialmente em certas fases, podem sinalizar 'perigo' ao seu corpo, fazendo com que ele segure gordura em vez de queimar. A chave é nutrir seu corpo de forma inteligente, respeitando as demandas de cada fase. Você já sentiu seu metabolismo 'lento' mesmo comendo pouco? Compartilhe nos comentários! ⬇️",
+          "hashtags": "#leandropersonall #metabolismoadaptativo #emagrecimentosaudavel #ciclomenstrual #nutricaofeminina #hormonios #dietasrestritivas #saudefeminina #treinamentofeminino #emagrecercomsaude #mentecorpo #equilibriohormonal #personalonline #fitnessparatodas #mulheresreais",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, close-up face portrait, determined expression, gym equipment blurred in background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "💾 Salve para lembrar!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Progesterona e os Desejos: Fato ou MITO?",
+          "accent": "MITO",
+          "body": "A ciência por trás dos desejos alimentares na fase lútea do seu ciclo.",
+          "caption": "Sabe aqueles desejos irresistíveis por doces ou carboidratos antes da menstruação? Não é 'falta de força de vontade'! A ciência mostra que a elevação da progesterona na fase lútea pode, sim, influenciar o apetite e a preferência por alimentos mais calóricos. Mas entender isso nos dá poder para fazer escolhas mais inteligentes. Não é sobre resistir, é sobre substituir e planejar. Você sente mais vontade de comer algo específico em alguma fase do seu ciclo? Me conta qual! 👇",
+          "hashtags": "#leandropersonall #desejosalimentares #faseLutea #progesterona #ciclomenstrual #nutricaohormonal #saudefeminina #emagrecimentoconsciente #cienciaefitness #mitosdalimentacao #tpmnuncamais #equilibriohormonal #personalonline #bemestar #mulheresfortes",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural skin, upper body shot, arms crossed over chest, strong expression, gym background, warm coral orange rim light, dark navy blue moody background, hyperrealistic, photorealistic, 8K",
+          "cta": "🔬 Comente sua opinião!"
+        }
+      ],
+      "dica_receita": {
+        "title": "Smoothie Proteico Anti-TPM",
+        "headline": "Smoothie Anti-TPM:\nAlívio e Sabor!",
+        "category": "snack",
+        "ingredients_display": [
+          "✅ 1 banana congelada",
+          "✅ 1 xícara de espinafre fresco (não se preocupe, não altera o sabor!)",
+          "✅ 1/2 xícara de berries congeladas (morango, framboesa, mirtilo)",
+          "✅ 1 scoop de whey protein de baunilha ou sem sabor",
+          "✅ 1 colher de sopa de chia",
+          "✅ 1 colher de chá de cacau em pó 100%",
+          "✅ 1 xícara de leite vegetal (amêndoas, coco, aveia) ou água"
+        ],
+        "caption": "Smoothie Proteico Anti-TPM: Alívio e Sabor! 💚\n\nChega de sofrer com os sintomas da TPM! Este smoothie é a combinação perfeita de nutrientes que ajudam a combater o inchaço, a fadiga e aqueles desejos incontroláveis por doces. Fácil, rápido e delicioso para te dar energia e bem-estar na fase lútea.\n\nIngredientes:\n✅ 1 banana congelada\n✅ 1 xícara de espinafre fresco (não se preocupe, não altera o sabor!)\n✅ 1/2 xícara de berries congeladas (morango, framboesa, mirtilo)\n✅ 1 scoop de whey protein de baunilha ou sem sabor\n✅ 1 colher de sopa de chia\n✅ 1 colher de chá de cacau em pó 100%\n✅ 1 xícara de leite vegetal (amêndoas, coco, aveia) ou água\n\nModo de Preparo:\n1. Adicione todos os ingredientes no liquidificador.\n2. Bata até obter uma mistura homogênea e cremosa. Se necessário, adicione um pouco mais de líquido para atingir a consistência desejada.\n3. Sirva imediatamente e aproveite!\n\nBenefícios para quem treina e para seu ciclo:\n🍌 Banana: Rica em potássio, ajuda a combater cãibras e mantém a energia.\n🍃 Espinafre: Fonte de magnésio, mineral que ajuda a reduzir a ansiedade e as dores da TPM.\n🍓 Berries: Antioxidantes que combatem a inflamação e regulam o humor.\n💪 Whey Protein: Essencial para a recuperação muscular e para manter a saciedade.\n🌱 Chia: Fibras que auxiliam na digestão e na sensação de plenitude.\n🍫 Cacau: Estimula a produção de serotonina, melhorando o humor e reduzindo os desejos.\n\n💾 Salva essa receita! Segue @leandro_personall para mais dicas práticas no dia a dia! 🥗\n\nQual ingrediente você adicionaria para deixar ainda mais gostoso? Me conta! 👇",
+        "hashtags": "#receitasaudavel #receitafitness #receitaproteica #fitness #saudavel #alimentacaosaudavel #leandropersonall #smoothie #antiTPM #ciclomenstrual #snackfit #vidasaudavel #nutricaofeminina #emagrecimentocomsaude #bemestar #comersemculpa",
+        "image_prompt": "Professional food photography, vibrant purple-red smoothie in a tall glass with a straw, topped with a few fresh berries and a sprinkle of chia seeds, beautiful plating, vibrant and appetizing colors, natural window light, marble countertop, shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, mouth-watering, no text, no watermark, no people"
+      }
+    }
+  }
+}

@@ -1,0 +1,616 @@
+{
+  "week_start": "2026-03-27",
+  "week_end": "2026-04-02",
+  "generated_at": "2026-03-27T20:23:11.125Z",
+  "days": {
+    "2026-03-27": {
+      "day_name": "Sexta-feira",
+      "carousel": {
+        "theme": "Metabolismo lento: Mito ou Realidade?",
+        "cta_keyword": "METABOLISMO",
+        "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, looking thoughtfully at a diagram of a metabolic pathway on a screen, with subtle glowing energy lines, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+        "slides": [
+          {
+            "number": 1,
+            "type": "hook",
+            "headline": "Seu metabolismo está LENTO?",
+            "accent": "LENTO",
+            "body": "Descubra o que realmente está acontecendo no seu corpo!"
+          },
+          {
+            "number": 2,
+            "type": "content",
+            "headline": "O que realmente é 'metabolismo lento'?",
+            "accent": "MITO",
+            "body": "Raramente é uma condição clínica; muitas vezes reflete hábitos. A variação metabólica entre pessoas saudáveis é pequena.",
+            "background": "navy",
+            "items": [
+              "Genética",
+              "Idade",
+              "Composição Corporal"
+            ]
+          },
+          {
+            "number": 3,
+            "type": "content",
+            "headline": "Como seu corpo QUEIMA energia",
+            "accent": "QUEIMA",
+            "body": "Seu corpo gasta energia para funções básicas (metabolismo basal), digerir alimentos e atividades físicas.",
+            "background": "cream"
+          },
+          {
+            "number": 4,
+            "type": "content",
+            "headline": "O que INFLUENCIA seu gasto calórico?",
+            "accent": "INFLUENCIA",
+            "body": "Mais massa muscular = mais calorias queimadas em repouso. Dieta restritiva prolongada pode reduzir o gasto total.",
+            "background": "navy"
+          },
+          {
+            "number": 5,
+            "type": "cta",
+            "headline": "Quer acelerar seu metabolismo?",
+            "body": "Comente 'METABOLISMO' abaixo e receba dicas práticas para otimizar sua queima calórica de forma saudável!",
+            "cta_keyword": "METABOLISMO"
+          }
+        ],
+        "caption": "Você já se sentiu frustrada, achando que seu metabolismo é lento e por isso o emagrecimento não acontece? 🤯 Essa é uma das frases que mais ouço aqui no consultório! Mas será que é realmente o seu metabolismo que está te sabotando, ou existem outros fatores que não estamos considerando?\n\nNo carrossel de hoje, vamos desmistificar essa ideia de 'metabolismo lento' e entender o que de fato influencia a sua queima calórica. A verdade é que nosso corpo é uma máquina incrível e adaptável, e muitas vezes, pequenos ajustes nos hábitos diários podem fazer uma grande diferença.\n\nFoco não é em 'acelerar' magicamente, mas sim em otimizar o que já existe de forma sustentável e inteligente, empoderando você a entender e a trabalhar a favor do seu próprio corpo. \n\nQual a sua maior dúvida sobre metabolismo? Me conta aqui nos comentários!",
+        "hashtags": "#MetabolismoFeminino #EmagrecimentoSustentavel #SaudeMetabolica #LeandroPersonal #TreinoFeminino #DietaConsciente #CorpoSaudavel #MitosDoEmagrecimento #VidaAtiva #FocoNoResultados #BemEstarFeminino #MulheresFortes #EntendaSeuCorpo #PersonalTrainerBR #Desmistificando"
+      },
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Seu corpo é sua história. Abrace-o!",
+          "accent": "história",
+          "body": "Cada cicatriz, cada linha, cada curva conta uma jornada. Comece hoje a escrever um novo capítulo de amor e respeito por você.",
+          "caption": "Às vezes nos perdemos na busca incessante pelo corpo 'perfeito', esquecendo que o maior valor está em se sentir bem, forte e saudável. Você não é apenas um corpo, você é uma história viva. Não se culpe por onde você está, mas celebre o poder de onde você pode chegar. O primeiro passo é sempre o mais difícil, mas também o mais libertador. Você está pronta para reescrever essa história com mais amor próprio e menos cobrança?\n\n💬 Compartilhe uma meta de autocuidado para essa semana!",
+          "hashtags": "#MotivacaoFeminina #Autocuidado #AmorProprio #SaudeMental #BemEstar #MulheresReais #CorpoEmente #JornadaDeEmagrecimento #LeandroPersonal #VocePode #EmpoderamentoFeminino #VidaSaudavel",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, smiling genuinely while stretching after a workout, looking empowered and content, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "💬 Compartilhe uma meta de autocuidado!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Água: O segredo esquecido do seu metabolismo",
+          "accent": "ÁGUA",
+          "body": "Manter-se hidratada é crucial para todas as reações metabólicas. Pouca água = metabolismo mais lento e menos eficiente.",
+          "caption": "Sabia que a água é muito mais do que um simples líquido? Ela é um dos pilares do seu metabolismo! Cada reação química no seu corpo, incluindo a queima de gordura, precisa de água para acontecer. A desidratação, mesmo que leve, pode diminuir seu gasto energético e impactar seu desempenho nos treinos. \n\nQue tal um desafio? Comece a manhã com um copo grande de água e carregue sua garrafinha para onde for. Sinta a diferença na sua energia e digestão ao longo do dia. Pequenos hábitos, grandes resultados!\n\n💾 Salve essa dica e marque uma amiga que precisa se hidratar mais!",
+          "hashtags": "#Hidratacao #MetabolismoAtivo #DicasDeSaude #EmagrecimentoSaudavel #AguaEhVida #BemEstar #LeandroPersonal #RotinaSaudavel #Nutricao #TreinoEagua #SaudeFeminina #HabitosSaudaveis",
+          "image_prompt": "A clear glass of water with ice and a slice of lemon on a gym counter, next to a water bottle and a sweat towel, with soft, natural lighting, hyperrealistic",
+          "cta": "💾 Salve essa dica e marque uma amiga!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Estudo: Déficit calórico extremo não acelera!",
+          "accent": "15-30%",
+          "body": "Déficits calóricos muito grandes (mais de 15-30% do gasto total) podem levar à adaptação metabólica, dificultando o emagrecimento a longo prazo.",
+          "caption": "Muitas mulheres acreditam que 'comer menos é a chave para emagrecer mais rápido'. Mas a ciência nos mostra um cenário diferente! Estudos indicam que déficits calóricos muito agressivos, especialmente se prolongados, podem fazer com que seu corpo se adapte, diminuindo o gasto energético total. Isso significa que, a longo prazo, você pode ter mais dificuldade em emagrecer e até mesmo recuperar o peso perdido.\n\nO segredo está no equilíbrio e na sustentabilidade. Emagrecer não é uma corrida, é uma maratona que exige inteligência e respeito pelo seu corpo. Quer saber a fonte desse estudo? Me mande um direct! \n\n🔬 Você já tentou dietas muito restritivas? Qual foi sua experiência?",
+          "hashtags": "#CienciaDoEmagrecimento #Metabolismo #DietaSustentavel #EmagrecimentoReal #EvidenciaCientifica #SaudeFeminina #LeandroPersonal #NutricaoInteligente #SemRestricao #CorpoEmente #PersonalTrainerCientifico #ResultadosReais",
+          "image_prompt": "A hand holding a scientific journal with graphs and data, in a modern, clean lab environment, with a blurry background of fitness equipment, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "🔬 Comente sua experiência!"
+        }
+      ]
+    },
+    "2026-03-28": {
+      "day_name": "Sábado",
+      "carousel": {
+        "theme": "Treine com seu ciclo: Maximize ganhos",
+        "cta_keyword": "CICLO",
+        "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, performing a bicep curl with a dumbbell, looking focused and strong, with a subtle aura representing hormonal phases, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+        "slides": [
+          {
+            "number": 1,
+            "type": "hook",
+            "headline": "Seu ciclo menstrual é seu SUPERPODER!",
+            "accent": "SUPERPODER",
+            "body": "Aprenda a treinar em sintonia com seus hormônios e arrase!"
+          },
+          {
+            "number": 2,
+            "type": "content",
+            "headline": "Fase Folicular: Força e Energia Crescendo",
+            "accent": "FOCO",
+            "body": "Após a menstruação, estrogênio aumenta. É a fase ideal para treinos de força intensos, PRs e experimentar novos desafios.",
+            "background": "navy",
+            "items": [
+              "Mais força",
+              "Maior resistência",
+              "Melhor recuperação"
+            ]
+          },
+          {
+            "number": 3,
+            "type": "content",
+            "headline": "Ovulação: Pico de Força e Performance",
+            "accent": "PICO",
+            "body": "Perto da ovulação, o estrogênio atinge seu máximo. Aproveite para treinos de alta intensidade e sessões mais longas.",
+            "background": "cream"
+          },
+          {
+            "number": 4,
+            "type": "content",
+            "headline": "Fase Lútea: Foco na Resistência e Bem-estar",
+            "accent": "RESPEITE",
+            "body": "Progesterona elevada pode diminuir a energia e a força. Adapte para treinos mais moderados, cardio e mobilidade.",
+            "background": "navy"
+          },
+          {
+            "number": 5,
+            "type": "cta",
+            "headline": "Quer um guia de treino por fase?",
+            "body": "Comente 'CICLO' e receba um resumo exclusivo para otimizar seus treinos e resultados!",
+            "cta_keyword": "CICLO"
+          }
+        ],
+        "caption": "Você sabia que seu ciclo menstrual não precisa ser um inimigo do seu treino, mas sim um grande aliado? 🚀 Muitas mulheres ainda não sabem o poder que existe em treinar em sintonia com as fases do próprio corpo. \n\nNo carrossel de hoje, vamos desvendar como cada fase hormonal influencia sua energia, força e recuperação, e como você pode adaptar seus treinos para aproveitar ao máximo cada momento. Chega de lutar contra seu corpo; é hora de trabalhar com ele!\n\nEntender e respeitar seu ciclo é um ato de empoderamento e um caminho para resultados mais consistentes e um bem-estar integral. Pronta para sentir a diferença?\n\nVocê já percebeu alguma diferença no seu corpo ao longo do ciclo menstrual?",
+        "hashtags": "#TreinoPorCiclo #CicloMenstrual #SaudeFeminina #HormoniosFemininos #EmagrecimentoFeminino #LeandroPersonal #MulheresQueTreinam #FitnessFeminino #PersonalTrainerBrasil #BemEstarHormonal #ForcaFeminina #PeriodoMenstrual #CorpoConsciente #ResultadosInteligentes #Empoderamento"
+      },
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Conecte-se com sua força interior!",
+          "accent": "interior",
+          "body": "Seu corpo fala, sua intuição guia. Aprenda a ouvir e honrar o ritmo natural da sua natureza feminina. Você é poderosa!",
+          "caption": "Em um mundo que nos empurra para a performance constante, é revolucionário parar e ouvir o próprio corpo. A conexão com sua força interior, com o ritmo do seu ciclo, é um ato de autoconhecimento e empoderamento. Não é sobre ser perfeita, mas sobre ser autêntica e respeitar suas próprias flutuações.\n\nSinta-se livre para adaptar, para descansar, para explodir. Sua força não é linear, ela pulsa. Qual a sua maneira favorita de se reconectar consigo mesma?\n\n💬 Conte nos comentários o que te ajuda a se conectar com seu corpo!",
+          "hashtags": "#ConexaoCorporal #Autoconhecimento #MulheresFortes #EmpoderamentoFeminino #BemEstar #SaudeMental #LeandroPersonal #EscuteSeuCorpo #FemininoSagrado #VidaConsciente #FitnessComProposito #MotivacaoDiaria",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, meditating in a yoga pose on a mat in a gym, with soft, serene expression, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "💬 Conte o que te ajuda a se conectar!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Dica: Adapte seu aquecimento e recuperação!",
+          "accent": "ADAPTE",
+          "body": "Na fase lútea, aqueça mais suavemente e capriche no alongamento. Na folicular, pode ir com tudo! O corpo agradece.",
+          "caption": "Pequenos ajustes fazem uma grande diferença! Nos dias de menstruação e na fase lútea (pós-ovulação), quando os níveis de energia podem ser mais baixos e a sensibilidade maior, um aquecimento mais prolongado e uma recuperação com mais foco em alongamento e mobilidade podem evitar lesões e aumentar seu bem-estar. \n\nJá na fase folicular, quando a energia está em alta, você pode intensificar o aquecimento e focar em movimentos mais dinâmicos. Sintonize-se com seu corpo e ele te dará o melhor retorno!\n\n💾 Salve para não esquecer e compartilhe com uma amiga que vai amar essa dica!",
+          "hashtags": "#TreinoInteligente #RecuperacaoAtiva #Aquecimento #CicloMenstrual #SaudeFeminina #LeandroPersonal #DicasDeTreino #PersonalTrainer #CorpoEmMovimento #BemEstarFisico #FitnessConsciente #RotinaDeTreino",
+          "image_prompt": "A close-up shot of a woman's hands doing dynamic stretches with resistance bands in a gym, showing flexibility and controlled movement, with warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "💾 Salve para não esquecer!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Mito: Não pode treinar na menstruação!",
+          "accent": "PODE SIM!",
+          "body": "Não há evidências científicas que contraindiquem o treino na menstruação. Pelo contrário, exercícios podem aliviar cólicas e melhorar o humor.",
+          "caption": "Quantas vezes você já ouviu que 'não pode treinar na menstruação'? Esse é um dos maiores mitos que ainda persistem! A verdade é que, a menos que você sinta dores incapacitantes, o exercício físico pode ser um grande aliado durante esse período. \n\nEstudos mostram que atividades leves a moderadas podem ajudar a reduzir as cólicas, melhorar o fluxo sanguíneo e até mesmo liberar endorfinas que aliviam o desconforto e melhoram o humor. Ouça seu corpo, adapte a intensidade se necessário, mas não pare de se movimentar! Seu bem-estar agradece.\n\n🔬 Você ainda acredita nesse mito? Qual a sua experiência?",
+          "hashtags": "#MitosDoTreino #MenstruacaoETreino #CienciaDoEsporte #SaudeFeminina #Desmistificando #LeandroPersonal #TreinoSemMitos #BemEstarNoPeriodo #EmpoderamentoFeminino #PersonalCientifico #CorpoSaudavel #FitnessFacts",
+          "image_prompt": "A Brazilian fitness woman in her 30s, athletic build, natural appearance, running on a treadmill with a determined but comfortable expression, during her menstrual period, showing no signs of discomfort, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "🔬 Você ainda acredita nesse mito?"
+        }
+      ]
+    },
+    "2026-03-29": {
+      "day_name": "Domingo",
+      "carousel": {
+        "theme": "Cortisol e Sono: O Segredo Ignorado do Emagrecimento",
+        "cta_keyword": "EQUILIBRIO",
+        "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, looking tired but determined, with a clock showing late night hours in the background, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+        "slides": [
+          {
+            "number": 1,
+            "type": "hook",
+            "headline": "Dormir menos, engordar mais?",
+            "accent": "ENIGMA",
+            "body": "A conexão secreta entre seu sono, cortisol e emagrecimento."
+          },
+          {
+            "number": 2,
+            "type": "content",
+            "headline": "Cortisol: O hormônio do estresse",
+            "accent": "ESTRESSE",
+            "body": "Em situações de perigo, o cortisol é essencial. Mas o estresse crônico o mantém alto, sinalizando ao corpo para estocar energia.",
+            "background": "navy",
+            "items": [
+              "Aumento de gordura abdominal",
+              "Resistência à insulina",
+              "Compulsão alimentar"
+            ]
+          },
+          {
+            "number": 3,
+            "type": "content",
+            "headline": "A ligação com a QUALIDADE do sono",
+            "accent": "QUALIDADE",
+            "body": "Noites mal dormidas elevam o cortisol, desregulam grelina (fome) e leptina (saciedade), aumentando a vontade de comer e estocar gordura.",
+            "background": "cream"
+          },
+          {
+            "number": 4,
+            "type": "content",
+            "headline": "O que você pode fazer HOJE?",
+            "accent": "HOJE",
+            "body": "Priorize 7-9h de sono, crie uma rotina relaxante antes de dormir e gerencie o estresse com atividade física e meditação.",
+            "background": "navy"
+          },
+          {
+            "number": 5,
+            "type": "cta",
+            "headline": "Quer equilibrar seus hormônios?",
+            "body": "Comente 'EQUILIBRIO' e receba um checklist para melhorar seu sono e reduzir o estresse!",
+            "cta_keyword": "EQUILIBRIO"
+          }
+        ],
+        "caption": "Você se sente constantemente cansada, estressada e com dificuldade para emagrecer, mesmo fazendo dieta e exercício? 😩 A resposta pode estar na sua cama... ou na falta de um bom sono! \n\nO cortisol, nosso hormônio do estresse, tem um papel fundamental na regulaç��o do peso e do humor. Quando ele está desregulado por noites mal dormidas ou estresse crônico, o emagrecimento vira uma batalha árdua. \n\nNo carrossel de hoje, vamos mergulhar na relação profunda entre sono, cortisol e seu objetivo de emagrecimento. Entender essa conexão é o primeiro passo para tomar o controle do seu corpo e da sua saúde de forma holística. \n\nComo está a qualidade do seu sono? Compartilhe aqui!",
+        "hashtags": "#Cortisol #SonoDeQualidade #EmagrecimentoSustentavel #Estresse #SaudeHormonal #LeandroPersonal #BemEstar #GerenciamentoDoEstresse #NoitesDeSono #CorpoEmente #MulheresSaudaveis #DicasDeEmagrecimento #HormoniosFemininos #VidaEquilibrada #PersonalTrainer"
+      },
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Priorize seu descanso: é um ato de poder!",
+          "accent": "PODER",
+          "body": "Descansar não é preguiça, é estratégia. Recarregue-se para conquistar seus sonhos com mais energia e foco. Você merece!",
+          "caption": "Em uma cultura que glorifica a correria e a privação de sono, priorizar o descanso é um ato revolucionário de autocuidado e empoderamento. Seu corpo e sua mente precisam de tempo para se recuperar, processar informações e se preparar para os desafios do dia seguinte. \n\nNão encare o descanso como uma falha, mas como um investimento na sua saúde, no seu desempenho e na sua felicidade. Uma mulher descansada é uma mulher imparável. \n\n💬 Qual a sua melhor dica para relaxar antes de dormir?",
+          "hashtags": "#Descanso #Autocuidado #BemEstar #SaudeMental #PriorizeSeuSono #MotivacaoFeminina #MulheresFortes #LeandroPersonal #VidaComProposito #PazDeEspirito #Recarregar #Empoderamento",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, comfortably curled up on a sofa with a soft blanket, reading a book, with a peaceful expression, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "💬 Qual sua dica para relaxar?"
+        },
+        {
+          "type": "educativo",
+          "headline": "Rotina Noturna: Seu ritual para um sono top!",
+          "accent": "RITUAL",
+          "body": "Crie uma rotina relaxante 1h antes de dormir: desligue telas, leia, tome um chá. Sinalize ao seu corpo que é hora de desacelerar.",
+          "caption": "Você sabia que a forma como você se prepara para dormir pode impactar diretamente a qualidade do seu sono? Uma rotina noturna consistente funciona como um sinal para o seu cérebro, dizendo que é hora de desacelerar e se preparar para o descanso. \n\nExperimente:\n1.  **Desligar telas** pelo menos 1 hora antes.\n2.  **Ler um livro** ou ouvir música relaxante.\n3.  **Tomar um banho morno** ou um chá de ervas.\n\nPequenos hábitos que transformam suas noites e, consequentemente, seus dias! Comece hoje e sinta a diferença.\n\n💾 Salve para lembrar de criar seu ritual e marque alguém que precisa de uma noite de sono melhor!",
+          "hashtags": "#RotinaNoturna #DicasDeSono #HigieneDoSono #MelhoreSeuSono #QualidadeDeVida #BemEstar #LeandroPersonal #HabitosSaudaveis #SaudeFeminina #Insônia #PersonalTrainer #SonoReparador",
+          "image_prompt": "A cozy bedroom scene with soft lighting, a book open on a bedside table next to a steaming cup of herbal tea, and a comfortable bed in the background, hyperrealistic",
+          "cta": "💾 Salve e marque alguém!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Estresse crônico aumenta gordura abdominal!",
+          "accent": "10-20%",
+          "body": "Pesquisas mostram que níveis elevados e prolongados de cortisol estão ligados ao acúmulo de gordura na região abdominal, mesmo em pessoas com peso normal.",
+          "caption": "O estresse é uma parte inevitável da vida, mas o estresse CRÔNICO pode ser um sabotador silencioso do seu emagrecimento. A ciência comprova: a exposição prolongada a altos níveis de cortisol (hormônio do estresse) leva o corpo a priorizar o acúmulo de gordura na região abdominal – aquela gordurinha que é tão difícil de perder! \n\nIsso acontece porque o corpo entende que está em uma situação de 'perigo' e precisa estocar energia. Não é culpa sua, é a biologia em ação. Por isso, gerenciar o estresse é tão crucial quanto a dieta e o treino para resultados sustentáveis.\n\n🔬 Você já sentiu o impacto do estresse no seu corpo e peso? Compartilhe sua experiência!",
+          "hashtags": "#CienciaDoEstresse #CortisolEEmagrecimento #GorduraAbdominal #SaudeMetabolica #EvidenciaCientifica #LeandroPersonal #EstresseCronico #EmagrecimentoReal #CorpoSaudavel #PersonalCientifico #BemEstarHormonal #MulheresSaudaveis",
+          "image_prompt": "A detailed illustration of the human body showing the abdominal area with a subtle glow representing fat storage, next to a diagram of cortisol molecules, in a clean, scientific aesthetic, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "🔬 Já sentiu o impacto do estresse?"
+        }
+      ]
+    },
+    "2026-03-30": {
+      "day_name": "Segunda-feira",
+      "carousel": {
+        "theme": "Proteína e Força: A Dupla Imbatível para o Emagrecimento Feminino",
+        "cta_keyword": "PROTEINA",
+        "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, lifting a moderately heavy dumbbell with good form, smiling confidently, with various protein-rich foods subtly blurred in the background, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+        "slides": [
+          {
+            "number": 1,
+            "type": "hook",
+            "headline": "Musculação te deixa 'grande'?",
+            "accent": "MITO",
+            "body": "Descubra como proteína e força transformam seu corpo e emagrecem!"
+          },
+          {
+            "number": 2,
+            "type": "content",
+            "headline": "O poder da PROTEÍNA no emagrecimento",
+            "accent": "PODER",
+            "body": "Proteína aumenta a saciedade, preserva massa muscular em déficit calórico e eleva o gasto energético na digestão (termogênese).",
+            "background": "navy",
+            "items": [
+              "Mais saciedade",
+              "Menos fome",
+              "Metabolismo ativo"
+            ]
+          },
+          {
+            "number": 3,
+            "type": "content",
+            "headline": "Treino de FORÇA: Seu corpo mais eficiente",
+            "accent": "EFICIENTE",
+            "body": "Construir massa muscular aumenta seu metabolismo basal, queimando mais calorias em repouso. É a base para um emagrecimento sustentável.",
+            "background": "cream"
+          },
+          {
+            "number": 4,
+            "type": "content",
+            "headline": "A combinação PERFEITA",
+            "accent": "PERFEITA",
+            "body": "Proteína + treino de força = corpo mais forte, definido, que queima gordura de forma mais eficaz e sustentável, sem efeito sanfona.",
+            "background": "navy"
+          },
+          {
+            "number": 5,
+            "type": "cta",
+            "headline": "Quer saber sua necessidade de proteína?",
+            "body": "Comente 'PROTEINA' e receba um guia rápido para calcular e incluir na sua rotina!",
+            "cta_keyword": "PROTEINA"
+          }
+        ],
+        "caption": "Muitas mulheres ainda têm medo de treinar força e consumir proteína, achando que vão ficar 'grandes' ou 'masculinas'. 😬 Mas a verdade é que essa dupla é a chave para um emagrecimento feminino eficiente, saudável e sustentável!\n\nNo carrossel de hoje, vamos quebrar esses mitos e mostrar como a combinação inteligente de proteína na dieta e o treino de força na academia pode transformar seu corpo, acelerar seu metabolismo e te deixar mais forte, definida e confiante. \n\nEsqueça as dietas milagrosas e o cardio interminável. O segredo está em construir um corpo que trabalha a seu favor, 24 horas por dia. \n\nVocê já treina força e se preocupa com a proteína? Me conta!",
+        "hashtags": "#Proteina #TreinoDeForca #EmagrecimentoFeminino #MusculacaoFeminina #DietaEtreino #LeandroPersonal #SaudeMetabolica #MulheresFortes #MitosDoTreino #NutricaoEsportiva #CorpoDefinido #PersonalTrainerBR #FocoNaForca #VidaSaudavel #ResultadosReais"
+      },
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Sua força te empodera. Acredite nela!",
+          "accent": "empodera",
+          "body": "Cada repetição, cada peso levantado, constrói não só músculos, mas uma mente inabalável. Sinta o poder que existe em você!",
+          "caption": "Existe uma beleza indescritível na força feminina. Não é apenas sobre levantar pesos na academia, mas sobre a força mental, a resiliência e a capacidade de superar desafios que você desenvolve. Quando você se sente fisicamente forte, essa força transborda para todas as áreas da sua vida. \n\nPermita-se sentir esse poder. Celebre cada conquista, por menor que seja. Você é capaz de muito mais do que imagina. Qual a sua maior conquista na academia até hoje?\n\n💬 Compartilhe uma conquista que te deixou orgulhosa!",
+          "hashtags": "#ForcaFeminina #Empoderamento #MotivacaoFitness #MusculacaoFeminina #MulheresFortes #LeandroPersonal #Superacao #CorpoEmente #Confianca #TreinoEsaude #InspiracaoDiaria #VidaAtiva",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, flexing her bicep lightly after completing a set of weights, with a proud and confident smile, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "💬 Compartilhe uma conquista!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Fontes de Proteína: Além do frango!",
+          "accent": "ALÉM",
+          "body": "Ovo, iogurte grego, peixes, leguminosas (lentilha, grão de bico), queijos magros e whey protein. Varie para ter todos os aminoácidos!",
+          "caption": "Proteína é essencial, mas não precisa ser monótona! Muita gente pensa só em frango, mas a variedade é a chave para uma dieta rica e completa, garantindo todos os aminoácidos essenciais para a construção muscular e a saciedade. \n\nExperimente:\n*   **Café da manhã:** Ovos mexidos ou iogurte grego com frutas.\n*   **Almoço/Jantar:** Peixe, lentilha, grão de bico em saladas.\n*   **Lanches:** Queijo cottage, whey protein.\n\nDiversifique e torne sua alimentação mais prazerosa e nutritiva!\n\n💾 Salve essa lista de ideias e marque alguém que precisa de mais proteína na dieta!",
+          "hashtags": "#FontesDeProteina #NutricaoInteligente #DietaEquilibrada #AlimentacaoSaudavel #ProteinaNaDieta #LeandroPersonal #DicasDeNutricao #EmagrecimentoSaudavel #ComidaDeVerdade #SaudeFeminina #PersonalTrainer #WheyProtein",
+          "image_prompt": "A flat lay photo of various protein-rich foods: chicken breast, eggs, Greek yogurt, lentils, salmon fillet, and a scoop of whey protein powder, arranged attractively on a rustic wooden table, with good natural lighting, hyperrealistic",
+          "cta": "💾 Salve e marque alguém!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Mulheres precisam de + proteína para músculos!",
+          "accent": "MAIS",
+          "body": "Estudos indicam que mulheres podem necessitar de ingestão proteica ligeiramente maior (1.6-2.2g/kg peso) para otimizar o ganho de massa muscular, especialmente em déficit calórico.",
+          "caption": "Contrário ao que muitos pensam, a proteína é AINDA MAIS crucial para mulheres que buscam emagrecimento e ganho de massa muscular! Pesquisas mostram que, devido a diferenças hormonais e fisiológicas, mulheres podem se beneficiar de uma ingestão proteica um pouco maior do que a recomendação geral para otimizar a síntese proteica e preservar a massa magra durante o processo de emagrecimento. \n\nIsso significa que, além de treinar força, garantir a quantidade certa de proteína é fundamental para ter um corpo mais forte, definido e com metabolismo ativo. Invista na proteína, seu corpo agradece!\n\n🔬 Você sabe qual a sua necessidade de proteína? Me conta!",
+          "hashtags": "#ProteinaParaMulheres #CienciaDoTreino #GanhoDeMassa #MusculacaoFeminina #EvidenciaCientifica #LeandroPersonal #NutricaoEsportiva #EmagrecimentoCientifico #SaudeFeminina #PersonalCientifico #TreinoFeminino #ConsumoProteico",
+          "image_prompt": "A scientific diagram illustrating protein synthesis in muscle cells, with female anatomical outlines, in a clean, modern lab aesthetic, warm coral orange rim light, dark navy blue moody background, hyperrealistic",
+          "cta": "🔬 Você sabe sua necessidade de proteína?"
+        }
+      ]
+    },
+    "2026-03-31": {
+      "day_name": "Terça-feira",
+      "carousel": {
+        "theme": "Metabolismo Feminino e Emagrecimento Sustentável",
+        "cta_keyword": "METABOLISMO",
+        "image_prompt": "A Brazilian fitness woman in her 30s, athletic build, natural appearance, looking thoughtfully at a complex diagram showing metabolic pathways, warm coral orange rim light, dark navy blue moody background, hyperrealistic, intricate details, scientific yet approachable feel.",
+        "slides": [
+          {
+            "number": 1,
+            "type": "hook",
+            "headline": "Seu Metabolismo: O GUIA Oculto do Emagrecimento",
+            "accent": "GUIA",
+            "body": "Desvende por que dietas falham e como seu corpo realmente funciona!"
+          },
+          {
+            "number": 2,
+            "type": "content",
+            "headline": "A Adaptação Metabólica Feminina",
+            "accent": "Adaptação",
+            "body": "Seu corpo é inteligente. Restrição extrema leva à economia de energia.",
+            "background": "navy",
+            "items": [
+              "Hormônios flutuantes",
+              "Resposta ao estresse",
+              "Conservação de energia"
+            ]
+          },
+          {
+            "number": 3,
+            "type": "content",
+            "headline": "Calorias não são a ÚNICA métrica",
+            "accent": "ÚNICA",
+            "body": "A qualidade do que você come impacta muito mais do que a quantidade. Pense em nutrientes!",
+            "background": "cream"
+          },
+          {
+            "number": 4,
+            "type": "content",
+            "headline": "O Efeito Sanfona: Um Ciclo Vicioso",
+            "accent": "Vicioso",
+            "body": "Dietas restritivas podem diminuir seu gasto energético basal, dificultando o emagrecimento a longo prazo.",
+            "background": "navy"
+          },
+          {
+            "number": 5,
+            "type": "cta",
+            "headline": "Quer entender seu metabolismo de vez?",
+            "body": "Comente 'METABOLISMO' e receba um mini-guia gratuito sobre como otimizá-lo!",
+            "cta_keyword": "METABOLISMO"
+          }
+        ],
+        "caption": "Você já se sentiu frustrada com dietas que parecem funcionar para todo mundo, menos para você? 🤔 O segredo pode estar no seu metabolismo feminino! Ele não é uma máquina simples de 'calorias in, calorias out'. Nosso corpo é complexo, adaptável e influenciado por hormônios, estresse e até mesmo nosso ciclo. Entender como ele realmente funciona é o primeiro passo para um emagrecimento sustentável e sem sofrimento. Não se culpe, o problema não é você, mas a abordagem errada. Quer aprender a trabalhar a favor do seu corpo? Comente 'METABOLISMO' e eu te envio um guia prático para começar essa jornada de autoconhecimento e transformação! 👇",
+        "hashtags": "#MetabolismoFeminino #EmagrecimentoSustentavel #SaudeDaMulher #CorpoFeminino #PersonalTrainer #LeandroPersonal #EmagrecimentoMetabolico #DietaSemSofrimento #NutricaoFeminina #BemEstarFeminino #VidaSaudavel #HormoniosFemininos #ReeducacaoAlimentar #TreinoParaMulheres #Metabolismo #DesvendandoOCorpo #SaudeHormonal #MulheresReais #CorpoEmDia #VidaEquilibrada"
+      },
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Você é mais forte do que imagina. Acredite!",
+          "accent": "forte",
+          "body": "Cada passo, por menor que seja, te aproxima da sua melhor versão. Confie no processo.",
+          "caption": "Quantas vezes você já se sentiu desmotivada por não ver resultados imediatos ou por escorregar na rotina? Eu sei que a jornada do emagrecimento e do autoconhecimento pode ser desafiadora. Mas quero te lembrar: a sua força está na sua resiliência, na sua capacidade de recomeçar e de aprender com cada experiência. Não se compare, celebre sua própria evolução. O que te faz sentir mais forte hoje?",
+          "hashtags": "#MotivacaoFeminina #ForcaInterior #EmpoderamentoFeminino #AcrediteEmVoce #SaudeMental #BemEstar #FocoNoProcesso #AutoCuidado #JornadaDeEmagrecimento #VidaComProposito #MulheresQueTreinam #LeandroPersonal",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, doing a powerful pose after a workout, sweat glistening slightly, a determined yet joyful expression, warm coral orange rim light, dark navy blue moody background, hyperrealistic.",
+          "cta": "💬 Compartilhe sua maior motivação nos comentários!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Proteína: Sua Aliada Essencial para Saciedade e Metabolismo",
+          "accent": "Proteína",
+          "body": "Consumir proteína em todas as refeições ajuda a controlar o apetite e manter a massa muscular.",
+          "caption": "A proteína é um macronutriente FUNDAMENTAL, especialmente para as mulheres que buscam emagrecimento e saúde metabólica. Ela não só promove uma saciedade duradoura, evitando aqueles picos de fome, mas também é crucial para a manutenção da massa magra – que é um motor importante do seu metabolismo. Inclua fontes como ovos, frango, peixe, leguminosas e laticínios em suas refeições. Você sabe a quantidade de proteína que deveria consumir por dia?",
+          "hashtags": "#Proteina #NutricaoInteligente #EmagrecimentoSaudavel #SaudeMetabolica #Saciedade #MassaMuscular #DicaDeNutricao #AlimentacaoSaudavel #MulheresAtivas #LeandroPersonal #ReeducacaoAlimentar #FitnessFeminino",
+          "image_prompt": "A visually appealing, hyperrealistic flat lay shot of a balanced meal rich in protein: grilled chicken breast, quinoa, colorful roasted vegetables (broccoli, bell peppers, sweet potato), and a side of mixed greens, on a rustic wooden table, natural soft lighting.",
+          "cta": "💾 Salve para suas próximas refeições e marque uma amiga!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Estresse e Gordura Abdominal: A Conexão do Cortisol",
+          "accent": "Cortisol",
+          "body": "Estudos mostram que o estresse crônico eleva o cortisol, favorecendo o acúmulo de gordura na região abdominal.",
+          "caption": "Você sabia que o estresse pode ser um sabotador silencioso do seu emagrecimento? 📊 O hormônio cortisol, liberado em excesso devido ao estresse crônico, tem uma ligação direta com o acúmulo de gordura visceral, especialmente na região abdominal, que é mais comum em mulheres. Isso acontece porque o cortisol pode aumentar o apetite, a preferência por alimentos calóricos e afetar a sensibilidade à insulina. Não subestime o poder de gerenciar o estresse para a sua saúde e composição corporal. Como você lida com o estresse no seu dia a dia?",
+          "hashtags": "#Cortisol #Estresse #GorduraAbdominal #SaudeHormonal #CienciaDoEmagrecimento #EmagrecimentoFeminino #BemEstarMental #Hormonios #LeandroPersonal #MenteECorpo #FisiologiaFeminina #GestaoDeEstresse",
+          "image_prompt": "A Brazilian fitness woman in her 30s, athletic build, natural appearance, practicing deep breathing or meditation in a peaceful, minimalist room, soft natural light streaming in, a calm and serene expression, warm coral orange rim light, dark navy blue moody background, hyperrealistic.",
+          "cta": "🔬 Você já percebeu essa relação no seu corpo?"
+        }
+      ]
+    },
+    "2026-04-01": {
+      "day_name": "Quarta-feira",
+      "carousel": {
+        "theme": "Treino Otimizado Pelo Ciclo Menstrual",
+        "cta_keyword": "CICLO",
+        "image_prompt": "A Brazilian fitness woman in her 30s, athletic build, natural appearance, confidently lifting weights in a modern gym, a subtle infographic overlay illustrating menstrual cycle phases and corresponding energy levels, warm coral orange rim light, dark navy blue moody background, hyperrealistic.",
+        "slides": [
+          {
+            "number": 1,
+            "type": "hook",
+            "headline": "Seu Ciclo Menstrual: GUIA para Treinos Mais Eficazes!",
+            "accent": "GUIA",
+            "body": "Aproveite a força hormonal de cada fase para maximizar seus resultados."
+          },
+          {
+            "number": 2,
+            "type": "content",
+            "headline": "Fase Folicular: Sua Força em ALTA",
+            "accent": "ALTA",
+            "body": "Após a menstruação, estrogênio sobe. É hora de treinos de força intensos e PRs!",
+            "background": "navy",
+            "items": [
+              "Maior tolerância à dor",
+              "Melhora da força",
+              "Recuperação mais rápida"
+            ]
+          },
+          {
+            "number": 3,
+            "type": "content",
+            "headline": "Ovulação: PICO de Energia e Disposição",
+            "accent": "PICO",
+            "body": "Curto período com alta performance. Ótimo para treinos explosivos e cardio intenso.",
+            "background": "cream"
+          },
+          {
+            "number": 4,
+            "type": "content",
+            "headline": "Fase Lútea: Mais FOCO na Recuperação",
+            "accent": "FOCO",
+            "body": "Progesterona alta: menos energia, corpo mais sensível. Reduza a intensidade, priorize a recuperação e mobilidade.",
+            "background": "navy"
+          },
+          {
+            "number": 5,
+            "type": "cta",
+            "headline": "Pronta para treinar em harmonia com seu corpo?",
+            "body": "Comente 'CICLO' para receber meu guia completo de treino por fase menstrual!",
+            "cta_keyword": "CICLO"
+          }
+        ],
+        "caption": "Já parou para pensar que seu corpo feminino é uma orquestra hormonal, e que você pode usar isso a seu favor nos treinos? 🎶 Treinar sem entender seu ciclo menstrual é como remar contra a corrente! Cada fase traz uma flutuação hormonal que impacta diretamente sua energia, força e capacidade de recuperação. Adaptar seu treino a essas mudanças não é frescura, é inteligência e ciência! Quer parar de lutar contra seu corpo e começar a trabalhar com ele? Comente 'CICLO' e eu te ajudo a decifrar esse mapa de poder interno! 💪",
+        "hashtags": "#TreinoPorCiclo #CicloMenstrual #SaudeFeminina #HormoniosFemininos #FitnessFeminino #TreinoInteligente #PersonalTrainer #LeandroPersonal #EmagrecimentoFeminino #MulheresQueTreinam #GinecologiaNatural #BemEstarFeminino #FisiologiaFeminina #CorpoEmDia #VidaSaudavel #Autoconhecimento #PicoDeForca #FaseLutea #FaseFolicular #Ovulacao"
+      },
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Sua força não está só nos músculos, mas na sua história!",
+          "accent": "história",
+          "body": "Cada desafio superado te torna mais forte. Celebre sua jornada e seu poder interior.",
+          "caption": "Muitas vezes, focamos apenas na força física, nos números do treino ou na balança. Mas a verdadeira força de uma mulher vai muito além disso! Ela está na sua resiliência para enfrentar os desafios do dia a dia, na sua capacidade de cuidar de si e dos outros, na sua determinação para buscar seus objetivos, mesmo quando tudo parece difícil. Lembre-se de todo o caminho que você já percorreu. O que te faz sentir verdadeiramente forte hoje?",
+          "hashtags": "#ForcaFeminina #Empoderamento #MotivacaoDiaria #SaudeIntegral #MulheresReais #JornadaDeVida #Resiliencia #Autoestima #BemEstarFeminino #LeandroPersonal #CorpoMente #InspiracaoFeminina",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, looking confidently into the distance on a mountain trail at sunrise, a sense of accomplishment and peace, warm coral orange rim light, dark navy blue moody background, hyperrealistic.",
+          "cta": "💬 Compartilhe uma conquista que te deixou orgulhosa!"
+        },
+        {
+          "type": "educativo",
+          "headline": "Hidratação Além da Água: Eletrólitos e Seu Ciclo",
+          "accent": "Eletrólitos",
+          "body": "A hidratação ideal para mulheres vai além da água, especialmente durante o ciclo menstrual. Eletrólitos são cruciais.",
+          "caption": "Você sabia que a hidratação é um pilar fundamental para o emagrecimento e o equilíbrio hormonal, e que ela muda ao longo do seu ciclo? 💧 Não é só sobre beber água! Durante certas fases do ciclo, como a fase lútea (pré-menstrual), nosso corpo pode ter uma maior retenção de líquidos e, paradoxalmente, uma necessidade maior de eletrólitos como sódio, potássio e magnésio para o bom funcionamento celular. Garanta uma hidratação inteligente com água e, se necessário, fontes naturais de eletrólitos (água de coco, frutas). Como anda sua hidratação?",
+          "hashtags": "#Hidratacao #Eletrólitos #CicloMenstrual #SaudeFeminina #BemEstarHormonal #DicaDeSaude #Agua #NutricaoFuncional #EmagrecimentoSaudavel #LeandroPersonal #CorpoHidratado #MulheresEmForma",
+          "image_prompt": "A refreshing glass of water with ice, lemon slices, and a few mint leaves, beside a handful of colorful berries (strawberries, blueberries, raspberries) and a small bowl of nuts, on a light wooden table, bright and natural lighting, hyperrealistic.",
+          "cta": "💾 Salve essa dica e marque uma amiga para se hidratar junto!"
+        },
+        {
+          "type": "mitos",
+          "headline": "MITO: Carboidrato à noite engorda! VERDADE: É o contexto que importa.",
+          "accent": "MITO",
+          "body": "A ideia de que carboidratos à noite são vilões do emagrecimento é um mito. O total calórico diário e a qualidade importam mais.",
+          "caption": "Chega de terrorismo nutricional! 🚫 O mito de que comer carboidratos à noite engorda é um dos mais persistentes. A verdade é que o ganho de peso está muito mais relacionado ao balanço calórico total do seu dia e à qualidade dos alimentos que você consome, do que ao horário da ingestão do carboidrato. Carboidratos complexos à noite podem até auxiliar na qualidade do sono e recuperação muscular. Pare de se privar e aprenda a comer com inteligência. Você ainda acredita nesse mito?",
+          "hashtags": "#MitosDaDieta #Carboidrato #NutricaoSemTerrorismo #EmagrecimentoConsciente #DietaFlexivel #SaudeEBemEstar #ComidaDeVerdade #LeandroPersonal #Desmistificando #AlimentacaoSaudavel #EmagrecimentoSemSofrimento #InteligenciaNutricional",
+          "image_prompt": "A stylized 'myth' vs 'fact' graphic. On one side, a cartoon plate with a worried face looking at a bowl of pasta at night. On the other side, a realistic, appealing bowl of whole wheat pasta with light tomato sauce and vegetables, natural light, warm inviting colors, hyperrealistic.",
+          "cta": "💬 Qual mito você quer que eu desmistifique em seguida?"
+        }
+      ]
+    },
+    "2026-04-02": {
+      "day_name": "Quinta-feira",
+      "carousel": {
+        "theme": "Sono, Hormônios e Emagrecimento Sustentável",
+        "cta_keyword": "SONO",
+        "image_prompt": "A Brazilian fitness woman in her 30s, athletic build, natural appearance, peacefully asleep in a cozy, dim-lit bedroom, soft lighting from a bedside lamp, a subtle overlay showing brain waves or hormone symbols (ghrelin, leptin, cortisol) in a scientific yet artistic way, warm coral orange rim light, dark navy blue moody background, hyperrealistic.",
+        "slides": [
+          {
+            "number": 1,
+            "type": "hook",
+            "headline": "O Sono Secreto do Emagrecimento: Seus Hormônios Agem À Noite!",
+            "accent": "Secreto",
+            "body": "Descubra como a qualidade do seu sono molda seu corpo e apetite."
+          },
+          {
+            "number": 2,
+            "type": "content",
+            "headline": "Ghrelina e Leptina: O Diálogo da Fome",
+            "accent": "Fome",
+            "body": "Pouco sono desregula esses hormônios: mais fome (ghrelina), menos saciedade (leptina).",
+            "background": "navy",
+            "items": [
+              "Ghrelina (hormônio da fome) ↑",
+              "Leptina (hormônio da saciedade) ↓",
+              "Aumento do desejo por doces"
+            ]
+          },
+          {
+            "number": 3,
+            "type": "content",
+            "headline": "Cortisol: O Estresse Noturno",
+            "accent": "Noturno",
+            "body": "Privação de sono eleva o cortisol, dificultando a perda de gordura e aumentando o estresse corporal.",
+            "background": "cream"
+          },
+          {
+            "number": 4,
+            "type": "content",
+            "headline": "Hormônio do Crescimento: O REGENERADOR",
+            "accent": "REGENERADOR",
+            "body": "Liberado durante o sono profundo, essencial para a recuperação muscular e queima de gordura. Não o subestime!",
+            "background": "navy"
+          },
+          {
+            "number": 5,
+            "type": "cta",
+            "headline": "Pronta para revolucionar seu emagrecimento pelo sono?",
+            "body": "Comente 'SONO' e receba um checklist para melhorar sua higiene do sono hoje mesmo!",
+            "cta_keyword": "SONO"
+          }
+        ],
+        "caption": "Você sabia que seu travesseiro pode ser o seu maior aliado no emagrecimento? 😴 Muitas vezes, focamos apenas em dieta e treino, mas negligenciamos um pilar fundamental: o sono. Enquanto você dorme, seu corpo está trabalhando arduamente para regular hormônios essenciais como a ghrelina (fome), leptina (saciedade), cortisol (estresse) e o hormônio do crescimento (reparação e queima de gordura). Um sono de qualidade não é luxo, é necessidade para um metabolismo otimizado e um emagrecimento sustentável. Quer desvendar os segredos de uma boa noite de sono para o seu corpo? Comente 'SONO' e eu te envio um guia prático! 👇",
+        "hashtags": "#SonoDeQualidade #EmagrecimentoHormonal #SaudeDoSono #HormoniosDoSono #BemEstarFeminino #Metabolismo #Cortisol #Ghrelina #Leptina #HormonioDoCrescimento #LeandroPersonal #VidaSaudavel #HigieneDoSono #CorpoEmente #SaudeDaMulher #EmagrecimentoSustentavel #MelhoreSeuSono #FitnessFeminino #QualidadeDeVida #DormirBem"
+      },
+      "posts": [
+        {
+          "type": "motivacional",
+          "headline": "Consistência é a CHAVE. Um passo de cada vez!",
+          "accent": "CHAVE",
+          "body": "Grandes transformações vêm de pequenos hábitos repetidos diariamente. Não desista!",
+          "caption": "Muitas vezes, a gente busca aquela 'virada de chave' mágica, mas a verdade é que o segredo está na consistência. Não é sobre ser perfeita o tempo todo, mas sobre não parar. Um treino feito, uma refeição saudável escolhida, uma noite de sono bem dormida... cada pequena ação soma e constrói a mulher forte e saudável que você quer ser. Lembre-se: o importante é a direção, não a velocidade. O que você fará hoje para ser consistente?",
+          "hashtags": "#Consistencia #Foco #MotivacaoFitness #EmagrecimentoReal #PequenosPassos #HbitosSaudaveis #PersonalTrainer #LeandroPersonal #ResilienciaFeminina #Disciplina #Autocuidado #TransformacaoPessoal",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, tying her running shoe laces with a determined expression, a soft morning light filtering through a window, symbolizing a new start, warm coral orange rim light, dark navy blue moody background, hyperrealistic.",
+          "cta": "💬 Me conte: qual seu próximo pequeno passo?"
+        },
+        {
+          "type": "educativo",
+          "headline": "Treino de Força: O Aliado Essencial para Mulheres",
+          "accent": "Força",
+          "body": "O treino de força é crucial para o metabolismo feminino, saúde óssea e composição corporal, muito além da estética.",
+          "caption": "Chega de medo de ficar 'masculinizada'! 💪 O treino de força é um dos pilares mais importantes para a saúde e o emagrecimento feminino. Ele não só aumenta sua massa muscular (acelerando seu metabolismo basal!) e melhora sua composição corporal, como também fortalece seus ossos, previne osteoporose e te dá mais autonomia e qualidade de vida. Esqueça o mito do volume excessivo, e abrace a força que já existe em você. Você já incluiu o treino de força na sua rotina?",
+          "hashtags": "#TreinoDeForca #MusculacaoFeminina #SaudeOssea #MetabolismoAcelerado #EmagrecimentoSaudavel #MulheresFortes #FitnessParaMulheres #PersonalTrainer #LeandroPersonal #ForcaFeminina #ComposicaoCorporal #VidaAtiva",
+          "image_prompt": "Brazilian fitness woman in her 30s, athletic build, natural appearance, performing a dumbbell squat with excellent form, focused and strong, in a well-equipped gym, warm coral orange rim light, dark navy blue moody background, hyperrealistic.",
+          "cta": "💾 Salve essa dica e marque uma amiga que precisa treinar força!"
+        },
+        {
+          "type": "cientifico",
+          "headline": "Açúcar e Emagrecimento Feminino: Impacto na Insulina",
+          "accent": "Insulina",
+          "body": "O consumo excessivo de açúcar eleva os níveis de insulina, dificultando a queima de gordura e favorecendo o acúmulo em mulheres.",
+          "caption": "Você sabia que o açúcar pode ser um grande sabotador do seu emagrecimento e da sua saúde hormonal? 📉 Quando consumimos açúcar em excesso, nosso corpo libera muita insulina para regular os níveis de glicose no sangue. Níveis cronicamente altos de insulina podem levar à resistência à insulina, dificultando a queima de gordura e favorecendo o seu acúmulo, especialmente na região abdominal. Isso é ainda mais relevante para as mulheres, devido às particularidades hormonais. Fique atenta aos açúcares 'escondidos' nos alimentos! Você já tentou reduzir o açúcar?",
+          "hashtags": "#Acucar #ResistenciaAInsulina #EmagrecimentoFeminino #SaudeHormonal #Metabolismo #NutricaoCientifica #DicaDeNutricao #AlimentacaoConsciente #DiabetesTipo2 #LeandroPersonal #MulheresSaudaveis #SemAcucar",
+          "image_prompt": "A close-up, hyperrealistic shot of a teaspoon overflowing with white granulated sugar, next to a processed snack bar with a nutrition label prominently displaying high sugar content, against a dark, slightly blurred background, warm coral orange rim light.",
+          "cta": "🔬 Qual sua opinião sobre o consumo de açúcar hoje?"
+        }
+      ]
+    }
+  }
+}
