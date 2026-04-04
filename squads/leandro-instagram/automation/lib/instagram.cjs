@@ -197,4 +197,41 @@ async function publishStory(imageUrl, token, userId) {
   return published.id;
 }
 
-module.exports = { publishPost, publishReel, publishStory, refreshTokenIfNeeded, loadEnv };
+/**
+ * Publica carrossel de imagens no feed do Instagram.
+ * @param {string[]} imageUrls - URLs públicas das imagens (2 a 10)
+ * @param {string}   caption   - Legenda do post
+ * @param {string}   token     - Access token
+ * @param {string}   userId    - Instagram User ID
+ */
+async function publishCarousel(imageUrls, caption, token, userId) {
+  // Passo 1: Cria container individual para cada imagem
+  const childIds = [];
+  for (const url of imageUrls) {
+    const child = await apiPost(`${userId}/media`, {
+      image_url: url,
+      is_carousel_item: 'true'
+    }, token);
+    childIds.push(child.id);
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  // Passo 2: Cria container do carrossel
+  const carousel = await apiPost(`${userId}/media`, {
+    media_type: 'CAROUSEL',
+    caption:    caption,
+    children:   childIds.join(',')
+  }, token);
+
+  // Passo 3: Aguarda processamento
+  await new Promise(r => setTimeout(r, 8000));
+
+  // Passo 4: Publica
+  const published = await apiPost(`${userId}/media_publish`, {
+    creation_id: carousel.id
+  }, token);
+
+  return published.id;
+}
+
+module.exports = { publishPost, publishReel, publishStory, publishCarousel, refreshTokenIfNeeded, loadEnv };

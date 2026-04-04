@@ -256,6 +256,66 @@ async function renderHTML(htmlContent, outputPath, width = 1080, height = 1440) 
   try { fs.unlinkSync(tmpFile); } catch {}
 }
 
+// ─── TEMPLATES: CARROSSEL DE POST (4:5 — 1080×1350) ──────────────────────────
+// Slide 2: Detalhes/pontos principais do tema
+function postCarouselSlide2(data, bgPath) {
+  const bgUrl = imgToDataUrl(bgPath);
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1350px; font-family:'Inter',sans-serif; overflow:hidden; position:relative; background:#0D1020; }
+  .bg { position:absolute; inset:0; background-image:url('${bgUrl}'); background-size:cover; background-position:center top; }
+  .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(13,16,32,0.15) 0%, rgba(13,16,32,0.88) 60%, rgba(13,16,32,0.98) 100%); }
+  .content { position:relative; z-index:10; width:100%; height:100%; display:flex; flex-direction:column; justify-content:flex-end; padding:72px; }
+  .handle { position:absolute; top:50px; right:72px; font-size:28px; color:rgba(248,246,241,0.65); }
+  .tag { display:inline-block; background:#E8614A; color:#fff; font-size:22px; font-weight:700; padding:8px 24px; border-radius:100px; text-transform:uppercase; letter-spacing:2px; margin-bottom:28px; align-self:flex-start; }
+  h2 { font-size:72px; font-weight:900; color:#F8F6F1; line-height:1.05; margin-bottom:32px; }
+  .points { display:flex; flex-direction:column; gap:20px; }
+  .point { display:flex; align-items:flex-start; gap:20px; }
+  .dot { width:12px; height:12px; background:#E8614A; border-radius:50%; margin-top:14px; flex-shrink:0; }
+  .point-text { font-size:36px; color:rgba(248,246,241,0.85); line-height:1.5; }
+</style></head><body>
+  <div class="bg"></div><div class="overlay"></div>
+  <div class="content">
+    <span class="handle">@leandro_personall</span>
+    <span class="tag">Saiba mais</span>
+    <h2>${escapeHtml(data.headline)}</h2>
+    <div class="points">
+      ${(data.points || []).map(p => `<div class="point"><div class="dot"></div><p class="point-text">${escapeHtml(p)}</p></div>`).join('')}
+    </div>
+  </div>
+</body></html>`;
+}
+
+// Slide 3: CTA — salvar e seguir
+function postCarouselSlide3(data, bgPath) {
+  const bgUrl = imgToDataUrl(bgPath);
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1350px; font-family:'Inter',sans-serif; overflow:hidden; position:relative; background:#0D1020; }
+  .bg { position:absolute; inset:0; background-image:url('${bgUrl}'); background-size:cover; background-position:center top; }
+  .overlay { position:absolute; inset:0; background:linear-gradient(to bottom, rgba(13,16,32,0.65) 0%, rgba(13,16,32,0.88) 100%); }
+  .content { position:relative; z-index:10; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px; text-align:center; }
+  .handle { position:absolute; top:50px; right:72px; font-size:28px; color:rgba(248,246,241,0.65); }
+  h2 { font-size:82px; font-weight:900; color:#F8F6F1; line-height:1.05; margin-bottom:36px; }
+  .sub { font-size:38px; color:rgba(248,246,241,0.80); line-height:1.5; margin-bottom:60px; }
+  .btn { background:#E8614A; color:#fff; font-size:36px; font-weight:900; padding:32px 72px; border-radius:100px; margin-bottom:28px; }
+  .btn2 { border:2px solid rgba(248,246,241,0.4); color:rgba(248,246,241,0.85); font-size:32px; font-weight:600; padding:24px 60px; border-radius:100px; }
+</style></head><body>
+  <div class="bg"></div><div class="overlay"></div>
+  <div class="content">
+    <span class="handle">@leandro_personall</span>
+    <h2>${escapeHtml(data.headline)}</h2>
+    <p class="sub">${escapeHtml(data.body)}</p>
+    <div class="btn">💾 Salva esse post!</div>
+    <div class="btn2">Segue @leandro_personall</div>
+  </div>
+</body></html>`;
+}
+
 // ─── TEMPLATES: 4 SLIDES DE REEL ─────────────────────────────────────────────
 // Slide 1 — Gancho/Pergunta: fundo escuro dramático, pergunta grande centralizada
 
@@ -365,4 +425,4 @@ function reelSlide4CTA(data, bgPath) {
 </body></html>`;
 }
 
-module.exports = { reelPost, recipeDicaReel, singlePost, storyPost, renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA };
+module.exports = { reelPost, recipeDicaReel, singlePost, storyPost, renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA, postCarouselSlide2, postCarouselSlide3 };

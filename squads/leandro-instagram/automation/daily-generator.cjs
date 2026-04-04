@@ -21,7 +21,7 @@ const path = require('path');
 })();
 
 const { generateImage, generateFoodImage } = require('./lib/kie.cjs');
-const { reelPost, recipeDicaReel, singlePost, renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA } = require('./lib/renderer.cjs');
+const { reelPost, recipeDicaReel, singlePost, renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA, postCarouselSlide2, postCarouselSlide3 } = require('./lib/renderer.cjs');
 const { generateSmartHTML } = require('./lib/claude-renderer.cjs');
 const { getNextRecipe, getBankStatus } = require('./lib/recipe-manager.cjs');
 
@@ -180,6 +180,43 @@ Responda APENAS com JSON válido, sem texto extra:
   return JSON.parse(match[0]);
 }
 
+// ─── GERADOR DE CONTEÚDO DO CARROSSEL VIA CLAUDE ─────────────────────────────
+
+async function generateCarouselContent(post) {
+  const Anthropic = require('C:/Users/lelus/OneDrive/Pictures/BioNexus Digital/node_modules/@anthropic-ai/sdk');
+  const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino.
+
+Post do feed: "${post.headline || post.title}"
+Tipo: ${post.type}
+Corpo do post: ${post.body || post.caption || ''}
+
+Gere o conteúdo do slide 2 do carrossel (lista de pontos práticos) em português.
+Responda APENAS com JSON válido:
+
+{
+  "title": "Título curto do slide 2 (máx 5 palavras, ex: 'Por que isso funciona?')",
+  "points": [
+    "Ponto prático 1 (máx 10 palavras)",
+    "Ponto prático 2 (máx 10 palavras)",
+    "Ponto prático 3 (máx 10 palavras)",
+    "Ponto prático 4 (máx 10 palavras)"
+  ]
+}`;
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 400,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  const text = response.content[0].text.trim();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Claude não retornou JSON válido para carrossel');
+  return JSON.parse(match[0]);
+}
+
 // ─── GERADOR DE REELS ────────────────────────────────────────────────────────
 
 async function generateReels(reels, outputDir) {
@@ -251,33 +288,66 @@ async function generateDicaReel(dica, outputDir) {
 // ─── GERADOR DE POST ÚNICO ────────────────────────────────────────────────────
 
 async function generatePost(post, index, outputDir) {
-  log(`  Gerando post ${index} (${post.type})...`);
+  log(`  Gerando post ${index} (${post.type}) — carrossel 3 slides...`);
   ensureDir(outputDir);
 
-  const bgPath = path.join(TEMP_DIR, `post-bg-${index}-${Date.now()}.png`);
-  log(`  → Gerando imagem (Kie.ai Flux)...`);
-  await generateImage(post.image_prompt, bgPath);
+  // ── Slide 1: imagem principal com headline ────────────────────────────────
+  const bg1Path = path.join(TEMP_DIR, `post-bg-${index}-s1-${Date.now()}.png`);
+  log(`  → Slide 1: gerando imagem (Kie.ai Flux)...`);
+  await generateImage(post.image_prompt, bg1Path);
 
-  let html, strategy;
+  let html1, strategy;
   try {
-    const result = await generateSmartHTML(post, bgPath, 'post');
-    html = result.html;
+    const result = await generateSmartHTML(post, bg1Path, 'post');
+    html1 = result.html;
     strategy = result.strategy;
-    log(`  → Layout gerado via Claude (${strategy})`);
+    log(`  → Slide 1: layout via Claude (${strategy})`);
   } catch (err) {
-    log(`  → Claude renderer falhou, usando template padrão: ${err.message}`);
-    html = singlePost(post, bgPath);
+    log(`  → Slide 1: Claude renderer falhou, usando template padrão: ${err.message}`);
+    html1 = singlePost(post, bg1Path);
   }
-
-  const pngName = `post-${index}-${post.type}.png`;
-  await renderHTML(html, path.join(outputDir, pngName));
+  const slide1Name = `post-${index}-slide1.png`;
+  await renderHTML(html1, path.join(outputDir, slide1Name));
 
   // Salva foto bruta para o story usar como fundo (sem texto)
   const rawName = `post-${index}-raw.png`;
-  fs.copyFileSync(bgPath, path.join(outputDir, rawName));
+  fs.copyFileSync(bg1Path, path.join(outputDir, rawName));
+  if (fs.existsSync(bg1Path)) fs.unlinkSync(bg1Path);
 
-  if (fs.existsSync(bgPath)) fs.unlinkSync(bgPath);
-  log(`  → Post ${index} pronto: ${pngName}`);
+  // ── Slide 2: lista de pontos práticos ────────────────────────────────────
+  const bg2Path = path.join(TEMP_DIR, `post-bg-${index}-s2-${Date.now()}.png`);
+  log(`  → Slide 2: gerando imagem e conteúdo...`);
+  await generateImage(post.image_prompt, bg2Path);
+
+  let carouselData;
+  try {
+    carouselData = await generateCarouselContent(post);
+  } catch (err) {
+    log(`  → Claude carrossel falhou, usando fallback: ${err.message}`);
+    carouselData = {
+      title: 'Como aplicar isso',
+      points: ['Consistência acima de tudo', 'Foco no processo, não no resultado', 'Pequenos passos diários', 'Celebre cada conquista']
+    };
+  }
+
+  // postCarouselSlide2 espera data.headline (não title)
+  const slide2Data = { headline: carouselData.title, points: carouselData.points };
+  const html2 = postCarouselSlide2(slide2Data, bg2Path);
+  const slide2Name = `post-${index}-slide2.png`;
+  await renderHTML(html2, path.join(outputDir, slide2Name));
+  if (fs.existsSync(bg2Path)) fs.unlinkSync(bg2Path);
+
+  // ── Slide 3: CTA de salvar e seguir ──────────────────────────────────────
+  const bg3Path = path.join(TEMP_DIR, `post-bg-${index}-s3-${Date.now()}.png`);
+  log(`  → Slide 3: gerando imagem CTA...`);
+  await generateImage(post.image_prompt, bg3Path);
+
+  const html3 = postCarouselSlide3({ headline: 'Gostou do conteúdo?', body: 'Salva para não esquecer e compartilha com quem precisa!' }, bg3Path);
+  const slide3Name = `post-${index}-slide3.png`;
+  await renderHTML(html3, path.join(outputDir, slide3Name));
+  if (fs.existsSync(bg3Path)) fs.unlinkSync(bg3Path);
+
+  log(`  → Post ${index} pronto: ${slide1Name} + ${slide2Name} + ${slide3Name}`);
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────

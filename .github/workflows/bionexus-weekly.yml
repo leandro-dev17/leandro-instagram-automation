@@ -93,3 +93,16 @@ jobs:
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Gerar dashboard de métricas
+        run: node dashboard-generator.cjs
+        working-directory: squads/leandro-instagram/automation
+      - name: Commitar dashboard atualizado
+        run: |
+          git add squads/leandro-instagram/automation/dashboard/
+          git diff --staged --quiet || git commit -m "chore: dashboard atualizado $(date +%Y-%m-%d)"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Enviar relatório semanal ao Telegram
+        run: node weekly-report.cjs
+        working-directory: squads/leandro-instagram/automation

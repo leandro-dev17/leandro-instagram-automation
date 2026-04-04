@@ -14,7 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 const { uploadImage } = require('./lib/cloudinary.cjs');
-const { publishPost, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
+const { publishPost, publishCarousel, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
 const { notifyPost, notifyError } = require('./lib/telegram.cjs');
 
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
@@ -90,14 +90,20 @@ async function main() {
   }
 
   const files = fs.readdirSync(outDir);
-  const imgFile = files.find(f => f.startsWith(`post-${postIndex}-`) && f.endsWith('.png'));
-  if (!imgFile) {
-    log(`ERRO: Imagem post-${postIndex}-*.png não encontrada em ${outDir}`);
+
+  // Detecta se há slides de carrossel (post-X-slide1.png, post-X-slide2.png, post-X-slide3.png)
+  const slide1File = files.find(f => f === `post-${postIndex}-slide1.png`);
+  const slide2File = files.find(f => f === `post-${postIndex}-slide2.png`);
+  const slide3File = files.find(f => f === `post-${postIndex}-slide3.png`);
+  const isCarousel = !!(slide1File && slide2File && slide3File);
+
+  // Fallback: imagem única (formato legado)
+  const singleFile = !isCarousel ? files.find(f => f.startsWith(`post-${postIndex}-`) && f.endsWith('.png') && !f.includes('raw')) : null;
+
+  if (!isCarousel && !singleFile) {
+    log(`ERRO: Imagem(ns) do post ${postIndex} não encontrada(s) em ${outDir}`);
     process.exit(1);
   }
-
-  const imgPath = path.join(outDir, imgFile);
-  log(`Imagem: ${imgFile}`);
 
   // Carrega credenciais e renova token se necessário
   const env = loadEnv();
@@ -110,27 +116,51 @@ async function main() {
   const token = await refreshTokenIfNeeded(env);
   const userId = env.INSTAGRAM_USER_ID;
 
-  // Upload para Cloudinary
-  log('');
-  log('📤 Fazendo upload para Cloudinary...');
-  const imageUrl = await uploadImage(imgPath);
-  log(`✅ URL pública: ${imageUrl}`);
-
   // Monta caption
   const caption = `${post.caption}\n\n${post.hashtags}`;
   log(`Caption: ${caption.slice(0, 80)}...`);
 
-  // Publica no Instagram
-  log('');
-  log('📱 Publicando no Instagram...');
-  const postId = await publishPost(imageUrl, caption, token, userId);
+  let postId;
+
+  if (isCarousel) {
+    log(`Modo: carrossel (3 slides)`);
+    log('');
+    log('📤 Fazendo upload dos 3 slides para Cloudinary...');
+    const slidePaths = [
+      path.join(outDir, slide1File),
+      path.join(outDir, slide2File),
+      path.join(outDir, slide3File)
+    ];
+    const imageUrls = [];
+    for (let i = 0; i < slidePaths.length; i++) {
+      const url = await uploadImage(slidePaths[i]);
+      log(`  Slide ${i + 1}: ${url}`);
+      imageUrls.push(url);
+    }
+
+    log('');
+    log('📱 Publicando carrossel no Instagram...');
+    postId = await publishCarousel(imageUrls, caption, token, userId);
+  } else {
+    log(`Modo: post único (legado)`);
+    const imgPath = path.join(outDir, singleFile);
+    log(`Imagem: ${singleFile}`);
+    log('');
+    log('📤 Fazendo upload para Cloudinary...');
+    const imageUrl = await uploadImage(imgPath);
+    log(`✅ URL pública: ${imageUrl}`);
+
+    log('');
+    log('📱 Publicando no Instagram...');
+    postId = await publishPost(imageUrl, caption, token, userId);
+  }
 
   log('');
   log('═══════════════════════════════════════════');
   log(`✅ POST ${postIndex} PUBLICADO COM SUCESSO!`);
   log(`   Instagram Post ID: ${postId}`);
   log(`   Tipo: ${post.type}`);
-  log(`   Imagem: ${imgFile}`);
+  log(`   Formato: ${isCarousel ? 'Carrossel (3 slides)' : 'Post único'}`);
   log('═══════════════════════════════════════════');
 
   // Notifica Telegram
@@ -143,7 +173,7 @@ async function main() {
     try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}
   }
   if (!tracking[dateStr]) tracking[dateStr] = {};
-  tracking[dateStr][postIndex] = { postId, publishedAt: new Date().toISOString(), type: post.type, image: imgFile };
+  tracking[dateStr][postIndex] = { postId, publishedAt: new Date().toISOString(), type: post.type, format: isCarousel ? 'carousel' : 'single' };
   fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
 }
 

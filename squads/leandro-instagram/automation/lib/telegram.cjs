@@ -120,4 +120,34 @@ function notifyError(script, errorMsg) {
   return sendMessage(text);
 }
 
-module.exports = { notifyPost, notifyReel, notifyStory, notifyError };
+/**
+ * Envia o relatório semanal de performance via Telegram.
+ */
+function notifyWeeklyReport(summary, nextWeekTheme) {
+  const byType = summary.byType || {};
+  const typeLines = Object.entries(byType)
+    .sort((a, b) => b[1].avgScore - a[1].avgScore)
+    .map(([type, data]) => `  • ${type}: score médio ${data.avgScore} | ${data.totalSaved} salvamentos`)
+    .join('\n');
+
+  const text = [
+    `📊 <b>RELATÓRIO SEMANAL @leandro_personall</b>`,
+    `📅 ${summary.weekStart} → ${summary.weekEnd}`,
+    ``,
+    `📈 <b>Performance da semana:</b>`,
+    `  • Posts analisados: ${summary.totalPosts}`,
+    summary.bestPost ? `  • 🏆 Melhor conteúdo: ${summary.bestPost.type} (score ${summary.bestPost.score})` : '',
+    summary.topInsight ? `  • 💡 Insight: ${summary.topInsight}` : '',
+    ``,
+    `📌 <b>Por tipo de conteúdo:</b>`,
+    typeLines || '  Sem dados suficientes',
+    ``,
+    nextWeekTheme ? `🗓 <b>Tema da próxima semana:</b> ${nextWeekTheme}` : '',
+    ``,
+    `✅ Planejamento da próxima semana gerado automaticamente!`
+  ].filter(l => l !== '').join('\n');
+
+  return sendMessage(text);
+}
+
+module.exports = { notifyPost, notifyReel, notifyStory, notifyError, notifyWeeklyReport };
