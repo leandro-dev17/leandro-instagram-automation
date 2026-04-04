@@ -154,9 +154,20 @@ async function renderHTML(htmlContent, outputPath, width = 1080, height = 1440) 
   const tmpFile = path.join(os.tmpdir(), `bionexus_${Date.now()}.html`);
   fs.writeFileSync(tmpFile, htmlContent, 'utf8');
 
-  const playwright = require('playwright');
-  const browser = await playwright.chromium.launch({
+  // Tenta playwright npm (GitHub Actions / instalação local)
+  // Cai de volta para Pinokio no Windows se não encontrar
+  let playwright;
+  try {
+    playwright = require('playwright');
+  } catch {
+    playwright = require('C:/pinokio/bin/playwright/node_modules/playwright');
+  }
+  const executablePath = process.platform === 'win32' && !require('fs').existsSync(
+    require('path').join(require('os').homedir(), '.cache', 'ms-playwright')
+  ) ? 'C:/Users/lelus/AppData/Local/ms-playwright/chromium-1208/chrome-win64/chrome.exe' : undefined;
 
+  const browser = await playwright.chromium.launch({
+    executablePath,
     headless: true
   });
   const page = await browser.newPage();

@@ -16,7 +16,7 @@ const path = require('path');
 const { uploadImage }          = require('./lib/cloudinary.cjs');
 const { publishStory, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
 const { notifyStory, notifyError } = require('./lib/telegram.cjs');
-const { storyPost, renderHTML } = require('./lib/renderer.cjs');
+const { singlePost: storyPost, renderHTML } = require('./lib/renderer.cjs');
 
 const LOGS_DIR     = path.join(__dirname, 'logs');
 const ONEDRIVE_DIR = process.env.OUTPUT_DIR || 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram';
@@ -137,7 +137,7 @@ async function main() {
   await notifyStory(storyNumber, postId, dateStr);
 
   // Salva rastreamento
-  savePublished(dateStr, storyNumber, { postId, type: 'story', label, image: png });
+  savePublished(dateStr, storyNumber, { postId, type: 'story', label, image: storyPngName });
 }
 
 main().catch(async err => {
