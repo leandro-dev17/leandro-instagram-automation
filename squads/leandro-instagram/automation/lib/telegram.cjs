@@ -77,17 +77,17 @@ function notifyPost(postNumber, type, postId, dateStr) {
 /**
  * Notifica publicação de reel.
  */
-function notifyReel(reelNumber, headline, postId, dateStr) {
-  const text = [
+function notifyReel(reelNumber, headline, postId, dateStr, youtubeId) {
+  const lines = [
     `🎬 <b>Reel ${reelNumber} publicado!</b>`,
     ``,
     `📅 Data: ${dateStr}`,
     `📝 Headline: ${headline}`,
-    `🆔 Instagram ID: <code>${postId}</code>`,
-    ``,
-    `✅ Automação BioNexus funcionando perfeitamente!`
-  ].join('\n');
-  return sendMessage(text);
+    `📱 Instagram ID: <code>${postId}</code>`,
+  ];
+  if (youtubeId) lines.push(`▶️ YouTube Short: <code>${youtubeId}</code>`);
+  lines.push(``, `✅ Automação BioNexus funcionando perfeitamente!`);
+  return sendMessage(lines.join('\n'));
 }
 
 /**

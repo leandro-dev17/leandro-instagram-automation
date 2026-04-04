@@ -21,6 +21,7 @@ const os   = require('os');
 const { pngToMp4, slidesToMp4 } = require('./lib/ffmpeg.cjs');
 const { uploadVideo, uploadImage } = require('./lib/cloudinary.cjs');
 const { publishReel, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
+const { publishShort } = require('./lib/youtube.cjs');
 const { notifyReel, notifyError } = require('./lib/telegram.cjs');
 
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
@@ -213,24 +214,43 @@ async function main() {
   const coverUrl = await uploadImage(coverPng);
   log(`✅ URL capa: ${coverUrl}`);
 
-  // Publica como Reel no Instagram
+  // ── Publica no Instagram ──────────────────────────────────────────────────
   log('');
-  log('🎬 Publicando Reel no Instagram...');
+  log('📱 Publicando Reel no Instagram...');
   const postId = await publishReel(videoUrl, caption, token, userId, coverUrl);
+  log(`✅ Instagram: ${postId}`);
+
+  // ── Publica no YouTube Shorts ─────────────────────────────────────────────
+  let youtubeId = null;
+  const ytEnv = loadEnv();
+  if (ytEnv.YOUTUBE_REFRESH_TOKEN) {
+    log('');
+    log('▶️  Publicando no YouTube Shorts...');
+    try {
+      const ytTitle = `${headline} #Shorts`;
+      youtubeId = await publishShort(videoUrl, ytTitle, caption);
+      log(`✅ YouTube: ${youtubeId}`);
+    } catch (err) {
+      log(`⚠️  YouTube falhou (Instagram OK): ${err.message}`);
+    }
+  } else {
+    log('  ⚠ YOUTUBE_REFRESH_TOKEN não configurado — pulando YouTube.');
+  }
 
   log('');
   log('═══════════════════════════════════════════');
-  log(`✅ ${label.toUpperCase()} PUBLICADO COM SUCESSO!`);
-  log(`   Instagram Post ID: ${postId}`);
+  log(`✅ ${label.toUpperCase()} PUBLICADO!`);
+  log(`   📱 Instagram ID: ${postId}`);
+  if (youtubeId) log(`   ▶️  YouTube ID:   ${youtubeId}`);
   log(`   Headline: ${headline}`);
   log('═══════════════════════════════════════════');
 
   // Notifica Telegram
-  await notifyReel(reelNumber, headline, postId, dateStr);
+  await notifyReel(reelNumber, headline, postId, dateStr, youtubeId);
 
   // Salva rastreamento
   const imgRef = isDica ? 'reel-dica.png' : `reel-0${reelNumber}-slide1.png`;
-  savePublished(dateStr, reelNumber, { postId, type: isDica ? 'dica' : 'reel', headline, image: imgRef });
+  savePublished(dateStr, reelNumber, { postId, youtubeId, type: isDica ? 'dica' : 'reel', headline, image: imgRef });
 
   // Limpa MP4 temporário
   try { fs.unlinkSync(mp4Path); } catch {}
