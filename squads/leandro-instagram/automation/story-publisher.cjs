@@ -16,16 +16,17 @@ const path = require('path');
 const { uploadImage }          = require('./lib/cloudinary.cjs');
 const { publishStory, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
 const { notifyStory, notifyError } = require('./lib/telegram.cjs');
-const { singlePost: storyPost, renderHTML } = require('./lib/renderer.cjs');
+const { storyPost, renderHTML } = require('./lib/renderer.cjs');
 
 const LOGS_DIR     = path.join(__dirname, 'logs');
 const ONEDRIVE_DIR = process.env.OUTPUT_DIR || 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram';
 
 // Mapeamento: story number → post JSON e imagem de background
+// Usa foto bruta (sem texto) como fundo do story
 const STORY_MAP = {
-  1: { postKey: 'post_1', bgPng: 'post-1-motivacional.png', label: 'Motivacional' },
-  2: { postKey: 'post_2', bgPng: 'post-2-educativo.png',    label: 'Educativo' },
-  3: { postKey: 'post_3', bgPng: 'post-3-cientifico.png',   label: 'Científico' }
+  1: { postKey: 'post_1', bgPng: 'post-1-raw.png', label: 'Motivacional' },
+  2: { postKey: 'post_2', bgPng: 'post-2-raw.png', label: 'Educativo' },
+  3: { postKey: 'post_3', bgPng: 'post-3-raw.png', label: 'Científico' }
 };
 
 function log(msg) {

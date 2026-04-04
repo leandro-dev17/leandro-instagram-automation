@@ -198,6 +198,10 @@ async function generatePost(post, index, outputDir) {
   const pngName = `post-${index}-${post.type}.png`;
   await renderHTML(html, path.join(outputDir, pngName));
 
+  // Salva foto bruta para o story usar como fundo (sem texto)
+  const rawName = `post-${index}-raw.png`;
+  fs.copyFileSync(bgPath, path.join(outputDir, rawName));
+
   if (fs.existsSync(bgPath)) fs.unlinkSync(bgPath);
   log(`  → Post ${index} pronto: ${pngName}`);
 }

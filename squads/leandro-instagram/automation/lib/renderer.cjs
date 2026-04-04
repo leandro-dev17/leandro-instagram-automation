@@ -148,6 +148,82 @@ function singlePost(post, bgPath) {
 </body></html>`;
 }
 
+// ─── STORY POST (1080x1920) — imagem no topo, painel de texto embaixo ─────────
+
+function storyPost(post, bgPath) {
+  const bgUrl    = imgToDataUrl(bgPath);
+  const tagLabel = TYPE_LABELS[post.type] || (post.type || 'fitness').toUpperCase();
+  const headlineHTML = buildHeadlineHTML(post.headline, post.accent);
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1920px; font-family:'Inter',sans-serif; overflow:hidden; background:#0D1020; display:flex; flex-direction:column; }
+
+  /* Imagem ocupa 58% do topo — sem texto em cima */
+  .photo {
+    width:100%; height:58%;
+    background-image:url('${bgUrl}');
+    background-size:cover;
+    background-position:center top;
+    position:relative;
+    flex-shrink:0;
+  }
+  .photo-handle {
+    position:absolute; top:52px; left:56px;
+    font-size:30px; font-weight:600; color:rgba(255,255,255,0.88);
+    background:rgba(0,0,0,0.32); padding:10px 24px; border-radius:100px;
+    letter-spacing:0.5px;
+  }
+  .photo-gradient {
+    position:absolute; bottom:0; left:0; right:0; height:180px;
+    background:linear-gradient(to bottom, transparent, #0D1020);
+  }
+
+  /* Painel de texto — 42% embaixo, fundo escuro sólido */
+  .panel {
+    flex:1; background:#0D1020;
+    display:flex; flex-direction:column;
+    justify-content:center;
+    padding:56px 72px 64px;
+    gap:28px;
+  }
+  .tag {
+    display:inline-block; background:#E8614A; color:#fff;
+    font-size:24px; font-weight:700; padding:10px 28px;
+    border-radius:100px; text-transform:uppercase; letter-spacing:2px;
+    align-self:flex-start;
+  }
+  h1 {
+    font-size:72px; font-weight:900; color:#F8F6F1;
+    line-height:1.06; letter-spacing:-1px;
+  }
+  .body {
+    font-size:34px; font-weight:400; color:rgba(248,246,241,0.80);
+    line-height:1.55;
+  }
+  .cta {
+    background:#E8614A; border-radius:16px;
+    padding:28px 40px; text-align:center;
+    font-size:30px; font-weight:700; color:#fff;
+    letter-spacing:0.3px; margin-top:8px;
+  }
+</style></head><body>
+  <div class="photo">
+    <div class="photo-handle">@leandro_personall</div>
+    <div class="photo-gradient"></div>
+  </div>
+  <div class="panel">
+    <span class="tag">${tagLabel}</span>
+    <h1>${headlineHTML}</h1>
+    <p class="body">${escapeHtml(post.body || '')}</p>
+    <div class="cta">${escapeHtml(post.cta || '💬 Comenta abaixo!')}</div>
+  </div>
+</body></html>`;
+}
+
 // ─── RENDERIZADOR PLAYWRIGHT ───────────────────────────────────────────────────
 
 async function renderHTML(htmlContent, outputPath, width = 1080, height = 1440) {
@@ -180,4 +256,4 @@ async function renderHTML(htmlContent, outputPath, width = 1080, height = 1440) 
   try { fs.unlinkSync(tmpFile); } catch {}
 }
 
-module.exports = { reelPost, recipeDicaReel, singlePost, renderHTML };
+module.exports = { reelPost, recipeDicaReel, singlePost, storyPost, renderHTML };
