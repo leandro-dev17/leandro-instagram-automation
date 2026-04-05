@@ -66,6 +66,8 @@ jobs:
           TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
           EOF
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Rodar gerador diário
         run: node daily-generator.cjs
         working-directory: squads/leandro-instagram/automation
@@ -102,6 +104,8 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -145,6 +149,8 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -188,6 +194,8 @@ jobs:
       - name: Instalar dependências
         run: npm install && sudo apt-get install -y ffmpeg
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -231,6 +239,8 @@ jobs:
       - name: Instalar dependências
         run: npm install && sudo apt-get install -y ffmpeg
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -274,6 +284,8 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -317,6 +329,8 @@ jobs:
       - name: Instalar dependências
         run: npm install && sudo apt-get install -y ffmpeg
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -360,6 +374,8 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -403,6 +419,8 @@ jobs:
       - name: Instalar dependências
         run: npm install && sudo apt-get install -y ffmpeg
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -446,6 +464,8 @@ jobs:
       - name: Instalar dependências
         run: npm install && sudo apt-get install -y ffmpeg
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -489,6 +509,8 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -532,6 +554,8 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -575,6 +599,8 @@ jobs:
       - name: Instalar dependências
         run: npm install && sudo apt-get install -y ffmpeg
         working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
         uses: dawidd6/action-download-artifact@v6
         with:
