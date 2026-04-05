@@ -12,7 +12,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ENV_PATH = path.join(__dirname, '../.env');
-const REPORTS_DIR = 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/Relatório insights instagram';
+const REPORTS_DIR = process.env.REPORTS_DIR ||
+  (process.platform === 'win32'
+    ? 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/Relatórios/Relatório insights instagram'
+    : path.join(__dirname, 'reports'));
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 
 // ─── UTILIDADES ─────────────────────────────────────────────────────────────

@@ -138,7 +138,7 @@ function buildPublicarMd(dateStr, dayPlan) {
 // ─── GERADOR DE CONTEÚDO DOS SLIDES VIA CLAUDE ───────────────────────────────
 
 async function generateSlideContent(reel) {
-  const Anthropic = require('C:/Users/lelus/OneDrive/Pictures/BioNexus Digital/node_modules/@anthropic-ai/sdk');
+  const Anthropic = require('@anthropic-ai/sdk');
   const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino focada em resultados reais para mulheres.
@@ -183,7 +183,7 @@ Responda APENAS com JSON válido, sem texto extra:
 // ─── GERADOR DE CONTEÚDO DO CARROSSEL VIA CLAUDE ─────────────────────────────
 
 async function generateCarouselContent(post) {
-  const Anthropic = require('C:/Users/lelus/OneDrive/Pictures/BioNexus Digital/node_modules/@anthropic-ai/sdk');
+  const Anthropic = require('@anthropic-ai/sdk');
   const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino.

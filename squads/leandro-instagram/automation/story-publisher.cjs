@@ -18,6 +18,57 @@ const { publishStory, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram
 const { notifyStory, notifyError } = require('./lib/telegram.cjs');
 const { storyPost, renderHTML } = require('./lib/renderer.cjs');
 
+// Carrega variáveis do .env manualmente
+(function loadEnvFile() {
+  const envPath = path.join(__dirname, '../.env');
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const [k, ...v] = line.split('=');
+    if (k && k.trim() && !k.trim().startsWith('#')) {
+      process.env[k.trim()] = v.join('=').trim();
+    }
+  }
+})();
+
+// Gera conteúdo informativo e persuasivo para story via Claude
+async function generateStoryContent(postData, storyLabel) {
+  const Anthropic = require('@anthropic-ai/sdk');
+  const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const prompt = `Você é especialista em copywriting para Instagram Stories de @leandro_personall, personal trainer feminino focada em emagrecimento metabólico e treino por ciclo menstrual.
+
+Tema do story: "${postData.headline || postData.title || storyLabel}"
+Tipo: ${postData.type || storyLabel}
+Contexto adicional: ${postData.body || postData.caption || ''}
+
+Crie conteúdo para um Story do Instagram que seja MUITO atraente, informativo e persuasivo.
+O story deve fazer a pessoa PARAR de passar o dedo e querer ler tudo.
+
+Responda APENAS com JSON válido:
+
+{
+  "hook": "Headline impactante (máx 8 palavras, use números ou provocação — ex: '3 erros que sabotam seu treino')",
+  "subhook": "Frase curta que reforça o gancho (máx 12 palavras, desperta curiosidade)",
+  "points": [
+    "Ponto informativo 1 — direto e prático (máx 10 palavras)",
+    "Ponto informativo 2 — direto e prático (máx 10 palavras)",
+    "Ponto informativo 3 — direto e prático (máx 10 palavras)"
+  ],
+  "cta": "Chamada para ação curta e enérgica (máx 7 palavras, ex: '💬 Me conta nos comentários!')"
+}`;
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 500,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  const text = response.content[0].text.trim();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Claude não retornou JSON válido para story');
+  return JSON.parse(match[0]);
+}
+
 const LOGS_DIR     = path.join(__dirname, 'logs');
 const ONEDRIVE_DIR = process.env.OUTPUT_DIR || 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram';
 
@@ -69,6 +120,20 @@ async function main() {
   log(`Data: ${dateStr}`);
   log('═══════════════════════════════════════════');
 
+  // Verifica se já foi publicado hoje
+  const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
+  if (fs.existsSync(trackingFile)) {
+    try {
+      const tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8'));
+      if (tracking[dateStr] && tracking[dateStr][`story-${storyNumber}`]) {
+        const existing = tracking[dateStr][`story-${storyNumber}`];
+        log(`⚠️  Story ${storyNumber} já publicado hoje às ${existing.publishedAt} (ID: ${existing.postId})`);
+        log(`   Pulando para evitar duplicata.`);
+        process.exit(0);
+      }
+    } catch {}
+  }
+
   const outDir  = path.join(ONEDRIVE_DIR, dateStr);
 
   // PNG do story dedicado (1080x1920)
@@ -88,18 +153,37 @@ async function main() {
 
     // Tenta carregar dados do post do schedule JSON
     let postData = { type: label.toLowerCase(), headline: label, body: '', cta: '💬 Comenta abaixo!', accent: '' };
-    const scheduleFiles = fs.readdirSync(path.join(__dirname, 'schedule'))
-      .filter(f => f.endsWith('.json') && f.includes(dateStr));
-    if (scheduleFiles.length > 0) {
+    const scheduleDir = path.join(__dirname, 'schedule');
+    const scheduleFiles = fs.readdirSync(scheduleDir)
+      .filter(f => f.endsWith('.json')).sort().reverse();
+    for (const sf of scheduleFiles) {
       try {
-        const schedule = JSON.parse(fs.readFileSync(path.join(__dirname, 'schedule', scheduleFiles[0]), 'utf8'));
-        const dayData = schedule[dateStr] || Object.values(schedule)[0];
-        if (dayData && dayData[postKey]) {
-          postData = { ...postData, ...dayData[postKey] };
+        const schedule = JSON.parse(fs.readFileSync(path.join(scheduleDir, sf), 'utf8'));
+        const dayData = schedule.days && schedule.days[dateStr];
+        if (dayData) {
+          const postIndex = storyNumber - 1;
+          if (dayData.posts && dayData.posts[postIndex]) {
+            postData = { ...postData, ...dayData.posts[postIndex] };
+          }
+          break;
         }
       } catch (e) {
-        log(`Aviso: não foi possível ler schedule JSON — usando dados padrão`);
+        log(`Aviso: não foi possível ler ${sf} — ${e.message}`);
       }
+    }
+
+    // Gera conteúdo informativo e persuasivo via Claude
+    log('✍️  Gerando conteúdo do story via Claude...');
+    try {
+      const storyContent = await generateStoryContent(postData, label);
+      postData = { ...postData, ...storyContent };
+      log('✅ Conteúdo do story gerado');
+    } catch (err) {
+      log(`⚠️  Claude falhou, usando fallback: ${err.message}`);
+      postData.hook     = postData.headline || label;
+      postData.subhook  = 'Você precisa saber disso para o seu treino!';
+      postData.points   = ['Consistência é mais importante que intensidade', 'Ciclo menstrual afeta diretamente seus resultados', 'Nutrição certa potencializa cada treino'];
+      postData.cta      = '💬 Qual dica te surpreendeu mais?';
     }
 
     const html = storyPost(postData, bgPath);

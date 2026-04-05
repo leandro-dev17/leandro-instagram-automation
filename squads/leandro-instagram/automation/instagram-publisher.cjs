@@ -66,6 +66,20 @@ async function main() {
   log(`Data: ${dateStr}`);
   log('═══════════════════════════════════════════');
 
+  // Verifica se já foi publicado hoje (evita duplicatas em re-runs)
+  const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
+  if (fs.existsSync(trackingFile)) {
+    try {
+      const tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8'));
+      if (tracking[dateStr] && tracking[dateStr][String(postIndex)]) {
+        const existing = tracking[dateStr][String(postIndex)];
+        log(`⚠️  Post ${postIndex} já publicado hoje às ${existing.publishedAt} (ID: ${existing.postId})`);
+        log('   Pulando para evitar duplicata.');
+        process.exit(0);
+      }
+    } catch {}
+  }
+
   // Carrega plano do dia
   const dayPlan = findDayPlan(dateStr);
   if (!dayPlan) {
@@ -167,7 +181,6 @@ async function main() {
   await notifyPost(postIndex, post.type, postId, dateStr);
 
   // Atualiza published-posts.json para rastreamento
-  const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
   let tracking = {};
   if (fs.existsSync(trackingFile)) {
     try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}

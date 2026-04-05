@@ -27,7 +27,7 @@ const { notifyReel, notifyError } = require('./lib/telegram.cjs');
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 const LOGS_DIR     = path.join(__dirname, 'logs');
 const ONEDRIVE_DIR = process.env.OUTPUT_DIR || 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram';
-const TEMP_DIR     = 'C:/bionexus_render_tmp';
+const TEMP_DIR     = process.env.TEMP_DIR || (process.platform === 'win32' ? 'C:/bionexus_render_tmp' : '/tmp/bionexus_render');
 
 function log(msg) {
   const ts   = new Date().toISOString();
@@ -74,7 +74,7 @@ async function generateCaption(reel) {
     if (k && k.trim() === 'ANTHROPIC_API_KEY') { anthropicKey = v.join('=').trim(); break; }
   }
 
-  const Anthropic = require('C:/Users/lelus/OneDrive/Pictures/BioNexus Digital/node_modules/@anthropic-ai/sdk');
+  const Anthropic = require('@anthropic-ai/sdk');
   const client = new Anthropic.default({ apiKey: anthropicKey });
 
   const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino.
