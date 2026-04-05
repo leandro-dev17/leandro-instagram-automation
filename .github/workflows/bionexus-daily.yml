@@ -22,11 +22,14 @@ on:
         description: 'Simular cron (ex: 0 10 * * *)'
         required: false
 
+permissions:
+  contents: write
+  actions: read
+
 env:
   AUTOMATION_DIR: squads/leandro-instagram/automation
   OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
 
-# Bloco reutilizável de criação do .env
 defaults:
   run:
     shell: bash
