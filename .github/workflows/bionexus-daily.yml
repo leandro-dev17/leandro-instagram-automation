@@ -115,6 +115,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -160,6 +161,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -205,6 +207,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -250,6 +253,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -295,6 +299,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -340,6 +345,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -385,6 +391,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -430,6 +437,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -475,6 +483,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -520,6 +529,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -565,6 +575,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
@@ -610,6 +621,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
           cat > squads/leandro-instagram/.env <<EOF
