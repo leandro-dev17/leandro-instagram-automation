@@ -226,12 +226,20 @@ async function main() {
   if (ytEnv.YOUTUBE_REFRESH_TOKEN) {
     log('');
     log('▶️  Publicando no YouTube Shorts...');
-    try {
-      const ytTitle = `${headline} #Shorts`;
-      youtubeId = await publishShort(videoUrl, ytTitle, caption);
-      log(`✅ YouTube: ${youtubeId}`);
-    } catch (err) {
-      log(`⚠️  YouTube falhou (Instagram OK): ${err.message}`);
+    for (let ytAttempt = 1; ytAttempt <= 3; ytAttempt++) {
+      try {
+        const ytTitle = `${headline} #Shorts`;
+        youtubeId = await publishShort(videoUrl, ytTitle, caption);
+        log(`✅ YouTube: ${youtubeId}`);
+        break;
+      } catch (err) {
+        if (ytAttempt < 3) {
+          log(`⚠️  YouTube tentativa ${ytAttempt}/3 falhou: ${err.message} — tentando novamente em 10s...`);
+          await new Promise(r => setTimeout(r, 10000));
+        } else {
+          log(`⚠️  YouTube falhou após 3 tentativas (Instagram OK): ${err.message}`);
+        }
+      }
     }
   } else {
     log('  ⚠ YOUTUBE_REFRESH_TOKEN não configurado — pulando YouTube.');

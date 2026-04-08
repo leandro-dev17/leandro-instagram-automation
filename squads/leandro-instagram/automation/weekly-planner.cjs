@@ -42,7 +42,7 @@ function getDayName(dateStr) {
   return names[new Date(dateStr + 'T12:00:00').getDay()];
 }
 
-async function callGemini(prompt) {
+async function callClaude(prompt) {
   const apiKey = loadApiKey();
   const body = JSON.stringify({
     model: 'claude-haiku-4-5-20251001',
@@ -339,7 +339,7 @@ async function main() {
   const allDays = {};
   for (let i = 0; i < batches.length; i++) {
     console.log(`\nLote ${i+1}/${batches.length}: gerando ${batches[i].map(getDayName).join(', ')}...`);
-    const result = await callGemini(buildPrompt(batches[i], insights));
+    const result = await callClaude(buildPrompt(batches[i], insights));
     Object.assign(allDays, result.days || {});
     console.log(`  ✓ Lote ${i+1} concluído`);
   }

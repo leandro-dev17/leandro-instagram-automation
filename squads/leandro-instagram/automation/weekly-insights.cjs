@@ -60,16 +60,28 @@ function calcScore(metrics) {
   );
 }
 
-// Tenta identificar o tipo do post pelo cronograma salvo
+// Identifica tipo do post usando published-posts.json (confiável) ou caption (fallback)
 function identifyPostType(post, weekSchedule) {
+  // Tenta published-posts.json primeiro (fonte confiável)
+  try {
+    const trackingPath = path.join(__dirname, 'logs', 'published-posts.json');
+    if (fs.existsSync(trackingPath)) {
+      const tracking = JSON.parse(fs.readFileSync(trackingPath, 'utf8'));
+      for (const [date, posts] of Object.entries(tracking)) {
+        for (const [, data] of Object.entries(posts)) {
+          if (data.postId === post.id && data.type) return data.type;
+        }
+      }
+    }
+  } catch {}
+
+  // Fallback: tenta casar pela caption no cronograma
   if (!weekSchedule) return 'desconhecido';
   const dateStr = post.timestamp.slice(0, 10);
   const dayPlan = weekSchedule.days?.[dateStr];
   if (!dayPlan) return 'desconhecido';
-
-  // Tenta casar pela caption
   for (const p of (dayPlan.posts || [])) {
-    if (post.caption && post.caption.slice(0, 50) === (p.caption || '').slice(0, 50)) {
+    if (post.caption && post.caption.slice(0, 80) === (p.caption || '').slice(0, 80)) {
       return p.type;
     }
   }

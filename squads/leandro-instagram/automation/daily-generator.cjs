@@ -398,6 +398,16 @@ async function main() {
   const dateStr = today();
   log(`Data: ${dateStr}`);
 
+  // Health check: verifica se Kie.ai está acessível antes de gerar
+  try {
+    const { generateImage: kieCheck } = require('./lib/kie.cjs');
+    if (!kieCheck) throw new Error('kie.cjs não carregou corretamente');
+    log('✅ Kie.ai lib carregada');
+  } catch (e) {
+    log(`ERRO FATAL: Kie.ai lib falhou ao carregar: ${e.message}`);
+    process.exit(1);
+  }
+
   // Busca cronograma
   const found = findSchedule(dateStr);
   if (!found) {
