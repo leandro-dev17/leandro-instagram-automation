@@ -252,7 +252,18 @@ async function generateReels(reels, outputDir) {
       const bgPath = path.join(TEMP_DIR, `reel-bg-${i + 1}-s${slideNum}-${Date.now()}.png`);
 
       log(`  → Reel ${i + 1} Slide ${slideNum}/4: gerando imagem (Kie.ai Flux)...`);
-      await generateImage(reel.image_prompt, bgPath);
+      // Retry com prompt neutro se Kie.ai bloquear por conteúdo sensível
+      try {
+        await generateImage(reel.image_prompt, bgPath);
+      } catch (imgErr) {
+        if (imgErr.message.includes('sensitive') || imgErr.message.includes('E005')) {
+          log(`  → Prompt bloqueado (E005), tentando prompt neutro...`);
+          const safePrompt = 'Brazilian female personal trainer in her 30s, lean athletic body, standing confidently in bright modern gym, wearing pink high-waist leggings and matching sports bra, smiling at camera, natural lighting';
+          await generateImage(safePrompt, bgPath);
+        } else {
+          throw imgErr;
+        }
+      }
 
       const slideData = slides[slideKeys[s]];
       const html = slideTemplates[s](slideData, bgPath);
@@ -294,7 +305,15 @@ async function generatePost(post, index, outputDir) {
   // ── Slide 1: imagem principal com headline ────────────────────────────────
   const bg1Path = path.join(TEMP_DIR, `post-bg-${index}-s1-${Date.now()}.png`);
   log(`  → Slide 1: gerando imagem (Kie.ai Flux)...`);
-  await generateImage(post.image_prompt, bg1Path);
+  try {
+    await generateImage(post.image_prompt, bg1Path);
+  } catch (imgErr) {
+    if (imgErr.message.includes('sensitive') || imgErr.message.includes('E005')) {
+      log(`  → Prompt bloqueado (E005), tentando prompt neutro...`);
+      const safePrompt = 'Brazilian female personal trainer in her 30s, lean athletic body, standing confidently in bright modern gym, wearing pink high-waist leggings and matching sports bra, smiling at camera, natural lighting';
+      await generateImage(safePrompt, bg1Path);
+    } else { throw imgErr; }
+  }
 
   let html1, strategy;
   try {
@@ -317,7 +336,15 @@ async function generatePost(post, index, outputDir) {
   // ── Slide 2: lista de pontos práticos ────────────────────────────────────
   const bg2Path = path.join(TEMP_DIR, `post-bg-${index}-s2-${Date.now()}.png`);
   log(`  → Slide 2: gerando imagem e conteúdo...`);
-  await generateImage(post.image_prompt, bg2Path);
+  try {
+    await generateImage(post.image_prompt, bg2Path);
+  } catch (imgErr) {
+    if (imgErr.message.includes('sensitive') || imgErr.message.includes('E005')) {
+      log(`  → Prompt bloqueado (E005), tentando prompt neutro...`);
+      const safePrompt = 'Brazilian female personal trainer in her 30s, lean athletic body, standing confidently in bright modern gym, wearing pink high-waist leggings and matching sports bra, smiling at camera, natural lighting';
+      await generateImage(safePrompt, bg2Path);
+    } else { throw imgErr; }
+  }
 
   let carouselData;
   try {
@@ -340,7 +367,15 @@ async function generatePost(post, index, outputDir) {
   // ── Slide 3: CTA de salvar e seguir ──────────────────────────────────────
   const bg3Path = path.join(TEMP_DIR, `post-bg-${index}-s3-${Date.now()}.png`);
   log(`  → Slide 3: gerando imagem CTA...`);
-  await generateImage(post.image_prompt, bg3Path);
+  try {
+    await generateImage(post.image_prompt, bg3Path);
+  } catch (imgErr) {
+    if (imgErr.message.includes('sensitive') || imgErr.message.includes('E005')) {
+      log(`  → Prompt bloqueado (E005), tentando prompt neutro...`);
+      const safePrompt = 'Brazilian female personal trainer in her 30s, lean athletic body, standing confidently in bright modern gym, wearing pink high-waist leggings and matching sports bra, smiling at camera, natural lighting';
+      await generateImage(safePrompt, bg3Path);
+    } else { throw imgErr; }
+  }
 
   const html3 = postCarouselSlide3({ headline: 'Gostou do conteúdo?', body: 'Salva para não esquecer e compartilha com quem precisa!' }, bg3Path);
   const slide3Name = `post-${index}-slide3.png`;
