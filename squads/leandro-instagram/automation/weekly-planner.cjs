@@ -21,9 +21,9 @@ function loadApiKey() {
   const lines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
   for (const line of lines) {
     const [k, ...v] = line.split('=');
-    if (k && k.trim() === 'GEMINI_API_KEY') return v.join('=').trim();
+    if (k && k.trim() === 'ANTHROPIC_API_KEY') return v.join('=').trim();
   }
-  throw new Error('GEMINI_API_KEY não encontrada no .env');
+  throw new Error('ANTHROPIC_API_KEY não encontrada no .env');
 }
 
 function getWeekDates() {
@@ -45,19 +45,20 @@ function getDayName(dateStr) {
 async function callGemini(prompt) {
   const apiKey = loadApiKey();
   const body = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: 0.85,
-      maxOutputTokens: 16384
-    }
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 16000,
+    temperature: 0.85,
+    messages: [{ role: 'user', content: prompt }]
   });
 
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      hostname: 'api.anthropic.com',
+      path: '/v1/messages',
       method: 'POST',
       headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
@@ -70,16 +71,15 @@ async function callGemini(prompt) {
         if (res.statusCode === 200) {
           try {
             const parsed = JSON.parse(data);
-            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            // Extrai JSON mesmo que haja texto extra ao redor
+            const text = parsed.content?.[0]?.text || '';
             const match = text.match(/\{[\s\S]*\}/);
             if (!match) throw new Error('Nenhum JSON encontrado na resposta');
             resolve(JSON.parse(match[0]));
           } catch (e) {
-            reject(new Error('Erro ao parsear Gemini: ' + e.message));
+            reject(new Error('Erro ao parsear Claude: ' + e.message));
           }
         } else {
-          reject(new Error(`Gemini erro ${res.statusCode}: ${data.slice(0, 300)}`));
+          reject(new Error(`Claude erro ${res.statusCode}: ${data.slice(0, 300)}`));
         }
       });
     });
