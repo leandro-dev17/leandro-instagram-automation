@@ -17,6 +17,7 @@ const { uploadImage }          = require('./lib/cloudinary.cjs');
 const { publishStory, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
 const { notifyStory, notifyError } = require('./lib/telegram.cjs');
 const { storyPost, renderHTML } = require('./lib/renderer.cjs');
+const { generateImage } = require('./lib/kie.cjs');
 
 // Carrega variáveis do .env manualmente
 (function loadEnvFile() {
@@ -29,6 +30,10 @@ const { storyPost, renderHTML } = require('./lib/renderer.cjs');
     }
   }
 })();
+
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
 
 // Gera conteúdo informativo e persuasivo para story via Claude
 async function generateStoryContent(postData, storyLabel) {
@@ -143,12 +148,20 @@ async function main() {
   // Se ainda não existe, gera a partir do schedule JSON + imagem de background
   if (!fs.existsSync(pngPath)) {
     log(`Story PNG não encontrado, gerando: ${storyPngName}`);
-    const bgPath = path.join(outDir, bgPng);
+    let bgPath = path.join(outDir, bgPng);
     if (!fs.existsSync(bgPath)) {
-      const err = `Background PNG não encontrado: ${bgPath}`;
-      log(`ERRO: ${err}`);
-      await notifyError('story-publisher.cjs', err);
-      process.exit(1);
+      log(`⚠️  Background PNG não encontrado: ${bgPng} — gerando imagem via Kie.ai...`);
+      ensureDir(outDir);
+      const safePrompt = `Brazilian female personal trainer in her late 20s, lean athletic body, ${label.toLowerCase()} fitness content, standing confidently in bright modern gym with large windows, wearing colorful athletic outfit, smiling naturally, warm natural lighting, ultra photorealistic`;
+      try {
+        await generateImage(safePrompt, bgPath);
+        log(`✅ Background gerado: ${bgPng}`);
+      } catch (imgErr) {
+        const err = `Falha ao gerar background para story: ${imgErr.message}`;
+        log(`ERRO: ${err}`);
+        await notifyError('story-publisher.cjs', err);
+        process.exit(1);
+      }
     }
 
     // Tenta carregar dados do post do schedule JSON
