@@ -76,9 +76,10 @@ jobs:
       - name: Salvar imagens geradas como artifact
         uses: actions/upload-artifact@v4
         with:
-          name: imagens-${{ github.run_id }}-${{ github.run_attempt }}
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           retention-days: 1
+          overwrite: true
       - name: Commitar schedule atualizado
         run: |
           git config user.name "BioNexus Bot"
@@ -110,11 +111,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -156,11 +157,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -202,11 +203,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -248,11 +249,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -294,11 +295,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -340,11 +341,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -386,11 +387,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -432,11 +433,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -478,11 +479,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -524,11 +525,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -570,11 +571,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -616,11 +617,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
-          name_is_regexp: true
-          name: 'imagens-.*'
+          name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
-          if_no_artifact_found: warn
+          workflow_conclusion: success
+          if_no_artifact_found: fail
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
