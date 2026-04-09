@@ -151,6 +151,9 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
@@ -381,6 +384,9 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
       - name: Baixar imagens do dia
@@ -564,6 +570,9 @@ jobs:
           node-version: '20'
       - name: Instalar dependências
         run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Instalar Playwright Chromium
+        run: npx playwright install chromium --with-deps
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
