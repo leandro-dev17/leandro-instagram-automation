@@ -309,7 +309,7 @@ async function generateOnce(apiKey, fullPrompt) {
   }
 
   const taskId = genRes.body.data.taskId;
-  const maxAttempts = 36;
+  const maxAttempts = 60; // 60 × 5s = 5 minutos
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     await new Promise(r => setTimeout(r, 5000));
 
@@ -328,7 +328,7 @@ async function generateOnce(apiKey, fullPrompt) {
       throw new Error(`Kie.ai flag ${successFlag}: ${errorMessage || 'erro desconhecido'}`);
     }
   }
-  throw new Error(`Kie.ai timeout: taskId não completou em 3 minutos`);
+  throw new Error(`Kie.ai timeout: taskId não completou em 5 minutos`);
 }
 
 async function generateImage(prompt, outputPath) {
