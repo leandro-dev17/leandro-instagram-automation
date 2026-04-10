@@ -1,19 +1,21 @@
 /**
- * story-publisher-new.cjs — Publica 5 slides de Story no Instagram
+ * story-publisher-new.cjs — Publica Story de vídeo no Instagram
  *
- * Publica story-slide1.png até story-slide5.png como Stories individuais.
- * Gerados pelo daily-generator.cjs com 1 imagem base reutilizada.
+ * Combina story-slide1.png até story-slide5.png em um único MP4 (20 segundos)
+ * usando ffmpeg (4s por slide), faz upload para Cloudinary e publica
+ * como 1 Story de vídeo no Instagram.
  *
  * Uso: node story-publisher-new.cjs [data]
  *   data (opcional): YYYY-MM-DD — padrão: hoje
  *
- * Horário automático (Task Scheduler): 07:00h
+ * Horário automático (GitHub Actions / Task Scheduler): 07:00h
  */
 
 'use strict';
 
-const fs   = require('fs');
-const path = require('path');
+const fs         = require('fs');
+const path       = require('path');
+const { execSync } = require('child_process');
 
 // Carrega .env
 (function loadEnvFile() {
@@ -25,14 +27,15 @@ const path = require('path');
   }
 })();
 
-const { uploadImage }                          = require('./lib/cloudinary.cjs');
-const { publishStory, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
-const { notifyStory, notifyError }             = require('./lib/telegram.cjs');
+const { uploadVideo }                                          = require('./lib/cloudinary.cjs');
+const { publishVideoStory, refreshTokenIfNeeded, loadEnv }    = require('./lib/instagram.cjs');
+const { notifyStory, notifyError }                            = require('./lib/telegram.cjs');
 
 const LOGS_DIR     = path.join(__dirname, 'logs');
 const ONEDRIVE_DIR = process.env.OUTPUT_DIR || 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram';
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 const TOTAL_SLIDES = 5;
+const SECS_PER_SLIDE = 4; // 5 slides × 4s = 20s total
 
 function log(msg) {
   const ts   = new Date().toISOString();
@@ -48,22 +51,8 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function isPublished(tracking, dateStr, key) {
-  return !!(tracking[dateStr] && tracking[dateStr][key]);
-}
-
-function savePublished(dateStr, key, data) {
-  const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
-  let tracking = {};
-  if (fs.existsSync(trackingFile)) {
-    try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}
-  }
-  if (!tracking[dateStr]) tracking[dateStr] = {};
-  tracking[dateStr][key] = { ...data, publishedAt: new Date().toISOString() };
-  fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
-}
-
 function findDayPlan(dateStr) {
+  if (!fs.existsSync(SCHEDULE_DIR)) return null;
   const files = fs.readdirSync(SCHEDULE_DIR).filter(f => f.endsWith('.json'));
   for (const file of files.sort().reverse()) {
     const plan = JSON.parse(fs.readFileSync(path.join(SCHEDULE_DIR, file), 'utf8'));
@@ -72,11 +61,38 @@ function findDayPlan(dateStr) {
   return null;
 }
 
+/**
+ * Combina os 5 slides PNG em um único MP4 usando ffmpeg.
+ * Cada slide é exibido por SECS_PER_SLIDE segundos.
+ */
+function buildMp4(slidePaths, outputMp4) {
+  // Monta o arquivo de concatenação do ffmpeg
+  const concatFile = outputMp4.replace('.mp4', '-concat.txt');
+  const lines = slidePaths.map(p => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'\nduration ${SECS_PER_SLIDE}`);
+  // Repete o último arquivo sem duration para evitar frame duplicado no final
+  lines.push(`file '${slidePaths[slidePaths.length - 1].replace(/\\/g, '/').replace(/'/g, "'\\''")}'`);
+  fs.writeFileSync(concatFile, lines.join('\n') + '\n', 'utf8');
+
+  const cmd = [
+    'ffmpeg -y',
+    `-f concat -safe 0 -i "${concatFile}"`,
+    '-c:v libx264 -pix_fmt yuv420p -r 30',
+    '-movflags +faststart',
+    `"${outputMp4}"`
+  ].join(' ');
+
+  log(`  🎬 ffmpeg: ${cmd}`);
+  execSync(cmd, { stdio: 'inherit' });
+
+  // Limpa arquivo de concat
+  fs.unlinkSync(concatFile);
+}
+
 async function main() {
   const dateStr = today();
 
   log('═══════════════════════════════════════════');
-  log(`Story Publisher (novo) — ${TOTAL_SLIDES} slides`);
+  log(`Story Publisher (vídeo) — ${TOTAL_SLIDES} slides → 1 MP4`);
   log(`Data: ${dateStr}`);
   log('═══════════════════════════════════════════');
 
@@ -87,65 +103,85 @@ async function main() {
     process.exit(1);
   }
 
+  // Verifica se já foi publicado
   const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
   let tracking = {};
   if (fs.existsSync(trackingFile)) {
     try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}
   }
-
-  // Verifica se todos os slides já foram publicados
-  const allDone = Array.from({ length: TOTAL_SLIDES }, (_, i) => i + 1)
-    .every(n => isPublished(tracking, dateStr, `story-new-${n}`));
-  if (allDone) {
-    log(`⚠️  Todos os ${TOTAL_SLIDES} slides de story já publicados hoje — pulando.`);
+  if (tracking[dateStr] && tracking[dateStr]['story-video']) {
+    const existing = tracking[dateStr]['story-video'];
+    log(`⚠️  Story vídeo já publicado hoje às ${existing.publishedAt} (ID: ${existing.postId})`);
+    log('   Pulando para evitar duplicata.');
     process.exit(0);
   }
 
+  // Verifica existência de todos os slides
+  const slidePaths = [];
+  for (let n = 1; n <= TOTAL_SLIDES; n++) {
+    const slidePath = path.join(outDir, `story-slide${n}.png`);
+    if (!fs.existsSync(slidePath)) {
+      log(`ERRO: story-slide${n}.png não encontrado em ${outDir}`);
+      log('Execute daily-generator.cjs primeiro.');
+      process.exit(1);
+    }
+    slidePaths.push(slidePath);
+  }
+
+  log(`✅ ${TOTAL_SLIDES} slides encontrados`);
+
+  // Combina em MP4
+  const outputMp4 = path.join(outDir, 'story.mp4');
+  log('');
+  log(`🎬 Combinando ${TOTAL_SLIDES} slides em MP4 (${TOTAL_SLIDES * SECS_PER_SLIDE}s)...`);
+  buildMp4(slidePaths, outputMp4);
+
+  const mp4Size = (fs.statSync(outputMp4).size / 1024 / 1024).toFixed(1);
+  log(`✅ MP4 gerado: ${mp4Size} MB → ${outputMp4}`);
+
+  // Upload para Cloudinary
+  log('');
+  log('📤 Fazendo upload do MP4 para Cloudinary...');
+  const videoUrl = await uploadVideo(outputMp4);
+  log(`✅ URL: ${videoUrl}`);
+
+  // Publica no Instagram como Story de vídeo
   const env    = loadEnv();
   const token  = await refreshTokenIfNeeded(env);
   const userId = env.INSTAGRAM_USER_ID;
 
-  const dayPlan = findDayPlan(dateStr);
-
-  let published = 0;
-
-  for (let n = 1; n <= TOTAL_SLIDES; n++) {
-    const key      = `story-new-${n}`;
-    const slideName = `story-slide${n}.png`;
-    const slidePath = path.join(outDir, slideName);
-
-    if (isPublished(tracking, dateStr, key)) {
-      log(`  ⏭️  Slide ${n}/${TOTAL_SLIDES} já publicado — pulando`);
-      continue;
-    }
-
-    if (!fs.existsSync(slidePath)) {
-      log(`  ⚠️  Slide ${n}/${TOTAL_SLIDES} não encontrado: ${slideName} — pulando`);
-      continue;
-    }
-
-    log(`\n  📤 Slide ${n}/${TOTAL_SLIDES}: fazendo upload...`);
-    const imageUrl = await uploadImage(slidePath);
-    log(`     URL: ${imageUrl}`);
-
-    log(`  📱 Publicando story ${n}/${TOTAL_SLIDES}...`);
-    const postId = await publishStory(imageUrl, token, userId);
-    log(`  ✅ Story ${n} publicado — ID: ${postId}`);
-
-    savePublished(dateStr, key, { postId, slide: n, image: slideName });
-    published++;
-
-    // Pausa 3s entre stories para não sobrecarregar a API
-    if (n < TOTAL_SLIDES) await new Promise(r => setTimeout(r, 3000));
-  }
+  log('');
+  log('📱 Publicando Story de vídeo no Instagram...');
+  const postId = await publishVideoStory(videoUrl, token, userId);
 
   log('');
   log('═══════════════════════════════════════════');
-  log(`✅ ${published} stories publicados com sucesso!`);
-  log(`   Tema: ${dayPlan?.story?.topic || 'N/A'}`);
+  log(`✅ STORY VÍDEO PUBLICADO COM SUCESSO!`);
+  log(`   Instagram Post ID: ${postId}`);
+  log(`   Slides: ${TOTAL_SLIDES} × ${SECS_PER_SLIDE}s = ${TOTAL_SLIDES * SECS_PER_SLIDE}s`);
   log('═══════════════════════════════════════════');
 
-  await notifyStory('new', published, dateStr);
+  // Notifica Telegram
+  const dayPlan = findDayPlan(dateStr);
+  await notifyStory('video', 1, dateStr);
+
+  // Rastreamento
+  if (!tracking[dateStr]) tracking[dateStr] = {};
+  tracking[dateStr]['story-video'] = {
+    postId,
+    publishedAt: new Date().toISOString(),
+    topic: dayPlan?.story?.topic || 'N/A',
+    slides: TOTAL_SLIDES,
+    duration: TOTAL_SLIDES * SECS_PER_SLIDE
+  };
+  // Mantém compatibilidade com keys antigas (story-new-1..5) para o dashboard
+  for (let n = 1; n <= TOTAL_SLIDES; n++) {
+    tracking[dateStr][`story-new-${n}`] = tracking[dateStr]['story-video'];
+  }
+  fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
+
+  // Limpa o MP4 temporário
+  try { fs.unlinkSync(outputMp4); } catch {}
 }
 
 main().catch(async err => {

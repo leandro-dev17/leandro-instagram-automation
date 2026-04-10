@@ -197,6 +197,40 @@ async function publishStory(imageUrl, token, userId) {
   return published.id;
 }
 
+async function publishVideoStory(videoUrl, token, userId) {
+  // Passo 1: Cria container de Story com vídeo
+  const container = await apiPost(`${userId}/media`, {
+    video_url: videoUrl,
+    media_type: 'STORIES'
+  }, token);
+
+  const containerId = container.id;
+  const hostname = token.startsWith('IGAA') ? 'graph.instagram.com' : 'graph.facebook.com';
+
+  // Passo 2: Aguarda processamento do vídeo (pode levar até 2 minutos)
+  console.log('  ⏳ Aguardando processamento do vídeo story...');
+  for (let i = 0; i < 24; i++) {
+    await new Promise(r => setTimeout(r, 10000));
+    try {
+      const status = await httpsGet(
+        `https://${hostname}/v21.0/${containerId}?fields=status_code,status&access_token=${token}`
+      );
+      console.log(`     status: ${status.status_code || status.status} (tentativa ${i + 1}/24)`);
+      if (status.status_code === 'FINISHED') break;
+      if (status.status_code === 'ERROR') throw new Error(`Processamento do vídeo story falhou: ${JSON.stringify(status)}`);
+    } catch (e) {
+      if (e.message.includes('Processamento')) throw e;
+    }
+  }
+
+  // Passo 3: Publica
+  const published = await apiPost(`${userId}/media_publish`, {
+    creation_id: containerId
+  }, token);
+
+  return published.id;
+}
+
 /**
  * Publica carrossel de imagens no feed do Instagram.
  * @param {string[]} imageUrls - URLs públicas das imagens (2 a 10)
@@ -234,4 +268,4 @@ async function publishCarousel(imageUrls, caption, token, userId) {
   return published.id;
 }
 
-module.exports = { publishPost, publishReel, publishStory, publishCarousel, refreshTokenIfNeeded, loadEnv };
+module.exports = { publishPost, publishReel, publishStory, publishVideoStory, publishCarousel, refreshTokenIfNeeded, loadEnv };
