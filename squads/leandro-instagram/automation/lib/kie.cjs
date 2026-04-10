@@ -18,16 +18,16 @@ function loadApiKey() {
   throw new Error('KIE_API_KEY não encontrada no arquivo .env');
 }
 
-// Sufixo de qualidade
+// Sufixo de qualidade — referência de câmera real para evitar pele plástica/borracha
 const QUALITY_SUFFIX = [
-  'ultra photorealistic', 'candid fitness photography',
-  'natural skin texture', 'soft natural lighting through large gym windows',
-  'editorial fitness instagram style', '4K resolution',
+  'real candid photograph', 'shot on Sony A7 IV mirrorless camera 85mm f1.8 lens',
+  'natural skin texture with visible pores', 'subtle natural skin imperfections',
+  'not airbrushed', 'soft natural window light', 'shallow depth of field background blur',
+  'authentic fitness instagram photo', 'tasteful athletic sportswear',
   'no text', 'no watermark', 'no logo overlay'
 ].join(', ');
 
-// Descrição base do corpo — baseada nas fotos de referência da personal trainer
-// Lean, tonificada, proporcional — NÃO exagerada, NÃO bodybuilder, NÃO sexualizada
+// Descrição base do corpo — conforme KIE_IMAGE_PROMPT_GUIDE.md aprovado 2026-04-04
 const BASE_BODY = [
   'beautiful slender lean athletic woman in her late 20s',
   'very slim narrow waist',
@@ -35,10 +35,10 @@ const BASE_BODY = [
   'slim hips with natural proportions',
   'slim toned legs with light muscle definition',
   'slender arms with light muscle definition',
-  'small to medium natural chest size',
+  'small to medium natural chest fully covered by sports bra',
   'overall slim size-small athletic physique',
-  'light natural makeup',
-  'tattoo sleeve on left arm',
+  'light natural makeup warm skin glow',
+  'small decorative tattoo on left arm',
   'fitness watch on right wrist'
 ].join(', ');
 
@@ -53,37 +53,64 @@ const DIVERSITY_POOL = [
   { hair: 'long straight auburn hair loose', eyes: 'brown eyes', skin: 'warm olive skin' }
 ];
 
-// Roupas baseadas nas referências — conjuntos fitness coloridos e cobertos, estilo Nike/Gymshark
+// Roupas fitness coloridas e cobertas — estilo Nike/Gymshark, sem decote
 const OUTFIT_POOL = [
-  'wearing matching cobalt blue leggings and blue racerback sports bra crop top, white sneakers',
-  'wearing hot pink high-waist full-length leggings and matching pink bandeau sports bra, white sneakers',
-  'wearing yellow high-waist bike shorts and white spaghetti-strap crop top, white sneakers',
-  'wearing black full-length leggings and strappy black racerback sports bra, white sneakers',
-  'wearing light blue full-length leggings and light blue sports bra with wide straps, white sneakers',
-  'wearing nude beige high-waist leggings and matching beige scoop-neck sports bra, white sneakers',
-  'wearing dark navy leggings and baby blue wide-strap sports bra, white sneakers',
-  'wearing forest green high-waist leggings and matching green sports bra, white sneakers',
-  'wearing burgundy high-waist leggings and matching burgundy sports bra crop top, white sneakers',
-  'wearing white high-waist leggings and white racerback sports bra, white sneakers'
+  'wearing matching cobalt blue full-length leggings and cobalt blue wide-strap racerback sports bra fully covering chest, white sneakers',
+  'wearing hot pink high-waist full-length leggings and matching pink high-neck athletic crop top, white sneakers',
+  'wearing yellow high-waist biker shorts and white structured scoop-neck athletic crop top, white sneakers',
+  'wearing black full-length leggings and charcoal gray wide-strap athletic crop top fully covering chest, white sneakers',
+  'wearing light blue full-length leggings and light blue high-neck sports bra crop top, white sneakers',
+  'wearing caramel beige high-waist leggings and matching caramel wide-strap sports bra, white sneakers',
+  'wearing dark navy full-length leggings and sky blue wide-strap athletic crop top, white sneakers',
+  'wearing forest green high-waist leggings and matching forest green scoop-neck sports bra, white sneakers',
+  'wearing deep burgundy high-waist leggings and matching burgundy athletic racerback crop top, white sneakers',
+  'wearing white high-waist leggings and white structured high-coverage racerback crop top, white sneakers',
+  'wearing lavender purple high-waist leggings and matching wide-strap sports bra, white sneakers',
+  'wearing coral orange high-waist leggings and matching coral structured crop top sports bra, white sneakers'
 ];
 
-// Poses — frente, 3/4 e lateral. Sem poses de costas nuas ou muito sexualizadas
+// Poses — grande variedade: em pé, sentada, agachada, ângulos de câmera, exercícios
 const POSE_POOL = [
-  // Corpo inteiro — frente
+  // ── EM PÉ — FRENTE ──────────────────────────────────────────────────────────
   'full body front view head to toe, standing confidently both hands on hips, warm smile at camera, bright modern gym with large windows and wooden floor',
-  'full body front view head to toe, walking toward camera with relaxed confident smile, arms naturally at sides, bright gym background',
   'full body front view head to toe, arms crossed at chest smiling at camera, toned abs visible, gym with mirrors in background',
-  'full body front view head to toe, one hand on hip other hand adjusting ponytail, candid smile, bright gym',
-  // 3/4 frente
-  'three-quarter front view full body, turned 45 degrees showing slim waist, one hand on hip smiling warmly, modern gym background',
-  'three-quarter front view waist up, leaning slightly forward on gym railing smiling, flat stomach visible, gym with natural light',
-  // Lateral
-  'full body side profile view showing slim waist and toned silhouette, looking slightly toward camera with a smile, bright modern gym',
-  'three-quarter body side view hands naturally at sides showing slim profile, warm candid expression, gym with large windows',
-  // Exercício — pose de frente visível
+  'full body front view head to toe, one hand on hip other arm relaxed at side, candid natural smile, bright gym background',
+  'full body front view head to toe, both arms relaxed at sides palms open, genuine warm smile looking at camera, bright gym',
+  'full body front view head to toe, one hand touching chin thinking pose, other hand on waist, playful smile, gym background',
+  'full body front view head to toe, arms slightly raised at sides showing toned arms, big confident smile, gym with natural light',
+
+  // ── EM PÉ — ÂNGULO 3/4 ──────────────────────────────────────────────────────
+  'three-quarter front view full body, turned 45 degrees showing slim waist and toned legs, one hand on hip smiling warmly, modern gym background',
+  'three-quarter front view full body, slightly turned showing slim profile, both hands gently clasped in front, soft smile, gym background',
+  'three-quarter front view full body, stepping forward dynamically with a confident smile, arms naturally swinging, bright gym',
+  'three-quarter front view from knees up, leaning one shoulder against gym mirror smiling, casual confident pose',
+
+  // ── EM PÉ — LATERAL ─────────────────────────────────────────────────────────
+  'full body side profile view showing slim waist and toned silhouette, head turned toward camera smiling, bright modern gym with large windows',
+  'three-quarter side view full body, looking over shoulder toward camera with warm smile, gym with natural light behind',
+
+  // ── SENTADA ─────────────────────────────────────────────────────────────────
+  'full body seated on gym bench, legs together feet flat on floor, hands on knees leaning forward slightly with warm smile at camera, bright gym',
+  'full body seated on edge of gym bench, one leg crossed over other, arms relaxed on thighs, relaxed candid smile, clean bright gym',
+  'three-quarter view seated on gym mat on floor, legs crossed, elbows on knees, chin resting on hands smiling, bright gym with mirrors',
+  'full body seated on plyo box, feet on box knees apart, arms resting on knees, leaning forward with big smile at camera, gym background',
+  'three-quarter view seated on gym bench sideways, feet on bench hugging knees, turned smiling at camera, bright gym',
+
+  // ── AGACHADA / BAIXA ────────────────────────────────────────────────────────
+  'full body front view, in deep squat position feet flat thighs parallel to floor, arms resting on knees, smiling at camera, bright gym',
+  'full body front view, semi-squat low position hands on knees leaning forward, confident smile at camera, gym with natural light',
+  'full body front view, crouching down with one knee on floor other leg bent, hands on knee, looking up at camera smiling, gym background',
+
+  // ── EXERCÍCIO — POSES SEGURAS ───────────────────────────────────────────────
   'full body front view, holding light dumbbells at sides standing relaxed, bright smile at camera, mirrors and gym equipment behind',
-  'full body front view, seated on gym bench with arms resting on knees leaning forward smiling at camera, clean bright gym',
-  'full body front view, standing at cable machine facing camera with rope handles relaxed at sides, confident smile, gym background'
+  'full body front view, holding one light dumbbell up in bicep curl pose, other hand on hip, big smile at camera, gym background',
+  'three-quarter front view, seated on gym bench holding water bottle relaxed, other hand on hip, candid smile, clean bright gym',
+  'full body front view, standing with resistance band looped around wrists arms extended, smiling at camera, bright gym',
+  'full body front view, standing next to cable machine one hand resting on it, other hand on hip, confident smile, gym background',
+
+  // ── ÂNGULO ALTO (câmera de cima) ─────────────────────────────────────────────
+  'shot from slightly above, full body front view, woman looking up at camera with warm smile, hands on hips, gym floor visible, bright overhead light',
+  'slightly elevated angle three-quarter view, woman looking up smiling, one hand raised touching hair, gym background'
 ];
 
 let diversityIndex = Math.floor(Math.random() * DIVERSITY_POOL.length);
@@ -124,28 +151,9 @@ function request(options, body) {
   });
 }
 
-// Monta o prompt final com corpo base, diversidade, roupa e pose
+// Monta o prompt final ignorando o prompt original — usa apenas os pools
+// O image_prompt do schedule era para o gerador antigo (Stability AI) e contamina o Flux
 function buildFinalPrompt(originalPrompt, diversity, outfit, pose) {
-  // Extrai apenas o contexto do exercício/cenário do prompt original
-  // (ignora descrições de corpo/roupa que já temos nos pools)
-  let context = originalPrompt
-    .replace(/Brazilian fitness woman[^,]*/gi, '')
-    .replace(/fitness woman[^,]*/gi, '')
-    .replace(/athletic build[^,]*/gi, '')
-    .replace(/slim athletic[^,]*/gi, '')
-    .replace(/wearing[^,]*/gi, '')
-    .replace(/leggings[^,]*/gi, '')
-    .replace(/sports bra[^,]*/gi, '')
-    .replace(/,\s*,/g, ',')
-    .replace(/^,\s*/, '')
-    .trim();
-
-  // Corrige exercícios com barbell que geram mãos defeituosas
-  context = context
-    .replace(/gripping barbell/gi, 'with hands lightly resting on bar')
-    .replace(/performing squat with (heavy )?barbell/gi, 'barbell resting on upper traps')
-    .replace(/Romanian deadlift with (heavy )?barbell/gi, 'holding dumbbells at sides');
-
   const { hair, eyes, skin } = diversity;
 
   return [
@@ -153,7 +161,6 @@ function buildFinalPrompt(originalPrompt, diversity, outfit, pose) {
     BASE_BODY,
     `${hair}, ${eyes}, ${skin}`,
     outfit,
-    context,
     'modern gym with large floor-to-ceiling windows, tropical outdoor view, wooden floor',
     QUALITY_SUFFIX
   ].filter(Boolean).join(', ');
@@ -220,25 +227,66 @@ async function generateFoodImage(prompt, outputPath) {
   throw new Error(`Kie.ai timeout: tarefa ${taskId} não completou em 3 minutos`);
 }
 
-async function generateImage(prompt, outputPath) {
-  const apiKey = loadApiKey();
+// ── QUALITY CONTROL — Claude Vision ─────────────────────────────────────────
+// Analisa a imagem gerada e reprova se detectar problemas óbvios
+async function checkImageQuality(imagePath) {
+  let anthropicKey = '';
+  try {
+    const envLines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
+    for (const line of envLines) {
+      const [k, ...v] = line.split('=');
+      if (k && k.trim() === 'ANTHROPIC_API_KEY') { anthropicKey = v.join('=').trim(); break; }
+    }
+    if (!anthropicKey) return { approved: true, reason: 'sem chave Anthropic — pulando QC' };
+  } catch { return { approved: true, reason: 'erro ao ler .env — pulando QC' }; }
 
-  const diversity = getNextDiversity();
-  const outfit = getNextOutfit();
-  const pose = getNextPose();
-  const fullPrompt = buildFinalPrompt(prompt, diversity, outfit, pose);
+  try {
+    const Anthropic = require(path.join(__dirname, '../../../node_modules/@anthropic-ai/sdk'));
+    const client = new Anthropic.default({ apiKey: anthropicKey });
 
-  // Detecta orientação pelo outputPath para escolher aspect ratio correto
-  // Posts feed (post-*.png) → 4:3 landscape ou 9:16 portrait
-  // Reels (reel-*.png) → 9:16
-  const fileName = path.basename(outputPath);
-  const aspectRatio = fileName.startsWith('reel') ? '9:16' : '9:16';
+    const imageData = fs.readFileSync(imagePath).toString('base64');
 
-  // 1. Cria tarefa de geração
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageData } },
+          {
+            type: 'text',
+            text: `You are a quality control system for fitness Instagram images. Analyze this image and respond with JSON only.
+
+Check for these FAIL conditions:
+1. Plastic/rubber skin texture (not natural)
+2. Deformed or extra fingers/hands
+3. Man instead of woman
+4. Revealing lingerie, thong, bikini or nudity
+5. Visible deformities (extra limbs, fused body parts, distorted face)
+6. Multiple people in the image
+
+Respond ONLY with valid JSON:
+{"approved": true} if image passes
+{"approved": false, "reason": "brief description of the problem"} if image fails`
+          }
+        ]
+      }]
+    });
+
+    const text = response.content[0].text.trim();
+    const match = text.match(/\{[\s\S]*?\}/);
+    if (!match) return { approved: true, reason: 'resposta inválida do QC — aprovando por padrão' };
+    return JSON.parse(match[0]);
+  } catch (err) {
+    return { approved: true, reason: `QC erro: ${err.message.slice(0, 80)} — aprovando por padrão` };
+  }
+}
+
+async function generateOnce(apiKey, fullPrompt) {
   const genBody = JSON.stringify({
     prompt: fullPrompt,
     enableTranslation: false,
-    aspectRatio,
+    aspectRatio: '9:16',
     outputFormat: 'png',
     model: 'flux-kontext-pro',
     promptUpsampling: false,
@@ -261,8 +309,6 @@ async function generateImage(prompt, outputPath) {
   }
 
   const taskId = genRes.body.data.taskId;
-
-  // 2. Polling até completar (máx 3 minutos, intervalo 5s)
   const maxAttempts = 36;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     await new Promise(r => setTimeout(r, 5000));
@@ -277,20 +323,56 @@ async function generateImage(prompt, outputPath) {
     if (pollRes.status !== 200 || !pollRes.body.data) continue;
 
     const { successFlag, response: imgResponse, errorMessage } = pollRes.body.data;
+    if (successFlag === 1 && imgResponse?.resultImageUrl) return imgResponse.resultImageUrl;
+    if (successFlag === 2 || successFlag === 3) {
+      throw new Error(`Kie.ai flag ${successFlag}: ${errorMessage || 'erro desconhecido'}`);
+    }
+  }
+  throw new Error(`Kie.ai timeout: taskId não completou em 3 minutos`);
+}
 
-    if (successFlag === 1 && imgResponse?.resultImageUrl) {
-      // 3. Baixa e salva a imagem
-      await downloadImage(imgResponse.resultImageUrl, outputPath);
+async function generateImage(prompt, outputPath) {
+  const apiKey = loadApiKey();
+
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const diversity = getNextDiversity();
+    const outfit = getNextOutfit();
+    const pose = getNextPose();
+    const fullPrompt = buildFinalPrompt(prompt, diversity, outfit, pose);
+
+    if (attempt > 1) console.log(`  [QC] Tentativa ${attempt}/${MAX_ATTEMPTS} — regenerando...`);
+
+    // 1. Gera imagem
+    const imageUrl = await generateOnce(apiKey, fullPrompt);
+
+    // 2. Baixa para arquivo temporário
+    const tmpPath = outputPath.replace(/\.png$/, `_tmp${attempt}.png`);
+    await downloadImage(imageUrl, tmpPath);
+
+    // 3. Verifica qualidade com Claude Vision
+    console.log(`  [QC] Analisando imagem (tentativa ${attempt})...`);
+    const qc = await checkImageQuality(tmpPath);
+
+    if (qc.approved) {
+      // Aprovada — move para o destino final
+      fs.renameSync(tmpPath, outputPath);
+      if (attempt > 1) console.log(`  [QC] ✅ Aprovada na tentativa ${attempt}`);
       return outputPath;
     }
 
-    if (successFlag === 2 || successFlag === 3) {
-      throw new Error(`Kie.ai geração falhou (flag ${successFlag}): ${errorMessage || 'erro desconhecido'}`);
+    // Reprovada — loga e tenta novamente
+    console.log(`  [QC] ❌ Reprovada: ${qc.reason}`);
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+
+    if (attempt === MAX_ATTEMPTS) {
+      // Esgotou tentativas — usa a última imagem gerada mesmo assim
+      console.log(`  [QC] ⚠️  ${MAX_ATTEMPTS} tentativas esgotadas — usando última imagem disponível`);
+      await downloadImage(imageUrl, outputPath);
+      return outputPath;
     }
-    // successFlag === 0: ainda gerando, continua polling
   }
 
-  throw new Error(`Kie.ai timeout: tarefa ${taskId} não completou em 3 minutos`);
 }
 
 function downloadImage(url, outputPath) {

@@ -7,25 +7,25 @@ const path = require('path');
 const fs = require('fs');
 const { generateImage } = require('./lib/kie.cjs');
 
-const OUT_DIR = 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/test-diversity';
+const OUT_DIR = 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/teste-v2';
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const PROMPTS = [
   {
     name: 'standing-confident',
-    prompt: 'Full body shot from head to toe of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with long straight dark brown hair, light tan skin, natural makeup, standing confidently with hands on hips smiling directly at camera, wearing yellow high-waist biker shorts and white sports bra white sneakers, modern gym with large mirrors background, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
+    prompt: 'standing confidently with hands on hips, smiling directly at camera, modern gym with large mirrors background'
   },
   {
     name: 'hip-thrust',
-    prompt: 'Full body shot from head to toe of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with shoulder-length straight black hair, medium brown skin, natural smile, performing hip thrust exercise on padded bench side view, wearing navy blue high-waist leggings and matching navy sports bra, gym with weights rack background, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
+    prompt: 'performing hip thrust exercise on padded bench, gym with weights rack background'
   },
   {
-    name: 'back-view',
-    prompt: 'Full body shot from head to toe of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with curly brunette hair tied up, warm medium skin tone, back view looking over shoulder with confident smile, wearing black high-waist leggings and white crop top, real gym environment, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
+    name: 'side-profile',
+    prompt: 'profile side view, standing in front of large gym window with one hand on hip, bright smile, real gym environment'
   },
   {
     name: 'cable-kickback',
-    prompt: 'Three-quarter body shot from knees to top of head of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, with long straight dark hair loose, light tan skin, performing cable kickback exercise profile view, wearing pink high-waist leggings and pink sports bra, gym with cable machine background, warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark'
+    prompt: 'performing cable glute kickback exercise, standing at cable machine facing sideways, gym with cable machine background'
   }
 ];
 

@@ -149,156 +149,63 @@ function buildPrompt(dates, insights) {
   const daysInfo = dates.map(d => `${d} (${getDayName(d)})`).join(', ');
   const insightsContext = buildInsightsContext(insights);
 
-  return `Você é um especialista em marketing de conteúdo para personal trainers brasileiros.
+  // Monta exemplo de estrutura para 1 dia
+  const exampleDate = dates[0];
+  const exampleDay = getDayName(dates[0]);
+
+  return `Você é um especialista em marketing de conteúdo viral para personal trainers brasileiros.
 
 Crie um cronograma de conteúdo para o Instagram de @leandro_personall para os dias: ${daysInfo}.
 
-Perfil: Personal trainer especializado em emagrecimento metabólico feminino e treino por ciclo menstrual. Público: mulheres 25-45 anos que querem emagrecer e entender o próprio corpo.
+Perfil: Personal trainer especializada em emagrecimento metabólico feminino e treino por ciclo menstrual. Público: mulheres 25-45 anos que querem emagrecer e entender o próprio corpo.
 
 Tom de voz: científico-empático, sem culpar a mulher, com dados reais, empoderador.${insightsContext}
 
-Para cada dia, gere:
-1. Cinco REELS INDIVIDUAIS (imagem vertical 9:16 com texto) — cada um com ângulo/sub-tema diferente do tema do dia
-2. Três POSTS FEED ÚNICOS: um motivacional, um educativo e um científico ou de mitos
+Para cada dia, gere EXATAMENTE:
+1. Um STORY (5 slides — mesmo assunto, abordagem narrativa dor → revelação → prova → solução → CTA)
+2. Um CARROSSEL de 7 slides para o feed (mesmo assunto, mais profundo e educativo)
 
-REGRAS IMPORTANTES:
+REGRAS DE CONTEÚDO:
 - Cada dia deve ter tema DIFERENTE dos outros dias
-- Os 5 reels do dia devem cobrir 5 ângulos diferentes do mesmo tema principal
-- Tipos de reel: motivacional, educativo, cientifico, mitos, dica, treino, nutricao, ciclo
-- Os image_prompts devem ser em INGLÊS, ultra-detalhados para gerar fotos realistas
-- REGRA ABSOLUTA para reels e posts: TODOS os image_prompts DEVEM mostrar uma mulher fitness. NUNCA gerar infográficos, diagramas, ilustrações, objetos sem pessoa ou cenas sem pessoa humana.
-- Estrutura OBRIGATÓRIA de todo image_prompt de reel/post: "[ENQUADRAMENTO] of a beautiful lean athletic fitness woman in her 30s, slim waist, flat toned stomach, defined toned legs and arms, natural realistic body proportions, [APARÊNCIA], wearing [ROUPA DE ACADEMIA], [contexto de academia/treino], warm cinematic lighting, hyperrealistic, photorealistic, 8K, no text, no watermark"
-- APARÊNCIA: varie sempre entre estas opções (NÃO repita a mesma no mesmo dia):
-  * "with long straight dark brown hair, light tan skin, natural makeup"
-  * "with long wavy brunette hair pulled back in ponytail, warm olive skin, brown eyes"
-  * "with shoulder-length straight black hair, medium brown skin, natural smile"
-  * "with long straight dark hair loose, light tan skin, subtle makeup"
-  * "with curly brunette hair tied up, warm medium skin tone, athletic face"
-- ROUPA DE ACADEMIA (roupas bonitas e tasteful — NUNCA biquíni ou tanga): varie entre:
-  * "yellow high-waist biker shorts and white sports bra, white sneakers"
-  * "coral pink high-waist leggings and matching pink sports bra, white sneakers"
-  * "dark navy high-waist leggings and light blue crop sports bra, white sneakers"
-  * "black high-waist leggings and black sports bra with colorful side stripes, white sneakers"
-  * "beige high-waist leggings and matching beige crop sports bra, white sneakers"
-- ENQUADRAMENTO: alterne entre estas opções para variar composição:
-  * "Full body shot from head to toe" — para mostrar corpo inteiro
-  * "Three-quarter body shot from knees to top of head" — meio corpo superior
-  * "Waist-up shot" — meio corpo
-- POSES SEGURAS (usar sempre — rosto visível, sem costas puras, sem mãos em primeiro plano):
-  * "standing confidently with hands on hips, smiling directly at camera"
-  * "three-quarter front view, one hand on hip, warm natural smile at camera"
-  * "side profile standing tall showing slim waist, looking toward camera smiling"
-  * "performing hip thrust on bench with resistance band on thighs, looking at camera"
-  * "performing glute bridge on mat, head raised looking at camera smiling"
-  * "performing Bulgarian split squat with light dumbbells at sides, smiling at camera"
-  * "walking confidently in gym, looking at camera with a smile"
-  * "seated on bench looking directly at camera, confident warm smile"
-  * "standing in front of gym mirror smiling at camera, full reflection visible"
-  * "doing lateral raises with light dumbbells at shoulder height, arms extended"
-- NUNCA usar: "back view only", "gripping barbell", "barbell squat close-up", "hands in foreground", "reaching out toward camera", "pointing finger at camera", "infographic", "diagram", "chart", "illustration", "icons", "curvy", "voluptuous", "big glutes", "Brazilian fitness woman", "thong", "bikini"
-- REGRA ESPECIAL para dica_receita: o image_prompt DEVE ser fotografia de alimento (SEM pessoa). Use: "Professional food photography, [prato/receita], beautiful plating, vibrant colors, natural window light, [superfície: marble/wooden board/slate], shallow depth of field, hyperrealistic, 8K UHD, Michelin-quality food styling, appetizing, mouth-watering, no text, no watermark"
-- Captions em português, conversacionais, com CTA forte no final que FORCE o comentário (ex: "Comenta 🍑 se você quer esse treino", "Digita SIM nos comentários se quer o passo a passo", "Que parte do seu treino você mais odeia? Comenta 👇")
-- Headlines DEVEM usar o gatilho de curiosidade — frases que criam lacuna de informação: "O erro que está travando seus glúteos", "Por que suas coxas crescem mas o bumbum não", "A técnica que 90% das mulheres ignora no treino"
-- CTAs dos reels e posts DEVEM provocar comentário ou salvamento: use perguntas diretas ao seguidor, desafios, pedidos de confirmação tipo "QUERO" nos comentários, ou informações que fazem a pessoa querer marcar uma amiga
-- Hashtags: mix de pequenas (#leandroperssonal), médias e grandes
-- Headlines dos reels: curtas e impactantes (máx 55 chars), para ser lida em 2 segundos
-- Exemplo de CTAs FORTES: "Comenta TREINO que te mando o PDF 💪", "Marca uma amiga que precisa saber disso 👇", "Você já sabia disso? Comenta SIM ou NÃO", "Salva antes de fechar — você vai querer isso depois 🔖"
+- Varie os temas entre: glúteos, ciclo menstrual, metabolismo, mitos fitness, treino de força, emagrecimento, alimentação estratégica, motivação real, corpo feminino, desafios comuns
+- Hooks VIRAIS obrigatórios: use afirmações polêmicas, números chocantes ou dores diretas — NUNCA perguntas genéricas
+  * RUIM: "Você sabe como treinar?"
+  * BOM: "Você está treinando errado há anos" / "90% das mulheres ignoram isso" / "Seu bumbum não cresce por 1 motivo"
+- CTAs FORTES: "Salva antes de fechar 💾", "Marca a amiga que precisa ver isso 👇", "Comenta QUERO que te mando o plano 📩", "Compartilha com quem luta com isso"
+- Captions do carrossel: conversacionais, com história/empatia, pergunta que força comentário no final
+- Hashtags: mix de pequenas (#leandropersonall), médias e grandes — 12-15 no carrossel, 5-8 no story
 
-Retorne APENAS um JSON válido neste formato exato:
+FORMATO JSON exato:
 
 {
   "week_start": "${dates[0]}",
   "week_end": "${dates[dates.length - 1]}",
   "generated_at": "${new Date().toISOString()}",
   "days": {
-    "${dates[0]}": {
-      "day_name": "${getDayName(dates[0])}",
-      "theme": "tema principal do dia",
-      "reels_hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5",
-      "reels": [
-        {
-          "number": 1,
-          "type": "motivacional",
-          "headline": "Headline curta e impactante",
-          "accent": "palavra para destacar em coral",
-          "body": "Frase de apoio (máx 100 chars, 2 linhas)",
-          "image_prompt": "detailed English prompt for ultra-realistic Stability AI image, vertical format",
-          "cta": "💬 Texto do CTA curto"
-        },
-        {
-          "number": 2,
-          "type": "educativo",
-          "headline": "Headline educativa",
-          "accent": "palavra",
-          "body": "Informação principal",
-          "image_prompt": "detailed English prompt",
-          "cta": "💾 CTA para salvar"
-        },
-        {
-          "number": 3,
-          "type": "cientifico",
-          "headline": "Stat ou fato científico",
-          "accent": "número ou palavra",
-          "body": "Contexto do dado",
-          "image_prompt": "detailed English prompt",
-          "cta": "🔬 CTA para comentar"
-        },
-        {
-          "number": 4,
-          "type": "dica",
-          "headline": "Dica prática",
-          "accent": "palavra",
-          "body": "Aplicação prática da dica",
-          "image_prompt": "detailed English prompt",
-          "cta": "📌 CTA para salvar ou marcar"
-        },
-        {
-          "number": 5,
-          "type": "mitos",
-          "headline": "Mito destruído",
-          "accent": "palavra",
-          "body": "A verdade sobre isso",
-          "image_prompt": "detailed English prompt",
-          "cta": "💬 CTA para comentar"
-        }
-      ],
-      "posts": [
-        {
-          "type": "motivacional",
-          "headline": "Headline emocional (máx 55 chars)",
-          "accent": "palavra",
-          "body": "Texto de apoio (2-3 linhas, máx 120 chars)",
-          "caption": "Caption completa com história/empatia e pergunta",
-          "hashtags": "#hashtag1 ... (12-15 hashtags)",
-          "image_prompt": "detailed English prompt for ultra-realistic image",
-          "cta": "💬 Texto do CTA (comenta X, salva, compartilha)"
-        },
-        {
-          "type": "educativo",
-          "headline": "Headline educativa",
-          "accent": "palavra",
-          "body": "Informação principal em 2 linhas",
-          "caption": "Caption educativa com valor prático e pergunta",
-          "hashtags": "#hashtag1 ...",
-          "image_prompt": "detailed English prompt",
-          "cta": "💾 CTA para salvar ou marcar alguém"
-        },
-        {
-          "type": "cientifico",
-          "headline": "Stat ou fato científico impactante",
-          "accent": "número ou palavra chave",
-          "body": "Contexto do estudo em 2 linhas",
-          "caption": "Caption com fonte, explicação e pergunta",
-          "hashtags": "#hashtag1 ...",
-          "image_prompt": "detailed English prompt",
-          "cta": "🔬 CTA para comentar opinião"
-        }
-      ]
+    "${exampleDate}": {
+      "day_name": "${exampleDay}",
+      "theme": "tema principal do dia (ex: Glúteos e Ciclo Menstrual)",
+      "story": {
+        "topic": "Frase-tema do story (ex: Por que seu glúteo não cresce mesmo treinando todo dia)",
+        "type": "dica",
+        "caption": "Texto curto para publicar junto ao story (1-2 frases + CTA)",
+        "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5"
+      },
+      "carousel": {
+        "topic": "Tema mais profundo do carrossel (ex: O guia completo de treino de glúteo por fase do ciclo)",
+        "type": "educativo",
+        "caption": "Caption completa do carrossel — começa com gancho, desenvolve com empatia e dado real, termina com pergunta que força comentário. Mínimo 150 palavras.",
+        "hashtags": "#hashtag1 #hashtag2 ... (12-15 hashtags)"
+      }
     }
   }
 }
 
-Gere o JSON completo para TODOS os ${dates.length} dias listados. Certifique-se que cada dia tem temas únicos e variados.`;
+IMPORTANTE:
+- Gere o JSON completo para TODOS os ${dates.length} dias listados
+- Cada dia deve ter temas completamente diferentes dos outros
+- Não repita tipos de conteúdo em dias consecutivos
+- O topic do story e do carousel do mesmo dia devem ser ângulos diferentes do mesmo tema`;
 }
 
 async function main() {
@@ -328,12 +235,10 @@ async function main() {
   console.log(`\nGerando cronograma para ${dates.length} dias:`);
   dates.forEach(d => console.log(`  → ${d} (${getDayName(d)})`));
 
-  // Gera em 4 lotes de 2 dias (conteúdo maior com 5 reels por dia)
+  // Gera em 2 lotes de 3-4 dias (conteúdo mais enxuto: 1 story + 1 carrossel por dia)
   const batches = [
-    dates.slice(0, 2),
-    dates.slice(2, 4),
-    dates.slice(4, 6),
-    dates.slice(6)
+    dates.slice(0, 4),
+    dates.slice(4)
   ].filter(b => b.length > 0);
 
   const allDays = {};
