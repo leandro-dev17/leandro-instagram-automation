@@ -151,8 +151,40 @@ function request(options, body) {
   });
 }
 
-// Monta o prompt final ignorando o prompt original — usa apenas os pools
-// O image_prompt do schedule era para o gerador antigo (Stability AI) e contamina o Flux
+// Mapa de palavras-chave → índices de poses relevantes no POSE_POOL
+// Garante que o fundo/pose tenha conexão com o tema do conteúdo
+const TOPIC_POSE_MAP = [
+  // Glúteo, agachamento, pernas
+  { keywords: ['glúteo', 'gluteo', 'agachamento', 'perna', 'leg', 'bumbum', 'posterior', 'quadríceps', 'quadriceps', 'lunge', 'afundo'],
+    poseIndices: [14, 15, 16, 17, 18, 19, 20] }, // poses sentada/agachada/exercício
+  // Braço, ombro, bíceps, tríceps
+  { keywords: ['braço', 'braco', 'ombro', 'bíceps', 'biceps', 'tríceps', 'triceps', 'rosca', 'shoulder'],
+    poseIndices: [21, 22, 23, 24] }, // poses com haltere
+  // Abdômen, core, barriga
+  { keywords: ['abdômen', 'abdomen', 'barriga', 'core', 'abdominal', 'cintura'],
+    poseIndices: [0, 1, 2, 3, 6, 7] }, // poses frente mostrando cintura
+  // Cardio, corrida, emagrecimento
+  { keywords: ['cardio', 'corrida', 'correr', 'emagrecer', 'emagrecimento', 'queimar', 'caloria', 'metabolismo'],
+    poseIndices: [8, 9, 10, 11, 12, 13] }, // poses dinâmicas/em pé
+  // Ciclo menstrual, hormônio, nutrição
+  { keywords: ['ciclo', 'menstrual', 'hormônio', 'hormonio', 'nutrição', 'nutricao', 'proteína', 'proteina', 'dieta', 'alimentação'],
+    poseIndices: [22, 23, 12, 13] }, // poses sentada/relaxada
+];
+
+// Seleciona pose relevante ao tema; fallback para pose aleatória do pool completo
+function getPoseForTopic(topicHint) {
+  if (!topicHint) return getNextPose();
+  const lower = topicHint.toLowerCase();
+  for (const { keywords, poseIndices } of TOPIC_POSE_MAP) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      const idx = poseIndices[Math.floor(Math.random() * poseIndices.length)];
+      return POSE_POOL[Math.min(idx, POSE_POOL.length - 1)];
+    }
+  }
+  return getNextPose();
+}
+
+// Monta o prompt final. Aceita topicHint opcional para selecionar pose relevante ao tema.
 function buildFinalPrompt(originalPrompt, diversity, outfit, pose) {
   const { hair, eyes, skin } = diversity;
 
@@ -161,7 +193,6 @@ function buildFinalPrompt(originalPrompt, diversity, outfit, pose) {
     BASE_BODY,
     `${hair}, ${eyes}, ${skin}`,
     outfit,
-    'modern gym with large floor-to-ceiling windows, tropical outdoor view, wooden floor',
     QUALITY_SUFFIX
   ].filter(Boolean).join(', ');
 }
@@ -331,14 +362,14 @@ async function generateOnce(apiKey, fullPrompt) {
   throw new Error(`Kie.ai timeout: taskId não completou em 5 minutos`);
 }
 
-async function generateImage(prompt, outputPath) {
+async function generateImage(prompt, outputPath, topicHint) {
   const apiKey = loadApiKey();
 
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const diversity = getNextDiversity();
     const outfit = getNextOutfit();
-    const pose = getNextPose();
+    const pose = getPoseForTopic(topicHint || prompt);
     const fullPrompt = buildFinalPrompt(prompt, diversity, outfit, pose);
 
     if (attempt > 1) console.log(`  [QC] Tentativa ${attempt}/${MAX_ATTEMPTS} — regenerando...`);

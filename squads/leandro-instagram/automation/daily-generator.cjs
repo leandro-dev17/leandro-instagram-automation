@@ -69,13 +69,13 @@ function safePrompt(defaultPrompt) {
   return defaultPrompt || 'Brazilian female personal trainer in her 30s, lean athletic body, standing confidently in bright modern gym, wearing pink high-waist leggings and matching sports bra, smiling at camera, natural lighting';
 }
 
-async function kieImage(prompt, destPath) {
+async function kieImage(prompt, destPath, topicHint) {
   try {
-    await generateImage(prompt || '', destPath);
+    await generateImage(prompt || '', destPath, topicHint);
   } catch (err) {
     if (err.message.includes('sensitive') || err.message.includes('E005')) {
       log(`  → E005 bloqueado — tentando prompt seguro...`);
-      await generateImage('', destPath); // kie.cjs ignora o prompt mesmo, usa pools
+      await generateImage('', destPath, topicHint);
     } else {
       throw err;
     }
@@ -240,10 +240,10 @@ async function generateStory(story, outputDir) {
   log('  📱 STORY: gerando 5 slides (1 imagem base)...');
   ensureDir(outputDir);
 
-  // 1. Gera 1 imagem base no Kie.ai
+  // 1. Gera 1 imagem base no Kie.ai — usa o tema do story para escolher pose relevante
   const basePath = path.join(TEMP_DIR, `story-base-${Date.now()}.png`);
   log('  → Gerando imagem base (Kie.ai)...');
-  await kieImage(story.image_prompt || '', basePath);
+  await kieImage(story.image_prompt || '', basePath, story.topic);
   log('  → Imagem base gerada');
 
   // 2. Gera conteúdo dos 5 slides via Claude
@@ -292,10 +292,10 @@ async function generateCarousel(carousel, outputDir) {
   log('  🖼️  CARROSSEL: gerando 7 slides (1 imagem base)...');
   ensureDir(outputDir);
 
-  // 1. Gera 1 imagem base no Kie.ai
+  // 1. Gera 1 imagem base no Kie.ai — usa o tema do carrossel para escolher pose relevante
   const basePath = path.join(TEMP_DIR, `carousel-base-${Date.now()}.png`);
   log('  → Gerando imagem base (Kie.ai)...');
-  await kieImage(carousel.image_prompt || '', basePath);
+  await kieImage(carousel.image_prompt || '', basePath, carousel.topic);
   log('  → Imagem base gerada');
 
   // 2. Gera conteúdo dos 7 slides via Claude
