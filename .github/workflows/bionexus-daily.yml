@@ -7,10 +7,11 @@ on:
     - cron: '0 10 * * *'     # 07:00 BRT — Story (5 slides)
     - cron: '0 15 * * *'     # 12:00 BRT — Carrossel (7 slides)
     - cron: '30 20 * * *'    # 17:30 BRT — Reel Dica do Personal
+    - cron: '0 23 * * *'     # 20:00 BRT — Reel Kling
   workflow_dispatch:
     inputs:
       job:
-        description: 'Job para executar manualmente (daily-generator | story-07h | carousel-12h | reel-dica-1730h)'
+        description: 'Job para executar manualmente (daily-generator | story-07h | carousel-12h | reel-dica-1730h | kling-reel-20h)'
         required: false
         default: 'daily-generator'
 
@@ -239,11 +240,42 @@ jobs:
         env:
           OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
 
-  # ── 20:00 BRT — Reel Kling (aguardando API) ────────────────────────────────
-  # Desabilitado até Kling confirmar assinatura de API
-  # Para habilitar: adicionar cron '0 23 * * *' no topo e remover o 'if: false'
+  # ── 20:00 BRT — Reel Kling ────────────────────────────────────────────────
   kling-reel-20h:
-    if: false
+    if: >
+      github.event.schedule == '0 23 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'kling-reel-20h')
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Kling Reel desabilitado — aguardando confirmação de API"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências e ffmpeg
+        run: npm install && sudo apt-get install -y ffmpeg fonts-dejavu-core
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar pastas necessárias
+        run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/kling-pool
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          KIE_API_KEY=${{ secrets.KIE_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          KLING_ACCESS_KEY=${{ secrets.KLING_ACCESS_KEY }}
+          KLING_SECRET_KEY=${{ secrets.KLING_SECRET_KEY }}
+          EOF
+      - name: Publicar Reel Kling
+        run: node kling-publisher.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          TEMP_DIR: /tmp/bionexus_render

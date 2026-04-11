@@ -145,6 +145,17 @@ function buildInsightsContext(insights) {
   return lines.join('\n');
 }
 
+// Mapeamento de vídeos do pool Kling → temas compatíveis
+const VIDEO_POOL_MAP = [
+  { id: '01-caminhada-camera-lateral',    temas: 'cardio, emagrecimento, metabolismo, queima de gordura, caminhada' },
+  { id: '02-rotacao-360-luz-dourada',     temas: 'glúteo, coxa, pernas, bumbum, leg day, quadril' },
+  { id: '03-close-rosto-sorriso',         temas: 'motivação, mindset, nutrição, proteína, dica geral, alimentação' },
+  { id: '04-cintura-quadril-movimento',   temas: 'abdômen, cintura, core, hormônios, ciclo menstrual, feminino' },
+  { id: '05-camera-baixo-para-cima',      temas: 'força, músculo, braços, superação, treino pesado, intensidade' },
+  { id: '06-pernas-andando-close',        temas: 'pernas, panturrilha, cardio leve, passos, caminhada' },
+  { id: '09-morena-clara-shoulder-press', temas: 'ombro, postura, parte superior, bíceps, rosca, press' },
+];
+
 function buildPrompt(dates, insights) {
   const daysInfo = dates.map(d => `${d} (${getDayName(d)})`).join(', ');
   const insightsContext = buildInsightsContext(insights);
@@ -152,6 +163,10 @@ function buildPrompt(dates, insights) {
   // Monta exemplo de estrutura para 1 dia
   const exampleDate = dates[0];
   const exampleDay = getDayName(dates[0]);
+
+  const videoPoolDesc = VIDEO_POOL_MAP
+    .map(v => `  - "${v.id}" → compatível com: ${v.temas}`)
+    .join('\n');
 
   return `Você é um especialista em marketing de conteúdo viral para personal trainers brasileiros.
 
@@ -164,6 +179,10 @@ Tom de voz: científico-empático, sem culpar a mulher, com dados reais, empoder
 Para cada dia, gere EXATAMENTE:
 1. Um STORY (5 slides — mesmo assunto, abordagem narrativa dor → revelação → prova → solução → CTA)
 2. Um CARROSSEL de 7 slides para o feed (mesmo assunto, mais profundo e educativo)
+3. Um REEL KLING (vídeo de modelo fitness pré-gerado — escolha o video_id mais compatível com o tema do dia)
+
+POOL DE VÍDEOS KLING disponíveis (escolha o mais compatível com o tema):
+${videoPoolDesc}
 
 REGRAS DE CONTEÚDO:
 - Cada dia deve ter tema DIFERENTE dos outros dias
@@ -173,7 +192,9 @@ REGRAS DE CONTEÚDO:
   * BOM: "Você está treinando errado há anos" / "90% das mulheres ignoram isso" / "Seu bumbum não cresce por 1 motivo"
 - CTAs FORTES: "Salva antes de fechar 💾", "Marca a amiga que precisa ver isso 👇", "Comenta QUERO que te mando o plano 📩", "Compartilha com quem luta com isso"
 - Captions do carrossel: conversacionais, com história/empatia, pergunta que força comentário no final
-- Hashtags: mix de pequenas (#leandropersonall), médias e grandes — 12-15 no carrossel, 5-8 no story
+- Caption do reel_kling: tom provocativo e polêmico, gera vontade de comentar/compartilhar, termina com pergunta que divide opiniões. Mínimo 100 palavras.
+- Hashtags: mix de pequenas (#leandropersonall), médias e grandes — 12-15 no carrossel e reel, 5-8 no story
+- video_id do reel_kling: escolha o mais compatível com o tema do dia — NÃO repita o mesmo video_id em dias consecutivos
 
 FORMATO JSON exato:
 
@@ -196,6 +217,12 @@ FORMATO JSON exato:
         "type": "educativo",
         "caption": "Caption completa do carrossel — começa com gancho, desenvolve com empatia e dado real, termina com pergunta que força comentário. Mínimo 150 palavras.",
         "hashtags": "#hashtag1 #hashtag2 ... (12-15 hashtags)"
+      },
+      "reel_kling": {
+        "topic": "Tema do reel (ex: Ombro redondo e postura feminina)",
+        "video_id": "09-morena-clara-shoulder-press",
+        "caption": "Caption provocativa e polêmica sobre o tema — gera vontade de comentar e compartilhar, termina com pergunta que divide opiniões. Mínimo 100 palavras.",
+        "hashtags": "#hashtag1 #hashtag2 ... (12-15 hashtags)"
       }
     }
   }
@@ -205,7 +232,8 @@ IMPORTANTE:
 - Gere o JSON completo para TODOS os ${dates.length} dias listados
 - Cada dia deve ter temas completamente diferentes dos outros
 - Não repita tipos de conteúdo em dias consecutivos
-- O topic do story e do carousel do mesmo dia devem ser ângulos diferentes do mesmo tema`;
+- O topic do story e do carousel do mesmo dia devem ser ângulos diferentes do mesmo tema
+- O video_id do reel_kling deve ser escolhido com base no tema e NÃO pode repetir em dias consecutivos`;
 }
 
 async function main() {

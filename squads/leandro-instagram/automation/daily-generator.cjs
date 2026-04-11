@@ -361,6 +361,7 @@ function buildPublicarMd(dateStr, dayPlan) {
   const story = dayPlan.story || {};
   const carousel = dayPlan.carousel || {};
   const dica = dayPlan.dica_receita || {};
+  const reel_kling = dayPlan.reel_kling || {};
 
   const lines = [
     `# Conteúdo do dia — ${dateStr}`,
@@ -404,10 +405,23 @@ function buildPublicarMd(dateStr, dayPlan) {
     ``,
     `---`,
     ``,
+    `## 🎬 REEL KLING (publica automaticamente às 20h)`,
+    `**Vídeo:** ${reel_kling.video_id || 'não definido'}`,
+    `**Tema:** ${reel_kling.topic || ''}`,
+    ``,
+    `**Caption do Reel:**`,
+    reel_kling.caption || '',
+    ``,
+    `**Hashtags:**`,
+    reel_kling.hashtags || '',
+    ``,
+    `---`,
+    ``,
     `## ✅ Checklist de publicação`,
-    `- [ ] Story: publicar slides 1-5 em sequência`,
-    `- [ ] Carrossel: publicar 7 slides como post no feed`,
-    `- [ ] Reel Dica do Personal: publicar como reel`,
+    `- [ ] Story: publicar slides 1-5 em sequência (automático 07h)`,
+    `- [ ] Carrossel: publicar 7 slides como post no feed (automático 12h)`,
+    `- [ ] Reel Dica do Personal: publicar como reel (automático 17h30)`,
+    `- [ ] Reel Kling: publicar com texto animado (automático 20h)`,
     `- [ ] Responder comentários nas primeiras 2h`,
     ``,
     `*Gerado por BioNexus Digital — @leandro_personall*`
