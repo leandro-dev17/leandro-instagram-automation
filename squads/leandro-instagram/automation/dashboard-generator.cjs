@@ -10,13 +10,14 @@
 const fs   = require('fs');
 const path = require('path');
 
-const REPORTS_DIR  = 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/Relatório insights instagram';
+const RELATORIOS_DIR = 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/Relatórios';
+const REPORTS_DIR  = `${RELATORIOS_DIR}/Relatório insights instagram`;
 const LOGS_DIR     = path.join(__dirname, 'logs');
-const OUTPUT_DIR   = path.join(__dirname, 'dashboard');
+const OUTPUT_DIR   = RELATORIOS_DIR;
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 
 function loadAllReports() {
-  const dirs = [REPORTS_DIR, path.join(__dirname, 'reports')];
+  const dirs = [REPORTS_DIR];
   const reports = [];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) continue;

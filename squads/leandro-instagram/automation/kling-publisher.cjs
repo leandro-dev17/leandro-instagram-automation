@@ -108,48 +108,86 @@ async function generateHook(topic, caption) {
   const Anthropic = require('@anthropic-ai/sdk');
   const client    = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const prompt = `Você cria textos para queimar diretamente em vídeos curtos do Instagram (Reels) de @leandro_personall, personal trainer feminina.
+  const prompt = `Você é o melhor copywriter de Instagram do Brasil especializado em fitness feminino.
 
-O texto vai aparecer e sumir durante o vídeo de 10 segundos — são 4 frases curtas, cada uma aparecendo por ~2.5 segundos.
+Crie 4 frases de hook para queimar em um Reel de 10 segundos de @leandro_personall (personal trainer para mulheres).
+Cada frase aparece por 2.5 segundos — precisa ser impactante o suficiente para a pessoa parar o dedo e comentar.
 
-Tema do vídeo: "${topic}"
-Contexto da caption: "${(caption || '').slice(0, 150)}"
+Tema: "${topic}"
+Contexto: "${(caption || '').slice(0, 150)}"
 
-ESTILO OBRIGATÓRIO — alterne entre estes dois estilos (escolha o mais impactante para o tema):
+ESCOLHA um destes estilos (o mais impactante para o tema):
 
-Estilo 1 — Provocação social + julgamento:
-  "Ombro redondo não é genética."
-  "É descuido."
-  "Esse movimento resolve."
-  "ou você continua inventando desculpa"
+ESTILO A — Dor + Diagnóstico Chocante (revela algo que ela nunca percebeu):
+Exemplo:
+  "Você malha todo dia e ainda não emagrece."
+  "O problema não é esforço."
+  "É o que você faz nas 23h fora da academia."
+  "Isso muda tudo."
 
-Estilo 2 — Rivalidade + nós contra eles:
-  "Seu personal nunca te mostrou isso."
-  "Porque é simples demais."
-  "E simples não vende pacote de 3 meses."
-  "Pensa nisso."
+ESTILO B — Acusação Social (faz ela pensar em alguém conhecido):
+Exemplo:
+  "Sua amiga emagreceu sem malhar mais que você."
+  "Não foi genética."
+  "Foi isso aqui que ela mudou."
+  "E você ainda não sabe."
 
-REGRAS CRÍTICAS:
-- EXATAMENTE 4 frases
-- Cada frase: máximo 40 caracteres (vai ser exibida em vídeo vertical)
-- Tom: provocativo, levemente arrogante, divide opiniões
-- SEM emojis (não renderizam corretamente no ffmpeg)
-- SEM hashtags
-- SEM perguntas diretas (afirmações são mais impactantes)
-- NÃO use "Comenta", "Curte", "Salva" — isso é o que TODOS fazem
-- A última frase deve ser levemente irônica ou desafiadora
+ESTILO C — Segredo + Traição (faz ela questionar o que aprendeu):
+Exemplo:
+  "Seu personal escondeu isso de você."
+  "Não por maldade."
+  "Porque funciona demais."
+  "E assusta quem ainda cobra R$300 a hora."
 
-Responda APENAS com JSON válido:
+ESTILO D — Identidade + Provocação (mexe com quem ela acha que é):
+Exemplo:
+  "Você não é sedentária."
+  "Você só nunca teve um método real."
+  "Método é isso."
+  "Sedentária é quem continua parada depois disso."
+
+ESTRUTURA OBRIGATÓRIA — 4 segmentos, cada um com 3 linhas curtas (aparecem juntas por 2.5s):
+
+Cada segmento = 3 linhas que formam uma ideia completa e impactante.
+Exemplo de segmento bem construído:
+  l1: "Você malha todo dia"
+  l2: "come direito"
+  l3: "e ainda não emagrece."
+
+Outro exemplo:
+  l1: "Sua amiga perdeu 8kg."
+  l2: "Sem academia extra."
+  l3: "Ela mudou apenas isso."
+
+REGRAS ABSOLUTAS:
+- EXATAMENTE 4 segmentos (s1 a s4)
+- Cada linha: MÁXIMO 24 caracteres — rígido, sem exceção
+- Use PT-BR correto com todos os acentos: ã, é, ê, ç, ô, etc.
+- SEM emojis, SEM hashtags
+- Tom: íntimo, direto, levemente provocativo — como uma amiga que sabe mais
+- s1 deve fisgar atenção nos primeiros 2.5 segundos
+- s4 é o fechamento: deve terminar com um CTA CONVERSACIONAL e descontraído que convida a pessoa a comentar de forma natural — NÃO use "Comenta X aqui", "Salva esse post" ou qualquer CTA genérico. Use perguntas genuínas como: "Você já conhecia isso?", "O que você acha?", "Você concorda?", "Já fez isso antes?", "Me conta o que você sentiu", "Faz sentido pra você?", "Você já tinha ouvido falar?" — escolha a mais natural para o contexto
+- Cada linha deve fazer sentido sozinha E com as outras do segmento
+
+Responda APENAS com JSON válido, sem texto antes ou depois:
 {
-  "linha1": "frase 1 aqui",
-  "linha2": "frase 2 aqui",
-  "linha3": "frase 3 aqui",
-  "linha4": "frase 4 aqui"
+  "s1_l1": "linha 1 do segmento 1",
+  "s1_l2": "linha 2 do segmento 1",
+  "s1_l3": "linha 3 do segmento 1",
+  "s2_l1": "linha 1 do segmento 2",
+  "s2_l2": "linha 2 do segmento 2",
+  "s2_l3": "linha 3 do segmento 2",
+  "s3_l1": "linha 1 do segmento 3",
+  "s3_l2": "linha 2 do segmento 3",
+  "s3_l3": "linha 3 do segmento 3",
+  "s4_l1": "linha 1 do segmento 4",
+  "s4_l2": "linha 2 do segmento 4",
+  "s4_l3": "linha 3 do segmento 4"
 }`;
 
   const response = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
+    max_tokens: 500,
     messages: [{ role: 'user', content: prompt }]
   });
 
@@ -158,68 +196,89 @@ Responda APENAS com JSON válido:
   if (!match) throw new Error('Claude não retornou JSON válido para o hook');
   const parsed = JSON.parse(match[0]);
 
+  // s1-s3: 3 linhas. s4: apenas 1 linha (CTA conversacional)
   return [
-    parsed.linha1 || '',
-    parsed.linha2 || '',
-    parsed.linha3 || '',
-    parsed.linha4 || ''
-  ].filter(Boolean);
+    { l1: (parsed['s1_l1'] || '').slice(0, 24), l2: (parsed['s1_l2'] || '').slice(0, 24), l3: (parsed['s1_l3'] || '').slice(0, 24) },
+    { l1: (parsed['s2_l1'] || '').slice(0, 24), l2: (parsed['s2_l2'] || '').slice(0, 24), l3: (parsed['s2_l3'] || '').slice(0, 24) },
+    { l1: (parsed['s3_l1'] || '').slice(0, 24), l2: (parsed['s3_l2'] || '').slice(0, 24), l3: (parsed['s3_l3'] || '').slice(0, 24) },
+    { l1: (parsed['s4_l1'] || '').slice(0, 32), l2: '', l3: '' }  // CTA: 1 linha, limite maior
+  ];
 }
 
 // ── Queima hook no vídeo via ffmpeg drawtext ────────────────────────────────────
 
-// ffmpeg drawtext exige que colons em caminhos Windows sejam escapados como \:
 function escapeDrawtextPath(filePath) {
   return filePath.replace(/\\/g, '/').replace(/^([A-Za-z]):/, '$1\\:');
 }
 
-function burnHookText(inputMp4, outputMp4, hookLines) {
+// Escapa texto para uso inline no parâmetro text= do ffmpeg drawtext
+// Resolve problema de acentos no Windows com textfile= (encoding issue)
+function escapeDrawtextInline(text) {
+  return text
+    .replace(/\\/g, '\\\\')   // \ → \\
+    .replace(/'/g, "\\'")      // ' → \'
+    .replace(/:/g, '\\:')      // : → \:
+    .replace(/\[/g, '\\[')     // [ → \[
+    .replace(/\]/g, '\\]');    // ] → \]
+}
+
+// hookSegments: array de {l1, l2, l3} — cada segmento ocupa 10s/N do vídeo
+// 3 drawtext separados por segmento, posicionados manualmente como bloco centrado
+// Usa borderw (outline) em vez de box — sem sobreposição de fundos
+function burnHookText(inputMp4, outputMp4, hookSegments) {
   if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
 
-  // Fonte: Arial Bold no Windows, DejaVu Bold no Linux (ambas suportam português)
   const rawFontPath = process.platform === 'win32'
     ? 'C:/Windows/Fonts/arialbd.ttf'
     : '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
   const fontPath = escapeDrawtextPath(rawFontPath);
 
-  const segDuration = (10 / hookLines.length).toFixed(3);
+  const FS = 46;  // font size
+  const SP = 16;  // espaçamento entre linhas (px)
 
-  // Escreve cada linha em arquivo temporário para lidar corretamente com UTF-8
-  const textFiles = hookLines.map((line, i) => {
-    const f = path.join(TEMP_DIR, `kling-hook-${Date.now()}-${i}.txt`);
-    fs.writeFileSync(f, line, 'utf8');
-    return f;
-  });
+  const segDuration = (10 / hookSegments.length).toFixed(3);
+  const drawFilters = [];
 
-  // Monta filtros drawtext — cada segmento aparece no topo do vídeo (y=h*0.13)
-  const drawFilters = hookLines.map((_, i) => {
-    const start = (i * parseFloat(segDuration)).toFixed(2);
-    const end   = ((i + 1) * parseFloat(segDuration)).toFixed(2);
-    const safeTextFile = escapeDrawtextPath(textFiles[i]);
-    return [
-      `drawtext=fontfile='${fontPath}'`,
-      `textfile='${safeTextFile}'`,
-      `x=(w-text_w)/2`,
-      `y=h*0.13`,
-      `fontsize=54`,
-      `fontcolor=white`,
-      `box=1`,
-      `boxcolor=black@0.55`,
-      `boxborderw=20`,
-      `enable='between(t,${start},${end})'`
-    ].join(':');
+  const style = [
+    `fontsize=${FS}`,
+    `fontcolor=white`,
+    `borderw=4`,
+    `bordercolor=black@0.90`,
+    `shadowcolor=black@0.55`,
+    `shadowx=0`,
+    `shadowy=3`
+  ].join(':');
+
+  hookSegments.forEach((seg, i) => {
+    const start    = (i * parseFloat(segDuration)).toFixed(2);
+    const end      = ((i + 1) * parseFloat(segDuration)).toFixed(2);
+    const timeExpr = `enable='between(t,${start},${end})'`;
+
+    const lines = [seg.l1, seg.l2, seg.l3].filter(Boolean);
+    const n  = lines.length;
+    const BH = n * FS + (n - 1) * SP; // altura total do bloco
+
+    lines.forEach((line, li) => {
+      const yOffset = li * (FS + SP);
+      const yPos    = `(h-${BH})/2+${yOffset}`;
+      const safeText = escapeDrawtextInline(line);
+      drawFilters.push([
+        `drawtext=fontfile='${fontPath}'`,
+        `text='${safeText}'`,
+        `x=(w-text_w)/2`,
+        `y=${yPos}`,
+        style,
+        timeExpr
+      ].join(':'));
+    });
   });
 
   const vf = drawFilters.join(',');
 
-  try {
-    execSync(
-      `ffmpeg -y -i "${inputMp4}" -vf "${vf}" -c:v libx264 -pix_fmt yuv420p -movflags +faststart "${outputMp4}"`,
-      { stdio: 'inherit' }
-    );
-  } finally {
-    textFiles.forEach(f => { try { fs.unlinkSync(f); } catch {} });
-  }
+  execSync(
+    `ffmpeg -y -i "${inputMp4}" -vf "${vf}" -c:v libx264 -pix_fmt yuv420p -movflags +faststart "${outputMp4}"`,
+    { stdio: 'inherit' }
+  );
 }
 
 // ── MAIN ────────────────────────────────────────────────────────────────────────

@@ -100,12 +100,14 @@ function downloadFile(url, outputPath) {
 
 // ── Prompt de movimento padrão ─────────────────────────────────────────────────
 // Prompts que funcionam bem para fitness Instagram — movimento natural e cinematic
+// Prompts de movimento SEGUROS para Kling — apenas micro-movimentos naturais
+// NUNCA pedir movimentos complexos (agachamento, corrida, salto) — distorce o rosto
 const MOVEMENT_PROMPTS = [
-  'woman smiling warmly at camera with subtle confident breathing, hair gently swaying, soft gym light through windows, smooth cinematic motion, realistic 4K',
-  'subtle weight shift and natural breathing movement, warm smile, gym environment with soft natural light, graceful feminine motion, cinematic realism',
-  'gentle head tilt and warm smile at camera, slight shoulder movement, bright gym background with bokeh, natural organic motion, ultra realistic',
-  'confident posture with natural breathing and micro-movements, direct eye contact and genuine smile, gym setting alive with soft light, cinematic 4K motion',
-  'relaxed natural movement, woman shifting slightly while maintaining eye contact with camera, gym background gently in focus, smooth realistic animation'
+  'subtle natural breathing movement, confident warm smile at camera, hair gently swaying, soft gym light, smooth realistic cinematic motion, 4K',
+  'gentle micro-movements while standing, warm smile maintained, direct eye contact with camera, soft natural gym light, realistic smooth animation',
+  'slight weight shift standing upright, natural breathing, genuine confident smile, gym with soft bokeh background, cinematic smooth motion',
+  'natural standing pose with subtle sway, warm smile, hair lightly moving, bright modern gym background, ultra realistic 4K smooth motion',
+  'confident upright posture, natural breathing micro-movements, warm direct eye contact, gentle hair movement, gym environment, smooth cinematic 4K'
 ];
 
 let movementIndex = Math.floor(Math.random() * MOVEMENT_PROMPTS.length);
@@ -136,10 +138,10 @@ async function generateVideo(imagePath, outputPath, movementPrompt) {
 
   // ── 1. Cria a tarefa de geração ──────────────────────────────────────────────
   const reqBody = JSON.stringify({
-    model_name: 'kling-v1',          // modelo padrão estável
+    model_name: 'kling-v1-5',        // melhor qualidade de rosto vs kling-v1
     image: imageBase64,
     prompt: prompt,
-    negative_prompt: 'blurry, distorted, low quality, artifacts, text, watermark, logo, duplicate person, extra limbs',
+    negative_prompt: 'blurry, distorted, low quality, artifacts, text, watermark, logo, duplicate person, extra limbs, deformed face, crooked eyes, bad teeth, open mouth distorted',
     cfg_scale: 0.5,                  // 0.0-1.0 — 0.5 equilibra fidelidade e movimento
     mode: 'std',                     // 'std' (padrão) ou 'pro' (mais lento, mais detalhado)
     duration: 10                     // 5 ou 10 segundos
@@ -212,4 +214,89 @@ async function generateVideo(imagePath, outputPath, movementPrompt) {
   throw new Error(`Kling AI timeout: tarefa ${taskId} não completou em ${(MAX_POLLS * POLL_DELAY) / 60000} minutos`);
 }
 
-module.exports = { generateVideo, getNextMovementPrompt };
+// ── Text-to-Video ──────────────────────────────────────────────────────────────
+/**
+ * Gera um vídeo de 10 segundos direto do texto, sem imagem base.
+ * Mais controle sobre roupa, pose e ambiente — ideal para Reels.
+ *
+ * @param {string} prompt      - Descrição completa da cena
+ * @param {string} outputPath  - Caminho absoluto onde salvar o MP4
+ * @returns {Promise<string>}  - outputPath quando concluído
+ */
+async function generateVideoFromText(prompt, outputPath) {
+  const { accessKey, secretKey } = loadCredentials();
+  const jwt = buildJWT(accessKey, secretKey);
+
+  const reqBody = JSON.stringify({
+    model_name: 'kling-v1-6',      // v1-6 suporta std no text2video
+    prompt: prompt,
+    negative_prompt: 'blurry, distorted, low quality, artifacts, text, watermark, logo, nudity, bikini, lingerie, revealing clothes, deformed face, crooked eyes, bad teeth, extra limbs, multiple people',
+    cfg_scale: 0.5,
+    mode: 'std',
+    duration: 10,
+    aspect_ratio: '9:16'
+  });
+
+  const createRes = await httpRequest({
+    hostname: 'api.klingai.com',
+    path: '/v1/videos/text2video',
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(reqBody)
+    }
+  }, reqBody);
+
+  if (createRes.status !== 200 || createRes.body.code !== 0) {
+    throw new Error(`Kling text2video falhou (HTTP ${createRes.status}): ${JSON.stringify(createRes.body).slice(0, 400)}`);
+  }
+
+  const taskId = createRes.body.data?.task_id;
+  if (!taskId) throw new Error(`Kling text2video: task_id não retornado — ${JSON.stringify(createRes.body).slice(0, 300)}`);
+
+  console.log(`  [Kling] Tarefa criada: ${taskId}`);
+  console.log(`  [Kling] Prompt: "${prompt.slice(0, 80)}..."`);
+
+  const MAX_POLLS  = 40;
+  const POLL_DELAY = 15000;
+
+  for (let attempt = 1; attempt <= MAX_POLLS; attempt++) {
+    await new Promise(r => setTimeout(r, POLL_DELAY));
+
+    const pollRes = await httpRequest({
+      hostname: 'api.klingai.com',
+      path: `/v1/videos/text2video/${taskId}`,
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${jwt}` }
+    }, null);
+
+    if (pollRes.status !== 200 || pollRes.body.code !== 0) {
+      console.log(`  [Kling] Poll ${attempt}/${MAX_POLLS}: erro HTTP ${pollRes.status} — tentando novamente...`);
+      continue;
+    }
+
+    const task   = pollRes.body.data;
+    const status = task?.task_status;
+
+    if (status === 'succeed') {
+      const videoUrl = task?.task_result?.videos?.[0]?.url;
+      if (!videoUrl) throw new Error('Kling text2video: vídeo concluído mas URL não encontrada');
+      console.log(`  [Kling] ✅ Vídeo pronto (tentativa ${attempt}) — baixando...`);
+      await downloadFile(videoUrl, outputPath);
+      console.log(`  [Kling] ✅ Salvo em: ${outputPath}`);
+      return outputPath;
+    }
+
+    if (status === 'failed') {
+      throw new Error(`Kling text2video falhou: ${task?.task_status_msg || 'motivo desconhecido'}`);
+    }
+
+    const elapsed = Math.round((attempt * POLL_DELAY) / 1000);
+    console.log(`  [Kling] Poll ${attempt}/${MAX_POLLS}: ${status} (${elapsed}s)...`);
+  }
+
+  throw new Error(`Kling text2video timeout: tarefa ${taskId} não completou em ${(MAX_POLLS * POLL_DELAY) / 60000} minutos`);
+}
+
+module.exports = { generateVideo, generateVideoFromText, getNextMovementPrompt };

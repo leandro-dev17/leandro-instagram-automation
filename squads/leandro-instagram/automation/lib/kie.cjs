@@ -151,12 +151,17 @@ function request(options, body) {
   });
 }
 
+// Índices seguros para Kling: APENAS poses em pé ou sentadas eretas
+// Poses agachadas/curvadas causam deformação de rosto quando animadas pelo Kling
+const KLING_SAFE_POSE_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 21, 24, 25, 26];
+
 // Mapa de palavras-chave → índices de poses relevantes no POSE_POOL
-// Garante que o fundo/pose tenha conexão com o tema do conteúdo
+// Para imagens estáticas (story/carrossel) usa variedade maior incluindo sentadas
+// Para Kling (vídeo) sempre usar getPoseForKling()
 const TOPIC_POSE_MAP = [
-  // Glúteo, agachamento, pernas
+  // Glúteo, agachamento, pernas — usa poses EM PÉ (agachamento distorce no Kling)
   { keywords: ['glúteo', 'gluteo', 'agachamento', 'perna', 'leg', 'bumbum', 'posterior', 'quadríceps', 'quadriceps', 'lunge', 'afundo'],
-    poseIndices: [14, 15, 16, 17, 18, 19, 20] }, // poses sentada/agachada/exercício
+    poseIndices: [12, 13, 14, 15, 16, 17] }, // sentadas eretas no banco/mat — ok para imagem estática
   // Braço, ombro, bíceps, tríceps
   { keywords: ['braço', 'braco', 'ombro', 'bíceps', 'biceps', 'tríceps', 'triceps', 'rosca', 'shoulder'],
     poseIndices: [21, 22, 23, 24] }, // poses com haltere
@@ -165,13 +170,19 @@ const TOPIC_POSE_MAP = [
     poseIndices: [0, 1, 2, 3, 6, 7] }, // poses frente mostrando cintura
   // Cardio, corrida, emagrecimento
   { keywords: ['cardio', 'corrida', 'correr', 'emagrecer', 'emagrecimento', 'queimar', 'caloria', 'metabolismo'],
-    poseIndices: [8, 9, 10, 11, 12, 13] }, // poses dinâmicas/em pé
+    poseIndices: [8, 9, 10, 11] }, // poses dinâmicas/em pé
   // Ciclo menstrual, hormônio, nutrição
   { keywords: ['ciclo', 'menstrual', 'hormônio', 'hormonio', 'nutrição', 'nutricao', 'proteína', 'proteina', 'dieta', 'alimentação'],
-    poseIndices: [22, 23, 12, 13] }, // poses sentada/relaxada
+    poseIndices: [12, 13, 22, 23] }, // poses sentada/relaxada
 ];
 
-// Seleciona pose relevante ao tema; fallback para pose aleatória do pool completo
+// Para Kling: sempre pose em pé e ereta — nunca agachada ou curvada
+function getPoseForKling() {
+  const idx = KLING_SAFE_POSE_INDICES[Math.floor(Math.random() * KLING_SAFE_POSE_INDICES.length)];
+  return POSE_POOL[idx];
+}
+
+// Para imagens estáticas: seleciona pose relevante ao tema
 function getPoseForTopic(topicHint) {
   if (!topicHint) return getNextPose();
   const lower = topicHint.toLowerCase();
@@ -289,12 +300,13 @@ async function checkImageQuality(imagePath) {
             text: `You are a quality control system for fitness Instagram images. Analyze this image and respond with JSON only.
 
 Check for these FAIL conditions:
-1. Plastic/rubber skin texture (not natural)
-2. Deformed or extra fingers/hands
-3. Man instead of woman
-4. Revealing lingerie, thong, bikini or nudity
-5. Visible deformities (extra limbs, fused body parts, distorted face)
-6. Multiple people in the image
+1. No person/woman visible in the image (landscape, nature, objects only — FAIL)
+2. Plastic/rubber skin texture (not natural)
+3. Deformed or extra fingers/hands visible
+4. Man instead of woman
+5. Revealing lingerie, thong, bikini or nudity (sports bra is OK if covering chest)
+6. Visible deformities (extra limbs, fused body parts, distorted face, crooked eyes)
+7. Multiple people in the image
 
 Respond ONLY with valid JSON:
 {"approved": true} if image passes
@@ -431,4 +443,42 @@ function downloadImage(url, outputPath) {
   });
 }
 
-module.exports = { generateImage, generateFoodImage };
+// Versão especial para Kling: pose SEMPRE em pé/ereta, nunca agachada
+// Kling distorce rostos em poses curvadas — esta função previne isso
+async function generateImageForKling(outputPath) {
+  const apiKey = loadApiKey();
+
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const diversity = getNextDiversity();
+    const outfit    = getNextOutfit();
+    const pose      = getPoseForKling(); // sempre em pé e ereto
+    const fullPrompt = buildFinalPrompt('', diversity, outfit, pose);
+
+    if (attempt > 1) console.log(`  [QC-Kling] Tentativa ${attempt}/${MAX_ATTEMPTS} — regenerando...`);
+
+    const imageUrl = await generateOnce(apiKey, fullPrompt);
+    const tmpPath  = outputPath.replace(/\.png$/, `_tmp${attempt}.png`);
+    await downloadImage(imageUrl, tmpPath);
+
+    console.log(`  [QC-Kling] Analisando imagem (tentativa ${attempt})...`);
+    const qc = await checkImageQuality(tmpPath);
+
+    if (qc.approved) {
+      fs.renameSync(tmpPath, outputPath);
+      if (attempt > 1) console.log(`  [QC-Kling] ✅ Aprovada na tentativa ${attempt}`);
+      return outputPath;
+    }
+
+    console.log(`  [QC-Kling] ❌ Reprovada: ${qc.reason}`);
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+
+    if (attempt === MAX_ATTEMPTS) {
+      console.log(`  [QC-Kling] ⚠️  ${MAX_ATTEMPTS} tentativas esgotadas — usando última imagem`);
+      await downloadImage(imageUrl, outputPath);
+      return outputPath;
+    }
+  }
+}
+
+module.exports = { generateImage, generateImageForKling, generateFoodImage };
