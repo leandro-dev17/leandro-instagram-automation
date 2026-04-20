@@ -29,7 +29,7 @@ function loadApiKey() {
 function getWeekDates() {
   const today = new Date();
   const days = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 1; i <= 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     days.push(d.toISOString().slice(0, 10));
@@ -145,6 +145,26 @@ function buildInsightsContext(insights) {
   return lines.join('\n');
 }
 
+// Lê schedules anteriores e retorna mapa de data → video_id dos últimos N dias
+function getRecentVideoHistory(days = 14) {
+  const history = {}; // { 'YYYY-MM-DD': 'video_id' }
+  if (!fs.existsSync(SCHEDULE_DIR)) return history;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const files = fs.readdirSync(SCHEDULE_DIR).filter(f => f.endsWith('.json')).sort();
+  for (const file of files) {
+    try {
+      const plan = JSON.parse(fs.readFileSync(path.join(SCHEDULE_DIR, file), 'utf8'));
+      for (const [dateStr, day] of Object.entries(plan.days || {})) {
+        if (new Date(dateStr) >= cutoff && day?.reel_kling?.video_id) {
+          history[dateStr] = day.reel_kling.video_id;
+        }
+      }
+    } catch {}
+  }
+  return history;
+}
+
 // Mapeamento de vídeos do pool Kling → temas compatíveis
 const VIDEO_POOL_MAP = [
   { id: '01-caminhada-camera-lateral',    temas: 'cardio, emagrecimento, metabolismo, queima de gordura, caminhada' },
@@ -156,7 +176,7 @@ const VIDEO_POOL_MAP = [
   { id: '09-morena-clara-shoulder-press', temas: 'ombro, postura, parte superior, bíceps, rosca, press' },
 ];
 
-function buildPrompt(dates, insights) {
+function buildPrompt(dates, insights, videoHistory = {}) {
   const daysInfo = dates.map(d => `${d} (${getDayName(d)})`).join(', ');
   const insightsContext = buildInsightsContext(insights);
 
@@ -194,7 +214,7 @@ REGRAS DE CONTEÚDO:
 - Captions do carrossel: conversacionais, com história/empatia, pergunta que força comentário no final
 - Caption do reel_kling: tom provocativo e polêmico, gera vontade de comentar/compartilhar, termina com pergunta que divide opiniões. Mínimo 100 palavras.
 - Hashtags: mix de pequenas (#leandropersonall), médias e grandes — 12-15 no carrossel e reel, 5-8 no story
-- video_id do reel_kling: escolha o mais compatível com o tema do dia — NÃO repita o mesmo video_id em dias consecutivos
+- video_id do reel_kling: escolha o mais compatível com o tema do dia — NÃO repita o mesmo video_id nos últimos 3 dias e distribua todos os vídeos do pool ao longo da semana
 
 FORMATO JSON exato:
 
@@ -233,7 +253,9 @@ IMPORTANTE:
 - Cada dia deve ter temas completamente diferentes dos outros
 - Não repita tipos de conteúdo em dias consecutivos
 - O topic do story e do carousel do mesmo dia devem ser ângulos diferentes do mesmo tema
-- O video_id do reel_kling deve ser escolhido com base no tema e NÃO pode repetir em dias consecutivos`;
+- O video_id do reel_kling deve ser escolhido com base no tema e NÃO pode repetir em dias consecutivos
+- HISTÓRICO DE VÍDEOS USADOS RECENTEMENTE (evite repetir estes nos próximos dias):
+${Object.entries(videoHistory).sort().slice(-10).map(([d, v]) => `  ${d}: ${v}`).join('\n') || '  (nenhum histórico disponível)'}`;
 }
 
 async function main() {
@@ -263,6 +285,14 @@ async function main() {
   console.log(`\nGerando cronograma para ${dates.length} dias:`);
   dates.forEach(d => console.log(`  → ${d} (${getDayName(d)})`));
 
+  // Carrega histórico de vídeos usados recentemente
+  const videoHistory = getRecentVideoHistory(14);
+  const historyCount = Object.keys(videoHistory).length;
+  console.log(`\n  ✓ Histórico Kling: ${historyCount} dia(s) com vídeo registrado nos últimos 14 dias`);
+  if (historyCount > 0) {
+    Object.entries(videoHistory).sort().slice(-5).forEach(([d, v]) => console.log(`    ${d}: ${v}`));
+  }
+
   // Gera em 2 lotes de 3-4 dias (conteúdo mais enxuto: 1 story + 1 carrossel por dia)
   const batches = [
     dates.slice(0, 4),
@@ -272,10 +302,83 @@ async function main() {
   const allDays = {};
   for (let i = 0; i < batches.length; i++) {
     console.log(`\nLote ${i+1}/${batches.length}: gerando ${batches[i].map(getDayName).join(', ')}...`);
-    const result = await callClaude(buildPrompt(batches[i], insights));
+    const result = await callClaude(buildPrompt(batches[i], insights, videoHistory));
     Object.assign(allDays, result.days || {});
+    // Adiciona ao histórico para o próximo lote
+    for (const [d, day] of Object.entries(result.days || {})) {
+      if (day?.reel_kling?.video_id) videoHistory[d] = day.reel_kling.video_id;
+    }
     console.log(`  ✓ Lote ${i+1} concluído`);
   }
+
+  // ── Validação: garante reel_kling em todos os dias com gap mínimo de 3 dias ──
+  const VIDEO_POOL_FALLBACK = [
+    { id: '01-caminhada-camera-lateral',    temas: ['cardio','emagrecimento','metabolismo'] },
+    { id: '02-rotacao-360-luz-dourada',     temas: ['glúteo','pernas','bumbum'] },
+    { id: '03-close-rosto-sorriso',         temas: ['motivação','nutrição','dica'] },
+    { id: '04-cintura-quadril-movimento',   temas: ['abdômen','ciclo','hormônio'] },
+    { id: '05-camera-baixo-para-cima',      temas: ['força','braço','intensidade'] },
+    { id: '06-pernas-andando-close',        temas: ['pernas','cardio','passos'] },
+    { id: '09-morena-clara-shoulder-press', temas: ['ombro','postura','bíceps'] },
+  ];
+
+  // Combina histórico passado + dias já gerados para checar conflitos
+  const fullHistory = { ...videoHistory };
+
+  function isVideoBlockedOnDate(videoId, dateStr) {
+    const target = new Date(dateStr);
+    for (const [d, vid] of Object.entries(fullHistory)) {
+      if (vid !== videoId) continue;
+      const diff = Math.abs((target - new Date(d)) / 86400000);
+      if (diff < 3 && diff > 0) return true;
+    }
+    return false;
+  }
+
+  let klingRotation = 0;
+  for (const dateStr of dates) {
+    const day = allDays[dateStr];
+    if (!day) continue;
+
+    // Verifica se o video_id escolhido pelo Claude viola o gap mínimo
+    if (day.reel_kling?.video_id && isVideoBlockedOnDate(day.reel_kling.video_id, dateStr)) {
+      console.log(`  ⚠ video_id ${day.reel_kling.video_id} muito recente para ${dateStr} — substituindo`);
+      day.reel_kling.video_id = null;
+    }
+
+    if (!day.reel_kling || !day.reel_kling.video_id) {
+      const theme = (day.theme || '').toLowerCase();
+      // Tenta por tema, sem violar gap
+      let chosen = VIDEO_POOL_FALLBACK.find(v =>
+        !isVideoBlockedOnDate(v.id, dateStr) && v.temas.some(t => theme.includes(t))
+      );
+      if (!chosen) {
+        for (let k = 0; k < VIDEO_POOL_FALLBACK.length; k++) {
+          const candidate = VIDEO_POOL_FALLBACK[(klingRotation + k) % VIDEO_POOL_FALLBACK.length];
+          if (!isVideoBlockedOnDate(candidate.id, dateStr)) { chosen = candidate; break; }
+        }
+      }
+      if (!chosen) chosen = VIDEO_POOL_FALLBACK[klingRotation % VIDEO_POOL_FALLBACK.length];
+      klingRotation++;
+
+      if (!day.reel_kling) {
+        day.reel_kling = {
+          topic: day.theme || 'Treino feminino',
+          caption: (day.carousel?.caption || '').slice(0, 300) || `Conteúdo sobre ${day.theme || 'treino feminino'}.`,
+          hashtags: day.carousel?.hashtags || '#leandropersonall #treinofeminino #fitness'
+        };
+      }
+      day.reel_kling.video_id = chosen.id;
+      console.log(`  ⚠ reel_kling corrigido para ${dateStr}: ${chosen.id}`);
+    }
+
+    // Registra no histórico para os próximos dias
+    fullHistory[dateStr] = day.reel_kling.video_id;
+  }
+
+  // Verifica cobertura de reel_kling
+  const klingCount = Object.values(allDays).filter(d => d?.reel_kling?.video_id).length;
+  console.log(`\n  ✓ reel_kling presente em ${klingCount}/${Object.keys(allDays).length} dias`);
 
   const plan = {
     week_start: dates[0],

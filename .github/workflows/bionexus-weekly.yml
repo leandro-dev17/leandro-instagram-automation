@@ -117,17 +117,19 @@ jobs:
           git config user.email "bot@bionexus.local"
           git add squads/leandro-instagram/automation/schedule/
           git diff --staged --quiet || git commit -m "chore: plano semanal $(date +%Y-%m-%d)"
-          git push
+          git push || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Gerar dashboard de métricas
+        continue-on-error: true
         run: node dashboard-generator.cjs
         working-directory: squads/leandro-instagram/automation
       - name: Commitar dashboard atualizado
+        continue-on-error: true
         run: |
-          git add squads/leandro-instagram/automation/dashboard/
+          git add squads/leandro-instagram/automation/dashboard/ || true
           git diff --staged --quiet || git commit -m "chore: dashboard atualizado $(date +%Y-%m-%d)"
-          git push
+          git push || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Enviar relatório semanal ao Telegram
