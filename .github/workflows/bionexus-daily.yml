@@ -3,11 +3,11 @@ name: BioNexus — Publicações Diárias
 on:
   schedule:
     # Todos os horários em UTC (BRT = UTC-3)
-    - cron: '0 8 * * *'      # 05:00 BRT — Gerador diário (Story + Carrossel)
+    - cron: '0 8 * * *'      # 05:00 BRT — Gerador diário
     - cron: '0 10 * * *'     # 07:00 BRT — Story (5 slides)
-    - cron: '0 15 * * *'     # 12:00 BRT — Carrossel (7 slides)
+    - cron: '59 14 * * *'    # 11:59 BRT — Reel Kling
+    - cron: '0 18 * * *'     # 15:00 BRT — Carrossel (7 slides)
     - cron: '30 20 * * *'    # 17:30 BRT — Reel Dica do Personal
-    - cron: '0 23 * * *'     # 20:00 BRT — Reel Kling
   workflow_dispatch:
     inputs:
       job:
@@ -140,10 +140,10 @@ jobs:
         env:
           OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
 
-  # ── 12:00 BRT — Carrossel (7 slides) ───────────────────────────────────────
+  # ── 15:00 BRT — Carrossel (7 slides) ───────────────────────────────────────
   carousel-12h:
     if: >
-      github.event.schedule == '0 15 * * *' ||
+      github.event.schedule == '0 18 * * *' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'carousel-12h')
     runs-on: ubuntu-latest
     steps:
@@ -240,10 +240,10 @@ jobs:
         env:
           OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
 
-  # ── 20:00 BRT — Reel Kling ────────────────────────────────────────────────
+  # ── 11:59 BRT — Reel Kling ────────────────────────────────────────────────
   kling-reel-20h:
     if: >
-      github.event.schedule == '0 23 * * *' ||
+      github.event.schedule == '59 14 * * *' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'kling-reel-20h')
     runs-on: ubuntu-latest
     steps:
