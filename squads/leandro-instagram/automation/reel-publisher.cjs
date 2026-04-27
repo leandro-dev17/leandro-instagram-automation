@@ -56,11 +56,18 @@ function savePublished(dateStr, reelNumber, data) {
   const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
   let tracking = {};
   if (fs.existsSync(trackingFile)) {
-    try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}
+    try {
+      const parsed = JSON.parse(fs.readFileSync(trackingFile, 'utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) tracking = parsed;
+    } catch {}
   }
   if (!tracking[dateStr]) tracking[dateStr] = {};
   tracking[dateStr][`reel-${reelNumber}`] = { ...data, publishedAt: new Date().toISOString() };
-  fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
+  try {
+    fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
+  } catch (e) {
+    log(`⚠️ Falha ao salvar tracking: ${e.message}`);
+  }
 }
 
 // Gera legenda específica por tema via Claude
@@ -117,7 +124,31 @@ async function main() {
 
   const dateStr = today();
   const isDica  = reelNumber === 6;
-  const label   = isDica ? 'Dica do Personal' : `Reel ${reelNumber}`;
+  const label   = isDica ? 'Reel Receita' : `Reel ${reelNumber}`;
+
+  // Lockfile diário — impede execução dupla (StartWhenAvailable + horário normal)
+  // O lockfile PERSISTE após sucesso para bloquear qualquer nova execução no mesmo dia.
+  // Só é removido em caso de erro (permite retry).
+  if (!fs.existsSync(LOGS_DIR)) fs.mkdirSync(LOGS_DIR, { recursive: true });
+  const lockFile = path.join(LOGS_DIR, `reel-${reelNumber}-${dateStr}.lock`);
+  // Limpa lockfiles de dias anteriores
+  try {
+    for (const f of fs.readdirSync(LOGS_DIR)) {
+      if (f.startsWith(`reel-${reelNumber}-`) && f.endsWith('.lock') && !f.includes(dateStr)) {
+        try { fs.unlinkSync(path.join(LOGS_DIR, f)); } catch {}
+      }
+    }
+  } catch {}
+  if (fs.existsSync(lockFile)) {
+    const lockAge = Date.now() - fs.statSync(lockFile).mtimeMs;
+    if (lockAge < 30 * 60 * 1000) {
+      log(`⚠️  Outra instância em andamento (lockfile criado há ${Math.round(lockAge / 1000)}s). Saindo.`);
+    } else {
+      log(`ℹ️  Reel ${reelNumber} já publicado hoje (lockfile de ${Math.round(lockAge / 60000)}min atrás). Saindo.`);
+    }
+    process.exit(0);
+  }
+  fs.writeFileSync(lockFile, new Date().toISOString());
 
   log('═══════════════════════════════════════════');
   log(`Instagram Reel Publisher — ${label}`);
@@ -129,8 +160,29 @@ async function main() {
   if (!dayPlan) {
     const err = `Nenhum cronograma para ${dateStr}. Execute weekly-planner.cjs.`;
     log(`ERRO: ${err}`);
+    try { fs.unlinkSync(lockFile); } catch {}
     await notifyError('reel-publisher.cjs', err);
     process.exit(1);
+  }
+
+  // Bloqueia publicação duplicada
+  const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
+  let tracking = {};
+  if (fs.existsSync(trackingFile)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(trackingFile, 'utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) tracking = parsed;
+      else throw new Error('estrutura inválida');
+    } catch {
+      log('⚠️ published-posts.json corrompido — reiniciando arquivo');
+      fs.writeFileSync(trackingFile, '{}');
+    }
+  }
+  if (tracking[dateStr]?.[`reel-${reelNumber}`]) {
+    const existing = tracking[dateStr][`reel-${reelNumber}`];
+    log(`⚠️  ${label} já publicado hoje às ${existing.publishedAt} (ID: ${existing.postId})`);
+    log('   Pulando para evitar duplicata.');
+    process.exit(0);
   }
 
   const outDir = path.join(ONEDRIVE_DIR, dateStr);
@@ -141,16 +193,34 @@ async function main() {
   let mp4Path = '';
 
   if (isDica) {
-    // ── Reel Dica do Personal — lógica original intacta ──
-    const dica = dayPlan.dica_receita;
-    headline   = dica?.title || 'Dica do Personal';
-    caption    = `${dica?.caption || ''}\n\n${dica?.hashtags || dayPlan.reels_hashtags || ''}`;
+    // ── Reel Receita — lê dica-data.json gerado pelo daily-generator ──
+    const dicaDataPath = path.join(outDir, 'dica-data.json');
+    if (!fs.existsSync(dicaDataPath)) {
+      const err = `dica-data.json não encontrado: ${dicaDataPath}\nExecute daily-generator.cjs primeiro.`;
+      log(`ERRO: ${err}`);
+      try { fs.unlinkSync(lockFile); } catch {}
+      await notifyError('reel-publisher.cjs', err);
+      process.exit(1);
+    }
+    const dica = JSON.parse(fs.readFileSync(dicaDataPath, 'utf8'));
+    headline   = dica?.title;
+    if (!headline) {
+      const err = 'dica-data.json não contém título da receita — dado incompleto';
+      log(`ERRO: ${err}`);
+      try { fs.unlinkSync(lockFile); } catch {}
+      await notifyError('reel-publisher.cjs', err);
+      process.exit(1);
+    }
+    caption    = `${dica?.caption || ''}\n\n${dica?.hashtags || dayPlan?.reels_hashtags || ''}`;
 
     const pngName = 'reel-dica.png';
     const pngPath = path.join(outDir, pngName);
     if (!fs.existsSync(pngPath)) {
       const err = `PNG não encontrado: ${pngPath}`;
-      log(`ERRO: ${err}`); await notifyError('reel-publisher.cjs', err); process.exit(1);
+      log(`ERRO: ${err}`);
+      try { fs.unlinkSync(lockFile); } catch {}
+      await notifyError('reel-publisher.cjs', err);
+      process.exit(1);
     }
     log(`PNG: ${pngName}`);
     mp4Path = path.join(TEMP_DIR, `reel-dica-${Date.now()}.mp4`);
@@ -170,7 +240,10 @@ async function main() {
     for (const sp of slidePaths) {
       if (!fs.existsSync(sp)) {
         const err = `Slide não encontrado: ${sp}`;
-        log(`ERRO: ${err}`); await notifyError('reel-publisher.cjs', err); process.exit(1);
+        log(`ERRO: ${err}`);
+        try { fs.unlinkSync(lockFile); } catch {}
+        await notifyError('reel-publisher.cjs', err);
+        process.exit(1);
       }
     }
     log(`Slides: ${slidePaths.map(p => path.basename(p)).join(', ')}`);
@@ -253,12 +326,13 @@ async function main() {
   log(`   Headline: ${headline}`);
   log('═══════════════════════════════════════════');
 
+  // Salva rastreamento ANTES de notificar (evita race condition)
+  const imgRef = isDica ? 'reel-dica.png' : `reel-0${reelNumber}-slide1.png`;
+  savePublished(dateStr, reelNumber, { postId, youtubeId, type: isDica ? 'receita' : 'reel', headline, image: imgRef });
+  // Lockfile permanece — bloqueia execuções adicionais hoje (removido só em erro)
+
   // Notifica Telegram
   await notifyReel(reelNumber, headline, postId, dateStr, youtubeId);
-
-  // Salva rastreamento
-  const imgRef = isDica ? 'reel-dica.png' : `reel-0${reelNumber}-slide1.png`;
-  savePublished(dateStr, reelNumber, { postId, youtubeId, type: isDica ? 'dica' : 'reel', headline, image: imgRef });
 
   // Limpa MP4 temporário
   try { fs.unlinkSync(mp4Path); } catch {}
@@ -267,6 +341,12 @@ async function main() {
 main().catch(async err => {
   log(`ERRO FATAL: ${err.message}`);
   log(err.stack);
+  // Remove lockfiles órfãos em caso de erro inesperado
+  const reelNumber = parseInt(process.argv[2]);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  if (reelNumber) {
+    try { fs.unlinkSync(path.join(LOGS_DIR, `reel-${reelNumber}-${dateStr}.lock`)); } catch {}
+  }
   await notifyError('reel-publisher.cjs', err.message);
   process.exit(1);
 });

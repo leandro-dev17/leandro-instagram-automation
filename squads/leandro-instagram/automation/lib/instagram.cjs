@@ -29,21 +29,32 @@ function saveEnvKey(key, value) {
   fs.writeFileSync(ENV_PATH, content, 'utf8');
 }
 
+const HTTP_TIMEOUT_MS = 90000;
+
+function parseJsonSafe(data, context) {
+  try { return JSON.parse(data); }
+  catch (e) { throw new Error(`${context} — resposta inválida (não é JSON): ${data.slice(0, 200)}`); }
+}
+
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, res => {
+    const req = https.get(url, res => {
       const chunks = [];
       res.on('data', c => chunks.push(c));
       res.on('end', () => {
         const data = Buffer.concat(chunks).toString();
-        const parsed = JSON.parse(data);
+        const parsed = parseJsonSafe(data, `GET ${url.slice(0, 80)}`);
         if (res.statusCode === 200) {
           resolve(parsed);
         } else {
           reject(new Error(`HTTP ${res.statusCode}: ${JSON.stringify(parsed)}`));
         }
       });
-    }).on('error', reject);
+    });
+    req.setTimeout(HTTP_TIMEOUT_MS, () => {
+      req.destroy(new Error(`Timeout (${HTTP_TIMEOUT_MS / 1000}s) em GET ${url.slice(0, 80)}`));
+    });
+    req.on('error', reject);
   });
 }
 
@@ -69,13 +80,16 @@ function apiPost(endpoint, params, token) {
       res.on('data', c => chunks.push(c));
       res.on('end', () => {
         const data = Buffer.concat(chunks).toString();
-        const parsed = JSON.parse(data);
+        const parsed = parseJsonSafe(data, `POST /v21.0/${endpoint}`);
         if (res.statusCode === 200) {
           resolve(parsed);
         } else {
           reject(new Error(`Instagram API ${res.statusCode}: ${JSON.stringify(parsed)}`));
         }
       });
+    });
+    req.setTimeout(HTTP_TIMEOUT_MS, () => {
+      req.destroy(new Error(`Timeout (${HTTP_TIMEOUT_MS / 1000}s) em POST /v21.0/${endpoint}`));
     });
     req.on('error', reject);
     req.write(body);
@@ -89,7 +103,8 @@ async function refreshTokenIfNeeded(env) {
   const token = env.INSTAGRAM_ACCESS_TOKEN;
   if (!token) throw new Error('INSTAGRAM_ACCESS_TOKEN não encontrada no .env');
 
-  const expiresAt = parseInt(env.INSTAGRAM_TOKEN_EXPIRES_AT || '0');
+  const rawExpiry = (env.INSTAGRAM_TOKEN_EXPIRES_AT || '').trim();
+  const expiresAt = rawExpiry && /^\d+$/.test(rawExpiry) ? parseInt(rawExpiry, 10) : 0;
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 
   if (Date.now() < expiresAt - sevenDaysMs) {
@@ -112,6 +127,7 @@ async function refreshTokenIfNeeded(env) {
 
   const result = await httpsGet(url);
   const newToken = result.access_token;
+  if (!newToken) throw new Error(`API Instagram retornou 200 sem access_token: ${JSON.stringify(result).slice(0, 200)}`);
   const newExpiry = Date.now() + (result.expires_in * 1000);
 
   saveEnvKey('INSTAGRAM_ACCESS_TOKEN', newToken);

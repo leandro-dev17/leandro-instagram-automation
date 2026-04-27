@@ -34,8 +34,9 @@ const { notifyStory, notifyError }                            = require('./lib/t
 const LOGS_DIR     = path.join(__dirname, 'logs');
 const ONEDRIVE_DIR = process.env.OUTPUT_DIR || 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram';
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
+const TEMP_DIR     = process.env.TEMP_DIR || (process.platform === 'win32' ? 'C:/bionexus_render_tmp' : '/tmp/bionexus_render');
 const TOTAL_SLIDES = 5;
-const SECS_PER_SLIDE = 4; // 5 slides × 4s = 20s total
+const SECS_PER_SLIDE = 3; // 5 slides × 3s = 15s total (Instagram divide vídeos acima de 15s em 2 segmentos)
 
 function log(msg) {
   const ts   = new Date().toISOString();
@@ -66,26 +67,37 @@ function findDayPlan(dateStr) {
  * Cada slide é exibido por SECS_PER_SLIDE segundos.
  */
 function buildMp4(slidePaths, outputMp4) {
-  // Monta o arquivo de concatenação do ffmpeg
-  const concatFile = outputMp4.replace('.mp4', '-concat.txt');
-  const lines = slidePaths.map(p => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'\nduration ${SECS_PER_SLIDE}`);
-  // Repete o último arquivo sem duration para evitar frame duplicado no final
-  lines.push(`file '${slidePaths[slidePaths.length - 1].replace(/\\/g, '/').replace(/'/g, "'\\''")}'`);
+  // Usa TEMP_DIR para o concat e MP4 — evita espaços/ã no caminho passado ao ffmpeg
+  // Aspas simples no concat file (ffmpeg 8.1+ não aceita aspas duplas)
+  if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+  const ts         = Date.now();
+  const concatFile = path.join(TEMP_DIR, `story-concat-${ts}.txt`).replace(/\\/g, '/');
+  const tempMp4    = path.join(TEMP_DIR, `story-${ts}.mp4`).replace(/\\/g, '/');
+
+  const normPath = p => p.replace(/\\/g, '/');
+  const lines = slidePaths.map(p => `file '${normPath(p)}'\nduration ${SECS_PER_SLIDE}`);
+  lines.push(`file '${normPath(slidePaths[slidePaths.length - 1])}'`);
   fs.writeFileSync(concatFile, lines.join('\n') + '\n', 'utf8');
 
   const cmd = [
     'ffmpeg -y',
-    `-f concat -safe 0 -i "${concatFile}"`,
+    `-f concat -safe 0 -i ${concatFile}`,
     '-c:v libx264 -pix_fmt yuv420p -r 30',
     '-movflags +faststart',
-    `"${outputMp4}"`
+    tempMp4
   ].join(' ');
 
   log(`  🎬 ffmpeg: ${cmd}`);
-  execSync(cmd, { stdio: 'inherit' });
+  try {
+    execSync(cmd, { stdio: 'pipe' });
+  } catch (err) {
+    const detail = (err.stderr || err.stdout || err.message || '').toString().slice(-600);
+    throw new Error(`ffmpeg falhou: ${detail}`);
+  }
 
-  // Limpa arquivo de concat
-  fs.unlinkSync(concatFile);
+  fs.copyFileSync(tempMp4, outputMp4);
+  try { fs.unlinkSync(concatFile); } catch {}
+  try { fs.unlinkSync(tempMp4); } catch {}
 }
 
 async function main() {
@@ -97,10 +109,20 @@ async function main() {
   log('═══════════════════════════════════════════');
 
   const outDir = path.join(ONEDRIVE_DIR, dateStr);
-  if (!fs.existsSync(outDir)) {
-    log(`ERRO: Pasta não encontrada: ${outDir}`);
-    log('Execute daily-generator.cjs primeiro.');
-    process.exit(1);
+  const slide1 = path.join(outDir, 'story-slide1.png');
+
+  // Se slides não existem, roda o gerador automaticamente (fallback para quando PC dormia às 05h)
+  if (!fs.existsSync(slide1)) {
+    log('⚠️  Slides não encontrados — rodando daily-generator.cjs automaticamente...');
+    const { execFileSync } = require('child_process');
+    const generatorPath = require('path').join(__dirname, 'daily-generator.cjs');
+    try {
+      execFileSync(process.execPath, [generatorPath], { stdio: 'inherit', timeout: 15 * 60 * 1000 });
+      log('✅ Gerador concluído. Continuando publicação...');
+    } catch (err) {
+      log(`ERRO FATAL: Gerador falhou: ${err.message}`);
+      process.exit(1);
+    }
   }
 
   // Verifica se já foi publicado
@@ -121,8 +143,7 @@ async function main() {
   for (let n = 1; n <= TOTAL_SLIDES; n++) {
     const slidePath = path.join(outDir, `story-slide${n}.png`);
     if (!fs.existsSync(slidePath)) {
-      log(`ERRO: story-slide${n}.png não encontrado em ${outDir}`);
-      log('Execute daily-generator.cjs primeiro.');
+      log(`ERRO: story-slide${n}.png não encontrado após gerador: ${outDir}`);
       process.exit(1);
     }
     slidePaths.push(slidePath);

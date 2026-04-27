@@ -12,8 +12,9 @@
 
 'use strict';
 
-const fs   = require('fs');
-const path = require('path');
+const fs             = require('fs');
+const path           = require('path');
+const { execFileSync } = require('child_process');
 
 // Carrega .env
 (function loadEnvFile() {
@@ -69,7 +70,14 @@ async function main() {
   const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
   let tracking = {};
   if (fs.existsSync(trackingFile)) {
-    try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}
+    try {
+      const parsed = JSON.parse(fs.readFileSync(trackingFile, 'utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) tracking = parsed;
+      else throw new Error('estrutura inválida');
+    } catch {
+      log('⚠️ published-posts.json corrompido — reiniciando arquivo');
+      fs.writeFileSync(trackingFile, '{}');
+    }
   }
   if (tracking[dateStr] && tracking[dateStr]['carousel']) {
     const existing = tracking[dateStr]['carousel'];
@@ -79,9 +87,23 @@ async function main() {
   }
 
   const outDir = path.join(ONEDRIVE_DIR, dateStr);
+  const slide1 = path.join(outDir, 'carousel-slide1.png');
+
+  // Se slides não existem, roda o gerador automaticamente (fallback para quando PC dormia às 05h)
+  if (!fs.existsSync(slide1)) {
+    log('⚠️  Slides não encontrados — rodando daily-generator.cjs automaticamente...');
+    const generatorPath = path.join(__dirname, 'daily-generator.cjs');
+    try {
+      execFileSync(process.execPath, [generatorPath], { stdio: 'inherit', timeout: 15 * 60 * 1000 });
+      log('✅ Gerador concluído. Continuando publicação...');
+    } catch (err) {
+      log(`ERRO FATAL: Gerador falhou: ${err.message}`);
+      process.exit(1);
+    }
+  }
+
   if (!fs.existsSync(outDir)) {
-    log(`ERRO: Pasta não encontrada: ${outDir}`);
-    log('Execute daily-generator.cjs primeiro.');
+    log(`ERRO: Pasta não encontrada após gerador: ${outDir}`);
     process.exit(1);
   }
 
@@ -90,8 +112,7 @@ async function main() {
   for (let n = 1; n <= TOTAL_SLIDES; n++) {
     const slidePath = path.join(outDir, `carousel-slide${n}.png`);
     if (!fs.existsSync(slidePath)) {
-      log(`ERRO: Slide ${n} não encontrado: carousel-slide${n}.png`);
-      log('Execute daily-generator.cjs primeiro.');
+      log(`ERRO: Slide ${n} não encontrado após gerador: carousel-slide${n}.png`);
       process.exit(1);
     }
     slidePaths.push(slidePath);
@@ -100,9 +121,18 @@ async function main() {
   // Carrega plano do dia para caption e hashtags
   const dayPlan = findDayPlan(dateStr);
   const carousel = dayPlan?.carousel || {};
-  const caption  = carousel.caption
-    ? `${carousel.caption}\n\n${carousel.hashtags || ''}`.trim()
-    : `${carousel.topic || 'Conteúdo fitness'}\n\n${carousel.hashtags || ''}`.trim();
+  const IG_CAPTION_LIMIT = 2200;
+  const hashtags = carousel.hashtags || '';
+  let rawCaption = carousel.caption || carousel.topic || 'Conteúdo fitness';
+  // Garante que caption+hashtags nunca ultrapassam o limite do Instagram
+  const hashtagsPart = hashtags ? `\n\n${hashtags}` : '';
+  const maxCaptionLen = IG_CAPTION_LIMIT - hashtagsPart.length - 4; // -4 para "...\n"
+  if (rawCaption.length > maxCaptionLen) {
+    const cut = rawCaption.slice(0, maxCaptionLen);
+    const lastPara = cut.lastIndexOf('\n\n');
+    rawCaption = (lastPara > 100 ? cut.slice(0, lastPara) : cut) + '...';
+  }
+  const caption = `${rawCaption}${hashtagsPart}`.trim();
 
   log(`Tema: ${carousel.topic || 'N/A'}`);
   log(`Caption: ${caption.slice(0, 80)}...`);
@@ -145,7 +175,11 @@ async function main() {
     topic: carousel.topic,
     slides: TOTAL_SLIDES
   };
-  fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
+  try {
+    fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
+  } catch (e) {
+    log(`⚠️ Falha ao salvar tracking: ${e.message}`);
+  }
 }
 
 main().catch(async err => {
