@@ -2,7 +2,7 @@
  * ffmpeg.cjs — Converte PNG em MP4 para publicação como Reel no Instagram
  * ffmpeg instalado em: WinGet packages
  */
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -114,4 +114,29 @@ function slidesToMp4(pngPaths, outputMp4, secPerSlide = 5) {
   return outputMp4;
 }
 
-module.exports = { pngToMp4, slidesToMp4 };
+/**
+ * Run ffmpeg with an array of arguments (no shell, no string concatenation).
+ * Avoids Git Bash path mangling on Windows. Returns a Promise.
+ * @param {string[]} args
+ * @returns {Promise<string>} stdout+stderr output
+ */
+function runFfmpeg(args) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(FFMPEG, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+
+    let output = '';
+    proc.stderr.on('data', d => { output += d.toString(); });
+
+    proc.on('close', code => {
+      if (code === 0) resolve(output);
+      else reject(new Error(`ffmpeg exited ${code}:\n${output.slice(-3000)}`));
+    });
+
+    proc.on('error', err => reject(new Error(`ffmpeg spawn error: ${err.message}`)));
+  });
+}
+
+module.exports = { pngToMp4, slidesToMp4, runFfmpeg, FFMPEG };

@@ -251,34 +251,83 @@ function storyPost(post, bgPath) {
 
 // ─── RENDERIZADOR PLAYWRIGHT ───────────────────────────────────────────────────
 
-async function renderHTML(htmlContent, outputPath, width = 1080, height = 1440) {
-  const tmpFile = path.join(os.tmpdir(), `bionexus_${Date.now()}.html`);
-  fs.writeFileSync(tmpFile, htmlContent, 'utf8');
-
-  // Tenta playwright npm (GitHub Actions / instalação local)
-  // Cai de volta para Pinokio no Windows se não encontrar
+async function _launchBrowser() {
   let playwright;
   try {
     playwright = require('playwright');
   } catch {
-    playwright = require('C:/pinokio/bin/playwright/node_modules/playwright');
+    try {
+      playwright = require('C:/pinokio/bin/playwright/node_modules/playwright');
+    } catch {
+      throw new Error('Playwright não encontrado. Execute: npm install playwright');
+    }
   }
-  const executablePath = process.platform === 'win32' && !require('fs').existsSync(
-    require('path').join(require('os').homedir(), '.cache', 'ms-playwright')
-  ) ? 'C:/Users/lelus/AppData/Local/ms-playwright/chromium-1208/chrome-win64/chrome.exe' : undefined;
 
-  const browser = await playwright.chromium.launch({
-    executablePath,
-    headless: true
-  });
+  let executablePath;
+  const msPlaywrightCache = path.join(os.homedir(), '.cache', 'ms-playwright');
+  if (process.platform === 'win32' && !fs.existsSync(msPlaywrightCache)) {
+    const chromiumBase = path.join(process.env.LOCALAPPDATA || '', 'ms-playwright');
+    if (fs.existsSync(chromiumBase)) {
+      const chromiumDirs = fs.readdirSync(chromiumBase).filter(d => d.startsWith('chromium-'));
+      if (chromiumDirs.length > 0) {
+        executablePath = path.join(chromiumBase, chromiumDirs[0], 'chrome-win64', 'chrome.exe');
+      }
+    }
+  }
+
+  return playwright.chromium.launch({ executablePath, headless: true });
+}
+
+async function _screenshotPage(browser, htmlContent, outputPath, width, height, transparent) {
+  const tmpFile = path.join(os.tmpdir(), `bionexus_${Date.now()}_${Math.random().toString(36).slice(2)}.html`);
+  fs.writeFileSync(tmpFile, htmlContent, 'utf8');
   const page = await browser.newPage();
-  await page.setViewportSize({ width, height });
-  await page.goto('file:///' + tmpFile.replace(/\\/g, '/'), { waitUntil: 'load', timeout: 60000 });
-  await page.waitForTimeout(1500);
-  await page.screenshot({ path: outputPath, fullPage: false, timeout: 60000 });
-  await browser.close();
+  try {
+    await page.setViewportSize({ width, height });
+    const fileUrl = require('url').pathToFileURL(tmpFile).href;
+    await page.goto(fileUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await page.waitForTimeout(transparent ? 1000 : 2000);
+    await page.screenshot({ path: outputPath, fullPage: false, omitBackground: transparent, timeout: 120000 });
+  } finally {
+    await page.close();
+    try { fs.unlinkSync(tmpFile); } catch {}
+  }
+}
 
-  try { fs.unlinkSync(tmpFile); } catch {}
+async function renderHTML(htmlContent, outputPath, width = 1080, height = 1440) {
+  const browser = await _launchBrowser();
+  try {
+    await _screenshotPage(browser, htmlContent, outputPath, width, height, false);
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
+ * Render HTML to a transparent PNG (RGBA) — suitable for video overlays.
+ */
+async function renderOverlay(htmlContent, outputPath, width = 1080, height = 1920) {
+  const browser = await _launchBrowser();
+  try {
+    await _screenshotPage(browser, htmlContent, outputPath, width, height, true);
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
+ * Render multiple HTML overlays in a single browser session (more efficient).
+ * @param {Array<{html: string, outputPath: string}>} items
+ */
+async function renderOverlayBatch(items, width = 1080, height = 1920) {
+  const browser = await _launchBrowser();
+  try {
+    for (const item of items) {
+      await _screenshotPage(browser, item.html, item.outputPath, width, height, true);
+    }
+  } finally {
+    await browser.close();
+  }
 }
 
 // ─── TEMPLATES: CARROSSEL DE POST (4:5 — 1080×1350) ──────────────────────────
@@ -969,4 +1018,4 @@ function carouselSlide(data, bgPath) {
 </body></html>`;
 }
 
-module.exports = { reelPost, recipeDicaReel, singlePost, storyPost, storyPostB, storyPostC, storyPostD, renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA, postCarouselSlide2, postCarouselSlide3, storySlide, carouselSlide };
+module.exports = { reelPost, recipeDicaReel, singlePost, storyPost, storyPostB, storyPostC, storyPostD, renderHTML, renderOverlay, renderOverlayBatch, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA, postCarouselSlide2, postCarouselSlide3, storySlide, carouselSlide };

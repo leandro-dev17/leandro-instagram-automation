@@ -87,10 +87,15 @@ async function main() {
     process.exit(1);
   }
 
-  const post = dayPlan.posts[postIndex - 1];
-  if (!post) {
-    log(`ERRO: Post ${postIndex} não encontrado no cronograma de ${dateStr}`);
-    process.exit(1);
+  // Suporta formato novo (carousel/story/reel_kling) e formato legado (posts[])
+  let post;
+  if (dayPlan.posts && dayPlan.posts[postIndex - 1]) {
+    post = dayPlan.posts[postIndex - 1];
+  } else if (postIndex === 1 && dayPlan.carousel) {
+    post = { type: 'carousel', ...dayPlan.carousel };
+  } else {
+    log(`Post ${postIndex} não existe neste cronograma — pulando.`);
+    process.exit(0);
   }
 
   log(`Tipo: ${post.type}`);
@@ -105,11 +110,20 @@ async function main() {
 
   const files = fs.readdirSync(outDir);
 
-  // Detecta se há slides de carrossel (post-X-slide1.png, post-X-slide2.png, post-X-slide3.png)
-  const slide1File = files.find(f => f === `post-${postIndex}-slide1.png`);
-  const slide2File = files.find(f => f === `post-${postIndex}-slide2.png`);
-  const slide3File = files.find(f => f === `post-${postIndex}-slide3.png`);
-  const isCarousel = !!(slide1File && slide2File && slide3File);
+  // Detecta slides de carrossel — formato novo (carousel-slideN.png) ou legado (post-X-slideN.png)
+  let carouselSlides = [];
+  // Formato novo: carousel-slide1.png ... carousel-slide7.png
+  const newSlides = files.filter(f => /^carousel-slide\d+\.png$/.test(f)).sort();
+  if (newSlides.length >= 2) {
+    carouselSlides = newSlides;
+  } else {
+    // Formato legado: post-X-slide1.png ...
+    for (let s = 1; s <= 10; s++) {
+      const f = files.find(fn => fn === `post-${postIndex}-slide${s}.png`);
+      if (f) carouselSlides.push(f); else break;
+    }
+  }
+  const isCarousel = carouselSlides.length >= 2;
 
   // Fallback: imagem única (formato legado)
   const singleFile = !isCarousel ? files.find(f => f.startsWith(`post-${postIndex}-`) && f.endsWith('.png') && !f.includes('raw')) : null;
@@ -137,14 +151,10 @@ async function main() {
   let postId;
 
   if (isCarousel) {
-    log(`Modo: carrossel (3 slides)`);
+    log(`Modo: carrossel (${carouselSlides.length} slides)`);
     log('');
-    log('📤 Fazendo upload dos 3 slides para Cloudinary...');
-    const slidePaths = [
-      path.join(outDir, slide1File),
-      path.join(outDir, slide2File),
-      path.join(outDir, slide3File)
-    ];
+    log(`📤 Fazendo upload dos ${carouselSlides.length} slides para Cloudinary...`);
+    const slidePaths = carouselSlides.map(f => path.join(outDir, f));
     const imageUrls = [];
     for (let i = 0; i < slidePaths.length; i++) {
       const url = await uploadImage(slidePaths[i]);
@@ -183,11 +193,16 @@ async function main() {
   // Atualiza published-posts.json para rastreamento
   let tracking = {};
   if (fs.existsSync(trackingFile)) {
-    try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}
+    try {
+      const parsed = JSON.parse(fs.readFileSync(trackingFile, 'utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) tracking = parsed;
+    } catch {}
   }
   if (!tracking[dateStr]) tracking[dateStr] = {};
-  tracking[dateStr][postIndex] = { postId, publishedAt: new Date().toISOString(), type: post.type, format: isCarousel ? 'carousel' : 'single' };
-  fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
+  tracking[dateStr][String(postIndex)] = { postId, publishedAt: new Date().toISOString(), type: post.type, format: isCarousel ? 'carousel' : 'single' };
+  const tmpFile = trackingFile + '.tmp';
+  fs.writeFileSync(tmpFile, JSON.stringify(tracking, null, 2));
+  fs.renameSync(tmpFile, trackingFile);
 }
 
 main().catch(async err => {

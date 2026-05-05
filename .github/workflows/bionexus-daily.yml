@@ -80,11 +80,12 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           retention-days: 1
           overwrite: true
-      - name: Commitar schedule atualizado
+      - name: Commitar schedule e recipe-tracker atualizados
         run: |
           git config user.name "BioNexus Bot"
           git config user.email "bot@bionexus.local"
           git add squads/leandro-instagram/automation/schedule/ || true
+          git add squads/leandro-instagram/automation/recipes/recipe-tracker.json || true
           git diff --staged --quiet || git commit -m "chore: conteúdo gerado $(date +%Y-%m-%d\ %H:%M)"
           git push || true
         env:
@@ -191,6 +192,8 @@ jobs:
           OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
 
   # ── 17:30 BRT — Reel Dica do Personal ─────────────────────────────────────
+  # Job auto-suficiente: gera a dica localmente se o artifact do daily-generator
+  # não estiver disponível, eliminando a dependência frágil entre jobs.
   reel-dica-1730h:
     if: >
       github.event.schedule == '30 20 * * *' ||
@@ -201,12 +204,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Instalar dependências
-        run: npm install && sudo apt-get install -y ffmpeg
+      - name: Instalar dependências e Playwright
+        run: npm install && sudo apt-get install -y ffmpeg && npx playwright install chromium --with-deps
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
-      - name: Baixar imagens do dia
+      - name: Tentar baixar imagens do dia (artifact do daily-generator)
+        id: download-artifact
+        continue-on-error: true
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
@@ -214,7 +219,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           workflow_conclusion: success
-          if_no_artifact_found: fail
+          if_no_artifact_found: warn
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -234,11 +239,33 @@ jobs:
           KLING_ACCESS_KEY=${{ secrets.KLING_ACCESS_KEY }}
           KLING_SECRET_KEY=${{ secrets.KLING_SECRET_KEY }}
           EOF
+      - name: Gerar dica do dia se não veio no artifact
+        run: |
+          TODAY=$(date +%Y-%m-%d)
+          OUTDIR="${{ github.workspace }}/squads/leandro-instagram/automation/temp-output/$TODAY"
+          if [ ! -f "$OUTDIR/dica-data.json" ] || [ ! -f "$OUTDIR/reel-dica.png" ]; then
+            echo "⚠️  Artifact sem dica ($OUTDIR) — gerando dica standalone..."
+            node generate-dica-standalone.cjs
+          else
+            echo "✅ Dica já disponível no artifact — pulando geração"
+          fi
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
       - name: Publicar Reel Dica do Personal
         run: node reel-publisher.cjs 6
         working-directory: squads/leandro-instagram/automation
         env:
           OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+      - name: Commitar recipe-tracker atualizado
+        run: |
+          git config user.name "BioNexus Bot"
+          git config user.email "bot@bionexus.local"
+          git add squads/leandro-instagram/automation/recipes/recipe-tracker.json || true
+          git diff --staged --quiet || git commit -m "chore: recipe tracker atualizado $(date +%Y-%m-%d)"
+          git push || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── 11:59 BRT — Reel Kling ────────────────────────────────────────────────
   kling-reel-20h:

@@ -135,7 +135,7 @@ function getNextPose() {
   return p;
 }
 
-function request(options, body) {
+function request(options, body, timeoutMs = 60000) {
   return new Promise((resolve, reject) => {
     const req = https.request(options, res => {
       let data = '';
@@ -144,6 +144,9 @@ function request(options, body) {
         try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
         catch { resolve({ status: res.statusCode, body: data }); }
       });
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Kie.ai request timeout after ${timeoutMs / 1000}s`));
     });
     req.on('error', reject);
     if (body) req.write(body);
@@ -208,11 +211,73 @@ function buildFinalPrompt(originalPrompt, diversity, outfit, pose) {
   ].filter(Boolean).join(', ');
 }
 
+// QC específico para imagens de alimento — rejeita relógio, pessoa, objeto sem relação com comida
+async function checkFoodImageQuality(imagePath) {
+  let anthropicKey = '';
+  try {
+    const envLines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
+    for (const line of envLines) {
+      const [k, ...v] = line.split('=');
+      if (k && k.trim() === 'ANTHROPIC_API_KEY') { anthropicKey = v.join('=').trim(); break; }
+    }
+    if (!anthropicKey) return { approved: true, reason: 'sem chave Anthropic — pulando QC' };
+  } catch { return { approved: true, reason: 'erro ao ler .env — pulando QC' }; }
+
+  try {
+    const Anthropic = require(path.join(__dirname, '../../../node_modules/@anthropic-ai/sdk'));
+    const client = new Anthropic.default({ apiKey: anthropicKey });
+    const imageData = fs.readFileSync(imagePath).toString('base64');
+
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageData } },
+          {
+            type: 'text',
+            text: `You are QC for food Instagram images. Analyze this image.
+
+FAIL if: image shows a watch, phone, person, clothing, gym equipment, landscape, or any non-food object as the main subject.
+PASS if: image clearly shows food, drink, meal, ingredients, or kitchen items as the main subject.
+
+Respond ONLY with valid JSON:
+{"approved": true} if food is visible as main subject
+{"approved": false, "reason": "brief description"} if not food`
+          }
+        ]
+      }]
+    });
+
+    const text = response.content[0].text.trim();
+    const match = text.match(/\{[\s\S]*?\}/);
+    if (!match) return { approved: true, reason: 'resposta inválida — aprovando por padrão' };
+    return JSON.parse(match[0]);
+  } catch (err) {
+    return { approved: true, reason: `QC erro: ${err.message.slice(0, 80)} — aprovando por padrão` };
+  }
+}
+
+// Sufixo de qualidade específico para fotos de alimentos — sem referências a pessoa/roupa
+const FOOD_QUALITY_SUFFIX = [
+  'professional food photography',
+  'shot on Canon EOS R5 with 100mm macro lens',
+  'natural soft window light from the left',
+  'shallow depth of field background blur',
+  'vibrant appetizing colors',
+  'food magazine quality plating',
+  'Michelin-star food styling',
+  'no text', 'no watermark', 'no people', 'no logo overlay'
+].join(', ');
+
 // Geração de imagem de alimento — sem injeção de mulher/roupa/pose
 async function generateFoodImage(prompt, outputPath) {
   const apiKey = loadApiKey();
 
-  const fullPrompt = `${prompt}, ${QUALITY_SUFFIX}`;
+  // Remove duplicatas do prompt original (já pode ter "professional food photography" etc.)
+  const cleanPrompt = prompt.replace(/professional food photography,?\s*/gi, '').trim();
+  const fullPrompt = `${cleanPrompt}, ${FOOD_QUALITY_SUFFIX}`;
 
   const genBody = JSON.stringify({
     prompt: fullPrompt,
@@ -241,32 +306,77 @@ async function generateFoodImage(prompt, outputPath) {
 
   const taskId = genRes.body.data.taskId;
 
-  const maxAttempts = 36;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    await new Promise(r => setTimeout(r, 5000));
+  const MAX_FOOD_ATTEMPTS = 3;
+  for (let foodAttempt = 1; foodAttempt <= MAX_FOOD_ATTEMPTS; foodAttempt++) {
+    if (foodAttempt > 1) {
+      console.log(`  [QC-Food] Tentativa ${foodAttempt}/${MAX_FOOD_ATTEMPTS} — regenerando imagem de alimento...`);
+      // Regera com novo taskId
+      const regenRes = await request({
+        hostname: 'api.kie.ai',
+        path: '/api/v1/flux/kontext/generate',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(JSON.stringify({ prompt: fullPrompt, enableTranslation: false, aspectRatio: '9:16', outputFormat: 'png', model: 'flux-kontext-pro', promptUpsampling: false, safetyTolerance: 3 }))
+        }
+      }, JSON.stringify({ prompt: fullPrompt, enableTranslation: false, aspectRatio: '9:16', outputFormat: 'png', model: 'flux-kontext-pro', promptUpsampling: false, safetyTolerance: 3 }));
+      if (regenRes.status === 200 && regenRes.body.code === 200) {
+        // atualiza taskId para polling abaixo
+        Object.assign(genRes.body.data, { taskId: regenRes.body.data.taskId });
+      }
+    }
 
-    const pollRes = await request({
-      hostname: 'api.kie.ai',
-      path: `/api/v1/flux/kontext/record-info?taskId=${taskId}`,
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${apiKey}` }
-    }, null);
+    const currentTaskId = foodAttempt === 1 ? taskId : genRes.body.data.taskId;
+    const maxAttempts = 36;
+    let imageUrl = null;
 
-    if (pollRes.status !== 200 || !pollRes.body.data) continue;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      await new Promise(r => setTimeout(r, 5000));
 
-    const { successFlag, response: imgResponse, errorMessage } = pollRes.body.data;
+      const pollRes = await request({
+        hostname: 'api.kie.ai',
+        path: `/api/v1/flux/kontext/record-info?taskId=${currentTaskId}`,
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      }, null);
 
-    if (successFlag === 1 && imgResponse?.resultImageUrl) {
-      await downloadImage(imgResponse.resultImageUrl, outputPath);
+      if (pollRes.status !== 200 || !pollRes.body.data) continue;
+
+      const { successFlag, response: imgResponse, errorMessage } = pollRes.body.data;
+
+      if (successFlag === 1 && imgResponse?.resultImageUrl) {
+        imageUrl = imgResponse.resultImageUrl;
+        break;
+      }
+
+      if (successFlag === 2 || successFlag === 3) {
+        throw new Error(`Kie.ai geração falhou (flag ${successFlag}): ${errorMessage || 'erro desconhecido'}`);
+      }
+    }
+
+    if (!imageUrl) throw new Error(`Kie.ai timeout: tarefa ${currentTaskId} não completou em 3 minutos`);
+
+    // QC: verifica se a imagem é de alimento
+    const tmpPath = outputPath.replace(/\.png$/, `_foodtmp${foodAttempt}.png`);
+    await downloadImage(imageUrl, tmpPath);
+    console.log(`  [QC-Food] Verificando se é imagem de alimento (tentativa ${foodAttempt})...`);
+    const qc = await checkFoodImageQuality(tmpPath);
+
+    if (qc.approved) {
+      fs.renameSync(tmpPath, outputPath);
       return outputPath;
     }
 
-    if (successFlag === 2 || successFlag === 3) {
-      throw new Error(`Kie.ai geração falhou (flag ${successFlag}): ${errorMessage || 'erro desconhecido'}`);
+    console.log(`  [QC-Food] ❌ Reprovada: ${qc.reason}`);
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+
+    if (foodAttempt === MAX_FOOD_ATTEMPTS) {
+      console.log(`  [QC-Food] ⚠️  ${MAX_FOOD_ATTEMPTS} tentativas esgotadas — usando última imagem disponível`);
+      await downloadImage(imageUrl, outputPath);
+      return outputPath;
     }
   }
-
-  throw new Error(`Kie.ai timeout: tarefa ${taskId} não completou em 3 minutos`);
 }
 
 // ── QUALITY CONTROL — Claude Vision ─────────────────────────────────────────

@@ -25,34 +25,54 @@ function loadTelegramConfig() {
   };
 }
 
-function sendMessage(text) {
+const TELEGRAM_TIMEOUT_MS = 10000;
+
+async function sendMessage(text) {
   const { token, chatId } = loadTelegramConfig();
 
   if (!token || !chatId) {
     console.log('  ⚠ Telegram não configurado — pulando notificação.');
-    return Promise.resolve();
+    return;
   }
 
   const body = JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' });
 
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.telegram.org',
-      path: `/bot${token}/sendMessage`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options, res => {
-      res.on('data', () => {});
-      res.on('end', resolve);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const sent = await new Promise((resolve) => {
+      const options = {
+        hostname: 'api.telegram.org',
+        path: `/bot${token}/sendMessage`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      };
+      const req = https.request(options, res => {
+        res.on('data', () => {});
+        res.on('end', () => resolve(res.statusCode === 200));
+      });
+      req.setTimeout(TELEGRAM_TIMEOUT_MS, () => { req.destroy(); resolve(false); });
+      req.on('error', () => resolve(false));
+      req.write(body);
+      req.end();
     });
-    req.on('error', () => resolve()); // falha silenciosa — não interrompe a automação
-    req.write(body);
-    req.end();
-  });
+
+    if (sent) return;
+    if (attempt < 3) {
+      const delay = Math.pow(4, attempt) * 500; // 2s, 8s, 32s
+      console.log(`  ⚠ Telegram tentativa ${attempt} falhou — retentando em ${delay / 1000}s...`);
+      await new Promise(r => setTimeout(r, delay));
+    } else {
+      const errLine = `[${new Date().toISOString()}] TELEGRAM_FAIL: ${text.slice(0, 200)}\n`;
+      console.log('  ⚠ Telegram falhou após 3 tentativas — gravando em telegram-errors.log');
+      try {
+        const logPath = path.join(__dirname, '../logs/telegram-errors.log');
+        fs.mkdirSync(path.dirname(logPath), { recursive: true });
+        fs.appendFileSync(logPath, errLine);
+      } catch {}
+    }
+  }
 }
 
 /**

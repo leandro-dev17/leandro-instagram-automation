@@ -65,23 +65,29 @@ async function exchangeForLongLivedToken(shortToken, appId, appSecret) {
   return result.body;
 }
 
-async function getInstagramUserId(token) {
-  // Pega as páginas do Facebook vinculadas
-  const pagesResult = await httpsGet(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
-  if (pagesResult.status !== 200) throw new Error('Erro ao buscar páginas: ' + JSON.stringify(pagesResult.body));
-
-  const pages = pagesResult.body.data;
-  if (!pages || pages.length === 0) throw new Error('Nenhuma Página do Facebook encontrada. Verifique se sua conta do Instagram está vinculada a uma Página.');
-
-  // Para cada página, busca a conta do Instagram vinculada
-  for (const page of pages) {
-    const igResult = await httpsGet(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token || token}`);
-    if (igResult.body.instagram_business_account) {
-      return igResult.body.instagram_business_account.id;
+async function getInstagramUserId(token, existingUserId) {
+  // Tenta via me/accounts (Páginas do Facebook)
+  const pagesResult = await httpsGet(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`);
+  if (pagesResult.status === 200 && pagesResult.body.data && pagesResult.body.data.length > 0) {
+    for (const page of pagesResult.body.data) {
+      if (page.instagram_business_account) return page.instagram_business_account.id;
+      // Tenta buscar via page token
+      const igResult = await httpsGet(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token || token}`);
+      if (igResult.body.instagram_business_account) return igResult.body.instagram_business_account.id;
     }
   }
 
-  throw new Error('Nenhuma conta do Instagram Business encontrada nas suas Páginas do Facebook.');
+  // Tenta via me diretamente
+  const meResult = await httpsGet(`https://graph.facebook.com/v21.0/me?fields=instagram_business_account&access_token=${token}`);
+  if (meResult.body.instagram_business_account) return meResult.body.instagram_business_account.id;
+
+  // Usa o User ID existente se já configurado
+  if (existingUserId) {
+    console.log(`  ⚠ Páginas não encontradas — usando User ID existente: ${existingUserId}`);
+    return existingUserId;
+  }
+
+  throw new Error('Nenhuma conta do Instagram Business encontrada. Vincule o Instagram a uma Página do Facebook.');
 }
 
 async function main() {
@@ -94,7 +100,7 @@ async function main() {
     process.exit(1);
   }
 
-  const authUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=http://localhost:3000/callback&scope=instagram_basic,instagram_content_publish,pages_read_engagement,pages_show_list&response_type=code`;
+  const authUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=http://localhost:3000/callback&scope=public_profile,instagram_content_publish,pages_read_engagement,pages_show_list,pages_manage_posts,business_management&response_type=code`;
 
   console.log('═══════════════════════════════════════════');
   console.log('Instagram Auth — Configuração inicial');
@@ -151,7 +157,8 @@ async function main() {
       const expiresAt = Date.now() + (longTokenData.expires_in * 1000);
 
       console.log('Buscando Instagram User ID...');
-      const igUserId = await getInstagramUserId(longToken);
+      const env2 = loadEnv();
+      const igUserId = await getInstagramUserId(longToken, env2.INSTAGRAM_USER_ID);
 
       // Salva no .env
       saveEnvKey('INSTAGRAM_ACCESS_TOKEN', longToken);

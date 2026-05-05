@@ -28,6 +28,7 @@ const { generateImage, generateFoodImage } = require('./lib/kie.cjs');
 const { storySlide, carouselSlide, renderHTML } = require('./lib/renderer.cjs');
 const { getNextRecipe, getBankStatus } = require('./lib/recipe-manager.cjs');
 const { recipeDicaReel } = require('./lib/renderer.cjs');
+const { notifyError } = require('./lib/telegram.cjs');
 
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 const LOGS_DIR    = path.join(__dirname, 'logs');
@@ -35,6 +36,8 @@ const ONEDRIVE_DIR = process.env.OUTPUT_DIR || 'C:/Users/lelus/OneDrive/Pictures
 const TEMP_DIR    = path.join(__dirname, 'temp');
 
 // ─── UTILIDADES ────────────────────────────────────────────────────────────────
+
+fs.mkdirSync(LOGS_DIR, { recursive: true });
 
 function log(msg) {
   const ts = new Date().toISOString();
@@ -476,9 +479,19 @@ async function main() {
   }
 
   // ── Dica do Personal ────────────────────────────────────────────────────────
-  const receitaDoDia = getNextRecipe();
-  const status = getBankStatus();
-  log(`\n  → Receita do dia: "${receitaDoDia.title}" (${status.remaining} restantes no ciclo ${status.current_cycle})`);
+  // Verifica se dica-data.json já existe — evita avançar o ponteiro de receita se o gerador rodar 2x no mesmo dia
+  const dicaDataPath = path.join(outDir, 'dica-data.json');
+  let receitaDoDia;
+  if (fs.existsSync(dicaDataPath)) {
+    receitaDoDia = JSON.parse(fs.readFileSync(dicaDataPath, 'utf8'));
+    log(`\n  → Receita do dia já gerada: "${receitaDoDia.title}" (dica-data.json existente, pulando getNextRecipe)`);
+  } else {
+    receitaDoDia = getNextRecipe();
+    const status = getBankStatus();
+    log(`\n  → Receita do dia: "${receitaDoDia.title}" (${status.remaining} restantes no ciclo ${status.current_cycle})`);
+    fs.writeFileSync(dicaDataPath, JSON.stringify(receitaDoDia, null, 2), 'utf8');
+    log(`  → dica-data.json salvo (publisher lerá caption e hashtags corretos)`);
+  }
   dayPlan.dica_receita = receitaDoDia;
 
   log('');
@@ -511,8 +524,9 @@ async function main() {
   log('═══════════════════════════════════════════');
 }
 
-main().catch(err => {
+main().catch(async err => {
   log(`ERRO FATAL: ${err.message}`);
   log(err.stack);
+  try { await notifyError('daily-generator.cjs', err.message); } catch {}
   process.exit(1);
 });
