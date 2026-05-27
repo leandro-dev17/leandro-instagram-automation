@@ -22,6 +22,10 @@ permissions:
 env:
   AUTOMATION_DIR: squads/leandro-instagram/automation
   OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+  # Força IPv4 em todas as chamadas Node.js (evita ENETUNREACH em IPv6 no runner)
+  NODE_OPTIONS: --dns-result-order=ipv4first
+  # Compatibilidade com Node.js 24 (obrigatório a partir de 02/06/2026)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 defaults:
   run:
@@ -74,11 +78,12 @@ jobs:
         env:
           OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
       - name: Salvar imagens geradas como artifact
+        continue-on-error: true   # cota esgotada não deve falhar o job inteiro
         uses: actions/upload-artifact@v4
         with:
           name: daily-images
           path: squads/leandro-instagram/automation/temp-output/
-          retention-days: 1
+          retention-days: 2
           overwrite: true
       - name: Commitar schedule e recipe-tracker atualizados
         run: |
@@ -102,12 +107,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Instalar dependências e ffmpeg
-        run: npm install && sudo apt-get install -y ffmpeg
+      - name: Instalar dependências, ffmpeg e Playwright
+        run: npm install && sudo apt-get install -y ffmpeg && npx playwright install chromium --with-deps
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
-      - name: Baixar imagens do dia
+      - name: Tentar baixar imagens do dia (artifact do daily-generator)
+        id: download-artifact
+        continue-on-error: true
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
@@ -115,7 +122,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           workflow_conclusion: success
-          if_no_artifact_found: fail
+          if_no_artifact_found: warn
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -135,6 +142,19 @@ jobs:
           KLING_ACCESS_KEY=${{ secrets.KLING_ACCESS_KEY }}
           KLING_SECRET_KEY=${{ secrets.KLING_SECRET_KEY }}
           EOF
+      - name: Gerar imagens do dia se não vieram no artifact
+        run: |
+          TODAY=$(date +%Y-%m-%d)
+          OUTDIR="${{ github.workspace }}/squads/leandro-instagram/automation/temp-output/$TODAY"
+          if [ ! -f "$OUTDIR/story-slide1.png" ]; then
+            echo "⚠️  Artifact sem story ($OUTDIR) — gerando com daily-generator..."
+            node daily-generator.cjs
+          else
+            echo "✅ Story já disponível no artifact — pulando geração"
+          fi
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
       - name: Publicar Story (5 slides)
         run: node story-publisher-new.cjs
         working-directory: squads/leandro-instagram/automation
@@ -152,12 +172,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Instalar dependências
-        run: npm install
+      - name: Instalar dependências, ffmpeg e Playwright
+        run: npm install && sudo apt-get install -y ffmpeg && npx playwright install chromium --with-deps
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
-      - name: Baixar imagens do dia
+      - name: Tentar baixar imagens do dia (artifact do daily-generator)
+        id: download-artifact
+        continue-on-error: true
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bionexus-daily.yml
@@ -165,7 +187,7 @@ jobs:
           path: squads/leandro-instagram/automation/temp-output/
           search_artifacts: true
           workflow_conclusion: success
-          if_no_artifact_found: fail
+          if_no_artifact_found: warn
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Criar .env
         run: |
@@ -185,6 +207,19 @@ jobs:
           KLING_ACCESS_KEY=${{ secrets.KLING_ACCESS_KEY }}
           KLING_SECRET_KEY=${{ secrets.KLING_SECRET_KEY }}
           EOF
+      - name: Gerar imagens do dia se não vieram no artifact
+        run: |
+          TODAY=$(date +%Y-%m-%d)
+          OUTDIR="${{ github.workspace }}/squads/leandro-instagram/automation/temp-output/$TODAY"
+          if [ ! -f "$OUTDIR/carousel-slide1.png" ]; then
+            echo "⚠️  Artifact sem carrossel ($OUTDIR) — gerando com daily-generator..."
+            node daily-generator.cjs
+          else
+            echo "✅ Carrossel já disponível no artifact — pulando geração"
+          fi
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
       - name: Publicar Carrossel (7 slides)
         run: node carousel-publisher.cjs
         working-directory: squads/leandro-instagram/automation
