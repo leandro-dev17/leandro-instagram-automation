@@ -30,7 +30,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: squads/vovo-teresinha/guardian/package.json
 
@@ -47,7 +47,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
           VERCEL_TOKEN:       ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_DEPLOY_HOOK: ${{ secrets.VOVO_DEPLOY_HOOK }}
           APP_URL: https://receitinhas-vovo-teresinha.vercel.app
           VERCEL_PROJECT_ID: prj_RtqsbSdxPMz81W2cr0tJyatRJGMv
           VERCEL_TEAM_ID: team_JnDwQYGSI9RBjHyIygKLR56b
