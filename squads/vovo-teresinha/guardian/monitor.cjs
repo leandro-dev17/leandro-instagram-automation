@@ -97,9 +97,25 @@ function writeSourceFile(relativePath, content) {
 }
 
 async function triggerRedeploy() {
+  // Opção 1: deploy hook (se configurado)
   if (DEPLOY_HOOK) {
     const r = await fetchJSON(DEPLOY_HOOK, { method: "POST" });
-    return r.ok;
+    if (r.ok) return true;
+  }
+  // Opção 2: Vercel API — reaplica o último deployment de produção
+  if (VERCEL_TOK) {
+    const list = await fetchJSON(
+      `https://api.vercel.com/v6/deployments?teamId=${VERCEL_TID}&projectId=${VERCEL_PID}&target=production&state=READY&limit=1`,
+      { headers: { Authorization: `Bearer ${VERCEL_TOK}` } }
+    );
+    const deployId = list.body?.deployments?.[0]?.uid;
+    if (!deployId) return false;
+    const redeploy = await fetchJSON("https://api.vercel.com/v13/deployments", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${VERCEL_TOK}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ deploymentId: deployId, target: "production" }),
+    });
+    return redeploy.status < 400;
   }
   return false;
 }
