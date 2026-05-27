@@ -1,0 +1,66 @@
+name: Guardião 24/7 — Vovó Teresinha
+
+on:
+  schedule:
+    # Roda de 15 em 15 minutos, 24h por dia, 7 dias por semana
+    - cron: '0,15,30,45 * * * *'
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: 'Motivo da execução manual'
+        required: false
+        default: 'Verificação manual'
+
+permissions:
+  contents: write
+
+jobs:
+  guardian:
+    name: Verificação de saúde e autocorreção
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: squads/vovo-teresinha/guardian/package.json
+
+      - name: Instalar dependências do guardião
+        run: npm install
+        working-directory: squads/vovo-teresinha/guardian
+
+      - name: Executar guardião
+        run: node monitor.cjs
+        working-directory: squads/vovo-teresinha/guardian
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CRON_SECRET:       ${{ secrets.VOVO_CRON_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          VERCEL_TOKEN:       ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VOVO_DEPLOY_HOOK }}
+          APP_URL: https://receitinhas-vovo-teresinha.vercel.app
+          VERCEL_PROJECT_ID: prj_RtqsbSdxPMz81W2cr0tJyatRJGMv
+          VERCEL_TEAM_ID: team_JnDwQYGSI9RBjHyIygKLR56b
+
+      - name: Commitar correções (se o guardião corrigiu algo)
+        run: |
+          git config user.name  "Guardião BioNexus"
+          git config user.email "guardian@bionexus.local"
+          # Adiciona apenas arquivos do app Vovó Teresinha e estado de incidentes
+          git add squads/vovo-teresinha/app/src/ || true
+          git add squads/vovo-teresinha/guardian/incidents.json || true
+          git diff --staged --quiet && echo "Sem correções para commitar." || \
+            git commit -m "fix(auto): guardião corrigiu falha detectada $(date +'%Y-%m-%d %H:%M UTC')"
+          git push || echo "Push falhou — pode haver conflito, próxima execução tenta novamente."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

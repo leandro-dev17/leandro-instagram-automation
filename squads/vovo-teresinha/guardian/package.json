@@ -1,0 +1,9 @@
+{
+  "name": "guardian-vovo",
+  "version": "1.0.0",
+  "description": "Guardião 24/7 autônomo do app Vovó Teresinha",
+  "main": "monitor.cjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0"
+  }
+}
