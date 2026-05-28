@@ -1,26 +1,26 @@
 {
   "fiscal-banco": {
     "first_seen": "2026-05-27T23:28:22.207Z",
-    "last_seen": "2026-05-28T07:43:30.449Z",
-    "last_alert": "2026-05-28T07:43:30.449Z",
+    "last_seen": "2026-05-28T11:25:32.389Z",
+    "last_alert": "2026-05-28T11:25:32.389Z",
     "error": "[object Object]",
     "status": 401,
-    "attempts": 4
+    "attempts": 5
   },
   "fiscal-erros-api": {
     "first_seen": "2026-05-27T23:28:22.207Z",
-    "last_seen": "2026-05-28T07:43:30.449Z",
-    "last_alert": "2026-05-28T07:43:30.449Z",
+    "last_seen": "2026-05-28T11:25:32.389Z",
+    "last_alert": "2026-05-28T11:25:32.389Z",
     "error": "[object Object]",
     "status": 401,
-    "attempts": 4
+    "attempts": 5
   },
   "saude-pwa": {
     "first_seen": "2026-05-27T23:28:22.207Z",
-    "last_seen": "2026-05-28T07:43:30.449Z",
-    "last_alert": "2026-05-28T07:43:30.449Z",
+    "last_seen": "2026-05-28T11:25:32.389Z",
+    "last_alert": "2026-05-28T11:25:32.389Z",
     "error": "[object Object]",
     "status": 401,
-    "attempts": 4
+    "attempts": 5
   }
 }
