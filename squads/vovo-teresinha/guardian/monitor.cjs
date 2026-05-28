@@ -20,13 +20,89 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 const APP_SRC   = path.join(REPO_ROOT, "squads/vovo-teresinha/app/src");
 const INCIDENTS = path.join(__dirname, "incidents.json");
 
+// Gera entrada para agente cron
+const cron = (name, critical = false) => ({
+  name,
+  url: `${APP_URL}/api/cron/${name}`,
+  headers: { Authorization: `Bearer ${CRON_SECRET}` },
+  expect: [200],
+  critical,
+});
+
 const HEALTH_CHECKS = [
-  { name: "homepage",         url: `${APP_URL}/`,              expect: [200, 308], critical: true  },
-  { name: "login-page",       url: `${APP_URL}/login`,         expect: [200],      critical: true  },
-  { name: "api-receitas",     url: `${APP_URL}/api/receitas`,  expect: [200, 401], critical: true  },
-  { name: "fiscal-banco",     url: `${APP_URL}/api/cron/fiscal-banco?secret=${CRON_SECRET}`,     expect: [200], critical: true  },
-  { name: "fiscal-erros-api", url: `${APP_URL}/api/cron/fiscal-erros-api?secret=${CRON_SECRET}`, expect: [200], critical: false },
-  { name: "saude-pwa",        url: `${APP_URL}/api/cron/saude-pwa?secret=${CRON_SECRET}`,        expect: [200], critical: false },
+  // ── App (críticos) ──────────────────────────────────────────────
+  { name: "homepage",     url: `${APP_URL}/`,             expect: [200, 308], critical: true },
+  { name: "login-page",   url: `${APP_URL}/login`,        expect: [200],      critical: true },
+  { name: "api-receitas", url: `${APP_URL}/api/receitas`, expect: [200, 401], critical: true },
+
+  // ── Fiscais (críticos — monitoram saúde financeira) ─────────────
+  cron("fiscal-banco",       true),
+  cron("fiscal-diario",      true),
+  cron("fiscal-erros-api",   true),
+  cron("fiscal-login",       true),
+  cron("fiscal-pagamentos",  true),
+
+  // ── Core do negócio ─────────────────────────────────────────────
+  cron("trial-expirando",    true),
+  cron("agente-assinaturas", true),
+  cron("push-diario",        true),
+  cron("criador-receitas",   true),
+  cron("saude-pwa",          true),
+
+  // ── Gerentes ────────────────────────────────────────────────────
+  cron("gerente-operacoes"),
+  cron("gerente-financeiro"),
+  cron("gerente-tecnico"),
+  cron("gerente-conteudo"),
+  cron("gerente-clientes"),
+  cron("ceo-relatorio"),
+
+  // ── Retenção e marketing ────────────────────────────────────────
+  cron("cacador-desistentes"),
+  cron("preditor-churn"),
+  cron("campanha-recuperacao"),
+  cron("disparador-campanhas"),
+  cron("engajamento"),
+  cron("bonus-sazonal"),
+
+  // ── Relatórios e análise ────────────────────────────────────────
+  cron("monitor-relatorios"),
+  cron("previsao-receita"),
+  cron("performance"),
+  cron("reputacao-email"),
+  cron("observador-mercado"),
+
+  // ── WhatsApp ────────────────────────────────────────────────────
+  cron("whatsapp-fila"),
+  cron("publicador-wpp"),
+  cron("recepcionista-wpp"),
+  cron("conversor-wpp"),
+  cron("moderacao-grupo"),
+  cron("respondedor-vovo-wpp"),
+
+  // ── Afiliados ───────────────────────────────────────────────────
+  cron("calculador-comissao"),
+  cron("confirmador-comissao"),
+  cron("anti-fraude-afiliados"),
+  cron("pagamento-afiliados"),
+
+  // ── Personal / alunas ───────────────────────────────────────────
+  cron("monitor-alunas"),
+  cron("personalizador-alunas"),
+  cron("curador-receitas-personal"),
+
+  // ── Infra e segurança ───────────────────────────────────────────
+  cron("backup-monitor"),
+  cron("circuit-breaker"),
+  cron("fila-dlq"),
+  cron("guardiao-seguranca"),
+  cron("rotador-senhas"),
+  cron("rotacao-receitas-free"),
+  cron("compliance-lgpd"),
+
+  // ── Setup (roda uma vez, só verifica se responde) ───────────────
+  cron("setup-afiliados-db"),
+  cron("setup-falhas-db"),
 ];
 
 // ── Utilitários ──────────────────────────────────────────────────────────────
@@ -230,13 +306,19 @@ ${sourceContext.join("\n") || "(nenhum encontrado)"}
 async function main() {
   console.log(`\n🔍 Guardião iniciado — ${new Date().toLocaleString("pt-BR")}`);
 
-  // 1. Health checks
+  // 1. Health checks — paralelo em lotes de 10 (evita sobrecarga + respeita timeout 10min)
   const results = [];
-  for (const check of HEALTH_CHECKS) {
-    const r = await fetchJSON(check.url);
-    const ok = check.expect.includes(r.status);
-    results.push({ ...check, status: r.status, body: r.body, passed: ok });
-    console.log(`  ${ok ? "✅" : "❌"} ${check.name}: HTTP ${r.status}`);
+  const BATCH = 10;
+  for (let i = 0; i < HEALTH_CHECKS.length; i += BATCH) {
+    const lote = HEALTH_CHECKS.slice(i, i + BATCH);
+    const loteRes = await Promise.all(lote.map(async (check) => {
+      const opts = check.headers ? { headers: check.headers } : {};
+      const r = await fetchJSON(check.url, opts);
+      const ok = check.expect.includes(r.status);
+      console.log(`  ${ok ? "✅" : "❌"} ${check.name}: HTTP ${r.status}`);
+      return { ...check, status: r.status, body: r.body, passed: ok };
+    }));
+    results.push(...loteRes);
   }
 
   const failed = results.filter(r => !r.passed);
