@@ -108,7 +108,7 @@ jobs:
         with:
           node-version: '20'
       - name: Instalar dependências, ffmpeg e Playwright
-        run: npm install && sudo apt-get install -y --fix-missing ffmpeg && npx playwright install chromium --with-deps
+        run: npm install && sudo apt-get update -q && sudo apt-get install -y --fix-missing ffmpeg && npx playwright install chromium --with-deps
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
@@ -173,7 +173,7 @@ jobs:
         with:
           node-version: '20'
       - name: Instalar dependências, ffmpeg e Playwright
-        run: npm install && sudo apt-get install -y --fix-missing ffmpeg && npx playwright install chromium --with-deps
+        run: npm install && sudo apt-get update -q && sudo apt-get install -y --fix-missing ffmpeg && npx playwright install chromium --with-deps
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
@@ -240,7 +240,7 @@ jobs:
         with:
           node-version: '20'
       - name: Instalar dependências e Playwright
-        run: npm install && sudo apt-get install -y --fix-missing ffmpeg && npx playwright install chromium --with-deps
+        run: npm install && sudo apt-get update -q && sudo apt-get install -y --fix-missing ffmpeg && npx playwright install chromium --with-deps
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/temp-output
@@ -314,7 +314,7 @@ jobs:
         with:
           node-version: '20'
       - name: Instalar dependências e ffmpeg
-        run: npm install && sudo apt-get install -y --fix-missing ffmpeg fonts-dejavu-core
+        run: npm install && sudo apt-get update -q && sudo apt-get install -y --fix-missing ffmpeg fonts-dejavu-core
         working-directory: squads/leandro-instagram/automation
       - name: Criar pastas necessárias
         run: mkdir -p squads/leandro-instagram/automation/logs squads/leandro-instagram/automation/temp squads/leandro-instagram/automation/kling-pool
