@@ -1,0 +1,57 @@
+name: Auditoria e Correção por Categoria
+
+on:
+  workflow_dispatch:
+    inputs:
+      categoria:
+        description: 'Categoria para auditar e corrigir'
+        required: true
+        default: 'todas'
+        type: choice
+        options:
+          - todas
+          - cafe_manha
+          - bolos_tortas
+          - pratos_principais
+          - saladas
+          - sopas_caldos
+          - doces_sobremesas
+          - sucos_vitaminas
+          - molhos_temperos
+          - lanches_snacks
+
+permissions:
+  contents: write
+
+jobs:
+  auditar-corrigir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      max-parallel: 1
+      matrix:
+        cat: ${{ fromJson(inputs.categoria == 'todas' && '["cafe_manha","bolos_tortas","pratos_principais","saladas","sopas_caldos","doces_sobremesas","sucos_vitaminas","molhos_temperos","lanches_snacks"]' || format('["{0}"]', inputs.categoria)) }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Instalar dependências
+        run: npm install @anthropic-ai/sdk @neondatabase/serverless
+        working-directory: squads/vovo-teresinha/automation
+
+      - name: Auditar e corrigir categoria ${{ matrix.cat }}
+        run: node auditar-categoria.cjs ${{ matrix.cat }} 2>&1 | tee log-${{ matrix.cat }}.txt
+        working-directory: squads/vovo-teresinha/automation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
+
+      - name: Salvar log como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-${{ matrix.cat }}
+          path: squads/vovo-teresinha/automation/log-${{ matrix.cat }}.txt
+          retention-days: 7
