@@ -17,4 +17,4 @@ jobs:
       - run: node fix-cirurgico.cjs 2>&1
         working-directory: squads/vovo-teresinha/automation
         env:
-          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
+          KIE_API_KEY: ${{ secrets.KIE_API_KEY }}

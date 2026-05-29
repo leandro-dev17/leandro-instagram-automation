@@ -7,11 +7,11 @@ const https   = require("https");
 const crypto  = require("crypto");
 const { neon } = require("@neondatabase/serverless");
 
-const DB_URL        = "postgresql://neondb_owner:npg_ietKBb8P2uxa@ep-floral-smoke-apslvj9w-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require";
-const CLOUD_NAME    = "demazkgy2";
-const CLD_KEY       = "266416614247189";
-const CLD_SECRET    = "SYmybuhU5M5LoGlhf9LCJUN3AcQ";
-const STABILITY_KEY = process.env.STABILITY_API_KEY;
+const DB_URL     = "postgresql://neondb_owner:npg_ietKBb8P2uxa@ep-floral-smoke-apslvj9w-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require";
+const CLOUD_NAME = "demazkgy2";
+const CLD_KEY    = "266416614247189";
+const CLD_SECRET = "SYmybuhU5M5LoGlhf9LCJUN3AcQ";
+const KIE_KEY    = process.env.KIE_API_KEY;
 const sql = neon(DB_URL);
 
 // ── Receitas a corrigir com prompts manuais ultraespecíficos ─────────────────
@@ -64,6 +64,12 @@ const FIXES = [
     slug: "bolo-de-caneca-fit-de-cacau",
     prompt: "Single-serve chocolate mug cake in a white ceramic mug, fluffy dark cocoa cake rising from mug, dusting of cocoa powder on top, rustic wooden table, close-up food photography",
   },
+  {
+    id: 215,
+    titulo: "Peito de Peru à Milanesa Fit sem Fritura",
+    slug: "peito-de-peru-a-milanesa-fit-sem-fritura",
+    prompt: "Baked turkey breast schnitzel milanesa on white plate, golden breadcrumb coating, sliced to show white turkey meat inside, NOT fish, lemon wedge and salad leaves on side",
+  },
 ];
 
 // ── HTTP helper ───────────────────────────────────────────────────────────────
@@ -71,7 +77,11 @@ function request(opts, body) {
   return new Promise((resolve, reject) => {
     const r = https.request(opts, (res) => {
       const c = []; res.on("data", d => c.push(d));
-      res.on("end", () => resolve({ status: res.statusCode, buffer: Buffer.concat(c) }));
+      res.on("end", () => {
+        const buf = Buffer.concat(c);
+        try { resolve({ status: res.statusCode, body: JSON.parse(buf.toString()), buffer: buf }); }
+        catch { resolve({ status: res.statusCode, body: buf.toString(), buffer: buf }); }
+      });
       res.on("error", reject);
     });
     r.on("error", reject);
@@ -79,31 +89,61 @@ function request(opts, body) {
   });
 }
 
-// ── Stability AI ──────────────────────────────────────────────────────────────
-async function gerarImagem(promptBase) {
-  const prompt = `${promptBase}, professional food photography, rustic wooden table, natural soft window light, food magazine quality, no people no text no watermark no logo`;
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  const body = JSON.stringify({
-    text_prompts: [
-      { text: prompt, weight: 1 },
-      { text: "person, human, text, watermark, logo, nsfw, cartoon, illustration, blurry, wrong food", weight: -1 },
-    ],
-    cfg_scale: 9, height: 1024, width: 1024, samples: 1, steps: 50, style_preset: "photographic",
+// ── KIE.ai Flux Kontext Pro ───────────────────────────────────────────────────
+async function gerarImagem(promptBase) {
+  const SUFFIX = "professional food photography, Canon EOS R5 100mm macro lens, natural soft window light, shallow depth of field, vibrant appetizing colors, food magazine quality, no people, no text, no watermark";
+  const prompt = `${promptBase}, ${SUFFIX}`;
+
+  // 1. Disparar geração
+  const genBody = JSON.stringify({
+    prompt,
+    enableTranslation: false,
+    aspectRatio: "1:1",
+    outputFormat: "png",
+    model: "flux-kontext-pro",
+    promptUpsampling: false,
+    safetyTolerance: 3,
   });
 
-  const r = await request({
-    hostname: "api.stability.ai",
-    path: "/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image",
+  const gen = await request({
+    hostname: "api.kie.ai",
+    path: "/api/v1/flux/kontext/generate",
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${STABILITY_KEY}`,
-      "Content-Type": "application/json", Accept: "application/json",
-      "Content-Length": Buffer.byteLength(body),
-    },
-  }, body);
+    headers: { Authorization: `Bearer ${KIE_KEY}`, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(genBody) },
+  }, genBody);
 
-  if (r.status !== 200) throw new Error(`Stability ${r.status}: ${r.buffer.toString().slice(0, 200)}`);
-  return Buffer.from(JSON.parse(r.buffer.toString()).artifacts[0].base64, "base64");
+  if (gen.status !== 200 || gen.body.code !== 200) throw new Error(`KIE geração: ${JSON.stringify(gen.body).slice(0, 200)}`);
+  const taskId = gen.body.data.taskId;
+
+  // 2. Polling até completar (máx 3 min)
+  for (let i = 0; i < 36; i++) {
+    await sleep(5000);
+    const poll = await request({
+      hostname: "api.kie.ai",
+      path: `/api/v1/flux/kontext/record-info?taskId=${taskId}`,
+      method: "GET",
+      headers: { Authorization: `Bearer ${KIE_KEY}` },
+    }, null);
+
+    const d = poll.body?.data;
+    if (!d) continue;
+    if (d.successFlag === 1 && d.response?.resultImageUrl) {
+      // 3. Baixar imagem gerada
+      const imgUrl = d.response.resultImageUrl;
+      const imgReq = await new Promise((resolve, reject) => {
+        https.get(imgUrl, (res) => {
+          const c = []; res.on("data", d => c.push(d));
+          res.on("end", () => resolve(Buffer.concat(c)));
+          res.on("error", reject);
+        }).on("error", reject);
+      });
+      return imgReq;
+    }
+    if (d.successFlag === 2 || d.successFlag === 3) throw new Error(`KIE falhou flag=${d.successFlag}: ${d.errorMessage}`);
+  }
+  throw new Error(`KIE timeout: taskId ${taskId}`);
 }
 
 // ── Cloudinary upload ─────────────────────────────────────────────────────────
