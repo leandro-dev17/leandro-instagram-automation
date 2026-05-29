@@ -1,0 +1,38 @@
+name: Auditoria Visual de Imagens
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Instalar dependências
+        run: npm install @anthropic-ai/sdk
+        working-directory: squads/vovo-teresinha/automation
+
+      - name: Executar auditoria visual
+        run: node auditoria-visual.cjs 2>&1 | tee auditoria-log.txt
+        working-directory: squads/vovo-teresinha/automation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Salvar resultado como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-resultado
+          path: |
+            squads/vovo-teresinha/automation/auditoria-resultado.json
+            squads/vovo-teresinha/automation/auditoria-log.txt
+          retention-days: 7
