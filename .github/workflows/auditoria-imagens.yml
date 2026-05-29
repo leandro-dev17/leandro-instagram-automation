@@ -1,15 +1,22 @@
-name: Auditoria Visual de Imagens
+name: Auditoria e Correção de Imagens
 
 on:
   workflow_dispatch:
+    inputs:
+      modo:
+        description: 'auditar = só audita | corrigir = corrige as erradas'
+        required: true
+        default: 'corrigir'
+        type: choice
+        options: [auditar, corrigir]
 
 permissions:
   contents: write
 
 jobs:
-  auditar:
+  executar:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
@@ -19,20 +26,28 @@ jobs:
           node-version: '24'
 
       - name: Instalar dependências
-        run: npm install @anthropic-ai/sdk
+        run: npm install @anthropic-ai/sdk @neondatabase/serverless
         working-directory: squads/vovo-teresinha/automation
 
       - name: Executar auditoria visual
+        if: inputs.modo == 'auditar'
         run: node auditoria-visual.cjs 2>&1 | tee auditoria-log.txt
         working-directory: squads/vovo-teresinha/automation
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      - name: Salvar resultado como artefato
+      - name: Corrigir imagens erradas
+        if: inputs.modo == 'corrigir'
+        run: node corrigir-imagens.cjs 2>&1 | tee correcao-log.txt
+        working-directory: squads/vovo-teresinha/automation
+
+      - name: Salvar resultados como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: auditoria-resultado
+          name: resultado-imagens
           path: |
             squads/vovo-teresinha/automation/auditoria-resultado.json
             squads/vovo-teresinha/automation/auditoria-log.txt
+            squads/vovo-teresinha/automation/correcao-resultado.json
+            squads/vovo-teresinha/automation/correcao-log.txt
           retention-days: 7
