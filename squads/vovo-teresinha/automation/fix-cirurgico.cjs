@@ -88,6 +88,12 @@ const FIXES = [
     slug: "frango-xadrez",
     prompt: "Chinese Brazilian frango xadrez kung pao chicken in white bowl, diced chicken pieces with red and green bell peppers and onions in glossy dark soy sauce, cashew nuts, Asian stir-fry style",
   },
+  {
+    id: 155,
+    titulo: "Picadinho de Alcatra com Legumes",
+    slug: "picadinho-de-alcatra-com-legumes",
+    prompt: "Brazilian beef picadinho stew in ceramic bowl, small diced sirloin alcatra beef chunks in brown gravy sauce with carrots, potatoes and green peas, NOT chicken, rustic wooden table",
+  },
 ];
 
 // ── HTTP helper ───────────────────────────────────────────────────────────────
