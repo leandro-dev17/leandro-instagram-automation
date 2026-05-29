@@ -3,18 +3,21 @@ name: BioNexus — Planejamento Semanal (Domingo)
 on:
   schedule:
     - cron: '0 12 * * 1'    # 09:00 BRT segunda — Fiscal de Token (tokens e credenciais)
+    - cron: '0 13 * * 1'    # 10:00 BRT segunda — Monitor de Engajamento (métricas Instagram)
     - cron: '0 23 * * 0'    # 20:00 BRT domingo — Weekly Insights
     - cron: '30 23 * * 0'   # 20:30 BRT domingo — Weekly Planner + commit JSON
   workflow_dispatch:
     inputs:
       task:
-        description: 'Tarefa a executar (insights | planner | fiscal-token)'
+        description: 'Tarefa a executar (insights | planner | fiscal-token | monitor-engajamento)'
         required: true
         default: 'planner'
         type: choice
         options:
           - insights
+          - planner
           - fiscal-token
+          - monitor-engajamento
           - planner
 
 permissions:
@@ -169,3 +172,38 @@ jobs:
       - name: Rodar Fiscal de Token
         run: node fiscal-token.cjs
         working-directory: squads/leandro-instagram/automation
+
+  # ── 10:00 BRT segunda — Monitor de Engajamento ──────────────────────────────
+  monitor-engajamento:
+    if: >
+      github.event.schedule == '0 13 * * 1' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'monitor-engajamento')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Monitor de Engajamento
+        run: node monitor-engajamento.cjs
+        working-directory: squads/leandro-instagram/automation
+      - name: Commitar histórico de engajamento
+        run: |
+          git config user.name "BioNexus Bot"
+          git config user.email "bot@bionexus.local"
+          git add squads/leandro-instagram/automation/logs/engajamento-historico.json || true
+          git diff --staged --quiet || git commit -m "chore: histórico engajamento $(date +%Y-%m-%d)"
+          git push || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,18 +3,22 @@ name: BioNexus — Publicações Diárias
 on:
   schedule:
     # Todos os horários em UTC (BRT = UTC-3)
+    - cron: '*/15 * * * *'   # A cada 15 min — Guardião (monitora tudo + aciona Claude se necessário)
     - cron: '0 8 * * *'      # 05:00 BRT — Gerador diário
+    - cron: '15 8 * * *'     # 05:15 BRT — Inspector de Imagens (valida arquivos gerados)
     - cron: '30 8 * * *'     # 05:30 BRT — Fiscal de Cronograma
     - cron: '0 10 * * *'     # 07:00 BRT — Story (5 slides)
+    - cron: '0 16 * * *'     # 13:00 BRT — Fiscal de Horários (detecta falhas da manhã)
     - cron: '59 14 * * *'    # 11:59 BRT — Reel Kling
     - cron: '0 18 * * *'     # 15:00 BRT — Carrossel (7 slides)
     - cron: '30 20 * * *'    # 17:30 BRT — Reel Dica do Personal
     - cron: '0 22 * * *'     # 19:00 BRT — Fiscal de Publicações (detecta falhas + recuperação)
     - cron: '45 23 * * *'    # 20:45 BRT — Relatório Diário (resumo do dia)
+    - cron: '50 23 * * *'    # 20:50 BRT — Backup de Publicações (histórico no GitHub)
   workflow_dispatch:
     inputs:
       job:
-        description: 'Job para executar (daily-generator | story-07h | carousel-12h | reel-dica-1730h | kling-reel-20h | fiscal-publicacoes | relatorio-diario | fiscal-cronograma)'
+        description: 'Job: daily-generator|story-07h|carousel-12h|reel-dica-1730h|kling-reel-20h|guardiao|fiscal-publicacoes|fiscal-horarios|fiscal-cronograma|relatorio-diario|backup-publicacoes|inspector-imagens'
         required: false
         default: 'daily-generator'
 
@@ -423,6 +427,156 @@ jobs:
           EOF
       - name: Rodar Relatório Diário
         run: node relatorio-diario.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── A cada 15 min — Guardião Central ────────────────────────────────────────
+  guardiao:
+    if: >
+      github.event.schedule == '*/15 * * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'guardiao')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Guardião
+        run: node guardiao.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── 05:15 BRT — Inspector de Imagens ────────────────────────────────────────
+  inspector-imagens:
+    if: >
+      github.event.schedule == '15 8 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'inspector-imagens')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Tentar baixar imagens geradas
+        continue-on-error: true
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: bionexus-daily.yml
+          name: daily-images
+          path: squads/leandro-instagram/automation/temp-output/
+          search_artifacts: true
+          workflow_conclusion: success
+          if_no_artifact_found: warn
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          OUTPUT_DIR=${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+          EOF
+      - name: Rodar Inspector de Imagens
+        run: node inspector-imagens.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/squads/leandro-instagram/automation/temp-output
+
+  # ── 13:00 BRT — Fiscal de Horários (manhã) ──────────────────────────────────
+  fiscal-horarios:
+    if: >
+      github.event.schedule == '0 16 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'fiscal-horarios')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Fiscal de Horários
+        run: node fiscal-horarios.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── Segunda-feira — Monitor de Engajamento ──────────────────────────────────
+  monitor-engajamento:
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'monitor-engajamento')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Monitor de Engajamento
+        run: node monitor-engajamento.cjs
+        working-directory: squads/leandro-instagram/automation
+
+  # ── 20:50 BRT — Backup de Publicações ───────────────────────────────────────
+  backup-publicacoes:
+    if: >
+      github.event.schedule == '50 23 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'backup-publicacoes')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Backup de Publicações
+        run: node backup-publicacoes.cjs
         working-directory: squads/leandro-instagram/automation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
