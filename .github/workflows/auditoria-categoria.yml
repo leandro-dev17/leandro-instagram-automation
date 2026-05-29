@@ -51,7 +51,8 @@ jobs:
 
       - name: Salvar log como artefato
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: auditoria-${{ matrix.cat }}
           path: squads/vovo-teresinha/automation/log-${{ matrix.cat }}.txt
-          retention-days: 7
+          retention-days: 3
