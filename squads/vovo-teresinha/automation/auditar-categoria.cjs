@@ -66,8 +66,14 @@ async function verificarLote(receitas) {
     type: "text",
     text: `Para cada par imagem+receita, responda SOMENTE JSON:
 [{"id":123,"ok":true/false,"descricao":"o que a imagem mostra em 1 frase curta","motivo":"por que não bate (se ok=false)"}]
-ok=false somente se a imagem mostra claramente um ALIMENTO DIFERENTE do nome da receita.
-Seja criterioso mas justo — variações visuais de apresentação são aceitáveis.`,
+
+Regras ESTRITAS para ok=false:
+- Receita de BEBIDA (vitamina, suco, smoothie, shake) → imagem deve mostrar líquido em copo/canudo. Se mostrar prato sólido: ok=false
+- Receita de SOPA/CALDO/CREME → imagem deve mostrar líquido em tigela. Se mostrar prato seco: ok=false
+- Receita de BOLO/TORTA → imagem deve mostrar bolo/torta. Se mostrar outra coisa: ok=false
+- Receita de SALADA → imagem deve mostrar folhas/vegetais frescos. Se mostrar prato quente: ok=false
+- Ingrediente principal ERRADO → ok=false (ex: receita de frango mas imagem mostra peixe)
+- Apresentação diferente mas mesmo alimento → ok=true`,
   });
 
   const resp = await client.messages.create({
@@ -80,26 +86,45 @@ Seja criterioso mas justo — variações visuais de apresentação são aceitá
   try { return m ? JSON.parse(m[0]) : []; } catch { return []; }
 }
 
+// ── Claude Haiku: traduzir título para prompt visual preciso em inglês ────────
+async function criarPromptVisual(titulo) {
+  const resp = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 120,
+    messages: [{
+      role: "user",
+      content: `You are a food photography expert. Given a Brazilian recipe name, write a precise visual description in English (max 25 words) for Stability AI image generation. Be specific about: container type (glass, bowl, plate, cup), colors, visible ingredients, texture. No adjectives like "delicious" or "beautiful".
+
+Recipe: "${titulo}"
+
+Reply with ONLY the visual description, nothing else.`,
+    }],
+  });
+  return resp.content[0].text.trim().replace(/^["']|["']$/g, "");
+}
+
 // ── Stability AI: gerar imagem correta ───────────────────────────────────────
 async function gerarImagem(titulo) {
+  // Passo 1: Claude Haiku cria descrição visual precisa em inglês
+  const descricaoVisual = await criarPromptVisual(titulo);
+  console.log(`    → Prompt: "${descricaoVisual}"`);
+
   const prompt = [
-    `Authentic Brazilian breakfast food photography of "${titulo}"`,
-    "simple homemade style",
-    "natural daylight on a wooden breakfast table",
-    "warm cozy atmosphere",
-    "visible ingredients and textures",
-    "rustic Brazilian home kitchen aesthetic",
+    descricaoVisual,
+    "professional food photography",
+    "overhead flat lay or 45 degree angle",
+    "rustic wooden table",
+    "natural soft window light",
     "food magazine quality",
-    "overhead or 45 degree angle shot",
-    "no people no text no watermark",
+    "no people no text no watermark no logo",
   ].join(", ");
 
   const body = JSON.stringify({
     text_prompts: [
       { text: prompt, weight: 1 },
-      { text: "person, human, text, watermark, logo, nsfw, cartoon, illustration, surreal", weight: -1 },
+      { text: "person, human, face, text, watermark, logo, nsfw, cartoon, illustration, surreal, blurry", weight: -1 },
     ],
-    cfg_scale: 7, height: 1024, width: 1024, samples: 1, steps: 40, style_preset: "photographic",
+    cfg_scale: 8, height: 1024, width: 1024, samples: 1, steps: 45, style_preset: "photographic",
   });
 
   const r = await req({
