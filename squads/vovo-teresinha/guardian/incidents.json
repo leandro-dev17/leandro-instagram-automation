@@ -1,302 +1,302 @@
 {
   "fiscal-banco": {
     "first_seen": "2026-05-27T23:28:22.207Z",
-    "last_seen": "2026-05-29T20:25:38.126Z",
+    "last_seen": "2026-05-29T23:42:39.208Z",
     "last_alert": "2026-05-28T14:51:34.151Z",
     "error": "[object Object]",
     "status": 401,
-    "attempts": 16
+    "attempts": 17
   },
   "fiscal-erros-api": {
     "first_seen": "2026-05-27T23:28:22.207Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
+    "last_seen": "2026-05-29T23:42:39.209Z",
     "last_alert": "2026-05-28T14:51:34.151Z",
     "error": "[object Object]",
     "status": 401,
-    "attempts": 16
+    "attempts": 17
   },
   "saude-pwa": {
     "first_seen": "2026-05-27T23:28:22.207Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
+    "last_seen": "2026-05-29T23:42:39.210Z",
     "last_alert": "2026-05-28T14:51:34.151Z",
     "error": "[object Object]",
     "status": 401,
-    "attempts": 16
+    "attempts": 17
   },
   "fiscal-diario": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.209Z",
+    "attempts": 10,
     "status": 401
   },
   "fiscal-login": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.209Z",
+    "attempts": 10,
     "status": 401
   },
   "fiscal-pagamentos": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.209Z",
+    "attempts": 10,
     "status": 401
   },
   "trial-expirando": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.209Z",
+    "attempts": 10,
     "status": 401
   },
   "agente-assinaturas": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "push-diario": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "criador-receitas": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "gerente-operacoes": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "gerente-financeiro": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "gerente-tecnico": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "gerente-conteudo": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "gerente-clientes": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "ceo-relatorio": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "cacador-desistentes": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "preditor-churn": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "campanha-recuperacao": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "disparador-campanhas": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "engajamento": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "bonus-sazonal": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "monitor-relatorios": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "previsao-receita": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "performance": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "reputacao-email": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "observador-mercado": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "whatsapp-fila": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "publicador-wpp": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "recepcionista-wpp": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "conversor-wpp": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "moderacao-grupo": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "respondedor-vovo-wpp": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "calculador-comissao": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "confirmador-comissao": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "anti-fraude-afiliados": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "pagamento-afiliados": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "monitor-alunas": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "personalizador-alunas": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "curador-receitas-personal": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "backup-monitor": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "circuit-breaker": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "fila-dlq": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "guardiao-seguranca": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "rotador-senhas": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "rotacao-receitas-free": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "compliance-lgpd": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "setup-afiliados-db": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   },
   "setup-falhas-db": {
     "first_seen": "2026-05-28T20:38:18.829Z",
-    "last_seen": "2026-05-29T20:25:38.127Z",
-    "attempts": 9,
+    "last_seen": "2026-05-29T23:42:39.210Z",
+    "attempts": 10,
     "status": 401
   }
 }
