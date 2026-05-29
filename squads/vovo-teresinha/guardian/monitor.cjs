@@ -141,6 +141,21 @@ function saveIncidents(data) {
   fs.writeFileSync(INCIDENTS, JSON.stringify(data, null, 2));
 }
 
+// Verifica se algum cron foi desativado pelo Vercel e força redeploy
+async function verificarCronsDesativados() {
+  if (!VERCEL_TOK) return;
+  const r = await fetchJSON(
+    `https://api.vercel.com/v1/deployments/${VERCEL_PID}/crons?teamId=${VERCEL_TID}`,
+    { headers: { Authorization: `Bearer ${VERCEL_TOK}` } }
+  );
+  if (!r.ok || !Array.isArray(r.body?.crons)) return;
+  const desativados = r.body.crons.filter(c => c.state === "disabled" || c.state === "error");
+  if (desativados.length > 0) {
+    console.log(`  ⚠️ ${desativados.length} cron(s) desativado(s) pelo Vercel — forçando redeploy`);
+    await triggerRedeploy();
+  }
+}
+
 async function getVercelLogs() {
   if (!VERCEL_TOK) return "Logs não disponíveis";
   const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -305,6 +320,9 @@ ${sourceContext.join("\n") || "(nenhum encontrado)"}
 
 async function main() {
   console.log(`\n🔍 Guardião iniciado — ${new Date().toLocaleString("pt-BR")}`);
+
+  // 0. Verificar se algum cron foi desativado pelo Vercel
+  await verificarCronsDesativados();
 
   // 1. Health checks — paralelo em lotes de 10 (evita sobrecarga + respeita timeout 10min)
   const results = [];
