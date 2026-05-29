@@ -40,6 +40,8 @@ jobs:
         if: inputs.modo == 'corrigir'
         run: node corrigir-imagens.cjs 2>&1 | tee correcao-log.txt
         working-directory: squads/vovo-teresinha/automation
+        env:
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
 
       - name: Salvar resultados como artefato
         uses: actions/upload-artifact@v4

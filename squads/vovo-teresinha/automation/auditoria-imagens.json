@@ -1,0 +1,1499 @@
+{
+  "data": "2026-05-21T23:27:26.801Z",
+  "total_auditadas": 400,
+  "total_ok": 276,
+  "total_flagadas": 124,
+  "percentual_erro": "31.0%",
+  "flagadas": [
+    {
+      "id": 1,
+      "titulo": "Bolo de Aveia com Banana sem Açúcar",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368455/vovo-teresinha/receitas/bolo-de-aveia-com-banana-sem-acucar.png",
+      "motivo": "A imagem mostra um bolo com cobertura de glacê e calda açucarada, características de um bolo tradicional com açúcar. A receita é 'Bolo de Aveia com Banana sem Açúcar', que não deveria ter cobertura glacê nem calda açucarada visíveis."
+    },
+    {
+      "id": 2,
+      "titulo": "Bolo de Cenoura Fit",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368457/vovo-teresinha/receitas/bolo-de-cenoura-fit.png",
+      "motivo": "A imagem mostra um prato salgado com carne moída, batatas e molho, não um bolo de cenoura. O prato é completamente diferente da categoria 'bolos_tortas'."
+    },
+    {
+      "id": 3,
+      "titulo": "Bolo de Cenoura sem Glúten e sem Lactose",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368460/vovo-teresinha/receitas/bolo-de-cenoura-sem-gluten-e-sem-lactose.png",
+      "motivo": "A imagem mostra um bolo de cenoura tradicional com calda/calda de frutas, não representando claramente um bolo de cenoura sem glúten e sem lactose. Além disso, a apresentação parece ser de um bolo comum, sem indicadores visuais que diferenciem uma versão sem glúten e sem lactose."
+    },
+    {
+      "id": 4,
+      "titulo": "Torta Salgada sem Glúten e sem Lactose",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368462/vovo-teresinha/receitas/torta-salgada-sem-gluten-e-sem-lactose.png",
+      "motivo": "A imagem mostra um bolo doce com cobertura de calda, frutas vermelhas e açúcar em pó, claramente uma sobremesa/bolo doce. A receita especifica 'Torta Salgada' (torta salgada), que deve ser um prato salgado, não uma sobremesa doce."
+    },
+    {
+      "id": 5,
+      "titulo": "Bolo Super Fit de Banana",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368466/vovo-teresinha/receitas/bolo-super-fit-de-banana.png",
+      "motivo": "A imagem mostra um prato salgado (aparentemente um bolo de carne com molho e banana) servido em forma de entrada/prato principal. O 'Bolo Super Fit de Banana' é uma sobremesa doce, não um prato salgado. A apresentação, ingredientes e contexto não correspondem ao esperado para esta receita."
+    },
+    {
+      "id": 6,
+      "titulo": "Bolo de Banana da Ieda",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368467/vovo-teresinha/receitas/bolo-de-banana-da-ieda.png",
+      "motivo": "A imagem mostra um bolo com recheio de creme/calda amarela e cobertura de chocolate, decorado com frutas vermelhas. 'Bolo de Banana da Ieda' é tipicamente um bolo simples de banana, sem recheio elaborado nem cobertura de chocolate. A apresentação gourmet não condiz com a receita tradicional brasileira mencionada."
+    },
+    {
+      "id": 7,
+      "titulo": "Bolo de Chocolate Low Carb de Microondas",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368469/vovo-teresinha/receitas/bolo-de-chocolate-low-carb-de-microondas.png",
+      "motivo": "A imagem mostra um bolo de chocolate gourmet com cobertura de chocolate, frutas frescas e calda, claramente um prato sofisticado de restaurante. Um 'Bolo de Chocolate Low Carb de Microondas' é uma receita simples caseira feita em microondas, não apresentaria este nível de apresentação requintada com frutas, calda e decoração profissional."
+    },
+    {
+      "id": 8,
+      "titulo": "Bolo de Coco de Caneca Low Carb",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368472/vovo-teresinha/receitas/bolo-de-coco-de-caneca-low-carb.png",
+      "motivo": "A imagem mostra um bolo sofisticado com calda de caramelo e cobertura de açúcar granulado, caracterizando um bolo de festa. 'Bolo de Coco de Caneca Low Carb' é um bolo simples feito em caneca, servido na própria caneca ou em porção única casual. A apresentação e o acabamento são incompatíveis com a receita."
+    },
+    {
+      "id": 10,
+      "titulo": "Torta de Frango Low Carb Econômica",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368476/vovo-teresinha/receitas/torta-de-frango-low-carb-economica.png",
+      "motivo": "A imagem mostra um bolo doce com cobertura caramelizada, calda de limão e decoração com frutas cítricas. A receita 'Torta de Frango Low Carb Econômica' é um prato salgado à base de frango. Não há qualquer correspondência entre a imagem (sobremesa doce) e a receita (prato principal salgado)."
+    },
+    {
+      "id": 12,
+      "titulo": "Bolo Fit de Maçã com Aveia",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368479/vovo-teresinha/receitas/bolo-fit-de-maca-com-aveia.png",
+      "motivo": "A imagem mostra um bolo coberto com calda e acompanhamentos (frutas, folhas), apresentado como um prato requintado. A receita 'Bolo Fit de Maçã com Aveia' é um bolo simples e saudável, que não corresponde a este prato elaborado e gourmet mostrado na imagem."
+    },
+    {
+      "id": 13,
+      "titulo": "Torta de Espinafre e Ricota sem Farinha",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368481/vovo-teresinha/receitas/torta-de-espinafre-e-ricota-sem-farinha.png",
+      "motivo": "A imagem mostra um sanduíche tostado com tomate e queijo, não uma torta de espinafre e ricota. O prato é completamente diferente da receita descrita."
+    },
+    {
+      "id": 15,
+      "titulo": "Torta de Queijo e Espinafre Fit",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368486/vovo-teresinha/receitas/torta-de-queijo-e-espinafre-fit.png",
+      "motivo": "A imagem mostra um bolo doce com cobertura caramelizada e frutas, enquanto a receita é uma torta salgada de queijo e espinafre. São categorias completamente diferentes (doce vs. salgada)."
+    },
+    {
+      "id": 16,
+      "titulo": "Bolo de Maçã sem Açúcar e sem Farinha de Trigo",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368488/vovo-teresinha/receitas/bolo-de-maca-sem-acucar-e-sem-farinha-de-trigo.png",
+      "motivo": "A imagem mostra um bolo com cobertura de caramelo e calda, decorado com frutas confitadas. A receita é 'Bolo de Maçã sem Açúcar e sem Farinha de Trigo' (bolo sem açúcar refinado e sem glúten), mas a imagem apresenta um bolo claramente coberto com caramelo açucarado e calda doce, o que contradiz o conceito de bolo 'sem açúcar'. Além disso, não há evidência visual de maçã como ingrediente principal."
+    },
+    {
+      "id": 17,
+      "titulo": "Bolo de Caneca Funcional Low Carb",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368489/vovo-teresinha/receitas/bolo-de-caneca-funcional-low-carb.png",
+      "motivo": "A imagem mostra um bolo cilíndrico elegante com cobertura caramelizada, acompanhamentos sofisticados e presentação de restaurante fine dining. 'Bolo de Caneca' é um bolo simples preparado em caneca/xícara, servido informalmente. A imagem não condiz com o estilo caseiro e despretensioso característico dessa receita."
+    },
+    {
+      "id": 18,
+      "titulo": "Bolo de Maçã e Banana sem Farinha",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368491/vovo-teresinha/receitas/bolo-de-maca-e-banana-sem-farinha.png",
+      "motivo": "A imagem mostra um bolo com calda de caramelo e banana, mas não há indicativos visuais de que seja um bolo sem farinha. A textura e apresentação sugerem um bolo convencional com farinha de trigo, não correspondendo especificamente à receita 'Bolo de Maçã e Banana sem Farinha'. Além disso, não há presença visual clara de maçã no prato."
+    },
+    {
+      "id": 19,
+      "titulo": "Torta de Atum Low Carb sem Glúten",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368493/vovo-teresinha/receitas/torta-de-atum-low-carb-sem-gluten.png",
+      "motivo": "A imagem mostra um bolo/torta doce com calda de caramelo, frutas vermelhas e hortelã. A receita é 'Torta de Atum Low Carb sem Glúten', que é um prato salgado à base de atum. O prato na imagem é completamente diferente - é um dessert, não um prato salgado."
+    },
+    {
+      "id": 21,
+      "titulo": "Bolo de Abóbora Fit",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368496/vovo-teresinha/receitas/bolo-de-abobora-fit.png",
+      "motivo": "A imagem mostra um prato sofisticado com molho amarelo, abóbora e decorações gourmet, mais semelhante a um prato principal ou entrada. 'Bolo de Abóbora Fit' é um bolo/massa, não um prato principal com molho e apresentação elaborada como nesta imagem."
+    },
+    {
+      "id": 22,
+      "titulo": "Bolo de Aipim com Coco Fit",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368498/vovo-teresinha/receitas/bolo-de-aipim-com-coco-fit.png",
+      "motivo": "A imagem mostra um bolo de fubá ou semolina com cobertura de açúcar e frutas vermelhas, não um bolo de aipim (mandioca) com coco. A textura e apresentação não correspondem a um bolo de aipim típico."
+    },
+    {
+      "id": 23,
+      "titulo": "Bolo de Milho Fit com Óleo de Coco",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368500/vovo-teresinha/receitas/bolo-de-milho-fit-com-oleo-de-coco.png",
+      "motivo": "A imagem mostra um prato gourmet com cobertura de calda amarela, frutas vermelhas e microgreens, claramente um sobremesa sofisticada de restaurante. O 'Bolo de Milho Fit com Óleo de Coco' é um bolo caseiro simples, não um prato elaborado com apresentação fine dining."
+    },
+    {
+      "id": 24,
+      "titulo": "Torta Fit de Aveia com Palmito",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368501/vovo-teresinha/receitas/torta-fit-de-aveia-com-palmito.png",
+      "motivo": "A imagem mostra um cheesecake com cobertura de frutas (abacaxi e frutas vermelhas), não uma torta fit de aveia com palmito. São pratos completamente diferentes - um é sobremesa doce e o outro é uma torta salgada/fit."
+    },
+    {
+      "id": 25,
+      "titulo": "Bolo de Coco Fit de Caneca",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368503/vovo-teresinha/receitas/bolo-de-coco-fit-de-caneca.png",
+      "motivo": "A imagem mostra um bolo quente com cobertura de calda, sorvete e frutas (abóbora e beterraba), enquanto 'Bolo de Coco Fit de Caneca' é um bolo simples de caneca (mug cake) com coco, sem elaboração sofisticada com molhos, sorvete e acompanhamentos. A apresentação é completamente diferente do esperado para a receita."
+    },
+    {
+      "id": 26,
+      "titulo": "Torta de Sardinha Sem Glúten e Sem Lactose",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368505/vovo-teresinha/receitas/torta-de-sardinha-sem-gluten-e-sem-lactose.png",
+      "motivo": "A imagem mostra uma torta doce (bolo/sobremesa) com cobertura caramelizada e decoração com salsa, enquanto a receita é uma torta salgada de sardinha. São categorias completamente diferentes - uma é um doce e a outra é um prato salgado."
+    },
+    {
+      "id": 27,
+      "titulo": "Torta Fit de Frango e Palmito com Massa de Grão de Bico",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368507/vovo-teresinha/receitas/torta-fit-de-frango-e-palmito-com-massa-de-grao-de-bico.png",
+      "motivo": "A imagem mostra um bolo doce com cobertura de açúcar e frutas cristalizadas, não uma torta salgada de frango e palmito com massa de grão de bico"
+    },
+    {
+      "id": 28,
+      "titulo": "Torta de Legumes com Cogumelos Fit",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368509/vovo-teresinha/receitas/torta-de-legumes-com-cogumelos-fit.png",
+      "motivo": "A imagem mostra um bolo doce com cobertura de frutas e calda, não uma torta salgada de legumes com cogumelos. É um dessert, não um prato salgado conforme indicado pelo nome da receita."
+    },
+    {
+      "id": 29,
+      "titulo": "Torta de Espinafre Fit com Queijo e Tomate",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368510/vovo-teresinha/receitas/torta-de-espinafre-fit-com-queijo-e-tomate.png",
+      "motivo": "A imagem mostra uma torta doce com cobertura de calda e frutas frescas (tomate usado como decoração), enquanto a receita 'Torta de Espinafre Fit com Queijo e Tomate' é um prato salgado à base de espinafre. O prato na imagem é claramente uma sobremesa/bolo doce, não uma torta salgada."
+    },
+    {
+      "id": 30,
+      "titulo": "Bolo de Coco Fit sem Açúcar (Liquidificador)",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368512/vovo-teresinha/receitas/bolo-de-coco-fit-sem-acucar-liquidificador.png",
+      "motivo": "A imagem mostra um bolo com cobertura de caramelo e frutas vermelhas frescas, aparentando ser um bolo gourmet sofisticado. A receita 'Bolo de Coco Fit sem Açúcar (Liquidificador)' seria um bolo mais simples, caseiro, feito no liquidificador, sem essa apresentação elaborada com caramelo e decorações. A imagem não condiz com o estilo esperado para essa receita específica."
+    },
+    {
+      "id": 31,
+      "titulo": "Bolo Integral sem Gordura com Suco de Laranja",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368514/vovo-teresinha/receitas/bolo-integral-sem-gordura-com-suco-de-laranja.png",
+      "motivo": "A imagem mostra um hambúrguer gourmet com molho de laranja, não um bolo integral sem gordura com suco de laranja. São pratos completamente diferentes."
+    },
+    {
+      "id": 32,
+      "titulo": "Bolo Proteico de Whey com Maçã, Canela e Passas",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368515/vovo-teresinha/receitas/bolo-proteico-de-whey-com-maca-canela-e-passas.png",
+      "motivo": "A imagem mostra um prato salgado com frango, batatas e molho, não um bolo doce de whey com maçã, canela e passas"
+    },
+    {
+      "id": 33,
+      "titulo": "Quiche de Cogumelos com Cottage",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368517/vovo-teresinha/receitas/quiche-de-cogumelos-com-cottage.png",
+      "motivo": "A imagem mostra uma quiche de milho com cobertura de queijo derretido, não uma quiche de cogumelos com cottage. Os ingredientes principais visíveis não correspondem à receita especificada."
+    },
+    {
+      "id": 34,
+      "titulo": "Torta de Sardinha de Liquidificador Fit",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368519/vovo-teresinha/receitas/torta-de-sardinha-de-liquidificador-fit.png",
+      "motivo": "A imagem mostra um cheesecake de frutas vermelhas, não uma torta de sardinha. A receita é um prato salgado com peixe, enquanto a imagem é um bolo doce à base de cream cheese."
+    },
+    {
+      "id": 35,
+      "titulo": "Torta Rústica de Abóbora com Legumes (Panelinha)",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368523/vovo-teresinha/receitas/torta-rustica-de-abobora-com-legumes-panelinha.png",
+      "motivo": "A imagem mostra uma torta doce com cobertura de frutas cristalizadas e caramelo, claramente uma sobremesa. A receita 'Torta Rústica de Abóbora com Legumes' é um prato salgado/principal, não um bolo doce."
+    },
+    {
+      "id": 36,
+      "titulo": "Bolo de Batata Doce com Coco",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368525/vovo-teresinha/receitas/bolo-de-batata-doce-com-coco.png",
+      "motivo": "A imagem mostra um pudim ou flan de frutas, não um bolo de batata doce com coco. A textura cremosa e o formato de pudim não correspondem a um bolo."
+    },
+    {
+      "id": 37,
+      "titulo": "Torta Saudável de Sardinha com Massa Integral",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368527/vovo-teresinha/receitas/torta-saudavel-de-sardinha-com-massa-integral.png",
+      "motivo": "A imagem mostra um bolo doce com frutas cristalizadas e cobertura de açúcar, não uma torta salgada de sardinha com massa integral"
+    },
+    {
+      "id": 38,
+      "titulo": "Bolo de Aipim sem Farinha (Vitat)",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368529/vovo-teresinha/receitas/bolo-de-aipim-sem-farinha-vitat.png",
+      "motivo": "A imagem mostra um bolo de flan ou pudim com calda de caramelo, não um bolo de aipim. O aspecto é de um pudim invertido, não de um bolo tradicional de aipim sem farinha."
+    },
+    {
+      "id": 39,
+      "titulo": "Torta de Espinafre Fit com Creme de Leite e Queijo Minas",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368531/vovo-teresinha/receitas/torta-de-espinafre-fit-com-creme-de-leite-e-queijo-minas.png",
+      "motivo": "A imagem mostra um bolo doce com cobertura de cream cheese e calda de caramelo/laranja, claramente uma sobremesa açucarada. A receita 'Torta de Espinafre Fit com Creme de Leite e Queijo Minas' é um prato salgado à base de espinafre. Não há qualquer correspondência entre o prato doce exibido e uma torta salgada de espinafre."
+    },
+    {
+      "id": 40,
+      "titulo": "Torta Madalena de Cogumelos com Purê de Batata (Panelinha)",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368533/vovo-teresinha/receitas/torta-madalena-de-cogumelos-com-pure-de-batata-panelinha.png",
+      "motivo": "A imagem mostra um bolo doce com calda de frutas (abacaxi), glacê e hortelã, claramente uma sobremesa. A receita 'Torta Madalena de Cogumelos com Purê de Batata' é um prato salgado à base de cogumelos e batata, não um bolo doce com frutas."
+    },
+    {
+      "id": 41,
+      "titulo": "Granola Caseira com Especiarias",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368535/vovo-teresinha/receitas/granola-caseira-com-especiarias.png",
+      "motivo": "A imagem mostra um açaí bowl ou granola com frutas frescas e queijo branco, não uma granola caseira com especiarias típica de café da manhã brasileiro. Faltam elementos como cereais, sementes e especiarias características da receita, e há excesso de frutas frescas e queijo."
+    },
+    {
+      "id": 44,
+      "titulo": "Cuscuz Fitness com Muçarela Light",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368540/vovo-teresinha/receitas/cuscuz-fitness-com-mucarela-light.png",
+      "motivo": "A imagem mostra um prato de carne (almôndegas ou bolinhas de carne) com batata e brócolis, um prato salgado de almoço/jantar. A receita é 'Cuscuz Fitness com Muçarela Light', um prato doce/salgado de café da manhã à base de cuscuz. Não corresponde ao tipo de prato nem à categoria."
+    },
+    {
+      "id": 45,
+      "titulo": "Bolo de Caneca Fit com Cacau e Banana",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368542/vovo-teresinha/receitas/bolo-de-caneca-fit-com-cacau-e-banana.png",
+      "motivo": "A imagem mostra um bolo gourmet sofisticado com cobertura de chocolate, calda e granola, servido em prato de restaurante. 'Bolo de Caneca Fit com Cacau e Banana' é um bolo simples preparado em caneca/xícara para café da manhã, não um sobremesa refinada como mostrado na imagem."
+    },
+    {
+      "id": 46,
+      "titulo": "Wrap Matinal Integral com Peru e Abacate",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368544/vovo-teresinha/receitas/wrap-matinal-integral-com-peru-e-abacate.png",
+      "motivo": "A imagem mostra um wrap com milho, pimento e queijo fresco, mas não há evidência de peru (peru/frango desfiado) nem abacate, ingredientes principais citados no nome da receita."
+    },
+    {
+      "id": 52,
+      "titulo": "Aveia na Tigela com Frutas Vermelhas",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368556/vovo-teresinha/receitas/aveia-na-tigela-com-frutas-vermelhas.png",
+      "motivo": "A imagem mostra um flan ou pudim de caramelo com frutas, não uma tigela de aveia. A receita especifica 'Aveia na Tigela' (oatmeal bowl), mas o prato principal é um custard/flan, não aveia."
+    },
+    {
+      "id": 54,
+      "titulo": "Cuscuz de Milho para Café da Manhã",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368560/vovo-teresinha/receitas/cuscuz-de-milho-para-cafe-da-manha.png",
+      "motivo": "A imagem mostra um prato de sobremesa/flan com calda de caramelo, não um cuscuz de milho. Cuscuz de milho é um prato salgado/neutro típico de café da manhã, enquanto a imagem apresenta claramente um doce decorado."
+    },
+    {
+      "id": 58,
+      "titulo": "Panqueca de Proteína com Aveia e Banana",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368568/vovo-teresinha/receitas/panqueca-de-proteina-com-aveia-e-banana.png",
+      "motivo": "A imagem mostra uma omelete ou panqueca de ovos, não uma panqueca de proteína com aveia e banana. Não há evidências visuais de aveia ou banana como ingredientes principais do prato."
+    },
+    {
+      "id": 61,
+      "titulo": "Bolo de Caneca Fit com Whey Protein",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368573/vovo-teresinha/receitas/bolo-de-caneca-fit-com-whey-protein.png",
+      "motivo": "A imagem mostra um hambúrguer gourmet, não um bolo de caneca fit com whey protein. São dishes completamente diferentes - um é um prato salgado e outro é uma sobremesa/café da manhã doce."
+    },
+    {
+      "id": 62,
+      "titulo": "Vitamina Detox de Mamão com Gengibre",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368574/vovo-teresinha/receitas/vitamina-detox-de-mamao-com-gengibre.png",
+      "motivo": "A imagem mostra um prato quente com batatas, cenoura e ervilhas em caldo, totalmente diferente de uma vitamina (bebida) de mamão com gengibre, que é um café da manhã líquido."
+    },
+    {
+      "id": 67,
+      "titulo": "Brigadeiro de Tâmaras com Pasta de Amendoim",
+      "categoria": "doces_sobremesas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779369256/vovo-teresinha/receitas/brigadeiro-de-tamaras-com-pasta-de-amendoim.png",
+      "motivo": "A imagem mostra brigadeiros tradicionais de chocolate, não brigadeiros de tâmaras com pasta de amendoim. Não há evidência visual de tâmaras ou pasta de amendoim na composição dos doces."
+    },
+    {
+      "id": 85,
+      "titulo": "Pudim de Chia com Frutas",
+      "categoria": "doces_sobremesas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368580/vovo-teresinha/receitas/pudim-de-chia-com-frutas.png",
+      "motivo": "A imagem mostra um pudim/flan tradicional com frutas frescas, não um pudim de chia. Não há presença visível de chia (sementes características) que é o ingrediente principal e diferenciador da receita 'Pudim de Chia com Frutas'."
+    },
+    {
+      "id": 88,
+      "titulo": "Canjica sem Açúcar",
+      "categoria": "doces_sobremesas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368585/vovo-teresinha/receitas/canjica-sem-acucar.png",
+      "motivo": "A imagem mostra um prato salgado com carne, batata e caldo, não corresponde a 'Canjica sem Açúcar' que é uma sobremesa doce à base de milho."
+    },
+    {
+      "id": 92,
+      "titulo": "Tapioca com Brigadeiro Fit",
+      "categoria": "doces_sobremesas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368594/vovo-teresinha/receitas/tapioca-com-brigadeiro-fit.png",
+      "motivo": "A imagem mostra um prato salgado com polenta/milho cremoso e molho à base de tomate com carne, não sendo uma sobremesa. A receita 'Tapioca com Brigadeiro Fit' é um doce/sobremesa, mas a imagem apresenta um prato salgado completamente diferente."
+    },
+    {
+      "id": 93,
+      "titulo": "Crumble de Pera com Frutas Vermelhas",
+      "categoria": "doces_sobremesas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368596/vovo-teresinha/receitas/crumble-de-pera-com-frutas-vermelhas.png",
+      "motivo": "A imagem mostra um cheesecake ou pavê com frutas vermelhas, não um crumble de pera. O crumble deveria ter uma textura de migalhas crocantes no topo e pera como ingrediente principal, não um bolo/queijo cremoso."
+    },
+    {
+      "id": 100,
+      "titulo": "Mousse de Maracujá Vegano e Sem Açúcar",
+      "categoria": "doces_sobremesas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368614/vovo-teresinha/receitas/mousse-de-maracuja-vegano-e-sem-acucar.png",
+      "motivo": "A imagem mostra um mousse de limão/citrus com calda de frutas cítricas, não de maracujá. A cor amarela clara e os pedaços de frutas indicam limão, não maracujá, que teria cor laranja/avermelhada característica."
+    },
+    {
+      "id": 104,
+      "titulo": "Bolinho Fit de Tapioca e Frango",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779369613/vovo-teresinha/receitas/bolinho-fit-de-tapioca-e-frango.png",
+      "motivo": "A imagem mostra um bolo/cupcake doce com cobertura açucarada, não um salgado de tapioca e frango. O formato e apresentação são de sobremesa, não de lanche salgado."
+    },
+    {
+      "id": 106,
+      "titulo": "Muffin Salgado Low Carb (Farinha de Amêndoas)",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779369650/vovo-teresinha/receitas/muffin-salgado-low-carb-farinha-de-amendoas.png",
+      "motivo": "A imagem mostra muffins doces com cobertura de glacê e açúcar cristalizado, claramente um produto de confeitaria. A receita 'Muffin Salgado Low Carb' é um salgado (savory), não um doce. O visual não corresponde a um muffin salgado feito com farinha de amêndoas."
+    },
+    {
+      "id": 113,
+      "titulo": "Sanduíche de Frango com Abacate (Panelinha)",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779369792/vovo-teresinha/receitas/sanduiche-de-frango-com-abacate-panelinha.png",
+      "motivo": "A imagem mostra um sanduíche com frango e guacamole, mas não há abacate visível. O recheio parece ser guacamole (abacate processado) em vez de fatias de abacate fresco, o que não representa adequadamente um 'Sanduíche de Frango com Abacate' tradicional. Além disso, faltam elementos típicos da receita 'Panelinha'."
+    },
+    {
+      "id": 121,
+      "titulo": "Crackers de Linhaça Sem Glúten (Vegano)",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779369968/vovo-teresinha/receitas/crackers-de-linhaca-sem-gluten-vegano.png",
+      "motivo": "A imagem mostra crackers com sementes de gergelim, não de linhaça. Os crackers de linhaça têm aparência e textura diferentes - são mais densos e com sementes de linhaça visíveis, não cobertos uniformemente com gergelim dourado como mostrado na foto."
+    },
+    {
+      "id": 124,
+      "titulo": "Bolinho de Couve-Flor Assado",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368622/vovo-teresinha/receitas/bolinho-de-couve-flor-assado.png",
+      "motivo": "A imagem mostra uma bola de carne com molho e abóbora, não um bolinho de couve-flor. O prato principal é claramente à base de carne moída, não de couve-flor assada como indicado pela receita."
+    },
+    {
+      "id": 127,
+      "titulo": "Pimentão Recheado com Ovo",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368627/vovo-teresinha/receitas/pimentao-recheado-com-ovo.png",
+      "motivo": "A imagem mostra um ovo frito sobre legumes refogados, não um pimentão recheado. O prato deveria ter pimentão como ingrediente principal, não como acompanhamento."
+    },
+    {
+      "id": 131,
+      "titulo": "Crostini de Feijão-Branco",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368634/vovo-teresinha/receitas/crostini-de-feijao-branco.png",
+      "motivo": "A imagem mostra um sanduíche com pão, queijo branco e vegetais grelhados. O Crostini de Feijão-Branco é um acarajé ou bruschetinha feita à base de feijão-branco, não um sanduíche com queijo e vegetais. O prato não corresponde à receita nomeada."
+    },
+    {
+      "id": 134,
+      "titulo": "Frango Empanado com Aveia",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368639/vovo-teresinha/receitas/frango-empanado-com-aveia.png",
+      "motivo": "A imagem mostra um peixe ou frango com cobertura de molho amarelo e vegetais, não um frango empanado com aveia. O prato apresenta uma preparação diferente da esperada para 'Frango Empanado com Aveia', com molho sofisticado e apresentação de restaurante gourmet, não típica de um lanche/snack."
+    },
+    {
+      "id": 137,
+      "titulo": "Sanduíche de Ricota com Ervas Light",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368645/vovo-teresinha/receitas/sanduiche-de-ricota-com-ervas-light.png",
+      "motivo": "A imagem mostra um hambúrguer com queijo derretido, carne moída, alface, tomate e cebola roxa. A receita é um sanduíche de ricota com ervas light, que é completamente diferente - deve ser um lanche à base de ricota e ervas, não um hambúrguer com carne. Os ingredientes e a preparação não correspondem."
+    },
+    {
+      "id": 139,
+      "titulo": "Pasta de Grão-de-Bico Caseira",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368648/vovo-teresinha/receitas/pasta-de-grao-de-bico-caseira.png",
+      "motivo": "A imagem mostra um prato de massa (fusilli) com molho e toppings, não uma pasta de grão-de-bico. A receita deveria ser um lanche/snack feito com grão-de-bico, não massa de trigo tradicional."
+    },
+    {
+      "id": 140,
+      "titulo": "Frango Empanado com Aveia e Gergelim",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368650/vovo-teresinha/receitas/frango-empanado-com-aveia-e-gergelim.png",
+      "motivo": "A imagem mostra um peixe (possivelmente salmão) com purê de batata e cenoura. A receita especifica 'Frango Empanado' (frango/frango empanado), não peixe. Além disso, não há evidência visual de aveia e gergelim na cobertura do prato apresentado."
+    },
+    {
+      "id": 141,
+      "titulo": "Pastel Assado de Aveia",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368652/vovo-teresinha/receitas/pastel-assado-de-aveia.png",
+      "motivo": "A imagem mostra um bolo ou pudim com calda de caramelo, claramente um sobremesa doce. 'Pastel Assado de Aveia' é um lanche salgado/assado feito com aveia, não um bolo doce com cobertura de açúcar e calda. Produto completamente diferente da receita."
+    },
+    {
+      "id": 146,
+      "titulo": "Filés de Frango ao Limão com Creme",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368660/vovo-teresinha/receitas/files-de-frango-ao-limao-com-creme.png",
+      "motivo": "A imagem mostra um peixe branco (possivelmente linguado ou similar) em molho cremoso, não frango. O prato é claramente de frutos do mar, não de frango ao limão com creme."
+    },
+    {
+      "id": 147,
+      "titulo": "Filé de Frango com Creme de Espinafre",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368662/vovo-teresinha/receitas/file-de-frango-com-creme-de-espinafre.png",
+      "motivo": "A imagem mostra um filé de peixe (possivelmente pescada ou linguado) com molho de alcaparras e ervas, não um filé de frango com creme de espinafre."
+    },
+    {
+      "id": 148,
+      "titulo": "Filé de Frango ao Molho de Mostarda",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368664/vovo-teresinha/receitas/file-de-frango-ao-molho-de-mostarda.png",
+      "motivo": "A imagem mostra um peixe em molho amarelo (possivelmente molho de açafrão ou curry), não um filé de frango em molho de mostarda. O prato principal é completamente diferente do que a receita descreve."
+    },
+    {
+      "id": 155,
+      "titulo": "Picadinho de Alcatra com Legumes",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368676/vovo-teresinha/receitas/picadinho-de-alcatra-com-legumes.png",
+      "motivo": "A imagem mostra um ensopado/guisado com carne em cubos e legumes, mas não é Picadinho de Alcatra. Picadinho é caracterizado por carne moída, não em cubos. Este prato parece ser um guisado de carne em pedaços (possivelmente um Ensopado ou similar), não a receita solicitada."
+    },
+    {
+      "id": 156,
+      "titulo": "Carne Moída Refogada com Legumes",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368678/vovo-teresinha/receitas/carne-moida-refogada-com-legumes.png",
+      "motivo": "A imagem mostra um ensopado/guisado com caldo abundante, características de um prato de cozimento longo. 'Carne Moída Refogada com Legumes' é um refogado, que deve ter consistência mais seca/reduzida, sem tanto caldo. A apresentação é mais de um estufado do que de um refogado propriamente dito."
+    },
+    {
+      "id": 164,
+      "titulo": "Frango à Parmegiana Fitness",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368692/vovo-teresinha/receitas/frango-a-parmegiana-fitness.png",
+      "motivo": "A imagem mostra peixe ou fruto do mar com purê de batata e abacaxi grelhado, não frango à parmegiana. O prato principal é claramente um peixe branco, não frango empanado com molho de tomate e queijo como é característico da frango à parmegiana."
+    },
+    {
+      "id": 165,
+      "titulo": "Risoto Fitness com Frango",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368694/vovo-teresinha/receitas/risoto-fitness-com-frango.png",
+      "motivo": "A imagem mostra um risoto com camarão, não com frango como especificado na receita 'Risoto Fitness com Frango'"
+    },
+    {
+      "id": 168,
+      "titulo": "Wrap de Frango Desfiado",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368699/vovo-teresinha/receitas/wrap-de-frango-desfiado.png",
+      "motivo": "A imagem mostra um wrap com frutos do mar (camarão/polvo) e milho, não frango desfiado. O recheio principal não corresponde à receita de 'Wrap de Frango Desfiado'."
+    },
+    {
+      "id": 173,
+      "titulo": "Strogonoff Fit com Batata-Doce",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368707/vovo-teresinha/receitas/strogonoff-fit-com-batata-doce.png",
+      "motivo": "A imagem mostra batata comum (batata-inglesa) e não batata-doce. O prato contém carne em molho marrom, mas a base de amido está incorreta para a receita 'Strogonoff Fit com Batata-Doce'."
+    },
+    {
+      "id": 181,
+      "titulo": "Moqueca de Peixe Super Fácil",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368722/vovo-teresinha/receitas/moqueca-de-peixe-super-facil.png",
+      "motivo": "A imagem mostra um prato com frango ou outro tipo de carne, não peixe. Moqueca de Peixe deve conter peixe como ingrediente principal, e o que se vê aqui é claramente uma proteína diferente, possivelmente frango."
+    },
+    {
+      "id": 185,
+      "titulo": "Almôndegas Fit Assadas",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368730/vovo-teresinha/receitas/almondegas-fit-assadas.png",
+      "motivo": "A imagem mostra filés de peixe ou frango assado com molho, não almôndegas. A forma e apresentação do prato não correspondem a 'almôndegas assadas'."
+    },
+    {
+      "id": 194,
+      "titulo": "Frango ao Molho Italiano",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368747/vovo-teresinha/receitas/frango-ao-molho-italiano.png",
+      "motivo": "A imagem mostra um peixe inteiro (possivelmente robalo ou similar) em molho, não frango. A receita 'Frango ao Molho Italiano' deve conter frango como ingrediente principal, não peixe."
+    },
+    {
+      "id": 196,
+      "titulo": "Bife de Frango Marinado com Laranja e Gengibre",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368750/vovo-teresinha/receitas/bife-de-frango-marinado-com-laranja-e-gengibre.png",
+      "motivo": "A imagem mostra peixe (possivelmente bacalhau ou similar), não frango. A receita especifica 'Bife de Frango' (peito de frango), mas o prato apresentado é claramente um peixe branco."
+    },
+    {
+      "id": 198,
+      "titulo": "Papilote de Salmão com Legumes",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368755/vovo-teresinha/receitas/papilote-de-salmao-com-legumes.png",
+      "motivo": "A imagem mostra salmão grelhado com legumes em molho, não um papilote. Papilote deve ser cozido em papel/alumínio, selado, apresentando características visuais completamente diferentes - o peixe teria aparência cozida no vapor, não grelhado com crosta dourada."
+    },
+    {
+      "id": 207,
+      "titulo": "Picadinho de Frango com Pimentão e Cebolinha",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368771/vovo-teresinha/receitas/picadinho-de-frango-com-pimentao-e-cebolinha.png",
+      "motivo": "A imagem mostra um filé de peixe com molho, não picadinho de frango. O prato não corresponde à receita solicitada."
+    },
+    {
+      "id": 210,
+      "titulo": "Peito de Frango Recheado com Espinafre e Ricota",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368776/vovo-teresinha/receitas/peito-de-frango-recheado-com-espinafre-e-ricota.png",
+      "motivo": "A imagem mostra um peixe (possivelmente salmão) e não frango. O prato também não apresenta características de frango recheado com espinafre e ricota, que deveria ser um peito de frango inteiro ou em fatias maiores com recheio visível."
+    },
+    {
+      "id": 212,
+      "titulo": "Peixe com Molho Oriental de Maracujá",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368779/vovo-teresinha/receitas/peixe-com-molho-oriental-de-maracuja.png",
+      "motivo": "A imagem mostra peixe com molho alaranjado e abóbora, mas não há indicadores visuais claros de maracujá (passion fruit). O molho oriental esperado em um 'Peixe com Molho Oriental de Maracujá' deveria apresentar características mais distintas de maracujá, como cor mais avermelhada/roxa ou sementes visíveis. O prato atual parece ser um molho genérico de caramelo ou laranja, não especificamente de maracujá."
+    },
+    {
+      "id": 213,
+      "titulo": "Medalhão de Filé ao Vinho Branco com Cogumelos",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368781/vovo-teresinha/receitas/medalhao-de-file-ao-vinho-branco-com-cogumelos.png",
+      "motivo": "A imagem mostra um prato de macarrão com molho e linguiça, não um medalhão de filé ao vinho branco com cogumelos. O prato é completamente diferente da receita especificada."
+    },
+    {
+      "id": 217,
+      "titulo": "Filé de Frango com Creme de Espinafre",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368662/vovo-teresinha/receitas/file-de-frango-com-creme-de-espinafre.png",
+      "motivo": "A imagem mostra um peixe (possivelmente bacalhau ou similar) com molho de alcaparras e ervas, não frango com creme de espinafre como descrito na receita."
+    },
+    {
+      "id": 219,
+      "titulo": "Sardinhas Assadas com Tomate e Alho",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368792/vovo-teresinha/receitas/sardinhas-assadas-com-tomate-e-alho.png",
+      "motivo": "A imagem mostra camarões (prawns/shrimp), não sardinhas. A receita especifica 'Sardinhas Assadas' (grilled sardines), mas o prato apresentado é claramente um prato de camarões."
+    },
+    {
+      "id": 222,
+      "titulo": "Espetinho de Frango com Pimentão e Cebola Grelhado",
+      "categoria": "pratos_principais",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368797/vovo-teresinha/receitas/espetinho-de-frango-com-pimentao-e-cebola-grelhado.png",
+      "motivo": "A imagem mostra um espetinho de camarão (frutos do mar), não de frango. O prato apresenta camarão grelhado com glacê, acompanhado de rodelas de pimentão verde. A receita solicita espetinho de frango com pimentão e cebola, que é uma preparação completamente diferente."
+    },
+    {
+      "id": 224,
+      "titulo": "Salada Grega",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368801/vovo-teresinha/receitas/salada-grega.png",
+      "motivo": "A imagem mostra uma salada com carne (aparentemente fígado ou miúdo), quinoa e vegetais variados. Uma Salada Grega tradicional deve conter tomate, pepino, cebola roxa, azeitonas pretas, queijo feta e azeite - sem carne como ingrediente principal."
+    },
+    {
+      "id": 226,
+      "titulo": "Salada de Atum Light",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368805/vovo-teresinha/receitas/salada-de-atum-light.png",
+      "motivo": "A imagem mostra uma salada de vegetais com grãos (quinoa ou similar) e beterraba, mas não contém atum, que é o ingrediente principal de 'Salada de Atum Light'. A receita não é representada corretamente."
+    },
+    {
+      "id": 227,
+      "titulo": "Salada de Quinoa com Legumes",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368807/vovo-teresinha/receitas/salada-de-quinoa-com-legumes.png",
+      "motivo": "A imagem mostra um prato com couscus (grãos maiores e mais definidos), não quinoa. Além disso, contém o que parece ser carne vermelha/bacon, não sendo uma salada vegetariana típica de quinoa com legumes."
+    },
+    {
+      "id": 233,
+      "titulo": "Salada de Macarrão Integral com Atum",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368818/vovo-teresinha/receitas/salada-de-macarrao-integral-com-atum.png",
+      "motivo": "A imagem mostra uma salada de milho com vegetais frescos, mas não contém macarrão integral nem atum, ingredientes principais da receita 'Salada de Macarrão Integral com Atum'"
+    },
+    {
+      "id": 234,
+      "titulo": "Salada de Frango Desfiado com Cenoura",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368820/vovo-teresinha/receitas/salada-de-frango-desfiado-com-cenoura.png",
+      "motivo": "A imagem mostra um prato com camarão, couscous, frutas (manga, melancia) e vegetais frescos. A receita 'Salada de Frango Desfiado com Cenoura' deve conter frango desfiado e cenoura como ingredientes principais. Este prato contém camarão em vez de frango e não há cenoura visível."
+    },
+    {
+      "id": 236,
+      "titulo": "Salada de Pepino com Iogurte e Hortelã",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368825/vovo-teresinha/receitas/salada-de-pepino-com-iogurte-e-hortela.png",
+      "motivo": "A imagem mostra um prato com batata, cenoura e creme de leite, não uma salada de pepino com iogurte e hortelã. Os ingredientes principais não correspondem à receita."
+    },
+    {
+      "id": 237,
+      "titulo": "Salada de Abobrinha Crua",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368827/vovo-teresinha/receitas/salada-de-abobrinha-crua.png",
+      "motivo": "A imagem mostra uma salada com camarão como ingrediente principal, não uma salada de abobrinha crua. O prato contém proteína animal (camarão) que não é típico da receita 'Salada de Abobrinha Crua', que deve ser à base de abobrinha."
+    },
+    {
+      "id": 238,
+      "titulo": "Salada Caesar com Frango Grelhado",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368829/vovo-teresinha/receitas/salada-caesar-com-frango-grelhado.png",
+      "motivo": "A imagem mostra frango grelhado com salada, mas não é uma Salada Caesar tradicional. Faltam ingredientes característicos como croutons, queijo parmesão ralado em lascas generosas e molho Caesar. A salada base parece ser uma salada verde comum com tomate e pepino, não a alface romana típica da Caesar."
+    },
+    {
+      "id": 239,
+      "titulo": "Salada com Atum e Iogurte",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368830/vovo-teresinha/receitas/salada-com-atum-e-iogurte.png",
+      "motivo": "A imagem mostra uma salada com alface, tomate, milho e ovo cozido, mas não há atum visível. A receita 'Salada com Atum e Iogurte' deveria conter atum como ingrediente principal, que está ausente nesta imagem."
+    },
+    {
+      "id": 246,
+      "titulo": "Salada Niçoise",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368847/vovo-teresinha/receitas/salada-nicoise.png",
+      "motivo": "A imagem mostra uma salada de frutas com citrus, morango e frutas vermelhas, não a Salada Niçoise tradicional que deve conter atum, ovos, batata, verde, tomate e azeitona"
+    },
+    {
+      "id": 252,
+      "titulo": "Salada Rápida de Grão-de-Bico com Manjericão",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368860/vovo-teresinha/receitas/salada-rapida-de-grao-de-bico-com-manjericao.png",
+      "motivo": "A imagem mostra um prato com couscous/quinoa, alface, tomates, azeitonas pretas e um ovo pochê no topo. A receita é 'Salada de Grão-de-Bico com Manjericão', mas o grão-de-bico não é visível no prato. O grão ingrediente principal está ausente e o prato parece ser feito com outro grão (couscous ou quinoa) em vez de grão-de-bico."
+    },
+    {
+      "id": 255,
+      "titulo": "Salada de Repolho com Cenoura e Chia",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368866/vovo-teresinha/receitas/salada-de-repolho-com-cenoura-e-chia.png",
+      "motivo": "A imagem mostra uma salada com grãos (couscous ou quinoa), azeitonas pretas, maçã, cenoura e coentro, mas não contém repolho, que é o ingrediente principal da receita 'Salada de Repolho com Cenoura e Chia'. Além disso, não há sementes de chia visíveis."
+    },
+    {
+      "id": 262,
+      "titulo": "Salada de Espinafre com Cenoura, Pepino e Limão",
+      "categoria": "saladas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368879/vovo-teresinha/receitas/salada-de-espinafre-com-cenoura-pepino-e-limao.png",
+      "motivo": "A imagem mostra um prato de batata-doce com vegetais e queijo fresco, não uma salada de espinafre. Os ingredientes principais (espinafre, cenoura e pepino) não são visíveis neste prato."
+    },
+    {
+      "id": 280,
+      "titulo": "Panqueca Saudável de Aveia e Banana",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368884/vovo-teresinha/receitas/panqueca-saudavel-de-aveia-e-banana.png",
+      "motivo": "A imagem mostra uma omelete ou crepe recheado com carne moída e queijo derretido, não uma panqueca de aveia e banana. O prato é claramente salgado e não corresponde ao perfil de um café da manhã saudável à base de aveia e banana."
+    },
+    {
+      "id": 282,
+      "titulo": "Crepioca Fit",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368889/vovo-teresinha/receitas/crepioca-fit.png",
+      "motivo": "A imagem mostra milho cozido com creme de leite, não uma crepioca. Crepioca é feita com tapioca e ovos, formando um crepe. O prato na foto não corresponde à receita 'Crepioca Fit'."
+    },
+    {
+      "id": 286,
+      "titulo": "Bowl de Açaí Fit sem Açúcar",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368898/vovo-teresinha/receitas/bowl-de-acai-fit-sem-acucar.png",
+      "motivo": "A imagem mostra um açaí bowl tradicional com cobertura generosa de granola e calda de mel/açúcar visível, contradizendo a proposta 'sem açúcar' da receita. A apresentação sugere um açaí indulgente, não um 'fit' sem açúcar."
+    },
+    {
+      "id": 290,
+      "titulo": "Mingau de Aveia com Chia, Coco e Amêndoas",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368907/vovo-teresinha/receitas/mingau-de-aveia-com-chia-coco-e-amendoas.png",
+      "motivo": "A imagem mostra um prato salgado com carne, vegetais e couscous/quinoa. A receita é 'Mingau de Aveia com Chia, Coco e Amêndoas', que é um café da manhã doce à base de aveia. São pratos completamente diferentes."
+    },
+    {
+      "id": 291,
+      "titulo": "Muffin de Banana com Aveia (Sem Lactose)",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368909/vovo-teresinha/receitas/muffin-de-banana-com-aveia-sem-lactose.png",
+      "motivo": "A imagem mostra um muffin com cobertura e calda açucarada, claramente um doce/sobremesa. A receita 'Muffin de Banana com Aveia (Sem Lactose)' na categoria 'café_manhã' deve ser um muffin simples de café da manhã, não um muffin decorado como sobremesa com glacê e acompanhamentos de frutas cristalizadas."
+    },
+    {
+      "id": 293,
+      "titulo": "Waffle Fit Low Carb de Farinha de Amêndoas",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368912/vovo-teresinha/receitas/waffle-fit-low-carb-de-farinha-de-amendoas.png",
+      "motivo": "A imagem mostra waffles com calda de caramelo e garnish, mas não é um waffle fit low carb de farinha de amêndoas. A receita é um café da manhã saudável low carb, enquanto a imagem exibe um prato com calda açucarada que contradiz o propósito de uma receita low carb."
+    },
+    {
+      "id": 295,
+      "titulo": "Smoothie de Manga e Banana com Iogurte",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368917/vovo-teresinha/receitas/smoothie-de-manga-e-banana-com-iogurte.png",
+      "motivo": "A imagem mostra uma sobremesa/açaí bowl, não um smoothie. A consistência líquida de um smoothie é completamente diferente do que está retratado."
+    },
+    {
+      "id": 297,
+      "titulo": "Vitamina Whey com Banana",
+      "categoria": "cafe_manha",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368920/vovo-teresinha/receitas/vitamina-whey-com-banana.png",
+      "motivo": "A imagem mostra uma sobremesa com banana fatiada, calda de caramelo e frutas vermelhas. A receita 'Vitamina Whey com Banana' é uma bebida (vitamina/smoothie) para café da manhã, não um prato doce/sobremesa."
+    },
+    {
+      "id": 330,
+      "titulo": "Sopa de Lentilha com Legumes",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368937/vovo-teresinha/receitas/sopa-de-lentilha-com-legumes.png",
+      "motivo": "A imagem mostra uma sopa de grão-de-bico com abóbora, não uma sopa de lentilha. Os grãos visíveis são claramente grão-de-bico, não lentilha."
+    },
+    {
+      "id": 334,
+      "titulo": "Creme de Batata Doce Fitness",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368948/vovo-teresinha/receitas/creme-de-batata-doce-fitness.png",
+      "motivo": "A imagem mostra um flan ou pudim (sobremesa), não uma sopa. A receita é categorizada como 'sopas_caldos' (sopas/caldos), que é um prato salgado. A imagem apresenta um prato doce com calda de caramelo, o que não corresponde a uma sopa de batata-doce fitness."
+    },
+    {
+      "id": 337,
+      "titulo": "Sopa Cremosa de Abóbora com Espinafre",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368953/vovo-teresinha/receitas/sopa-cremosa-de-abobora-com-espinafre.png",
+      "motivo": "A imagem mostra uma sopa de abóbora, mas não há evidência visual de espinafre. A receita é 'Sopa Cremosa de Abóbora com Espinafre' e o espinafre é um ingrediente principal que deveria ser visível no prato. A sopa apresentada parece ser apenas de abóbora."
+    },
+    {
+      "id": 339,
+      "titulo": "Sopa Fit de Frango com Batata Doce",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368956/vovo-teresinha/receitas/sopa-fit-de-frango-com-batata-doce.png",
+      "motivo": "A imagem mostra uma sopa de frutos do mar (com camarão/polvo visível) e não uma sopa de frango com batata doce. O prato não corresponde à receita especificada."
+    },
+    {
+      "id": 343,
+      "titulo": "Sopa Creme de Batata Doce com Frango",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368965/vovo-teresinha/receitas/sopa-creme-de-batata-doce-com-frango.png",
+      "motivo": "A imagem mostra uma sopa de batata com frutos do mar (aparentemente vieira ou scallop), não frango. A receita especifica 'com Frango' mas a proteína visível não é frango."
+    },
+    {
+      "id": 348,
+      "titulo": "Sopa Creme de Brócolis e Couve-Flor",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368977/vovo-teresinha/receitas/sopa-creme-de-brocolis-e-couve-flor.png",
+      "motivo": "A imagem mostra sopa de creme com brócolis, mas não há couve-flor visível. A receita especifica ambas as crucíferas (brócolis E couve-flor), e a imagem contém apenas brócolis como vegetal principal, além de cenoura em cubos."
+    },
+    {
+      "id": 351,
+      "titulo": "Sopa de Ervilha Fresca com Hortelã e Pipoca",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368986/vovo-teresinha/receitas/sopa-de-ervilha-fresca-com-hortela-e-pipoca.png",
+      "motivo": "A imagem mostra uma sopa de abóbora ou cenoura (cor amarela/laranja), não uma sopa de ervilha fresca que deveria ter cor verde. Além disso, não há pipoca visível como indicado no nome da receita."
+    },
+    {
+      "id": 352,
+      "titulo": "Sopa de Mandioquinha com Salsão",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368988/vovo-teresinha/receitas/sopa-de-mandioquinha-com-salsao.png",
+      "motivo": "A imagem mostra uma sopa de abóbora ou batata-doce, não de mandioquinha. A cor laranja intenso e a textura do caldo não correspondem a uma sopa de mandioquinha com salsão, que teria aparência mais clara e cremosa com vegetais mais visíveis."
+    },
+    {
+      "id": 353,
+      "titulo": "Sopa de Ervilha Light na Panela de Pressão",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368990/vovo-teresinha/receitas/sopa-de-ervilha-light-na-panela-de-pressao.png",
+      "motivo": "A imagem mostra uma sopa de abóbora ou batata-doce, não uma sopa de ervilha. A cor dourada/alaranjada e os cubos visíveis não correspondem a uma sopa de ervilha típica, que teria cor verde e textura mais homogênea."
+    },
+    {
+      "id": 356,
+      "titulo": "Creme de Aspargos Frescos",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368996/vovo-teresinha/receitas/creme-de-aspargos-frescos.png",
+      "motivo": "A imagem mostra um prato sofisticado com aspargos e um molho cremoso, mas é apresentado como um prato principal (entrée) elegante, não como uma sopa ou caldo. A categoria 'sopas_caldos' exige um preparo líquido ou semi-líquido, enquanto a imagem mostra uma composição sólida estruturada."
+    },
+    {
+      "id": 357,
+      "titulo": "Sopa de Palmito Low Carb",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779368997/vovo-teresinha/receitas/sopa-de-palmito-low-carb.png",
+      "motivo": "A imagem mostra uma sopa de abóbora ou cenoura com cubos de batata, não uma sopa de palmito. A cor alaranjada e os ingredientes visíveis não correspondem a uma sopa de palmito low carb, que teria uma base mais clara/branca com palmito como ingrediente principal."
+    },
+    {
+      "id": 363,
+      "titulo": "Sopa de Agrião Light Saudável",
+      "categoria": "sopas_caldos",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779369016/vovo-teresinha/receitas/sopa-de-agriao-light-saudavel.png",
+      "motivo": "A imagem mostra uma sopa de abóbora ou cenoura com creme, não uma sopa de agrião. A cor amarelada e os ingredientes visíveis (abóbora, cenoura, legumes) não correspondem a uma sopa de agrião, que deveria ter cor verde característica."
+    },
+    {
+      "id": 380,
+      "titulo": "Vitamina de Banana, Morango e Aveia",
+      "categoria": "sucos_vitaminas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779370217/vovo-teresinha/receitas/vitamina-de-banana-morango-e-aveia.png",
+      "motivo": "A imagem mostra um smoothie de morango com granola, mas não há evidência visual de banana ou aveia como ingredientes principais da vitamina. A receita especifica 'Banana, Morango e Aveia', e a imagem não representa adequadamente estes três componentes essenciais."
+    },
+    {
+      "id": 381,
+      "titulo": "Suco Detox de Melancia com Gengibre e Limão",
+      "categoria": "sucos_vitaminas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779370242/vovo-teresinha/receitas/suco-detox-de-melancia-com-gengibre-e-limao.png",
+      "motivo": "A imagem mostra um suco de melancia com hortelã e limão, mas não há evidência visual de gengibre (ingrediente principal do nome da receita). O suco parece ser apenas melancia com limão, faltando um dos componentes essenciais mencionados no nome 'Suco Detox de Melancia com Gengibre e Limão'."
+    },
+    {
+      "id": 415,
+      "titulo": "Bolinho de Espinafre",
+      "categoria": "bolos_tortas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779371122/vovo-teresinha/receitas/bolinho-de-espinafre.png",
+      "motivo": "A imagem mostra muffins doces com cobertura de ervas, não bolinhos de espinafre salgados. A apresentação, textura e formato são de um bolo/muffin doce, não de um bolinho salgado de espinafre."
+    },
+    {
+      "id": 427,
+      "titulo": "Gelatina de Morango Zero Açúcar",
+      "categoria": "doces_sobremesas",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779371437/vovo-teresinha/receitas/gelatina-de-morango-zero-acucar.png",
+      "motivo": "A imagem mostra uma bebida/drink gelado com morangos, não uma gelatina de morango. Gelatina tem consistência sólida/semi-sólida, enquanto a imagem apresenta um líquido em copo."
+    },
+    {
+      "id": 433,
+      "titulo": "Patê de Berinjela",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779371568/vovo-teresinha/receitas/pate-de-berinjela.png",
+      "motivo": "A imagem mostra hummus de beterraba roxa, não patê de berinjela. A cor roxa e a textura são características de beterraba, não de berinjela. Além disso, a apresentação não condiz com um patê de berinjela típico."
+    },
+    {
+      "id": 438,
+      "titulo": "Sardinha no Torrado Light",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779371675/vovo-teresinha/receitas/sardinha-no-torrado-light.png",
+      "motivo": "A imagem mostra bacalhau ou peixe branco assado em torrada, não sardinha. O prato não representa a receita 'Sardinha no Torrado Light' especificada."
+    },
+    {
+      "id": 439,
+      "titulo": "Wrap de Frango com Iogurte Estilo Oriental",
+      "categoria": "lanches_snacks",
+      "foto_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779371693/vovo-teresinha/receitas/wrap-de-frango-com-iogurte-estilo-oriental.png",
+      "motivo": "A imagem mostra lettuce wraps com frango grelhado, mas não apresenta características visuais de um wrap estilo oriental com iogurte. Faltam elementos típicos como molho de iogurte visível, temperos orientais evidentes, ou apresentação que remeta ao estilo oriental mencionado na receita. Aparenta ser mais um wrap estilo ocidental/americano."
+    }
+  ],
+  "regeneradas": [
+    {
+      "id": 1,
+      "titulo": "Bolo de Aveia com Banana sem Açúcar",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406119/vovo-teresinha/receitas/bolo-de-aveia-com-banana-sem-acucar.png"
+    },
+    {
+      "id": 2,
+      "titulo": "Bolo de Cenoura Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406146/vovo-teresinha/receitas/bolo-de-cenoura-fit.png"
+    },
+    {
+      "id": 3,
+      "titulo": "Bolo de Cenoura sem Glúten e sem Lactose",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406167/vovo-teresinha/receitas/bolo-de-cenoura-sem-gluten-e-sem-lactose.png"
+    },
+    {
+      "id": 4,
+      "titulo": "Torta Salgada sem Glúten e sem Lactose",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406193/vovo-teresinha/receitas/torta-salgada-sem-gluten-e-sem-lactose.png"
+    },
+    {
+      "id": 5,
+      "titulo": "Bolo Super Fit de Banana",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406217/vovo-teresinha/receitas/bolo-super-fit-de-banana.png"
+    },
+    {
+      "id": 6,
+      "titulo": "Bolo de Banana da Ieda",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406239/vovo-teresinha/receitas/bolo-de-banana-da-ieda.png"
+    },
+    {
+      "id": 7,
+      "titulo": "Bolo de Chocolate Low Carb de Microondas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406259/vovo-teresinha/receitas/bolo-de-chocolate-low-carb-de-microondas.png"
+    },
+    {
+      "id": 8,
+      "titulo": "Bolo de Coco de Caneca Low Carb",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406280/vovo-teresinha/receitas/bolo-de-coco-de-caneca-low-carb.png"
+    },
+    {
+      "id": 10,
+      "titulo": "Torta de Frango Low Carb Econômica",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406305/vovo-teresinha/receitas/torta-de-frango-low-carb-economica.png"
+    },
+    {
+      "id": 12,
+      "titulo": "Bolo Fit de Maçã com Aveia",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406337/vovo-teresinha/receitas/bolo-fit-de-maca-com-aveia.png"
+    },
+    {
+      "id": 13,
+      "titulo": "Torta de Espinafre e Ricota sem Farinha",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406361/vovo-teresinha/receitas/torta-de-espinafre-e-ricota-sem-farinha.png"
+    },
+    {
+      "id": 15,
+      "titulo": "Torta de Queijo e Espinafre Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406389/vovo-teresinha/receitas/torta-de-queijo-e-espinafre-fit.png"
+    },
+    {
+      "id": 16,
+      "titulo": "Bolo de Maçã sem Açúcar e sem Farinha de Trigo",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406416/vovo-teresinha/receitas/bolo-de-maca-sem-acucar-e-sem-farinha-de-trigo.png"
+    },
+    {
+      "id": 17,
+      "titulo": "Bolo de Caneca Funcional Low Carb",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406446/vovo-teresinha/receitas/bolo-de-caneca-funcional-low-carb.png"
+    },
+    {
+      "id": 18,
+      "titulo": "Bolo de Maçã e Banana sem Farinha",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406475/vovo-teresinha/receitas/bolo-de-maca-e-banana-sem-farinha.png"
+    },
+    {
+      "id": 19,
+      "titulo": "Torta de Atum Low Carb sem Glúten",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406497/vovo-teresinha/receitas/torta-de-atum-low-carb-sem-gluten.png"
+    },
+    {
+      "id": 21,
+      "titulo": "Bolo de Abóbora Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406526/vovo-teresinha/receitas/bolo-de-abobora-fit.png"
+    },
+    {
+      "id": 22,
+      "titulo": "Bolo de Aipim com Coco Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406555/vovo-teresinha/receitas/bolo-de-aipim-com-coco-fit.png"
+    },
+    {
+      "id": 23,
+      "titulo": "Bolo de Milho Fit com Óleo de Coco",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406588/vovo-teresinha/receitas/bolo-de-milho-fit-com-oleo-de-coco.png"
+    },
+    {
+      "id": 24,
+      "titulo": "Torta Fit de Aveia com Palmito",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406614/vovo-teresinha/receitas/torta-fit-de-aveia-com-palmito.png"
+    },
+    {
+      "id": 25,
+      "titulo": "Bolo de Coco Fit de Caneca",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406642/vovo-teresinha/receitas/bolo-de-coco-fit-de-caneca.png"
+    },
+    {
+      "id": 26,
+      "titulo": "Torta de Sardinha Sem Glúten e Sem Lactose",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406670/vovo-teresinha/receitas/torta-de-sardinha-sem-gluten-e-sem-lactose.png"
+    },
+    {
+      "id": 27,
+      "titulo": "Torta Fit de Frango e Palmito com Massa de Grão de Bico",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406695/vovo-teresinha/receitas/torta-fit-de-frango-e-palmito-com-massa-de-grao-de-bico.png"
+    },
+    {
+      "id": 28,
+      "titulo": "Torta de Legumes com Cogumelos Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406722/vovo-teresinha/receitas/torta-de-legumes-com-cogumelos-fit.png"
+    },
+    {
+      "id": 29,
+      "titulo": "Torta de Espinafre Fit com Queijo e Tomate",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406748/vovo-teresinha/receitas/torta-de-espinafre-fit-com-queijo-e-tomate.png"
+    },
+    {
+      "id": 30,
+      "titulo": "Bolo de Coco Fit sem Açúcar (Liquidificador)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406780/vovo-teresinha/receitas/bolo-de-coco-fit-sem-acucar-liquidificador.png"
+    },
+    {
+      "id": 31,
+      "titulo": "Bolo Integral sem Gordura com Suco de Laranja",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406809/vovo-teresinha/receitas/bolo-integral-sem-gordura-com-suco-de-laranja.png"
+    },
+    {
+      "id": 32,
+      "titulo": "Bolo Proteico de Whey com Maçã, Canela e Passas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406835/vovo-teresinha/receitas/bolo-proteico-de-whey-com-maca-canela-e-passas.png"
+    },
+    {
+      "id": 33,
+      "titulo": "Quiche de Cogumelos com Cottage",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406855/vovo-teresinha/receitas/quiche-de-cogumelos-com-cottage.png"
+    },
+    {
+      "id": 34,
+      "titulo": "Torta de Sardinha de Liquidificador Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406897/vovo-teresinha/receitas/torta-de-sardinha-de-liquidificador-fit.png"
+    },
+    {
+      "id": 35,
+      "titulo": "Torta Rústica de Abóbora com Legumes (Panelinha)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406926/vovo-teresinha/receitas/torta-rustica-de-abobora-com-legumes-panelinha.png"
+    },
+    {
+      "id": 36,
+      "titulo": "Bolo de Batata Doce com Coco",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406947/vovo-teresinha/receitas/bolo-de-batata-doce-com-coco.png"
+    },
+    {
+      "id": 37,
+      "titulo": "Torta Saudável de Sardinha com Massa Integral",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779406973/vovo-teresinha/receitas/torta-saudavel-de-sardinha-com-massa-integral.png"
+    },
+    {
+      "id": 38,
+      "titulo": "Bolo de Aipim sem Farinha (Vitat)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407004/vovo-teresinha/receitas/bolo-de-aipim-sem-farinha-vitat.png"
+    },
+    {
+      "id": 39,
+      "titulo": "Torta de Espinafre Fit com Creme de Leite e Queijo Minas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407027/vovo-teresinha/receitas/torta-de-espinafre-fit-com-creme-de-leite-e-queijo-minas.png"
+    },
+    {
+      "id": 40,
+      "titulo": "Torta Madalena de Cogumelos com Purê de Batata (Panelinha)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407067/vovo-teresinha/receitas/torta-madalena-de-cogumelos-com-pure-de-batata-panelinha.png"
+    },
+    {
+      "id": 41,
+      "titulo": "Granola Caseira com Especiarias",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407095/vovo-teresinha/receitas/granola-caseira-com-especiarias.png"
+    },
+    {
+      "id": 44,
+      "titulo": "Cuscuz Fitness com Muçarela Light",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407120/vovo-teresinha/receitas/cuscuz-fitness-com-mucarela-light.png"
+    },
+    {
+      "id": 45,
+      "titulo": "Bolo de Caneca Fit com Cacau e Banana",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407151/vovo-teresinha/receitas/bolo-de-caneca-fit-com-cacau-e-banana.png"
+    },
+    {
+      "id": 46,
+      "titulo": "Wrap Matinal Integral com Peru e Abacate",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407172/vovo-teresinha/receitas/wrap-matinal-integral-com-peru-e-abacate.png"
+    },
+    {
+      "id": 52,
+      "titulo": "Aveia na Tigela com Frutas Vermelhas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407193/vovo-teresinha/receitas/aveia-na-tigela-com-frutas-vermelhas.png"
+    },
+    {
+      "id": 54,
+      "titulo": "Cuscuz de Milho para Café da Manhã",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407215/vovo-teresinha/receitas/cuscuz-de-milho-para-cafe-da-manha.png"
+    },
+    {
+      "id": 58,
+      "titulo": "Panqueca de Proteína com Aveia e Banana",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407241/vovo-teresinha/receitas/panqueca-de-proteina-com-aveia-e-banana.png"
+    },
+    {
+      "id": 61,
+      "titulo": "Bolo de Caneca Fit com Whey Protein",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407262/vovo-teresinha/receitas/bolo-de-caneca-fit-com-whey-protein.png"
+    },
+    {
+      "id": 62,
+      "titulo": "Vitamina Detox de Mamão com Gengibre",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407285/vovo-teresinha/receitas/vitamina-detox-de-mamao-com-gengibre.png"
+    },
+    {
+      "id": 67,
+      "titulo": "Brigadeiro de Tâmaras com Pasta de Amendoim",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407308/vovo-teresinha/receitas/brigadeiro-de-tamaras-com-pasta-de-amendoim.png"
+    },
+    {
+      "id": 85,
+      "titulo": "Pudim de Chia com Frutas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407335/vovo-teresinha/receitas/pudim-de-chia-com-frutas.png"
+    },
+    {
+      "id": 88,
+      "titulo": "Canjica sem Açúcar",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407364/vovo-teresinha/receitas/canjica-sem-acucar.png"
+    },
+    {
+      "id": 92,
+      "titulo": "Tapioca com Brigadeiro Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407384/vovo-teresinha/receitas/tapioca-com-brigadeiro-fit.png"
+    },
+    {
+      "id": 93,
+      "titulo": "Crumble de Pera com Frutas Vermelhas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407410/vovo-teresinha/receitas/crumble-de-pera-com-frutas-vermelhas.png"
+    },
+    {
+      "id": 100,
+      "titulo": "Mousse de Maracujá Vegano e Sem Açúcar",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407435/vovo-teresinha/receitas/mousse-de-maracuja-vegano-e-sem-acucar.png"
+    },
+    {
+      "id": 104,
+      "titulo": "Bolinho Fit de Tapioca e Frango",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407455/vovo-teresinha/receitas/bolinho-fit-de-tapioca-e-frango.png"
+    },
+    {
+      "id": 106,
+      "titulo": "Muffin Salgado Low Carb (Farinha de Amêndoas)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407476/vovo-teresinha/receitas/muffin-salgado-low-carb-farinha-de-amendoas.png"
+    },
+    {
+      "id": 113,
+      "titulo": "Sanduíche de Frango com Abacate (Panelinha)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407505/vovo-teresinha/receitas/sanduiche-de-frango-com-abacate-panelinha.png"
+    },
+    {
+      "id": 121,
+      "titulo": "Crackers de Linhaça Sem Glúten (Vegano)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407531/vovo-teresinha/receitas/crackers-de-linhaca-sem-gluten-vegano.png"
+    },
+    {
+      "id": 124,
+      "titulo": "Bolinho de Couve-Flor Assado",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407553/vovo-teresinha/receitas/bolinho-de-couve-flor-assado.png"
+    },
+    {
+      "id": 127,
+      "titulo": "Pimentão Recheado com Ovo",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407580/vovo-teresinha/receitas/pimentao-recheado-com-ovo.png"
+    },
+    {
+      "id": 131,
+      "titulo": "Crostini de Feijão-Branco",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407608/vovo-teresinha/receitas/crostini-de-feijao-branco.png"
+    },
+    {
+      "id": 134,
+      "titulo": "Frango Empanado com Aveia",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407629/vovo-teresinha/receitas/frango-empanado-com-aveia.png"
+    },
+    {
+      "id": 137,
+      "titulo": "Sanduíche de Ricota com Ervas Light",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407655/vovo-teresinha/receitas/sanduiche-de-ricota-com-ervas-light.png"
+    },
+    {
+      "id": 139,
+      "titulo": "Pasta de Grão-de-Bico Caseira",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407678/vovo-teresinha/receitas/pasta-de-grao-de-bico-caseira.png"
+    },
+    {
+      "id": 140,
+      "titulo": "Frango Empanado com Aveia e Gergelim",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407704/vovo-teresinha/receitas/frango-empanado-com-aveia-e-gergelim.png"
+    },
+    {
+      "id": 141,
+      "titulo": "Pastel Assado de Aveia",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407725/vovo-teresinha/receitas/pastel-assado-de-aveia.png"
+    },
+    {
+      "id": 146,
+      "titulo": "Filés de Frango ao Limão com Creme",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407745/vovo-teresinha/receitas/files-de-frango-ao-limao-com-creme.png"
+    },
+    {
+      "id": 147,
+      "titulo": "Filé de Frango com Creme de Espinafre",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407765/vovo-teresinha/receitas/file-de-frango-com-creme-de-espinafre.png"
+    },
+    {
+      "id": 148,
+      "titulo": "Filé de Frango ao Molho de Mostarda",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407793/vovo-teresinha/receitas/file-de-frango-ao-molho-de-mostarda.png"
+    },
+    {
+      "id": 155,
+      "titulo": "Picadinho de Alcatra com Legumes",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407820/vovo-teresinha/receitas/picadinho-de-alcatra-com-legumes.png"
+    },
+    {
+      "id": 156,
+      "titulo": "Carne Moída Refogada com Legumes",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407847/vovo-teresinha/receitas/carne-moida-refogada-com-legumes.png"
+    },
+    {
+      "id": 164,
+      "titulo": "Frango à Parmegiana Fitness",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407868/vovo-teresinha/receitas/frango-a-parmegiana-fitness.png"
+    },
+    {
+      "id": 165,
+      "titulo": "Risoto Fitness com Frango",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407889/vovo-teresinha/receitas/risoto-fitness-com-frango.png"
+    },
+    {
+      "id": 168,
+      "titulo": "Wrap de Frango Desfiado",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407918/vovo-teresinha/receitas/wrap-de-frango-desfiado.png"
+    },
+    {
+      "id": 173,
+      "titulo": "Strogonoff Fit com Batata-Doce",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407944/vovo-teresinha/receitas/strogonoff-fit-com-batata-doce.png"
+    },
+    {
+      "id": 181,
+      "titulo": "Moqueca de Peixe Super Fácil",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407966/vovo-teresinha/receitas/moqueca-de-peixe-super-facil.png"
+    },
+    {
+      "id": 185,
+      "titulo": "Almôndegas Fit Assadas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779407988/vovo-teresinha/receitas/almondegas-fit-assadas.png"
+    },
+    {
+      "id": 194,
+      "titulo": "Frango ao Molho Italiano",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408009/vovo-teresinha/receitas/frango-ao-molho-italiano.png"
+    },
+    {
+      "id": 196,
+      "titulo": "Bife de Frango Marinado com Laranja e Gengibre",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408033/vovo-teresinha/receitas/bife-de-frango-marinado-com-laranja-e-gengibre.png"
+    },
+    {
+      "id": 198,
+      "titulo": "Papilote de Salmão com Legumes",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408059/vovo-teresinha/receitas/papilote-de-salmao-com-legumes.png"
+    },
+    {
+      "id": 207,
+      "titulo": "Picadinho de Frango com Pimentão e Cebolinha",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408089/vovo-teresinha/receitas/picadinho-de-frango-com-pimentao-e-cebolinha.png"
+    },
+    {
+      "id": 210,
+      "titulo": "Peito de Frango Recheado com Espinafre e Ricota",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408110/vovo-teresinha/receitas/peito-de-frango-recheado-com-espinafre-e-ricota.png"
+    },
+    {
+      "id": 212,
+      "titulo": "Peixe com Molho Oriental de Maracujá",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408142/vovo-teresinha/receitas/peixe-com-molho-oriental-de-maracuja.png"
+    },
+    {
+      "id": 213,
+      "titulo": "Medalhão de Filé ao Vinho Branco com Cogumelos",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408182/vovo-teresinha/receitas/medalhao-de-file-ao-vinho-branco-com-cogumelos.png"
+    },
+    {
+      "id": 217,
+      "titulo": "Filé de Frango com Creme de Espinafre",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408205/vovo-teresinha/receitas/file-de-frango-com-creme-de-espinafre.png"
+    },
+    {
+      "id": 219,
+      "titulo": "Sardinhas Assadas com Tomate e Alho",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408229/vovo-teresinha/receitas/sardinhas-assadas-com-tomate-e-alho.png"
+    },
+    {
+      "id": 222,
+      "titulo": "Espetinho de Frango com Pimentão e Cebola Grelhado",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408256/vovo-teresinha/receitas/espetinho-de-frango-com-pimentao-e-cebola-grelhado.png"
+    },
+    {
+      "id": 224,
+      "titulo": "Salada Grega",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408285/vovo-teresinha/receitas/salada-grega.png"
+    },
+    {
+      "id": 226,
+      "titulo": "Salada de Atum Light",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408311/vovo-teresinha/receitas/salada-de-atum-light.png"
+    },
+    {
+      "id": 227,
+      "titulo": "Salada de Quinoa com Legumes",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408332/vovo-teresinha/receitas/salada-de-quinoa-com-legumes.png"
+    },
+    {
+      "id": 233,
+      "titulo": "Salada de Macarrão Integral com Atum",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779408359/vovo-teresinha/receitas/salada-de-macarrao-integral-com-atum.png"
+    },
+    {
+      "id": 234,
+      "titulo": "Salada de Frango Desfiado com Cenoura",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412018/vovo-teresinha/receitas/salada-de-frango-desfiado-com-cenoura.png"
+    },
+    {
+      "id": 236,
+      "titulo": "Salada de Pepino com Iogurte e Hortelã",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412032/vovo-teresinha/receitas/salada-de-pepino-com-iogurte-e-hortela.png"
+    },
+    {
+      "id": 237,
+      "titulo": "Salada de Abobrinha Crua",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412046/vovo-teresinha/receitas/salada-de-abobrinha-crua.png"
+    },
+    {
+      "id": 238,
+      "titulo": "Salada Caesar com Frango Grelhado",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412058/vovo-teresinha/receitas/salada-caesar-com-frango-grelhado.png"
+    },
+    {
+      "id": 239,
+      "titulo": "Salada com Atum e Iogurte",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412070/vovo-teresinha/receitas/salada-com-atum-e-iogurte.png"
+    },
+    {
+      "id": 246,
+      "titulo": "Salada Niçoise",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412083/vovo-teresinha/receitas/salada-nicoise.png"
+    },
+    {
+      "id": 252,
+      "titulo": "Salada Rápida de Grão-de-Bico com Manjericão",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412097/vovo-teresinha/receitas/salada-rapida-de-grao-de-bico-com-manjericao.png"
+    },
+    {
+      "id": 255,
+      "titulo": "Salada de Repolho com Cenoura e Chia",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412109/vovo-teresinha/receitas/salada-de-repolho-com-cenoura-e-chia.png"
+    },
+    {
+      "id": 262,
+      "titulo": "Salada de Espinafre com Cenoura, Pepino e Limão",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412122/vovo-teresinha/receitas/salada-de-espinafre-com-cenoura-pepino-e-limao.png"
+    },
+    {
+      "id": 280,
+      "titulo": "Panqueca Saudável de Aveia e Banana",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412133/vovo-teresinha/receitas/panqueca-saudavel-de-aveia-e-banana.png"
+    },
+    {
+      "id": 282,
+      "titulo": "Crepioca Fit",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412145/vovo-teresinha/receitas/crepioca-fit.png"
+    },
+    {
+      "id": 286,
+      "titulo": "Bowl de Açaí Fit sem Açúcar",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412157/vovo-teresinha/receitas/bowl-de-acai-fit-sem-acucar.png"
+    },
+    {
+      "id": 290,
+      "titulo": "Mingau de Aveia com Chia, Coco e Amêndoas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412170/vovo-teresinha/receitas/mingau-de-aveia-com-chia-coco-e-amendoas.png"
+    },
+    {
+      "id": 291,
+      "titulo": "Muffin de Banana com Aveia (Sem Lactose)",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412183/vovo-teresinha/receitas/muffin-de-banana-com-aveia-sem-lactose.png"
+    },
+    {
+      "id": 293,
+      "titulo": "Waffle Fit Low Carb de Farinha de Amêndoas",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412195/vovo-teresinha/receitas/waffle-fit-low-carb-de-farinha-de-amendoas.png"
+    },
+    {
+      "id": 295,
+      "titulo": "Smoothie de Manga e Banana com Iogurte",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412210/vovo-teresinha/receitas/smoothie-de-manga-e-banana-com-iogurte.png"
+    },
+    {
+      "id": 297,
+      "titulo": "Vitamina Whey com Banana",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412222/vovo-teresinha/receitas/vitamina-whey-com-banana.png"
+    },
+    {
+      "id": 330,
+      "titulo": "Sopa de Lentilha com Legumes",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412235/vovo-teresinha/receitas/sopa-de-lentilha-com-legumes.png"
+    },
+    {
+      "id": 334,
+      "titulo": "Creme de Batata Doce Fitness",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412248/vovo-teresinha/receitas/creme-de-batata-doce-fitness.png"
+    },
+    {
+      "id": 337,
+      "titulo": "Sopa Cremosa de Abóbora com Espinafre",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412263/vovo-teresinha/receitas/sopa-cremosa-de-abobora-com-espinafre.png"
+    },
+    {
+      "id": 339,
+      "titulo": "Sopa Fit de Frango com Batata Doce",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412275/vovo-teresinha/receitas/sopa-fit-de-frango-com-batata-doce.png"
+    },
+    {
+      "id": 343,
+      "titulo": "Sopa Creme de Batata Doce com Frango",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412288/vovo-teresinha/receitas/sopa-creme-de-batata-doce-com-frango.png"
+    },
+    {
+      "id": 348,
+      "titulo": "Sopa Creme de Brócolis e Couve-Flor",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412299/vovo-teresinha/receitas/sopa-creme-de-brocolis-e-couve-flor.png"
+    },
+    {
+      "id": 351,
+      "titulo": "Sopa de Ervilha Fresca com Hortelã e Pipoca",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412311/vovo-teresinha/receitas/sopa-de-ervilha-fresca-com-hortela-e-pipoca.png"
+    },
+    {
+      "id": 352,
+      "titulo": "Sopa de Mandioquinha com Salsão",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412324/vovo-teresinha/receitas/sopa-de-mandioquinha-com-salsao.png"
+    },
+    {
+      "id": 353,
+      "titulo": "Sopa de Ervilha Light na Panela de Pressão",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412339/vovo-teresinha/receitas/sopa-de-ervilha-light-na-panela-de-pressao.png"
+    },
+    {
+      "id": 356,
+      "titulo": "Creme de Aspargos Frescos",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412352/vovo-teresinha/receitas/creme-de-aspargos-frescos.png"
+    },
+    {
+      "id": 357,
+      "titulo": "Sopa de Palmito Low Carb",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412365/vovo-teresinha/receitas/sopa-de-palmito-low-carb.png"
+    },
+    {
+      "id": 363,
+      "titulo": "Sopa de Agrião Light Saudável",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412379/vovo-teresinha/receitas/sopa-de-agriao-light-saudavel.png"
+    },
+    {
+      "id": 380,
+      "titulo": "Vitamina de Banana, Morango e Aveia",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412391/vovo-teresinha/receitas/vitamina-de-banana-morango-e-aveia.png"
+    },
+    {
+      "id": 381,
+      "titulo": "Suco Detox de Melancia com Gengibre e Limão",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412402/vovo-teresinha/receitas/suco-detox-de-melancia-com-gengibre-e-limao.png"
+    },
+    {
+      "id": 415,
+      "titulo": "Bolinho de Espinafre",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412414/vovo-teresinha/receitas/bolinho-de-espinafre.png"
+    },
+    {
+      "id": 427,
+      "titulo": "Gelatina de Morango Zero Açúcar",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412431/vovo-teresinha/receitas/gelatina-de-morango-zero-acucar.png"
+    },
+    {
+      "id": 433,
+      "titulo": "Patê de Berinjela",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412444/vovo-teresinha/receitas/pate-de-berinjela.png"
+    },
+    {
+      "id": 438,
+      "titulo": "Sardinha no Torrado Light",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412457/vovo-teresinha/receitas/sardinha-no-torrado-light.png"
+    },
+    {
+      "id": 439,
+      "titulo": "Wrap de Frango com Iogurte Estilo Oriental",
+      "nova_url": "https://res.cloudinary.com/demazkgy2/image/upload/v1779412471/vovo-teresinha/receitas/wrap-de-frango-com-iogurte-estilo-oriental.png"
+    }
+  ]
+}
