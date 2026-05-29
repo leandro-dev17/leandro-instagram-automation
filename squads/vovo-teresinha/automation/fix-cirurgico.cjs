@@ -70,6 +70,24 @@ const FIXES = [
     slug: "peito-de-peru-a-milanesa-fit-sem-fritura",
     prompt: "Baked turkey breast schnitzel milanesa on white plate, golden breadcrumb coating, sliced to show white turkey meat inside, NOT fish, lemon wedge and salad leaves on side",
   },
+  {
+    id: 186,
+    titulo: "Kibe Saudável de Couve-Flor",
+    slug: "kibe-saudavel-de-couve-flor",
+    prompt: "Brazilian cauliflower kibe kibbeh on white plate, oval torpedo-shaped patties made with cauliflower and bulgur wheat, golden brown exterior, parsley garnish, lemon wedge, rustic wooden table",
+  },
+  {
+    id: 182,
+    titulo: "Ensopado de Frango com Abóbora",
+    slug: "ensopado-de-frango-com-abobora",
+    prompt: "Brazilian chicken pumpkin stew ensopado in deep ceramic bowl, chunks of chicken and orange pumpkin butternut squash submerged in golden broth, herbs floating, steam rising, cozy soup presentation",
+  },
+  {
+    id: 167,
+    titulo: "Frango Xadrez",
+    slug: "frango-xadrez",
+    prompt: "Chinese Brazilian frango xadrez kung pao chicken in white bowl, diced chicken pieces with red and green bell peppers and onions in glossy dark soy sauce, cashew nuts, Asian stir-fry style",
+  },
 ];
 
 // ── HTTP helper ───────────────────────────────────────────────────────────────
