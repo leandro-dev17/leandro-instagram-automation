@@ -4,20 +4,23 @@ on:
   schedule:
     # Todos os horários em UTC (BRT = UTC-3)
     - cron: '0 8 * * *'      # 05:00 BRT — Gerador diário
+    - cron: '30 8 * * *'     # 05:30 BRT — Fiscal de Cronograma
     - cron: '0 10 * * *'     # 07:00 BRT — Story (5 slides)
     - cron: '59 14 * * *'    # 11:59 BRT — Reel Kling
     - cron: '0 18 * * *'     # 15:00 BRT — Carrossel (7 slides)
     - cron: '30 20 * * *'    # 17:30 BRT — Reel Dica do Personal
+    - cron: '0 22 * * *'     # 19:00 BRT — Fiscal de Publicações (detecta falhas + recuperação)
+    - cron: '45 23 * * *'    # 20:45 BRT — Relatório Diário (resumo do dia)
   workflow_dispatch:
     inputs:
       job:
-        description: 'Job para executar manualmente (daily-generator | story-07h | carousel-12h | reel-dica-1730h | kling-reel-20h)'
+        description: 'Job para executar (daily-generator | story-07h | carousel-12h | reel-dica-1730h | kling-reel-20h | fiscal-publicacoes | relatorio-diario | fiscal-cronograma)'
         required: false
         default: 'daily-generator'
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 env:
   AUTOMATION_DIR: squads/leandro-instagram/automation
@@ -341,3 +344,86 @@ jobs:
         working-directory: squads/leandro-instagram/automation
         env:
           TEMP_DIR: /tmp/bionexus_render
+
+  # ── 05:30 BRT — Fiscal de Cronograma ───────────────────────────────────────
+  fiscal-cronograma:
+    if: >
+      github.event.schedule == '30 8 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'fiscal-cronograma')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY=${{ github.repository }}
+          EOF
+      - name: Rodar Fiscal de Cronograma
+        run: node fiscal-cronograma.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── 19:00 BRT — Fiscal de Publicações (detecta falhas + recuperação) ────────
+  fiscal-publicacoes:
+    if: >
+      github.event.schedule == '0 22 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'fiscal-publicacoes')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Fiscal de Publicações
+        run: node fiscal-publicacoes.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── 20:45 BRT — Relatório Diário ────────────────────────────────────────────
+  relatorio-diario:
+    if: >
+      github.event.schedule == '45 23 * * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'relatorio-diario')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Relatório Diário
+        run: node relatorio-diario.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}

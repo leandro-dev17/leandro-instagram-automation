@@ -2,17 +2,19 @@ name: BioNexus — Planejamento Semanal (Domingo)
 
 on:
   schedule:
+    - cron: '0 12 * * 1'    # 09:00 BRT segunda — Fiscal de Token (tokens e credenciais)
     - cron: '0 23 * * 0'    # 20:00 BRT domingo — Weekly Insights
     - cron: '30 23 * * 0'   # 20:30 BRT domingo — Weekly Planner + commit JSON
   workflow_dispatch:
     inputs:
       task:
-        description: 'Tarefa a executar (insights ou planner)'
+        description: 'Tarefa a executar (insights | planner | fiscal-token)'
         required: true
         default: 'planner'
         type: choice
         options:
           - insights
+          - fiscal-token
           - planner
 
 permissions:
@@ -134,4 +136,36 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Enviar relatório semanal ao Telegram
         run: node weekly-report.cjs
+        working-directory: squads/leandro-instagram/automation
+
+  # ── 09:00 BRT segunda — Fiscal de Token ────────────────────────────────────
+  fiscal-token:
+    if: >
+      github.event.schedule == '0 12 * * 1' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'fiscal-token')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          YOUTUBE_REFRESH_TOKEN=${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Fiscal de Token
+        run: node fiscal-token.cjs
         working-directory: squads/leandro-instagram/automation
