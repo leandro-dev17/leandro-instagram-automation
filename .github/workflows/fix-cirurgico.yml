@@ -1,0 +1,20 @@
+name: Fix Cirúrgico de Imagens
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install @neondatabase/serverless
+        working-directory: squads/vovo-teresinha/automation
+      - run: node fix-cirurgico.cjs 2>&1
+        working-directory: squads/vovo-teresinha/automation
+        env:
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
