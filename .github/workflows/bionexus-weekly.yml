@@ -2,15 +2,20 @@ name: BioNexus — Planejamento Semanal (Domingo)
 
 on:
   schedule:
+    - cron: '0 11 * * 1'    # 08:00 BRT segunda — Refresh Token Instagram
     - cron: '0 12 * * 1'    # 09:00 BRT segunda — Fiscal de Token
     - cron: '0 13 * * 1'    # 10:00 BRT segunda — Monitor de Engajamento
     - cron: '0 14 * * 1'    # 11:00 BRT segunda — Monitor de Crescimento
     - cron: '0 15 * * 1'    # 12:00 BRT segunda — Gerador de Receitas de Backup
+    - cron: '0 13 * * 3'    # 10:00 BRT quarta — Pool Kling
     - cron: '0 20 * * 6'    # 17:00 BRT sábado — Agente Trending (antes do planner)
     - cron: '0 23 * * 0'    # 20:00 BRT domingo — Weekly Insights
     - cron: '30 23 * * 0'   # 20:30 BRT domingo — Weekly Planner + commit JSON
     - cron: '30 0 * * 0'    # 21:30 BRT domingo — Qualidade de Copy (após planner)
     - cron: '0 2 1 * *'     # 23:00 BRT do dia 1 — Sazonalidade (mensal)
+    - cron: '0 12 15 * *'   # 09:00 BRT do dia 15 — Hashtag Research (mensal)
+    - cron: '0 0 20 * *'    # 21:00 BRT do dia 20 — Comparador de Formatos (mensal)
+    - cron: '0 0 28 * *'    # 21:00 BRT dia 28 — Relatório Mensal
     - cron: '0 2 * * 6'     # 23:00 BRT sexta — Limpeza de Artifacts
   workflow_dispatch:
     inputs:
@@ -30,7 +35,11 @@ on:
           - qualidade-copy
           - sazonalidade
           - limpeza-artifacts
-          - planner
+          - refresh-token
+          - agente-hashtags
+          - relatorio-mensal
+          - agente-pool-kling
+          - comparador-formatos
 
 permissions:
   contents: write
@@ -392,6 +401,156 @@ jobs:
           EOF
       - name: Rodar Limpeza de Artifacts
         run: node limpeza-artifacts.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── 08:00 BRT segunda — Refresh Token Instagram ──────────────────────────────
+  refresh-token:
+    if: >
+      github.event.schedule == '0 11 * * 1' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'refresh-token')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_TOKEN_EXPIRES_AT=${{ secrets.INSTAGRAM_TOKEN_EXPIRES_AT }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Refresh Token Instagram
+        run: node refresh-token-instagram.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── 09:00 BRT do dia 15 — Hashtag Research ───────────────────────────────────
+  agente-hashtags:
+    if: >
+      github.event.schedule == '0 12 15 * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'agente-hashtags')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Agente de Hashtags
+        run: node agente-hashtags.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── 21:00 BRT dia 28 — Relatório Mensal ─────────────────────────────────────
+  relatorio-mensal:
+    if: >
+      github.event.schedule == '0 0 28 * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'relatorio-mensal')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Relatório Mensal
+        run: node relatorio-mensal.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+  # ── 10:00 BRT quarta — Pool Kling ────────────────────────────────────────────
+  agente-pool-kling:
+    if: >
+      github.event.schedule == '0 13 * * 3' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'agente-pool-kling')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências e ffmpeg
+        run: npm install && sudo apt-get update -q && sudo apt-get install -y --fix-missing ffmpeg
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          KLING_ACCESS_KEY=${{ secrets.KLING_ACCESS_KEY }}
+          KLING_SECRET_KEY=${{ secrets.KLING_SECRET_KEY }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Criar pasta kling-pool
+        run: mkdir -p squads/leandro-instagram/automation/kling-pool
+      - name: Rodar Agente Pool Kling
+        run: node agente-pool-kling.cjs
+        working-directory: squads/leandro-instagram/automation
+        env:
+          TEMP_DIR: /tmp/bionexus_render
+
+  # ── 21:00 BRT dia 20 — Comparador de Formatos ───────────────────────────────
+  comparador-formatos:
+    if: >
+      github.event.schedule == '0 0 20 * *' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.task == 'comparador-formatos')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/leandro-instagram/automation
+      - name: Criar .env
+        run: |
+          cat > squads/leandro-instagram/.env <<EOF
+          INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID=${{ secrets.INSTAGRAM_USER_ID }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          EOF
+      - name: Rodar Comparador de Formatos
+        run: node comparador-formatos.cjs
         working-directory: squads/leandro-instagram/automation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
