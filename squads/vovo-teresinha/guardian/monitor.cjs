@@ -322,6 +322,39 @@ ${sourceContext.join("\n") || "(nenhum encontrado)"}
   return { report, actionsApplied };
 }
 
+// ── Token de sessão do usuário de teste ──────────────────────────────────────
+async function obterGuardianToken() {
+  const r = await fetchJSON(
+    `${APP_URL}/api/cron/guardian-token`,
+    { headers: { Authorization: `Bearer ${CRON_SECRET}` } }
+  );
+  if (!r.ok || !r.body?.token) return null;
+  return { token: r.body.token, cookieName: r.body.cookieName || "vovo-session" };
+}
+
+// ── Checks de rotas de usuário autenticado ────────────────────────────────────
+async function verificarRotasUsuario(cookieName, jwtToken) {
+  const cookie = `${cookieName}=${jwtToken}`;
+  const headers = { Cookie: cookie };
+  const checks = [
+    { name: "user:favoritos-get",   url: `${APP_URL}/api/usuarios/favoritos`,         expect: [200] },
+    { name: "user:perfil",          url: `${APP_URL}/api/usuarios/perfil`,             expect: [200] },
+    { name: "user:receitas-auth",   url: `${APP_URL}/api/receitas`,                   expect: [200] },
+    { name: "user:plano-semanal",   url: `${APP_URL}/api/plano-semanal`,               expect: [200] },
+    { name: "user:lista-compras",   url: `${APP_URL}/api/lista-compras`,               expect: [200] },
+    { name: "user:push-subscribe",  url: `${APP_URL}/api/push/stats`,                  expect: [200] },
+  ];
+
+  const falhas = [];
+  await Promise.all(checks.map(async (c) => {
+    const r = await fetchJSON(c.url, { headers });
+    const ok = c.expect.includes(r.status);
+    console.log(`  ${ok ? "✅" : "❌"} ${c.name}: HTTP ${r.status}`);
+    if (!ok) falhas.push({ ...c, status: r.status, body: r.body });
+  }));
+  return falhas;
+}
+
 // ── Loop principal ────────────────────────────────────────────────────────────
 
 async function main() {
@@ -330,7 +363,12 @@ async function main() {
   // 0. Verificar se algum cron foi desativado pelo Vercel
   await verificarCronsDesativados();
 
-  // 1. Health checks — paralelo em lotes de 10 (evita sobrecarga + respeita timeout 10min)
+  // 1. Obter token de sessão para testar rotas de usuário
+  console.log("  🔑 Obtendo token de sessão do guardião...");
+  const guardianSession = await obterGuardianToken();
+  if (!guardianSession) console.log("  ⚠️  Token não obtido — rotas de usuário não serão testadas");
+
+  // 2. Health checks de crons — paralelo em lotes de 10
   const results = [];
   const BATCH = 10;
   for (let i = 0; i < HEALTH_CHECKS.length; i += BATCH) {
@@ -343,6 +381,15 @@ async function main() {
       return { ...check, status: r.status, body: r.body, passed: ok };
     }));
     results.push(...loteRes);
+  }
+
+  // 3. Health checks de rotas de usuário autenticado
+  if (guardianSession) {
+    console.log("  👤 Testando rotas de usuário autenticado...");
+    const falhasUsuario = await verificarRotasUsuario(guardianSession.cookieName, guardianSession.token);
+    for (const f of falhasUsuario) {
+      results.push({ ...f, critical: true, expect: [200], passed: false, headers: {} });
+    }
   }
 
   const failed = results.filter(r => !r.passed);
