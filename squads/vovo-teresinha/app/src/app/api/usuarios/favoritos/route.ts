@@ -7,17 +7,14 @@ export async function GET() {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
 
-    // Garantir coluna created_at existe (migration segura)
-    await sql`ALTER TABLE favoritos ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
-
     const rows = await sql`
-      SELECT f.id, f.receita_id, f.created_at,
+      SELECT f.id, f.receita_id, f.criado_em AS created_at,
              r.titulo, r.descricao, r.categoria, r.foto_url,
              r.tempo_preparo, r.calorias, r.is_premium, r.is_free_rotativa, r.tags_restricao
       FROM favoritos f
       JOIN receitas r ON r.id = f.receita_id
       WHERE f.usuario_id = ${session.id}
-      ORDER BY f.id DESC
+      ORDER BY f.criado_em DESC NULLS LAST
     `;
 
     return NextResponse.json({ dados: rows });
