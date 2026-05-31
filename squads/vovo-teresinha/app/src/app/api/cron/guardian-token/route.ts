@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
   let userId: number;
   if (existing.length === 0) {
     const inserted = await sql`
-      INSERT INTO usuarios (nome, email, senha, tipo_usuario)
-      VALUES ('Guardião 24/7', ${GUARDIAN_EMAIL}, 'nao-usado', 'premium')
+      INSERT INTO usuarios (nome, email, tipo_usuario)
+      VALUES ('Guardião 24/7', ${GUARDIAN_EMAIL}, 'premium')
       RETURNING id
     `;
     userId = inserted[0].id;
