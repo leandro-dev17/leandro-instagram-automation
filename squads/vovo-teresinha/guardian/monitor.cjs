@@ -175,7 +175,13 @@ function readSourceFile(relativePath) {
 }
 
 function writeSourceFile(relativePath, content) {
-  const full = path.join(APP_SRC, relativePath);
+  // Bloquear caminhos que começam com src/ para evitar criar src/src/ duplicado
+  const cleaned = relativePath.replace(/^src[\\/]/, "");
+  const full = path.join(APP_SRC, cleaned);
+  // Garantir que o arquivo fica dentro de APP_SRC
+  if (!full.startsWith(APP_SRC)) {
+    throw new Error(`Caminho fora de APP_SRC: ${full}`);
+  }
   fs.mkdirSync(path.dirname(full), { recursive: true });
   fs.writeFileSync(full, content, "utf8");
 }
