@@ -30,6 +30,36 @@
           "runId": 26671067672
         }
       }
+    },
+    "2026-05-31": {
+      "data": "2026-05-31",
+      "geradoEm": "2026-05-31T01:56:23.400Z",
+      "publicacoes": {
+        "reel": {
+          "label": "Reel Receita",
+          "status": "skipped",
+          "concluiuEm": "2026-05-31T01:55:56Z",
+          "runId": 26700476353
+        },
+        "story": {
+          "label": "Story",
+          "status": "skipped",
+          "concluiuEm": "2026-05-31T01:55:56Z",
+          "runId": 26700476353
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "skipped",
+          "concluiuEm": "2026-05-31T01:55:56Z",
+          "runId": 26700476353
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "skipped",
+          "concluiuEm": "2026-05-31T01:55:56Z",
+          "runId": 26700476353
+        }
+      }
     }
   }
 }
