@@ -13,13 +13,13 @@ function autorizado(req: NextRequest): { ok: boolean; status?: number; motivo?: 
   if (!secret) {
     if (isProd) {
       console.error(
-        "[fiscal-erros-api] CRON_SECRET ausente nas variáveis de ambiente de produção. " +
+        "[fiscal-login] CRON_SECRET ausente nas variáveis de ambiente de produção. " +
           "Acesse Vercel Dashboard → Settings → Environment Variables → Production, " +
           "adicione CRON_SECRET e faça redeploy."
       );
       return { ok: false, status: 503, motivo: "secret_ausente" };
     }
-    console.warn("[fiscal-erros-api] CRON_SECRET não definido — acesso permitido fora de produção.");
+    console.warn("[fiscal-login] CRON_SECRET não definido — acesso permitido fora de produção.");
     return { ok: true };
   }
 
@@ -27,7 +27,7 @@ function autorizado(req: NextRequest): { ok: boolean; status?: number; motivo?: 
   const esperado = `Bearer ${secret}`;
   if (authHeader !== esperado) {
     console.warn(
-      "[fiscal-erros-api] Header Authorization inválido. " +
+      "[fiscal-login] Header Authorization inválido. " +
         `Recebido: "${authHeader.substring(0, 15)}${authHeader.length > 15 ? "…" : ""}" ` +
         "(esperado: \"Bearer ***\")."
     );
@@ -56,28 +56,40 @@ export async function GET(req: NextRequest) {
   try {
     const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const erros = await sql`
-      SELECT endpoint, COUNT(*)::int AS total, MAX(criada_em) AS ultimo_erro
-      FROM logs_erros_api
-      WHERE criada_em >= ${ontem}::timestamptz
-      GROUP BY endpoint
-      ORDER BY total DESC
-      LIMIT 20
+    const suspeitos = await sql`
+      SELECT ip, COUNT(*)::int AS tentativas, MAX(criada_em) AS ultima_tentativa
+      FROM logs_login
+      WHERE sucesso = false
+        AND criada_em >= ${ontem}::timestamptz
+      GROUP BY ip
+      HAVING COUNT(*) >= 5
+      ORDER BY tentativas DESC
+      LIMIT 50
     `;
 
-    console.info(`[fiscal-erros-api] Endpoints com erros nas últimas 24h: ${erros.length}`);
+    const [{ logins_ok }] = await sql`
+      SELECT COUNT(*)::int AS logins_ok
+      FROM logs_login
+      WHERE sucesso = true
+        AND criada_em >= ${ontem}::timestamptz
+    `;
+
+    console.info(
+      `[fiscal-login] IPs suspeitos: ${suspeitos.length} | Logins bem-sucedidos 24h: ${logins_ok}`
+    );
 
     return NextResponse.json({
       ok: true,
       periodo: "24h",
-      endpoints_com_erros: erros.length,
-      detalhes: erros,
+      ips_suspeitos: suspeitos.length,
+      logins_sucesso_24h: logins_ok,
+      detalhes_suspeitos: suspeitos,
     });
   } catch (err: unknown) {
     const mensagem = err instanceof Error ? err.message : String(err);
-    console.error("[fiscal-erros-api] Erro:", mensagem);
+    console.error("[fiscal-login] Erro:", mensagem);
     return NextResponse.json(
-      { erro: "Erro interno no fiscal de erros de API", detalhe: mensagem },
+      { erro: "Erro interno no fiscal de login", detalhe: mensagem },
       { status: 500 }
     );
   }

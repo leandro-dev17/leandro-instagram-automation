@@ -13,13 +13,13 @@ function autorizado(req: NextRequest): { ok: boolean; status?: number; motivo?: 
   if (!secret) {
     if (isProd) {
       console.error(
-        "[fiscal-erros-api] CRON_SECRET ausente nas variáveis de ambiente de produção. " +
+        "[fiscal-diario] CRON_SECRET ausente nas variáveis de ambiente de produção. " +
           "Acesse Vercel Dashboard → Settings → Environment Variables → Production, " +
           "adicione CRON_SECRET e faça redeploy."
       );
       return { ok: false, status: 503, motivo: "secret_ausente" };
     }
-    console.warn("[fiscal-erros-api] CRON_SECRET não definido — acesso permitido fora de produção.");
+    console.warn("[fiscal-diario] CRON_SECRET não definido — acesso permitido fora de produção.");
     return { ok: true };
   }
 
@@ -27,7 +27,7 @@ function autorizado(req: NextRequest): { ok: boolean; status?: number; motivo?: 
   const esperado = `Bearer ${secret}`;
   if (authHeader !== esperado) {
     console.warn(
-      "[fiscal-erros-api] Header Authorization inválido. " +
+      "[fiscal-diario] Header Authorization inválido. " +
         `Recebido: "${authHeader.substring(0, 15)}${authHeader.length > 15 ? "…" : ""}" ` +
         "(esperado: \"Bearer ***\")."
     );
@@ -54,30 +54,41 @@ export async function GET(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!);
 
   try {
-    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const agora = new Date();
+    const ontem = new Date(agora.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-    const erros = await sql`
-      SELECT endpoint, COUNT(*)::int AS total, MAX(criada_em) AS ultimo_erro
-      FROM logs_erros_api
-      WHERE criada_em >= ${ontem}::timestamptz
-      GROUP BY endpoint
-      ORDER BY total DESC
-      LIMIT 20
+    const [{ total_usuarios }] = await sql`
+      SELECT COUNT(*)::int AS total_usuarios FROM usuarios
     `;
 
-    console.info(`[fiscal-erros-api] Endpoints com erros nas últimas 24h: ${erros.length}`);
+    const [{ total_assinaturas_ativas }] = await sql`
+      SELECT COUNT(*)::int AS total_assinaturas_ativas
+      FROM assinaturas
+      WHERE status = 'ativa'
+    `;
+
+    const [{ receitas_24h }] = await sql`
+      SELECT COUNT(*)::int AS receitas_24h
+      FROM receitas
+      WHERE criada_em >= ${ontem}::timestamptz
+    `;
+
+    console.info(
+      `[fiscal-diario] usuarios=${total_usuarios} assinaturas_ativas=${total_assinaturas_ativas} receitas_24h=${receitas_24h}`
+    );
 
     return NextResponse.json({
       ok: true,
-      periodo: "24h",
-      endpoints_com_erros: erros.length,
-      detalhes: erros,
+      total_usuarios,
+      total_assinaturas_ativas,
+      receitas_24h,
+      gerado_em: agora.toISOString(),
     });
   } catch (err: unknown) {
     const mensagem = err instanceof Error ? err.message : String(err);
-    console.error("[fiscal-erros-api] Erro:", mensagem);
+    console.error("[fiscal-diario] Erro:", mensagem);
     return NextResponse.json(
-      { erro: "Erro interno no fiscal de erros de API", detalhe: mensagem },
+      { erro: "Erro interno no fiscal diário", detalhe: mensagem },
       { status: 500 }
     );
   }
