@@ -95,7 +95,7 @@ async function main() {
   const relatorio = [];
 
   // ── Cobertura do schedule ────────────────────────────────────────────────
-  const proximos = getProximosDias(8); // hoje + 7 dias
+  const proximos = getProximosDias(6); // hoje + 5 dias (planner gera próxima semana no domingo)
   const schedule = carregarSchedule();
   const semCobertura = proximos.filter(d => !schedule[d]);
 

@@ -177,7 +177,8 @@ async function getJobsFalhando() {
     for (const job of (jobsData.jobs || [])) {
       const monitorado = JOBS_MONITORADOS.find(j => j.id === job.name);
       if (!monitorado) continue;
-      if (!statusPorJob[job.name]) {
+      // Só registra execuções reais — ignora 'skipped'
+      if (!statusPorJob[job.name] && job.conclusion !== 'skipped' && job.conclusion !== null) {
         statusPorJob[job.name] = { conclusion: job.conclusion, runId: run.id };
       }
     }

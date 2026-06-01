@@ -98,7 +98,9 @@ async function getStatusJobs() {
     let jobsData;
     try { jobsData = await githubApi(`/actions/runs/${run.id}/jobs`); } catch { continue; }
     for (const job of (jobsData.jobs || [])) {
-      if (status[job.name] && status[job.name].conclusion === 'not_run') {
+      // Só registra execuções reais — ignora 'skipped' (job não era o alvo do cron)
+      if (status[job.name] && status[job.name].conclusion === 'not_run' &&
+          job.conclusion !== 'skipped' && job.conclusion !== null) {
         status[job.name] = {
           conclusion: job.conclusion || job.status,
           runId: run.id,

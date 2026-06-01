@@ -95,7 +95,8 @@ async function main() {
     let jobsData;
     try { jobsData = await githubApi(`/actions/runs/${run.id}/jobs`); } catch { continue; }
     for (const job of (jobsData.jobs || [])) {
-      if (status[job.name] === 'not_run') {
+      // Só registra execuções reais — ignora 'skipped'
+      if (status[job.name] === 'not_run' && job.conclusion !== 'skipped' && job.conclusion !== null) {
         status[job.name] = job.conclusion || job.status || 'unknown';
       }
     }

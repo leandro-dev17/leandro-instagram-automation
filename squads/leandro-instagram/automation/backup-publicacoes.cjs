@@ -77,17 +77,21 @@ async function getJobsHoje() {
   );
 
   const jobsStatus = {};
-  for (const run of runs) {
+  // Ordena do mais antigo ao mais recente para que o run real (success/failure)
+  // sobrescreva runs posteriores onde o job aparece como 'skipped'
+  const runsOrdenados = runs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  for (const run of runsOrdenados) {
     let jobsData;
     try { jobsData = await githubApi(`/actions/runs/${run.id}/jobs`); } catch { continue; }
     for (const job of (jobsData.jobs || [])) {
-      if (JOB_LABELS[job.name] && !jobsStatus[job.name]) {
-        jobsStatus[job.name] = {
-          conclusion:  job.conclusion,
-          completedAt: job.completed_at,
-          runId:       run.id,
-        };
-      }
+      // Ignora jobs skipped — só registra execuções reais (success ou failure)
+      if (!JOB_LABELS[job.name]) continue;
+      if (job.conclusion === 'skipped' || job.conclusion === null) continue;
+      jobsStatus[job.name] = {
+        conclusion:  job.conclusion,
+        completedAt: job.completed_at,
+        runId:       run.id,
+      };
     }
   }
   return jobsStatus;
