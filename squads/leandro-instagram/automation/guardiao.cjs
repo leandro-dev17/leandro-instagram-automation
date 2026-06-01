@@ -161,11 +161,12 @@ async function salvarEstado(estado) {
 // ── Verifica jobs com falha nas últimas 2h ────────────────────────────────────
 
 async function getJobsFalhando() {
-  const desde = new Date(Date.now() - 2 * 3600000).toISOString().slice(0, 10);
-  const data  = await githubApi(`/actions/runs?created>=${desde}&per_page=100`);
-  const runs  = (data.workflow_runs || []).filter(r =>
-    (r.path?.includes('bionexus-daily') || r.name?.includes('Diárias')) &&
-    new Date(r.created_at) >= new Date(Date.now() - 2 * 3600000)
+  // Usa o DIA COMPLETO (meia-noite UTC) — evita re-disparar jobs que rodaram
+  // mais de 2h atrás quando o GitHub Actions está com atraso
+  const hoje = new Date().toISOString().slice(0, 10);
+  const data = await githubApi(`/actions/runs?created>=${hoje}&per_page=100`);
+  const runs = (data.workflow_runs || []).filter(r =>
+    r.path?.includes('bionexus-daily') || r.name?.includes('Diárias')
   );
 
   const statusPorJob = {};
