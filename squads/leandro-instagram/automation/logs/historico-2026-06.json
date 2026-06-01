@@ -1,0 +1,35 @@
+{
+  "mes": "2026-06",
+  "dias": {
+    "2026-06-01": {
+      "data": "2026-06-01",
+      "geradoEm": "2026-06-01T02:04:22.689Z",
+      "publicacoes": {
+        "kling": {
+          "label": "Kling Reel",
+          "status": "skipped",
+          "concluiuEm": "2026-06-01T02:03:42Z",
+          "runId": 26731362059
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "skipped",
+          "concluiuEm": "2026-06-01T02:03:42Z",
+          "runId": 26731362059
+        },
+        "reel": {
+          "label": "Reel Receita",
+          "status": "skipped",
+          "concluiuEm": "2026-06-01T02:03:42Z",
+          "runId": 26731362059
+        },
+        "story": {
+          "label": "Story",
+          "status": "skipped",
+          "concluiuEm": "2026-06-01T02:03:42Z",
+          "runId": 26731362059
+        }
+      }
+    }
+  }
+}
