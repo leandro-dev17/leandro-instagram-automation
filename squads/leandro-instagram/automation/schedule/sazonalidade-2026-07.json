@@ -1,0 +1,97 @@
+{
+  "mes": "julho 2026",
+  "estacao": "inverno",
+  "contexto_geral": "Julho em Jaraguá do Sul marca o pico do inverno catarinense com temperaturas baixas. É período de férias escolares, redução de atividades ao ar livre e maior procura por treinos indoor. Mulheres tendem a buscar manutenção de forma durante inverno e preparação para primavera/verão. Mês ideal para oferecer programas de 30-60 dias com resultados visíveis para fins de agosto/setembro.",
+  "datas_especiais": [
+    {
+      "data": "2026-07-01",
+      "nome": "Início de Julho - Meta Semanal",
+      "relevancia": "alta",
+      "sugestao_conteudo": "Reel: 'Desafio 30 dias de Julho' - estabelecer meta clara, antes/depois inspirador, call-to-action para inscrição em programa mensal",
+      "formato_ideal": "reel",
+      "criar_com_antecedencia": "7 dias"
+    },
+    {
+      "data": "2026-07-09",
+      "nome": "Dia da Revolução Constitucionalista",
+      "relevancia": "baixa",
+      "sugestao_conteudo": "Não recomendado - data com baixa relevância para fitness feminino",
+      "formato_ideal": "none",
+      "criar_com_antecedencia": "0"
+    },
+    {
+      "data": "2026-07-20",
+      "nome": "Meio do Mês - Checkpoint de Resultados",
+      "relevancia": "alta",
+      "sugestao_conteudo": "Carousel: 'Checklist do meio de julho' - resultados visíveis em 15 dias, erros comuns, ajustes alimentares, motivação para segunda metade",
+      "formato_ideal": "carousel",
+      "criar_com_antecedencia": "3 dias"
+    },
+    {
+      "data": "2026-07-21",
+      "nome": "Dia Internacional da Mulher (hemisfério sul - celebração estendida)",
+      "relevancia": "media",
+      "sugestao_conteudo": "Story série + Reel: Empoderamento feminino + força, mulheres que transformaram corpo/vida, testemunhais de clientes, 'mulheres fortes de julho'",
+      "formato_ideal": "reel",
+      "criar_com_antecedencia": "10 dias"
+    },
+    {
+      "data": "2026-07-25",
+      "nome": "Pré-Festa de São Jorge (tradição local SC)",
+      "relevancia": "media",
+      "sugestao_conteudo": "Reel leve: 'Como curtir festas juninas sem sair da dieta' - alternativas de comida, calorias, treino de compensação, tom descontraído",
+      "formato_ideal": "reel",
+      "criar_com_antecedencia": "7 dias"
+    },
+    {
+      "data": "2026-07-31",
+      "nome": "Último dia do mês - Retrospectiva + Inscrição Agosto",
+      "relevancia": "alta",
+      "sugestao_conteudo": "Reel + Carousel: Transformações de julho, feedback de alunas, antes/depois, 'vagas limitadas programa agosto', senso de urgência",
+      "formato_ideal": "reel",
+      "criar_com_antecedencia": "5 dias"
+    }
+  ],
+  "temas_do_mes": [
+    {
+      "tema": "Treino Indoor para Inverno",
+      "descricao": "Frio e dias curtos reduzem treinos ao ar livre. Foco em funcional, HIIT, musculação em casa/estúdio com máquinas",
+      "frequencia_sugerida": "3x por semana"
+    },
+    {
+      "tema": "Imunidade e Disposição no Inverno",
+      "descricao": "Resfriados aumentam. Conteúdo sobre suplementação, nutrição antiviral, recuperação, importância do sono",
+      "frequencia_sugerida": "2x por semana"
+    },
+    {
+      "tema": "Emagrecimento Acelerado (Pré-Primavera)",
+      "descricao": "Mulheres buscam perder peso rapidamente para primavera. Treinos queima caloria, déficit calórico, suplementação termogênica",
+      "frequencia_sugerida": "4x por semana"
+    },
+    {
+      "tema": "Autocuidado e Saúde Mental no Inverno",
+      "descricao": "Depressão sazonal, sedentarismo. Conteúdo motivacional, benefícios psicológicos do treino, mindfulness, autoestima",
+      "frequencia_sugerida": "2x por semana"
+    },
+    {
+      "tema": "Programas Fechados de 30-60 Dias",
+      "descricao": "Ideal oferecer 'Desafio Inverno 30 Dias' ou 'Bootcamp Julho' com início semanal, vagas limitadas, comunitário",
+      "frequencia_sugerida": "1x no mês (lançamento), 2x semana (retargeting)"
+    },
+    {
+      "tema": "Transformações Reais de Alunas",
+      "descricao": "Testimoniais, antes/depois, stories de sucesso gerando social proof e inscrições",
+      "frequencia_sugerida": "2x por semana"
+    }
+  ],
+  "alertas": [
+    "⚠️ CRIAR COM 15 DIAS DE ANTECEDÊNCIA: Conteúdo do 'Desafio Julho 30 dias' - necessário gravar vídeo de apresentação, criar landing page/link na bio, preparar sequência de e-mails",
+    "⚠️ PREPARAR ESTRATÉGIA DE FÉRIAS ESCOLARES: Julhé período de férias - ofereça 'treinos para mães' em casa, pacotes família, horários alternativos",
+    "⚠️ STOCK DE CONTEÚDO VISUAL: Gravar 15-20 vídeos de treino curtos (reels) na primeira semana de junho - julho pode ter dias com sol insuficiente para gravação em Jaraguá do Sul",
+    "⚠️ PROMOÇÃO PRÉ-PRIMAVERA: Criar oferta especial 'Transformação até setembro' com início em julho - aproveitar urgência sazonal",
+    "⚠️ MONITORAR TENDÊNCIAS: Acompanhar desafios virais de fitness em julho (Dry July, fitness challenges) para adaptar conteúdo",
+    "⚠️ PARCERIAS LOCAIS: Contatar nutrólogos/nutricionistas de Jaraguá do Sul para conteúdo colaborativo sobre inverno/imunidade",
+    "⚠️ COLD START DE CONTAS: Se tiver clientes novas, criar tutorial 'Primeira semana comigo' - muito conteúdo educativo em início de julho",
+    "⚠️ CLIMA FRIO = MENOR ENGAJAMENTO: Antecipar respostas de DMs (mulheres saem menos de casa), aumentar frequência de stories/reels para manter topo de mente"
+  ]
+}
