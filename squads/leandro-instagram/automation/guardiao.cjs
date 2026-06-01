@@ -91,25 +91,24 @@ async function dispararJob(jobId) {
   return res.ok !== false;
 }
 
-async function invocarClaudeResolver(jobId, falhasCount, erro) {
+async function invocarClaudeResolver(tipo, descricao, dados, count = 4) {
   const script = path.join(__dirname, 'claude-resolver.cjs');
   if (!fs.existsSync(script)) {
     console.warn('claude-resolver.cjs não encontrado — apenas alerta Telegram');
     await enviarTelegram(
-      `🚨 <b>GUARDIÃO — Limite atingido: ${jobId}</b>\n\n` +
-      `Falhas: ${falhasCount}x\n` +
-      `Claude Resolver não encontrado.\n\n` +
+      `🚨 <b>GUARDIÃO — ${tipo}</b>\n\n${descricao}\n\n` +
       `⚠️ <b>Leandro, intervenção manual necessária!</b>\n` +
       `Acesse: github.com/${REPO}/actions`
     );
     return;
   }
 
-  console.log(`[guardiao] Acionando Claude Resolver para ${jobId} (${falhasCount}x falhas)...`);
+  console.log(`[guardiao] Acionando Claude Resolver — ${tipo}: ${descricao.slice(0, 80)}`);
   try {
+    const dadosStr = dados ? JSON.stringify(dados).replace(/"/g, '\\"') : '';
     execSync(
-      `node "${script}" "${jobId}" ${falhasCount} "${(erro || '').replace(/"/g, "'")}"`,
-      { stdio: 'inherit', timeout: 5 * 60 * 1000 } // 5 min timeout
+      `node "${script}" "${tipo}" "${descricao.replace(/"/g, "'")}" "${dadosStr}"`,
+      { stdio: 'inherit', timeout: 8 * 60 * 1000 } // 8 min timeout
     );
   } catch (err) {
     console.error('Claude Resolver falhou:', err.message);
@@ -201,6 +200,109 @@ async function getJobsFalhando() {
   return falhando;
 }
 
+// ── Verificações proativas (não apenas falhas de jobs) ───────────────────────
+
+async function verificarSituacoesProativas(estado, today) {
+  const alertas = [];
+
+  // 1. Token Instagram expirando?
+  const igExpiracao = process.env.INSTAGRAM_TOKEN_EXPIRES_AT;
+  if (igExpiracao) {
+    const diasRestantes = Math.ceil((new Date(igExpiracao) - new Date()) / 86400000);
+    if (diasRestantes <= 0) {
+      alertas.push({ tipo: 'token_expirado', descricao: `Token Instagram EXPIRADO em ${igExpiracao}!`, urgente: true });
+    } else if (diasRestantes <= 7) {
+      const chaveEstado = 'token_alerta';
+      if (!estado[chaveEstado] || estado[chaveEstado] !== today) {
+        estado[chaveEstado] = today;
+        alertas.push({ tipo: 'token_expirando', descricao: `Token Instagram expira em ${diasRestantes} dias (${igExpiracao})`, urgente: false });
+      }
+    }
+  }
+
+  // 2. Schedule tem cobertura suficiente?
+  const SCHEDULE_DIR = path.join(__dirname, 'schedule');
+  if (fs.existsSync(SCHEDULE_DIR)) {
+    const files = fs.readdirSync(SCHEDULE_DIR).filter(f => f.endsWith('.json') && f.startsWith('week-')).sort().reverse();
+    const schedule = {};
+    files.slice(0, 3).forEach(f => {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(SCHEDULE_DIR, f), 'utf8'));
+        Object.assign(schedule, data.days || {});
+      } catch { /* ignora */ }
+    });
+
+    // Verifica próximos 4 dias (janela crítica)
+    const diasSemCobertura = [];
+    for (let i = 1; i <= 4; i++) {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      const ds = d.toISOString().slice(0, 10);
+      if (!schedule[ds]) diasSemCobertura.push(ds);
+    }
+
+    if (diasSemCobertura.length >= 2) {
+      const chaveEstado = `schedule_alerta_${diasSemCobertura[0]}`;
+      if (!estado[chaveEstado]) {
+        estado[chaveEstado] = today;
+        alertas.push({
+          tipo: 'schedule_vazio',
+          descricao: `${diasSemCobertura.length} dias sem cobertura nos próximos 4: ${diasSemCobertura.join(', ')}`,
+          urgente: diasSemCobertura.length >= 3,
+        });
+      }
+    }
+  }
+
+  // 3. Pool Kling crítico?
+  const POOL_DIR = path.join(__dirname, 'kling-pool');
+  if (fs.existsSync(POOL_DIR)) {
+    const videos  = fs.readdirSync(POOL_DIR).filter(f => f.endsWith('.mp4'));
+    const corte   = new Date(Date.now() - 14 * 86400000);
+    const usados  = new Set();
+    const trackFile = path.join(__dirname, 'logs', 'published-posts.json');
+    if (fs.existsSync(trackFile)) {
+      try {
+        const tracking = JSON.parse(fs.readFileSync(trackFile, 'utf8'));
+        for (const [ds, posts] of Object.entries(tracking)) {
+          if (new Date(ds) >= corte) { const v = posts['kling-reel']?.videoId; if (v) usados.add(v); }
+        }
+      } catch { /* ignora */ }
+    }
+    const frescos = videos.filter(v => !usados.has(v.replace('.mp4', '')));
+    if (frescos.length < 3) {
+      const chaveEstado = 'pool_kling_alerta';
+      if (!estado[chaveEstado] || estado[chaveEstado] !== today) {
+        estado[chaveEstado] = today;
+        alertas.push({ tipo: 'pool_kling_baixo', descricao: `Pool Kling crítico: apenas ${frescos.length} vídeo(s) fresco(s) de ${videos.length} total`, urgente: true });
+      }
+    }
+  }
+
+  // 4. Estoque de receitas baixo?
+  const recipeTracker = path.join(__dirname, 'recipes', 'recipe-tracker.json');
+  if (fs.existsSync(recipeTracker)) {
+    try {
+      const tracker = JSON.parse(fs.readFileSync(recipeTracker, 'utf8'));
+      const usedSet = new Set(tracker.used || []);
+      let total = 0;
+      const recipesDir = path.join(__dirname, 'recipes');
+      fs.readdirSync(recipesDir).filter(f => f.startsWith('batch') && f.endsWith('.json')).forEach(f => {
+        total += JSON.parse(fs.readFileSync(path.join(recipesDir, f), 'utf8')).length;
+      });
+      const disponiveis = total - usedSet.size;
+      if (disponiveis < 10) {
+        const chaveEstado = 'receitas_alerta';
+        if (!estado[chaveEstado] || estado[chaveEstado] !== today) {
+          estado[chaveEstado] = today;
+          alertas.push({ tipo: 'receitas_baixas', descricao: `Apenas ${disponiveis} receitas disponíveis de ${total}`, urgente: disponiveis < 5 });
+        }
+      }
+    } catch { /* ignora */ }
+  }
+
+  return alertas;
+}
+
 // ── Auditoria completa a cada 15 min ─────────────────────────────────────────
 
 async function auditoriaCompleta() {
@@ -218,18 +320,28 @@ async function auditoriaCompleta() {
     }
   }
 
-  // Verifica jobs falhando agora
+  // ── VERIFICAÇÕES PROATIVAS ─────────────────────────────────────────────────
+  // Token, schedule, pool kling, receitas — Claude resolve automaticamente
+  const alertasProativos = await verificarSituacoesProativas(estado, today);
+
+  for (const alerta of alertasProativos) {
+    console.log(`[guardiao] ⚠️ Situação proativa: ${alerta.tipo}`);
+    await invocarClaudeResolver(alerta.tipo, alerta.descricao, null, alerta.urgente ? 4 : 3);
+    await new Promise(r => setTimeout(r, 5000));
+  }
+
+  // ── VERIFICAÇÃO DE FALHAS DE PUBLICAÇÃO ───────────────────────────────────
   let jobsFalhando = [];
   try {
     jobsFalhando = await getJobsFalhando();
   } catch (err) {
     console.warn('[guardiao] Não conseguiu verificar runs:', err.message);
-    return; // Se a API do GitHub está fora, não age
+    await salvarEstado(estado);
+    return;
   }
 
-  if (jobsFalhando.length === 0) {
-    console.log('[guardiao] ✅ Tudo OK — nenhuma falha detectada.');
-    // Zera contadores de jobs que estão OK agora
+  if (jobsFalhando.length === 0 && alertasProativos.length === 0) {
+    console.log('[guardiao] ✅ Tudo OK — nenhuma falha ou alerta detectado.');
     for (const j of JOBS_MONITORADOS) {
       if (estado.falhas[j.id]) delete estado.falhas[j.id];
     }
@@ -237,7 +349,7 @@ async function auditoriaCompleta() {
     return;
   }
 
-  // Processa cada falha
+  // Processa falhas de publicação
   for (const job of jobsFalhando) {
     if (!estado.falhas[job.id]) {
       estado.falhas[job.id] = { data: today, count: 0, ultimaFalha: null };
@@ -250,23 +362,25 @@ async function auditoriaCompleta() {
     console.log(`[guardiao] ${job.label} — falha #${count}`);
 
     if (count < LIMITE_ALERTA_TELEGRAM) {
-      // 1ª-2ª falha: retry silencioso
       console.log(`[guardiao] Retry silencioso para ${job.id}...`);
       await dispararJob(job.id);
 
     } else if (count === LIMITE_ALERTA_TELEGRAM) {
-      // 3ª falha: alerta + retry
       await enviarTelegram(
         `🟡 <b>Guardião — Atenção: ${job.label}</b>\n\n` +
         `Falha #${count} detectada (BRT ${job.janelaBRT})\n` +
         `Status: ${job.conclusion}\n\n` +
-        `🔄 Retry automático sendo acionado...`
+        `🔄 Retry automático + Claude monitorando...`
       );
       await dispararJob(job.id);
 
     } else if (count >= LIMITE_CLAUDE_RESOLVER) {
-      // 4ª+ falha: Claude Resolver
-      await invocarClaudeResolver(job.id, count, job.conclusion);
+      // Claude resolve com acesso completo a todas as APIs
+      await invocarClaudeResolver(
+        'falha_job',
+        `Job "${job.label}" falhou ${count}x consecutivas — Status: ${job.conclusion}`,
+        { jobId: job.id, count, conclusion: job.conclusion }
+      );
     }
   }
 
