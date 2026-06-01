@@ -1,0 +1,436 @@
+name: Alerta Patriota — Crons 3x/dia
+
+on:
+  schedule:
+    # Coleta notícias 3x/dia (UTC = 9h, 15h, 21h = 6h, 12h, 18h BRT)
+    - cron: '0 9,15,21 * * *'
+    # Radar político a cada 30min das 8h às 23h BRT (11h às 2h UTC)
+    - cron: '0,30 11-23,0,1,2 * * *'
+  workflow_dispatch:
+    inputs:
+      etapa:
+        description: 'Etapa a executar (coletar|curar|resumir|publicar|radar|tudo)'
+        required: false
+        default: 'tudo'
+
+permissions:
+  contents: read
+
+jobs:
+  # ── CARDS VISUAIS WHATSAPP (3x/dia) ──────────────────────────────────────
+  whatsapp-cards:
+    name: Cards Visuais — Imagem + Texto nos 4 grupos
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - name: Instalar Chromium para Puppeteer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y chromium-browser
+          echo "PUPPETEER_EXEC_PATH=$(which chromium-browser)" >> $GITHUB_ENV
+          echo "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true" >> $GITHUB_ENV
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - name: Coletar e processar notícias
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/coletar-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/curar-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/resumir-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          sleep 30
+      - name: Gerar e enviar cards para os 4 grupos
+        working-directory: squads/alerta-patriota/automation
+        env:
+          DATABASE_URL:          ${{ secrets.ALERTA_DB_URL }}
+          EVOLUTION_API_URL:     ${{ secrets.ALERTA_APP_URL != '' && 'https://evolution-api-production-8be2.up.railway.app' || '' }}
+          EVOLUTION_API_KEY:     alertapatriota-token-2026
+          EVOLUTION_INSTANCIA:   alertapatriota
+          WPP_GROUP_BASICO:      120363409640100922@g.us
+          WPP_GROUP_PATRIOTA:    120363408243517495@g.us
+          WPP_GROUP_VIP:         120363425999377985@g.us
+          WPP_GROUP_ELITE:       120363426153474301@g.us
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          CLOUDINARY_CLOUD_NAME: demazkgy2
+          CLOUDINARY_API_KEY:    ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          NEXT_PUBLIC_APP_URL:   https://alertapatriota.vercel.app
+          PUPPETEER_EXEC_PATH:   ${{ env.PUPPETEER_EXEC_PATH }}
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+        run: node whatsapp-cards.cjs
+
+  # ── COLETA DE NOTÍCIAS ────────────────────────────────────────────────────
+  coletar:
+    name: Neto Notícias — Coletar RSS
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Coletar notícias dos sites de direita
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/coletar-noticias" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/coletar.json
+          echo "Resultado: $(cat /tmp/coletar.json)"
+
+  # ── CURADORIA ────────────────────────────────────────────────────────────
+  curar:
+    name: Curador Carlos — Selecionar melhores
+    runs-on: ubuntu-latest
+    needs: coletar
+    timeout-minutes: 5
+    steps:
+      - name: Aguardar processamento da coleta
+        run: sleep 30
+      - name: Curar notícias com Claude
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/curar-noticias" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/curar.json
+          echo "Resultado: $(cat /tmp/curar.json)"
+
+  # ── RESUMO COM IA ─────────────────────────────────────────────────────────
+  resumir:
+    name: Bernardo Resumidor — Claude escreve como Capitão Braga
+    runs-on: ubuntu-latest
+    needs: curar
+    timeout-minutes: 8
+    steps:
+      - name: Aguardar curadoria
+        run: sleep 30
+      - name: Gerar resumos com Claude
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/resumir-noticias" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/resumir.json
+          echo "Resultado: $(cat /tmp/resumir.json)"
+
+  # ── PUBLICAÇÃO NOS GRUPOS ─────────────────────────────────────────────────
+  publicar:
+    name: Paulo Publicador — Enviar para grupos WPP
+    runs-on: ubuntu-latest
+    needs: resumir
+    timeout-minutes: 5
+    steps:
+      - name: Aguardar resumos prontos
+        run: sleep 60
+      - name: Publicar no Alerta Básico
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=basico" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      - name: Publicar no Alerta Patriota
+        run: |
+          sleep 10
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=patriota" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      - name: Publicar no VIP Premium
+        run: |
+          sleep 10
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=vip" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── FASE 5 — ELITE GLOBAL (coleta international antes das BR) ────────────
+  elite-global:
+    name: Elite Global — Igor Internacional + Cavalcanti Resumidor
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - name: Igor Internacional — Coleta fontes globais
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/coletar-noticias-global" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Cavalcanti Resumidor — Analisa com voz do Prof.
+        run: |
+          sleep 60
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/resumir-noticias-global" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Paulo Elite — Publica no grupo Elite
+        run: |
+          sleep 90
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=elite" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Personagem da Semana (só segundas)
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/personagem-semana" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Dossiê Semanal Elite (só sábados)
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/dossie-elite" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── CONTEÚDO PREMIUM VIP E ELITE ─────────────────────────────────────────
+  conteudo-premium:
+    name: Agentes Premium — Bom Dia, Enquete, Radar Econômico, Resumo da Noite
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - name: 🌅 Bom Dia Patriota (7h BRT = 10h UTC → roda no cron das 9h UTC)
+        if: github.event.schedule == '0 9,15,21 * * *'
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/bom-dia" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: 💹 Radar Econômico Elite (10h BRT)
+        if: github.event.schedule == '0 9,15,21 * * *'
+        run: |
+          sleep 60
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/radar-economico" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: 🗳️ Enquete do Dia VIP (15h BRT = 18h UTC → cron das 15h UTC)
+        if: github.event.schedule == '0 9,15,21 * * *'
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/enquete-dia" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: 🌙 Resumo da Noite (21h BRT = 0h UTC → cron das 21h UTC)
+        if: github.event.schedule == '0 9,15,21 * * *'
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/resumo-noite" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── FASE 7 — FACEBOOK (3x/dia + sábado) ─────────────────────────────────
+  facebook:
+    name: Facebook — Postar teaser + Semana em Revista
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - name: Postar teaser no Facebook
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/facebook-postar" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      - name: Semana em Revista (só sábados)
+        run: |
+          sleep 30
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/semana-em-revista" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── INSTAGRAM @roberto.braga.alerta.patriota ────────────────────────────
+  instagram-story:
+    name: Instagram — Story Bom Dia (8h BRT)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - name: Instalar FFMPEG
+        run: sudo apt-get install -y ffmpeg
+      - name: Publicar Story Bom Dia
+        working-directory: squads/alerta-patriota/automation
+        env:
+          DATABASE_URL:             ${{ secrets.ALERTA_DB_URL }}
+          IG_USER_ID:               ${{ secrets.ALERTA_IG_USER_ID }}
+          IG_ACCESS_TOKEN:          ${{ secrets.ALERTA_IG_ACCESS_TOKEN }}
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          CLOUDINARY_CLOUD_NAME:    ${{ secrets.ALERTA_CLOUDINARY_NAME }}
+          CLOUDINARY_API_KEY:       ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:    ${{ secrets.CLOUDINARY_API_SECRET }}
+          NEXT_PUBLIC_APP_URL:      https://alertapatriota.vercel.app
+        run: node instagram-story.cjs
+
+  instagram-reels:
+    name: Instagram — Reel de Notícias (12h BRT)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    needs: instagram-story
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - run: sudo apt-get install -y ffmpeg
+      - name: Publicar Reel de Notícias
+        working-directory: squads/alerta-patriota/automation
+        env:
+          DATABASE_URL:             ${{ secrets.ALERTA_DB_URL }}
+          IG_USER_ID:               ${{ secrets.ALERTA_IG_USER_ID }}
+          IG_ACCESS_TOKEN:          ${{ secrets.ALERTA_IG_ACCESS_TOKEN }}
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          CLOUDINARY_CLOUD_NAME:    ${{ secrets.ALERTA_CLOUDINARY_NAME }}
+          CLOUDINARY_API_KEY:       ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET:    ${{ secrets.CLOUDINARY_API_SECRET }}
+          NEXT_PUBLIC_APP_URL:      https://alertapatriota.vercel.app
+        run: node instagram-reels.cjs
+
+  instagram-responder:
+    name: Instagram — Responder comentários
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - name: Responder comentários com CTA
+        working-directory: squads/alerta-patriota/automation
+        env:
+          DATABASE_URL:      ${{ secrets.ALERTA_DB_URL }}
+          IG_USER_ID:        ${{ secrets.ALERTA_IG_USER_ID }}
+          IG_ACCESS_TOKEN:   ${{ secrets.ALERTA_IG_ACCESS_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_APP_URL: https://alertapatriota.vercel.app
+        run: node instagram-responder.cjs
+
+  facebook-comentarios:
+    name: Facebook — Responder comentários com CTA
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Responder comentários
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/facebook-comentarios" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      - name: Fiscal Facebook — token válido?
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-facebook" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── BOT DE RESPOSTAS (a cada 5 min) ──────────────────────────────────────
+  bot-responder:
+    name: Bot Responder — VIP e Elite
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 3
+    steps:
+      - name: Processar fila de respostas
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/bot-responder" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── FASE 4 — ENGAJAMENTO E RETENÇÃO (1x/dia às 9h BRT) ──────────────────
+  engajamento:
+    name: Agentes de Engajamento e Retenção
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
+    steps:
+      - name: Enzo Engajamento — Trials e Inativos
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/engajamento" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Rodrigo Risco — Preditor de Churn
+        run: |
+          sleep 30
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/preditor-churn" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Diego Desistentes — Caçador de Cancelamentos
+        run: |
+          sleep 30
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/cacador-desistentes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Rebeca Recuperação — Sequência 30 dias
+        run: |
+          sleep 30
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/campanha-recuperacao" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Miguel Moderação — Remove cancelados dos grupos
+        run: |
+          sleep 30
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/moderacao-grupo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Cintia Conversão — Upsell grupo Básico
+        run: |
+          sleep 30
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/conversor-grupo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Ulisses Upgrade — Top 10% engajados (só segunda)
+        run: |
+          sleep 30
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/upgrade-comportamental" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── FASE 4 — FISCAIS 24/7 (a cada 30min) ─────────────────────────────────
+  fiscais:
+    name: Fiscais 24/7 — Saúde do sistema
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Lisa Login — Testa autenticação
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-login" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: André API — Testa rotas críticas
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-api" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Wanderley WhatsApp — Testa Evolution API
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-whatsapp" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Bruna Banco — Testa conexão Neon (a cada 10min — executa em todas as rodadas)
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-banco" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Felipe Fiscal — Verifica pagamentos pendentes
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-pagamentos" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Gustavo Guarda — Varredura de segurança
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/guardiao-seguranca" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── FASE 4 — BACKUP DIÁRIO (às 3h BRT = 6h UTC) ──────────────────────────
+  backup:
+    name: Bruno Backup — Snapshot diário
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Snapshot de integridade do banco
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/backup" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── FASE 4 — GENERAL ALVES CEO (às 8h BRT = 11h UTC) ────────────────────
+  ceo:
+    name: General Alves CEO — Relatório diário
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Relatório diário + escalonamento para Claude
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/relatorio-ceo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── RADAR POLÍTICO (roda independente a cada 30min) ──────────────────────
+  radar:
+    name: Raquel Radar — Monitorar políticos 30min
+    runs-on: ubuntu-latest
+    # Só executa no trigger de radar (não no trigger de coleta)
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Varredura de declarações virais
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/radar-politico" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/radar.json
+          echo "Resultado: $(cat /tmp/radar.json)"

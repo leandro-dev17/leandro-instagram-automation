@@ -1,0 +1,18 @@
+{
+  "name": "alerta-patriota-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Scripts de automação Instagram/Facebook — @roberto.braga.alerta.patriota",
+  "scripts": {
+    "story":      "node instagram-story.cjs",
+    "reels":      "node instagram-reels.cjs",
+    "responder":  "node instagram-responder.cjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk":          "^0.40.0",
+    "@neondatabase/serverless":   "^0.10.4",
+    "cloudinary":                 "^2.10.0",
+    "dotenv":                     "^16.4.5",
+    "puppeteer":                  "^24.42.0"
+  }
+}
