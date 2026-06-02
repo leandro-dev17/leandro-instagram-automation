@@ -177,8 +177,10 @@ async function processarPlano(plano, browser) {
   if (plano === 'vip')      rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_vip=false AND resumo_braga IS NOT NULL AND global=false ORDER BY urgente DESC,created_at DESC LIMIT 1`;
   if (plano === 'elite')    rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_elite=false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC,global DESC,created_at DESC LIMIT 1`;
 
-  if (!rows.length) { console.log(`  ⚠️  Sem notícia disponível para ${plano}`); return; }
-  const n = rows[0];
+  // Filtra notícias irrelevantes (esporte, celebridade, acidente etc)
+  const rowsFiltradas = (rows || []).filter(r => !ehConteudoIrrelevante(r.titulo));
+  if (!rowsFiltradas.length) { console.log(`  ⚠️  Sem notícia política disponível para ${plano}`); return; }
+  const n = rowsFiltradas[0];
   const fonte = n.fonte || 'Alerta Patriota';
   console.log(`  📰 Notícia: ${n.titulo.substring(0,60)}...`);
 
