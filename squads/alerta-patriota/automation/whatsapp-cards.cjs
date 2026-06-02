@@ -107,14 +107,24 @@ function ehConteudoIrrelevante(titulo) {
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────────────
-// Usa URLs do Vercel em vez de base64 — mais confiável no Puppeteer
-const VERCEL_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://alertapatriota.vercel.app';
+const VERCEL_URL     = process.env.NEXT_PUBLIC_APP_URL || 'https://alertapatriota.vercel.app';
+const PERSONAS_LOCAL = path.join(__dirname, '../app/public/personas');
 
+// Usa arquivo local quando disponível (GitHub Actions tem o checkout completo)
+// assim não depende do Vercel ter feito deploy das imagens ainda
 function fotoUrl(nome) {
+  const localPath = path.join(PERSONAS_LOCAL, nome);
+  if (fs.existsSync(localPath)) {
+    return `file://${localPath}`;
+  }
   return `${VERCEL_URL}/personas/${nome}`;
 }
 
 function logoUrl() {
+  const localPath = path.join(PERSONAS_LOCAL, 'logo.png');
+  if (fs.existsSync(localPath)) {
+    return `file://${localPath}`;
+  }
   return `${VERCEL_URL}/personas/logo.png`;
 }
 
@@ -417,7 +427,13 @@ async function main() {
 
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox','--disable-setuid-sandbox','--disable-gpu','--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--allow-file-access-from-files', // permite carregar imagens locais via file://
+    ],
     executablePath: process.env.PUPPETEER_EXEC_PATH || undefined,
   });
 
