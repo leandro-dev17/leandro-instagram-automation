@@ -337,14 +337,34 @@ async function enviarTextoWPP(groupJid, texto) {
   return res.ok;
 }
 
-// ── FÁBIO FOMO — teaser para grupos inferiores ─────────────────────────────
+// ── FÁBIO FOMO — teaser para grupos inferiores (máx 2x/dia, espaçado 10h) ──
+async function fomoEnviadoRecentemente() {
+  try {
+    const rows = await sql`
+      SELECT id FROM agentes_log
+      WHERE agente = 'fabio-fomo'
+        AND status = 'sucesso'
+        AND created_at > NOW() - INTERVAL '10 hours'
+      LIMIT 1
+    `;
+    return rows.length > 0;
+  } catch { return false; }
+}
+
 async function dispararFOMO(hook, planoExclusivo) {
-  const label    = planoExclusivo === 'elite' ? 'Elite Global' : 'VIP Premium';
+  // Rate limit: só envia se passaram pelo menos 10h desde o último FOMO
+  // Resultado: ~2 envios/dia (manhã e noite), sem spam
+  if (await fomoEnviadoRecentemente()) {
+    console.log('  ⏭️  FOMO: já enviado nas últimas 10h — pulando');
+    return 0;
+  }
+
+  const label     = planoExclusivo === 'elite' ? 'Elite Global' : 'VIP Premium';
   const hookCurto = hook.length > 70 ? hook.substring(0, 67) + '...' : hook;
 
   const mensagem = `🔥 *EXCLUSIVO ${label.toUpperCase()} — AGORA*\n\n"${hookCurto}"\n\n👆 Essa análise só os membros ${label} receberam hoje.\n\nFaça upgrade e nunca mais perca as análises mais profundas do Alerta Patriota:\n👉 alertapatriota.vercel.app`;
 
-  // VIP → Básico + Patriota | Elite → Básico + Patriota + VIP
+  // Elite → Básico + Patriota + VIP | VIP → Básico + Patriota
   const destinos = planoExclusivo === 'elite'
     ? [GROUP_IDS.basico, GROUP_IDS.patriota, GROUP_IDS.vip]
     : [GROUP_IDS.basico, GROUP_IDS.patriota];
@@ -355,6 +375,16 @@ async function dispararFOMO(hook, planoExclusivo) {
     if (await enviarTextoWPP(jid, mensagem)) enviados++;
     await new Promise(r => setTimeout(r, 2000));
   }
+
+  if (enviados > 0) {
+    // Registra o envio para o rate limit funcionar
+    await sql`
+      INSERT INTO agentes_log(agente, acao, status, detalhes)
+      VALUES('fabio-fomo', 'fomo_enviado', 'sucesso',
+        ${JSON.stringify({ plano: planoExclusivo, destinos: destinos.length, enviados })})
+    `.catch(() => {});
+  }
+
   console.log(`  🔥 FOMO: ${enviados}/${destinos.length} grupos notificados`);
   return enviados;
 }
@@ -388,12 +418,20 @@ async function processarPlano(plano, browser) {
 
   // Renderiza HTML → PNG
   const html = gerarHTML(plano, hook, fonte, n.urgente);
+
+  // Salva HTML em arquivo temporário para que file:// URLs nas imagens funcionem
+  // page.setContent() não permite carregar file:// — page.goto('file://...') sim
+  const os = require('os');
+  const htmlPath = path.join(os.tmpdir(), `card-${plano}-${Date.now()}.html`);
+  fs.writeFileSync(htmlPath, html, 'utf8');
+
   const page = await browser.newPage();
   await page.setViewport({ width:1080, height:1080 });
-  await page.setContent(html, { waitUntil:'networkidle0', timeout:20000 });
+  await page.goto(`file://${htmlPath}`, { waitUntil:'networkidle0', timeout:20000 });
   const pngPath = path.join(OUTPUT, `card-${plano}.png`);
   await page.screenshot({ path: pngPath, type:'png', clip:{x:0,y:0,width:1080,height:1080} });
   await page.close();
+  fs.unlinkSync(htmlPath);
   console.log(`  🖼️  PNG gerado: ${pngPath}`);
 
   // Upload Cloudinary
