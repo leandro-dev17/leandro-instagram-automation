@@ -141,6 +141,10 @@ body{width:1080px;height:1080px;overflow:hidden;background:#07071a;
 .barra{background:rgba(88,28,135,.55);border-top:1px solid rgba(168,85,247,.2);
        padding:13px 36px;display:flex;align-items:center;justify-content:space-between;}
 .barra-txt{font-size:12px;font-weight:800;color:#c4b5fd;letter-spacing:2px;text-transform:uppercase;}
+.cta{background:#0d0d1a;border-top:1px solid rgba(168,85,247,.15);
+     padding:10px 36px;display:flex;align-items:center;justify-content:space-between;}
+.cta-left{font-size:13px;color:rgba(255,255,255,.5);letter-spacing:.3px;}
+.cta-link{font-size:14px;font-weight:900;color:#a855f7;letter-spacing:.5px;}
 </style></head><body>
   <div class="foto">
     <div class="label"><span class="l1">ANÁLISE EXCLUSIVA</span><span class="l2">ELITE GLOBAL</span></div>
@@ -157,6 +161,10 @@ body{width:1080px;height:1080px;overflow:hidden;background:#07071a;
     </div>
     <div class="barra">
       <span class="barra-txt">O MUNDO MUDA PARA QUEM ENXERGA ANTES.</span>
+    </div>
+    <div class="cta">
+      <span class="cta-left">📲 Gostou? Compartilhe e convide seus amigos:</span>
+      <span class="cta-link">alertapatriota.vercel.app</span>
     </div>
   </div>
 </body></html>`;
@@ -255,7 +263,15 @@ async function gerarLegendaClaude(titulo, plano, fonte) {
     messages: [{ role: 'user', content: `${LEGENDA_PROMPTS[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });
   const corpo = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
-  return `${headers[plano]}\n${corpo}`;
+
+  const ctas = {
+    basico:   `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEntre no Alerta Patriota e receba 3 análises políticas por dia, direto no seu WhatsApp.\n👉 alertapatriota.vercel.app`,
+    patriota: `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEntre no Alerta Patriota e receba análises do Capitão Braga todos os dias.\n👉 alertapatriota.vercel.app`,
+    vip:      `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEsse é o nível VIP — análises que a mídia não mostra. Acesse e assine agora.\n👉 alertapatriota.vercel.app`,
+    elite:    `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEsse é o nível Elite Global — análise internacional do Prof. Cavalcanti. Acesse e assine.\n👉 alertapatriota.vercel.app`,
+  };
+
+  return `${headers[plano]}\n${corpo}${ctas[plano]}`;
 }
 
 async function enviarImagemWPP(imageUrl, groupJid, legenda) {
