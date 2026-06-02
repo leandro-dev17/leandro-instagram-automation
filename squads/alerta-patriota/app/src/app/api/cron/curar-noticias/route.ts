@@ -53,12 +53,15 @@ const TEMAS_EXCLUIR = [
   // Trânsito / acidente / polícia (sem contexto político)
   "motociclista", "acidente na", "engavetamento", "batida na",
   "morte no trânsito", "atropelamento",
-  // Saúde e medicina sem contexto político
+  // Saúde, medicina e nutrição sem contexto político
   "lipogênese", "oncologia", "pancreátic", "farmacêutica não quer",
   "gordura que", "emagrecimento", "dieta", "nutrição", "alimento saudável",
+  "nutricionista", "nutricionist", "alimentação saudável", "reeducação alimentar",
   "suplemento", "vitamina", "câncer de", "tumor", "pressão alta",
   "diabetes", "colesterol", "remédio caseiro", "receita de",
   "saúde e bem-estar", "bem-estar", "culinária",
+  "médico diz", "estudo mostra", "pesquisa revela", "cientistas descobrem",
+  "exercício físico", "musculação", "academia",
   // Moda e comportamento
   "horóscopo", "astrologia", "moda e beleza",
   "mulher é impedida", "mulher brasileira foi impedida",

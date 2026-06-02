@@ -93,12 +93,28 @@ const LEGENDA_PROMPTS = {
 
 // ── FILTRO: exclui notícias irrelevantes (esporte, celebridade, acidente) ──
 const PALAVRAS_EXCLUIR = [
+  // Acidente / trânsito
   'motociclista','acidente','marginal','tietê','atropel','batida','colisão',
+  'morte no trânsito','engavetamento',
+  // Saúde, medicina e nutrição
+  'nutricionista','nutricionist','dieta','emagrecimento','reeducação alimentar',
+  'alimentação saudável','alimento saudável','suplemento','vitamina',
+  'câncer de','tumor','oncologia','pressão alta','diabetes','colesterol',
+  'remédio caseiro','médico diz','estudo mostra','pesquisa revela',
+  'exercício físico','musculação','academia','bem-estar','saúde e bem',
+  // Entretenimento e celebridades
   'hospital','internado','internada','faleceu','morreu','obituário',
   'celebridade','famoso','ator','atriz','cantor','cantora','show','novela',
+  'fontenelle','xuxa','faustão','gkay','virgínia','influencer',
+  // Esporte
   'futebol','copa','campeonato','gol','jogador','atleta','esporte',
-  'reality','bbb','masterchef','netflix','série','cinema',
-  'moda','estilo','beleza','fontenelle','xuxa','faustão','gkay',
+  'olimpíada','nba','nfl','tênis','vôlei',
+  // Entretenimento digital
+  'reality','bbb','masterchef','netflix','série','cinema','streaming',
+  // Moda
+  'moda','estilo','beleza','biquíni','maquiagem',
+  // Prêmios de entretenimento
+  'grande otelo','grammy','oscar','emmy','indicados ao prêmio',
 ];
 
 function ehConteudoIrrelevante(titulo) {
