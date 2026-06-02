@@ -174,8 +174,20 @@ async function enviarImagemWPP(imageUrl, groupJid, legenda) {
   const res = await fetch(`${EVO_URL}/message/sendMedia/${EVO_INST}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-    body: JSON.stringify({ number: groupJid, mediatype: 'image', media: imageUrl, caption: legenda, fileName: 'alerta-patriota.jpg' }),
+    body: JSON.stringify({
+      number: groupJid,
+      mediaMessage: {
+        mediatype: 'image',
+        media: imageUrl,
+        caption: legenda,
+        fileName: 'alerta-patriota.jpg',
+      },
+    }),
   });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    console.log(`  ⚠️  Evolution API ${res.status}: ${err.substring(0, 150)}`);
+  }
   return res.ok;
 }
 
