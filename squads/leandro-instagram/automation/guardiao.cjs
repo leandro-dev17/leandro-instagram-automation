@@ -47,12 +47,20 @@ const LIMITE_ALERTA_TELEGRAM = 3; // 3ª falha → alerta + retry
 const LIMITE_CLAUDE_RESOLVER = 4; // 4ª+ falha → Claude
 
 // Jobs monitorados com suas janelas de tempo esperadas (UTC)
+// Inclui publicações E fiscais de qualidade — guardião monitora todos
 const JOBS_MONITORADOS = [
-  { id: 'daily-generator', label: '📊 Gerador',    horaInicioUTC: 7,  horaFimUTC: 10, janelaBRT: '05h-07h' },
-  { id: 'story-07h',       label: '📸 Story',      horaInicioUTC: 9,  horaFimUTC: 13, janelaBRT: '07h-10h' },
-  { id: 'kling-reel-20h',  label: '🎬 Kling',      horaInicioUTC: 14, horaFimUTC: 17, janelaBRT: '12h-14h' },
-  { id: 'carousel-12h',    label: '📋 Carrossel',  horaInicioUTC: 17, horaFimUTC: 20, janelaBRT: '15h-17h' },
-  { id: 'reel-dica-1730h', label: '🍳 Reel',       horaInicioUTC: 20, horaFimUTC: 23, janelaBRT: '17h-20h' },
+  // ── Publicações (crítico — sem publicação = falha grave) ───────────────────
+  { id: 'daily-generator',       label: '📊 Gerador',            horaInicioUTC: 7,  horaFimUTC: 10, janelaBRT: '05h-07h', critico: true  },
+  { id: 'story-07h',             label: '📸 Story',              horaInicioUTC: 9,  horaFimUTC: 13, janelaBRT: '07h-10h', critico: true  },
+  { id: 'kling-reel-20h',        label: '🎬 Kling',              horaInicioUTC: 14, horaFimUTC: 17, janelaBRT: '12h-14h', critico: true  },
+  { id: 'carousel-12h',          label: '📋 Carrossel',          horaInicioUTC: 17, horaFimUTC: 20, janelaBRT: '15h-17h', critico: true  },
+  // reel-dica só 4x/semana — guardião não monitora todos os dias
+
+  // ── Fiscais de qualidade (importante — falha = problema de conteúdo) ───────
+  { id: 'fiscal-temas-repetidos', label: '🔁 Fiscal Temas',     horaInicioUTC: 12, horaFimUTC: 15, janelaBRT: '09h-12h', critico: false },
+  { id: 'fiscal-hooks-kling',     label: '🔍 Fiscal Hooks',     horaInicioUTC: 16, horaFimUTC: 19, janelaBRT: '13h-16h', critico: false },
+  { id: 'fiscal-qualidade-kling', label: '🎬 Fiscal Qualidade', horaInicioUTC: 21, horaFimUTC: 24, janelaBRT: '18h-21h', critico: false },
+  { id: 'fiscal-conteudo-semana', label: '📊 Fiscal Conteúdo',  horaInicioUTC: 23, horaFimUTC: 27, janelaBRT: '20h-24h', critico: false },
 ];
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
@@ -359,28 +367,34 @@ async function auditoriaCompleta() {
     estado.falhas[job.id].ultimaFalha = new Date().toISOString();
     estado.falhas[job.id].data = today;
 
-    const count = estado.falhas[job.id].count;
-    console.log(`[guardiao] ${job.label} — falha #${count}`);
+    const count   = estado.falhas[job.id].count;
+    const critico = job.critico !== false; // publicações são críticas por padrão
+    console.log(`[guardiao] ${job.label} — falha #${count} (${critico ? 'crítico' : 'qualidade'})`);
 
     if (count < LIMITE_ALERTA_TELEGRAM) {
-      console.log(`[guardiao] Retry silencioso para ${job.id}...`);
-      await dispararJob(job.id);
+      // 1ª-2ª falha: retry silencioso (publicações) ou apenas log (fiscais)
+      if (critico) {
+        console.log(`[guardiao] Retry silencioso para ${job.id}...`);
+        await dispararJob(job.id);
+      } else {
+        console.log(`[guardiao] Fiscal ${job.id} falhou — aguardando próxima execução automática`);
+      }
 
     } else if (count === LIMITE_ALERTA_TELEGRAM) {
+      // 3ª falha: sempre alerta + retry
       await enviarTelegram(
-        `🟡 <b>Guardião — Atenção: ${job.label}</b>\n\n` +
-        `Falha #${count} detectada (BRT ${job.janelaBRT})\n` +
-        `Status: ${job.conclusion}\n\n` +
-        `🔄 Retry automático + Claude monitorando...`
+        `🟡 <b>Guardião — ${critico ? 'Publicação' : 'Fiscal'}: ${job.label}</b>\n\n` +
+        `Falha #${count} (BRT ${job.janelaBRT})\n` +
+        `🔄 Retry automático sendo acionado...`
       );
       await dispararJob(job.id);
 
     } else if (count >= LIMITE_CLAUDE_RESOLVER) {
-      // Claude resolve com acesso completo a todas as APIs
+      // 4ª+ falha: Claude Resolver com contexto completo
       await invocarClaudeResolver(
-        'falha_job',
-        `Job "${job.label}" falhou ${count}x consecutivas — Status: ${job.conclusion}`,
-        { jobId: job.id, count, conclusion: job.conclusion }
+        critico ? 'falha_job' : 'falha_fiscal',
+        `${critico ? 'Publicação' : 'Fiscal de qualidade'} "${job.label}" falhou ${count}x consecutivas`,
+        { jobId: job.id, count, conclusion: job.conclusion, critico }
       );
     }
   }
