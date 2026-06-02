@@ -45,11 +45,36 @@ if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT, { recursive: true });
 // ── PERSONAS ───────────────────────────────────────────────────────────────
 const PERSONAS_DIR = path.join(__dirname, '../app/public/personas');
 
+// 9 imagens por persona — rotação 1 por dia (todas as publicações do dia usam a mesma)
+const FOTOS_BRAGA = [
+  'braga-01.png', // sentado à mesa escritório
+  'braga-02.png', // comentando notícia
+  'braga-03.png', // ambiente profissional, olhando para câmera
+  'braga-04.png', // retrato patriótico
+  'braga-05.png', // em pé, apontando, indignado
+  'braga-06.png', // cenário rural, questionamento
+  'braga-07.png', // terno, estúdio de notícias
+  'braga-08.png', // praça, braços abertos
+  'braga-09.png', // frente a construção rústica
+];
+
+const FOTOS_CAVALCANTI = [
+  'cavalcanti-01.png', // imagem redes sociais
+  'cavalcanti-02.png', // comentando com microfone
+  'cavalcanti-03.png', // Capitólio
+  'cavalcanti-04.png', // Londres, beira do rio
+  'cavalcanti-05.png', // Parlamento Europeu
+  'cavalcanti-06.png', // estúdio com mapa global
+  'cavalcanti-07.png', // análise financeira, ambiente moderno
+  'cavalcanti-08.png', // estúdio moderno
+  'cavalcanti-09.png', // terminal de aeroporto
+];
+
 const PERSONAS = {
-  basico:   { nome:'Capitão Roberto Braga',        titulo:'ALERTA BÁSICO',   cor:'#ffd700', label:'ALERTA BÁSICO',  fotos:['braga-mesa.png','braga-microfone.png'],  assinatura:'Comentarista · Alerta Patriota' },
-  patriota: { nome:'Capitão Roberto Braga',        titulo:'ALERTA PATRIOTA', cor:'#ffd700', label:'ALERTA PATRIOTA',fotos:['braga-microfone.png','braga-mesa.png'],   assinatura:'Comentarista · Alerta Patriota' },
-  vip:      { nome:'Capitão Roberto Braga',        titulo:'VIP PREMIUM',     cor:'#ff4444', label:'VIP PREMIUM',    fotos:['braga-microfone.png','braga-mesa.png'],   assinatura:'Comentarista · Alerta Patriota' },
-  elite:    { nome:'Prof. Dr. Bernardo Cavalcanti',titulo:'ELITE GLOBAL',    cor:'#a855f7', label:'ELITE GLOBAL',   fotos:['cavalcanti-capitolio.png','cavalcanti-parlamento.png','cavalcanti-londres.png','cavalcanti-microfone.png'], assinatura:'Ex-USP · Consultor Internacional' },
+  basico:   { nome:'Capitão Roberto Braga',        titulo:'ALERTA BÁSICO',   cor:'#ffd700', label:'ALERTA BÁSICO',   fotos: FOTOS_BRAGA,       assinatura:'Comentarista · Alerta Patriota'   },
+  patriota: { nome:'Capitão Roberto Braga',        titulo:'ALERTA PATRIOTA', cor:'#ffd700', label:'ALERTA PATRIOTA', fotos: FOTOS_BRAGA,       assinatura:'Comentarista · Alerta Patriota'   },
+  vip:      { nome:'Capitão Roberto Braga',        titulo:'VIP PREMIUM',     cor:'#ff4444', label:'VIP PREMIUM',     fotos: FOTOS_BRAGA,       assinatura:'Comentarista · Alerta Patriota'   },
+  elite:    { nome:'Prof. Dr. Bernardo Cavalcanti',titulo:'ELITE GLOBAL',    cor:'#a855f7', label:'ELITE GLOBAL',    fotos: FOTOS_CAVALCANTI,  assinatura:'Ex-USP · Consultor Internacional' },
 };
 
 const HOOK_PROMPTS = {
@@ -94,7 +119,13 @@ function logoUrl() {
 }
 
 function escolherFoto(fotos) {
-  return fotos[new Date().getDate() % fotos.length];
+  // Usa o dia do ano (1-365) para garantir:
+  // 1. Todas as publicações do mesmo dia usam a MESMA imagem
+  // 2. Muda exatamente 1 vez por dia, cobrindo as 9 imagens em 9 dias
+  const agora = new Date();
+  const inicioAno = new Date(agora.getFullYear(), 0, 0);
+  const diaDoAno = Math.floor((agora - inicioAno) / 86400000);
+  return fotos[diaDoAno % fotos.length];
 }
 
 function gerarHTML(plano, hook, fonte, urgente) {
