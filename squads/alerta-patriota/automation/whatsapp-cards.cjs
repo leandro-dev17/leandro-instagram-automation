@@ -119,13 +119,14 @@ function logoUrl() {
 }
 
 function escolherFoto(fotos) {
-  // Usa o dia do ano (1-365) para garantir:
-  // 1. Todas as publicações do mesmo dia usam a MESMA imagem
-  // 2. Muda exatamente 1 vez por dia, cobrindo as 9 imagens em 9 dias
+  // Cada publicação usa uma imagem diferente, variando pelo horário
+  // Combina dia do ano + hora BRT → garante imagem diferente em cada slot do dia
+  // e que o mesmo slot não repita a mesma imagem nos dias seguintes
   const agora = new Date();
+  const horaBRT = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })).getHours();
   const inicioAno = new Date(agora.getFullYear(), 0, 0);
-  const diaDoAno = Math.floor((agora - inicioAno) / 86400000);
-  return fotos[diaDoAno % fotos.length];
+  const diaDoAno  = Math.floor((agora - inicioAno) / 86400000);
+  return fotos[(diaDoAno * 24 + horaBRT) % fotos.length];
 }
 
 function gerarHTML(plano, hook, fonte, urgente) {
