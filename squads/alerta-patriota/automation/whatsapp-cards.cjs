@@ -81,16 +81,15 @@ function ehConteudoIrrelevante(titulo) {
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────────────
-function fotoBase64(nome) {
-  const p = path.join(PERSONAS_DIR, nome);
-  if (!fs.existsSync(p)) return '';
-  return `data:image/png;base64,${fs.readFileSync(p).toString('base64')}`;
+// Usa URLs do Vercel em vez de base64 — mais confiável no Puppeteer
+const VERCEL_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://alertapatriota.vercel.app';
+
+function fotoUrl(nome) {
+  return `${VERCEL_URL}/personas/${nome}`;
 }
 
-function logoBase64() {
-  const p = path.join(PERSONAS_DIR, 'logo.png');
-  if (!fs.existsSync(p)) return '';
-  return `data:image/png;base64,${fs.readFileSync(p).toString('base64')}`;
+function logoUrl() {
+  return `${VERCEL_URL}/personas/logo.png`;
 }
 
 function escolherFoto(fotos) {
@@ -99,8 +98,8 @@ function escolherFoto(fotos) {
 
 function gerarHTML(plano, hook, fonte, urgente) {
   const p = PERSONAS[plano];
-  const foto = fotoBase64(escolherFoto(p.fotos));
-  const logo = logoBase64();
+  const foto = fotoUrl(escolherFoto(p.fotos));
+  const logo = logoUrl();
   const hookLen = hook.length;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
