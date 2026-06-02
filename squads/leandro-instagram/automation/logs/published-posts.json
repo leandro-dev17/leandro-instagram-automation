@@ -1,0 +1,1528 @@
+{
+  "2026-04-01": {
+    "1": {
+      "postId": "18076229177553664",
+      "publishedAt": "2026-04-01T11:45:26.688Z",
+      "type": "motivacional",
+      "image": "post-1-motivacional.png"
+    },
+    "2": {
+      "postId": "18077218769125477",
+      "publishedAt": "2026-04-01T15:00:28.000Z",
+      "type": "educativo",
+      "image": "post-2-educativo.png"
+    },
+    "3": {
+      "postId": "18213278470320223",
+      "publishedAt": "2026-04-01T21:00:32.000Z",
+      "type": "cientifico",
+      "image": "post-3-cientifico.png"
+    }
+  },
+  "2026-04-02": {
+    "1": {
+      "postId": "18107956804665610",
+      "publishedAt": "2026-04-02T10:00:33.000Z",
+      "type": "motivacional",
+      "image": "post-1-motivacional.png"
+    },
+    "2": {
+      "postId": "18111372052813832",
+      "publishedAt": "2026-04-02T15:00:26.000Z",
+      "type": "educativo",
+      "image": "post-2-educativo.png"
+    },
+    "3": {
+      "postId": "17880940812536789",
+      "publishedAt": "2026-04-02T21:00:27.984Z",
+      "type": "cientifico",
+      "image": "post-3-cientifico.png"
+    }
+  },
+  "2026-04-03": {
+    "1": {
+      "postId": "17933848968227645",
+      "publishedAt": "2026-04-03T10:00:23.878Z",
+      "type": "motivacional",
+      "image": "post-1-motivacional.png"
+    },
+    "2": {
+      "postId": "17883813330478134",
+      "publishedAt": "2026-04-03T15:00:39.226Z",
+      "type": "educativo",
+      "image": "post-2-educativo.png"
+    },
+    "3": {
+      "postId": "18202456432339619",
+      "publishedAt": "2026-04-03T21:18:17.384Z",
+      "type": "cientifico",
+      "image": "post-3-cientifico.png"
+    },
+    "story-1": {
+      "postId": "18082165298373083",
+      "type": "story",
+      "label": "Motivacional",
+      "image": "post-1-motivacional.png",
+      "publishedAt": "2026-04-03T11:00:29.847Z"
+    },
+    "reel-1": {
+      "postId": "18431039080185161",
+      "type": "reel",
+      "headline": "Seu metabolismo não é um inimigo!",
+      "image": "reel-01.png",
+      "publishedAt": "2026-04-03T12:02:06.581Z"
+    },
+    "reel-2": {
+      "postId": "18576675184021134",
+      "type": "reel",
+      "headline": "Metabolismo Adaptativo: O que é?",
+      "image": "reel-02.png",
+      "publishedAt": "2026-04-03T14:02:15.644Z"
+    },
+    "reel-3": {
+      "postId": "17926559814255173",
+      "type": "reel",
+      "headline": "Acelere seu metabolismo sem sair de casa!",
+      "image": "reel-03.png",
+      "publishedAt": "2026-04-03T16:01:24.996Z"
+    },
+    "reel-6": {
+      "postId": "18047735192733475",
+      "type": "dica",
+      "headline": "Smoothie Anti-Inchaço e Proteico",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-03T17:03:15.146Z"
+    },
+    "reel-4": {
+      "postId": "18071024345268493",
+      "type": "reel",
+      "headline": "Comer menos NÃO é a solução!",
+      "image": "reel-04.png",
+      "publishedAt": "2026-04-03T19:04:00.080Z"
+    },
+    "reel-5": {
+      "postId": "18104917480911727",
+      "type": "reel",
+      "headline": "Seu treino está queimando gordura?",
+      "image": "reel-05.png",
+      "publishedAt": "2026-04-03T23:01:46.613Z"
+    }
+  },
+  "2026-04-04": {
+    "1": {
+      "postId": "18101282332749374",
+      "publishedAt": "2026-04-04T11:40:53.502Z",
+      "type": "motivacional",
+      "image": "post-1-motivacional.png"
+    },
+    "2": {
+      "postId": "18133672918475326",
+      "publishedAt": "2026-04-04T15:00:23.854Z",
+      "type": "educativo",
+      "image": "post-2-educativo.png"
+    },
+    "3": {
+      "postId": "18108545344889817",
+      "publishedAt": "2026-04-04T21:01:00.205Z",
+      "type": "mitos",
+      "format": "single"
+    },
+    "reel-1": {
+      "postId": "17982747143817022",
+      "type": "reel",
+      "headline": "Seu ciclo impacta seu treino. Siga-o!",
+      "image": "reel-01.png",
+      "publishedAt": "2026-04-04T12:01:53.439Z"
+    },
+    "reel-2": {
+      "postId": "18430299001191886",
+      "type": "reel",
+      "headline": "Mais força na fase folicular. Aproveite!",
+      "image": "reel-02.png",
+      "publishedAt": "2026-04-04T14:01:52.422Z"
+    },
+    "story-1": {
+      "postId": "18092717831160142",
+      "type": "story",
+      "label": "Motivacional",
+      "image": "story-1-motivacional.png",
+      "publishedAt": "2026-04-04T14:07:23.888Z"
+    },
+    "reel-3": {
+      "postId": "18002873336728334",
+      "type": "reel",
+      "headline": "Controle a fome na fase lútea com isso!",
+      "image": "reel-03-slide1.png",
+      "publishedAt": "2026-04-04T16:04:17.952Z"
+    },
+    "story-2": {
+      "postId": "18576028354013484",
+      "type": "story",
+      "label": "Educativo",
+      "image": "story-2-educativo.png",
+      "publishedAt": "2026-04-04T16:31:21.046Z"
+    },
+    "reel-6": {
+      "postId": "18077868131566647",
+      "type": "dica",
+      "headline": "Overnight Oats Proteico e Saciante",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-04T17:03:19.549Z"
+    },
+    "reel-4": {
+      "postId": "17880278871540630",
+      "type": "reel",
+      "headline": "Treinar menstruada? SIM, você PODE!",
+      "image": "reel-04-slide1.png",
+      "publishedAt": "2026-04-04T19:02:37.333Z"
+    },
+    "story-3": {
+      "postId": "18087104879193225",
+      "type": "story",
+      "label": "Científico",
+      "image": "story-3-científico.png",
+      "publishedAt": "2026-04-04T22:01:17.585Z"
+    },
+    "reel-5": {
+      "postId": "18098024657079823",
+      "youtubeId": "tg1ccPHiVI0",
+      "type": "reel",
+      "headline": "O segredo para mais energia no treino!",
+      "image": "reel-05-slide1.png",
+      "publishedAt": "2026-04-05T00:50:24.149Z"
+    }
+  },
+  "2026-04-05": {
+    "1": {
+      "postId": "18067653272668561",
+      "publishedAt": "2026-04-05T10:00:49.010Z",
+      "type": "motivacional",
+      "format": "carousel"
+    },
+    "story-1": {
+      "postId": "18091049159466383",
+      "type": "story",
+      "label": "Motivacional",
+      "image": "story-1-motivacional.png",
+      "publishedAt": "2026-04-05T12:42:51.015Z"
+    },
+    "reel-1": {
+      "postId": "18074735684640593",
+      "youtubeId": "P5xg-3h4mgs",
+      "type": "reel",
+      "headline": "Seu metabolismo NÃO é lento, ele só precisa de você!",
+      "image": "reel-01-slide1.png",
+      "publishedAt": "2026-04-05T12:03:29.318Z"
+    },
+    "story-2": {
+      "postId": "18085080515029069",
+      "type": "story",
+      "label": "Educativo",
+      "image": "story-2-educativo.png",
+      "publishedAt": "2026-04-05T12:44:09.440Z"
+    },
+    "story-3": {
+      "postId": "17888798079461362",
+      "type": "story",
+      "label": "Científico",
+      "image": "story-3-científico.png",
+      "publishedAt": "2026-04-05T12:45:01.988Z"
+    },
+    "reel-2": {
+      "postId": "18078214343138216",
+      "youtubeId": "yw3B9EnaZp4",
+      "type": "reel",
+      "headline": "O segredo do metabolismo feminino que ninguém te conta",
+      "image": "reel-02-slide1.png",
+      "publishedAt": "2026-04-05T14:17:38.412Z"
+    },
+    "reel-3": {
+      "postId": "17851963692659852",
+      "youtubeId": "Ki1CmxoN4zY",
+      "type": "reel",
+      "headline": "A ciência da queima de gordura: hormônios em ação!",
+      "image": "reel-03-slide1.png",
+      "publishedAt": "2026-04-05T16:04:38.779Z"
+    },
+    "reel-6": {
+      "postId": "18072887675244947",
+      "youtubeId": "Bz-Lnwg3NcE",
+      "type": "dica",
+      "headline": "Overnight Oats Proteico de Frutas Vermelhas",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-05T17:02:49.712Z"
+    },
+    "reel-4": {
+      "postId": "17916651312143812",
+      "youtubeId": "e6Py1lcCYmA",
+      "type": "reel",
+      "headline": "3 hábitos simples para 'acordar' seu metabolismo agora!",
+      "image": "reel-04-slide1.png",
+      "publishedAt": "2026-04-05T19:04:07.645Z"
+    }
+  },
+  "2026-04-06": {
+    "1": {
+      "postId": "17890833609460153",
+      "publishedAt": "2026-04-09T02:27:11.224Z",
+      "type": "motivacional",
+      "format": "carousel"
+    },
+    "2": {
+      "postId": "18155316349397463",
+      "publishedAt": "2026-04-09T02:27:54.225Z",
+      "type": "educativo",
+      "format": "carousel"
+    },
+    "3": {
+      "postId": "18122089381541697",
+      "publishedAt": "2026-04-09T02:28:31.015Z",
+      "type": "mitos",
+      "format": "carousel"
+    },
+    "reel-1": {
+      "postId": "18044890328760123",
+      "youtubeId": "JoWIU8aHIFw",
+      "type": "reel",
+      "headline": "Seu ciclo é seu superpoder: treine com ele, não contra ele!",
+      "image": "reel-01-slide1.png",
+      "publishedAt": "2026-04-08T20:33:13.334Z"
+    },
+    "story-1": {
+      "postId": "18089690603229299",
+      "type": "story",
+      "label": "Motivacional",
+      "image": "story-1-motivacional.png",
+      "publishedAt": "2026-04-08T23:56:22.534Z"
+    },
+    "story-2": {
+      "postId": "18005834765719867",
+      "type": "story",
+      "label": "Educativo",
+      "image": "story-2-educativo.png",
+      "publishedAt": "2026-04-08T23:57:19.999Z"
+    },
+    "story-3": {
+      "postId": "17927242050260867",
+      "type": "story",
+      "label": "Científico",
+      "image": "story-3-científico.png",
+      "publishedAt": "2026-04-09T00:00:02.300Z"
+    },
+    "reel-2": {
+      "postId": "18059122811448832",
+      "youtubeId": "drCHgLfsMyU",
+      "type": "reel",
+      "headline": "Hormônios e performance: o que a ciência diz sobre seu ciclo?",
+      "image": "reel-02-slide1.png",
+      "publishedAt": "2026-04-09T01:42:37.999Z"
+    },
+    "reel-3": {
+      "postId": "18112529638767277",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Fase folicular: o momento IDEAL para ganhos de força!",
+      "image": "reel-03-slide1.png",
+      "publishedAt": "2026-04-09T01:49:59.771Z"
+    },
+    "reel-4": {
+      "postId": "17992523789776157",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Fase lútea: adapte seu treino e evite lesões!",
+      "image": "reel-04-slide1.png",
+      "publishedAt": "2026-04-09T01:53:57.351Z"
+    },
+    "reel-5": {
+      "postId": "18079109015413309",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Não consigo treinar na TPM: VERDADE ou desculpa?",
+      "image": "reel-05-slide1.png",
+      "publishedAt": "2026-04-09T02:31:09.327Z"
+    },
+    "reel-6": {
+      "postId": "17994354863946298",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Smoothie Verde Energizante Pós-Treino",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-09T02:32:51.983Z"
+    }
+  },
+  "2026-04-07": {
+    "1": {
+      "postId": "18099414010995675",
+      "publishedAt": "2026-04-08T20:54:24.155Z",
+      "type": "motivacional",
+      "format": "carousel"
+    },
+    "2": {
+      "postId": "18158884969451601",
+      "publishedAt": "2026-04-08T20:54:48.482Z",
+      "type": "educativo",
+      "format": "single"
+    },
+    "3": {
+      "postId": "18022968242642952",
+      "publishedAt": "2026-04-09T01:06:37.648Z",
+      "type": "cientifico",
+      "format": "carousel"
+    },
+    "reel-1": {
+      "postId": "18086881535206419",
+      "youtubeId": "pX06MvXdk1U",
+      "type": "reel",
+      "headline": "Seu ciclo é seu guia, não seu limite!",
+      "image": "reel-01-slide1.png",
+      "publishedAt": "2026-04-08T20:57:05.538Z"
+    },
+    "reel-2": {
+      "postId": "17878680354552467",
+      "youtubeId": "D1Gc2hR0l2s",
+      "type": "reel",
+      "headline": "Fase folicular: Potencialize seu ganho!",
+      "image": "reel-02-slide1.png",
+      "publishedAt": "2026-04-08T21:03:13.312Z"
+    },
+    "reel-3": {
+      "postId": "18083916500360117",
+      "youtubeId": "Bx4UN-YqPs8",
+      "type": "reel",
+      "headline": "Estrogênio e metabolismo: A conexão que você não sabia",
+      "image": "reel-03-slide1.png",
+      "publishedAt": "2026-04-08T21:10:50.854Z"
+    },
+    "reel-4": {
+      "postId": "18132691537478917",
+      "youtubeId": "uKbU3cFcOdE",
+      "type": "reel",
+      "headline": "Recuperação na fase lútea: 3 segredos!",
+      "image": "reel-04-slide1.png",
+      "publishedAt": "2026-04-08T23:53:41.533Z"
+    },
+    "reel-5": {
+      "postId": "18063406691375224",
+      "youtubeId": "24_3X1moHHY",
+      "type": "reel",
+      "headline": "É normal desistir na TPM? Mito!",
+      "image": "reel-05-slide1.png",
+      "publishedAt": "2026-04-09T00:00:36.317Z"
+    },
+    "story-1": {
+      "postId": "18207413341329574",
+      "type": "story",
+      "label": "Motivacional",
+      "image": "story-1-motivacional.png",
+      "publishedAt": "2026-04-09T00:00:58.314Z"
+    },
+    "story-2": {
+      "postId": "18127075648586245",
+      "type": "story",
+      "label": "Educativo",
+      "image": "story-2-educativo.png",
+      "publishedAt": "2026-04-09T00:01:48.933Z"
+    },
+    "story-3": {
+      "postId": "18356805280225864",
+      "type": "story",
+      "label": "Científico",
+      "image": "story-3-científico.png",
+      "publishedAt": "2026-04-09T00:03:01.591Z"
+    },
+    "reel-6": {
+      "postId": "18110237827840716",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Overnight Oats Proteico de Frutas Vermelhas",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-09T02:34:28.549Z"
+    }
+  },
+  "2026-04-08": {
+    "1": {
+      "postId": "18090832901180267",
+      "publishedAt": "2026-04-09T01:36:45.602Z",
+      "type": "motivacional",
+      "format": "carousel"
+    },
+    "2": {
+      "postId": "18139539211506161",
+      "publishedAt": "2026-04-09T01:37:27.656Z",
+      "type": "educativo",
+      "format": "carousel"
+    },
+    "3": {
+      "postId": "18099749879077328",
+      "publishedAt": "2026-04-09T01:37:43.465Z",
+      "type": "cientifico",
+      "format": "single"
+    },
+    "story-1": {
+      "postId": "17876493159438790",
+      "type": "story",
+      "label": "Motivacional",
+      "image": "story-1-motivacional.png",
+      "publishedAt": "2026-04-09T00:04:29.085Z"
+    },
+    "story-2": {
+      "postId": "18111886204702894",
+      "type": "story",
+      "label": "Educativo",
+      "image": "story-2-educativo.png",
+      "publishedAt": "2026-04-09T00:05:39.595Z"
+    },
+    "story-3": {
+      "postId": "18089209040332916",
+      "type": "story",
+      "label": "Científico",
+      "image": "story-3-científico.png",
+      "publishedAt": "2026-04-09T00:09:32.267Z"
+    },
+    "reel-1": {
+      "postId": "17977699793843727",
+      "youtubeId": "tXo7wAsLhJk",
+      "type": "reel",
+      "headline": "Seu metabolismo não é lento",
+      "image": "reel-01-slide1.png",
+      "publishedAt": "2026-04-09T00:40:30.440Z"
+    },
+    "reel-2": {
+      "postId": "18103957084906617",
+      "youtubeId": "ExPdewveJpA",
+      "type": "reel",
+      "headline": "3 fases do seu ciclo",
+      "image": "reel-02-slide1.png",
+      "publishedAt": "2026-04-09T01:42:28.441Z"
+    },
+    "reel-3": {
+      "postId": "18099999769949682",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Mulheres ganham 10% menos",
+      "image": "reel-03-slide1.png",
+      "publishedAt": "2026-04-09T01:49:59.922Z"
+    },
+    "reel-4": {
+      "postId": "18083893001525634",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Treino na fase folicular",
+      "image": "reel-04-slide1.png",
+      "publishedAt": "2026-04-09T01:53:56.426Z"
+    },
+    "reel-5": {
+      "postId": "18002662472909098",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Mito: comer menos emagrece",
+      "image": "reel-05-slide1.png",
+      "publishedAt": "2026-04-09T02:00:39.134Z"
+    },
+    "reel-6": {
+      "postId": "18053308430710277",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Dica do Personal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-09T02:36:53.685Z"
+    }
+  },
+  "2026-04-09": {
+    "1": {
+      "postId": "18105218875925320",
+      "publishedAt": "2026-04-09T12:33:17.042Z",
+      "type": "motivacional",
+      "format": "carousel"
+    },
+    "2": {
+      "postId": "18065606300692706",
+      "publishedAt": "2026-04-09T12:37:22.766Z",
+      "type": "educativo",
+      "format": "carousel"
+    },
+    "3": {
+      "postId": "17865887667668133",
+      "publishedAt": "2026-04-09T12:37:58.907Z",
+      "type": "cientifico",
+      "format": "carousel"
+    },
+    "story-1": {
+      "postId": "18089645201521470",
+      "type": "story",
+      "label": "Motivacional",
+      "image": "story-1-motivacional.png",
+      "publishedAt": "2026-04-09T12:32:46.304Z"
+    },
+    "reel-1": {
+      "postId": "18088433495463796",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Você não falhou na dieta",
+      "image": "reel-01-slide1.png",
+      "publishedAt": "2026-04-09T12:34:32.854Z"
+    },
+    "reel-2": {
+      "postId": "18044471615533224",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Calorias mudam com o ciclo",
+      "image": "reel-02-slide1.png",
+      "publishedAt": "2026-04-09T12:41:02.746Z"
+    },
+    "reel-3": {
+      "postId": "17955219108115961",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Insulina varia 40% por ciclo",
+      "image": "reel-03-slide1.png",
+      "publishedAt": "2026-04-09T12:44:15.953Z"
+    },
+    "reel-4": {
+      "postId": "18573876256017255",
+      "youtubeId": null,
+      "type": "reel",
+      "headline": "Receita fase folicular",
+      "image": "reel-04-slide1.png",
+      "publishedAt": "2026-04-09T12:46:34.687Z"
+    },
+    "reel-5": {
+      "postId": "17959661697069231",
+      "youtubeId": "FlJu6grpMps",
+      "type": "reel",
+      "headline": "Mito: fase lútea = engordar",
+      "image": "reel-05-slide1.png",
+      "publishedAt": "2026-04-09T23:01:39.099Z"
+    },
+    "reel-6": {
+      "postId": "18244650412306497",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Dica do Personal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-09T12:50:25.234Z"
+    },
+    "story-3": {
+      "postId": "17854734399690667",
+      "type": "story",
+      "label": "Científico",
+      "image": "story-3-científico.png",
+      "publishedAt": "2026-04-09T22:00:17.801Z"
+    }
+  },
+  "2026-04-10": {
+    "story-new-1": {
+      "postId": "17967520050025931",
+      "publishedAt": "2026-04-10T11:25:32.924Z",
+      "topic": "Seu metabolismo muda a cada semana — e você não sabia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-2": {
+      "postId": "17967520050025931",
+      "publishedAt": "2026-04-10T11:25:32.924Z",
+      "topic": "Seu metabolismo muda a cada semana — e você não sabia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-3": {
+      "postId": "17967520050025931",
+      "publishedAt": "2026-04-10T11:25:32.924Z",
+      "topic": "Seu metabolismo muda a cada semana — e você não sabia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-4": {
+      "postId": "17967520050025931",
+      "publishedAt": "2026-04-10T11:25:32.924Z",
+      "topic": "Seu metabolismo muda a cada semana — e você não sabia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-5": {
+      "postId": "17967520050025931",
+      "publishedAt": "2026-04-10T11:25:32.924Z",
+      "topic": "Seu metabolismo muda a cada semana — e você não sabia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-video": {
+      "postId": "17967520050025931",
+      "publishedAt": "2026-04-10T11:25:32.924Z",
+      "topic": "Seu metabolismo muda a cada semana — e você não sabia",
+      "slides": 5,
+      "duration": 20
+    },
+    "carousel": {
+      "postId": "18043999943752486",
+      "publishedAt": "2026-04-10T15:08:05.617Z",
+      "topic": "Guia Completo: Como Sua Fase Folicular Acelera o Emagrecimento",
+      "slides": 7
+    },
+    "reel-6": {
+      "postId": "17930320113248746",
+      "youtubeId": "6EXp0PBlAjY",
+      "type": "dica",
+      "headline": "Dica do Personal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-10T20:31:47.288Z"
+    }
+  },
+  "2026-04-11": {
+    "story-video": {
+      "postId": "17940644475191045",
+      "publishedAt": "2026-04-11T10:02:27.367Z",
+      "topic": "Por que seu glúteo não cresce mesmo fazendo agachamento todo dia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-1": {
+      "postId": "17940644475191045",
+      "publishedAt": "2026-04-11T10:02:27.367Z",
+      "topic": "Por que seu glúteo não cresce mesmo fazendo agachamento todo dia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-2": {
+      "postId": "17940644475191045",
+      "publishedAt": "2026-04-11T10:02:27.367Z",
+      "topic": "Por que seu glúteo não cresce mesmo fazendo agachamento todo dia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-3": {
+      "postId": "17940644475191045",
+      "publishedAt": "2026-04-11T10:02:27.367Z",
+      "topic": "Por que seu glúteo não cresce mesmo fazendo agachamento todo dia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-4": {
+      "postId": "17940644475191045",
+      "publishedAt": "2026-04-11T10:02:27.367Z",
+      "topic": "Por que seu glúteo não cresce mesmo fazendo agachamento todo dia",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-5": {
+      "postId": "17940644475191045",
+      "publishedAt": "2026-04-11T10:02:27.367Z",
+      "topic": "Por que seu glúteo não cresce mesmo fazendo agachamento todo dia",
+      "slides": 5,
+      "duration": 20
+    },
+    "carousel": {
+      "postId": "17951288646125465",
+      "publishedAt": "2026-04-11T15:02:10.065Z",
+      "topic": "A Fórmula de 4 Passos Para Crescimento Real de Glúteo",
+      "slides": 7
+    },
+    "kling-reel": {
+      "postId": "18094529762116882",
+      "youtubeId": "xQrCLkXGnHk",
+      "type": "kling-reel",
+      "topic": "Postura e ombros femininos",
+      "videoId": "09-morena-clara-shoulder-press",
+      "hook": [
+        "Ombro caído não é genética.",
+        "É postura ruim + treino errado.",
+        "Esse exercício corrige em semanas.",
+        "Mas é mais fácil culpar a mãe."
+      ],
+      "publishedAt": "2026-04-11T17:14:23.196Z"
+    },
+    "reel-6": {
+      "postId": "18072422333265715",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Dica do Personal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-11T21:01:43.503Z"
+    }
+  },
+  "2026-04-12": {
+    "reel-6": {
+      "postId": "18112385149696386",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Dica do Personal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-13T01:55:19.493Z"
+    },
+    "kling-reel": {
+      "postId": "17849400573675476",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Déficit calórico e metabolismo",
+      "videoId": "01-caminhada-camera-lateral",
+      "hook": [
+        {
+          "l1": "Você emagrece rápido",
+          "l2": "reganha tudo em 6 meses",
+          "l3": "e culpa a genética."
+        },
+        {
+          "l1": "O problema não é velocidade",
+          "l2": "é o seu metabolismo",
+          "l3": "destruído no processo."
+        },
+        {
+          "l1": "Quem emagrece lentamente",
+          "l2": "mantém músculo e saúde",
+          "l3": "o corpo não trai depois."
+        },
+        {
+          "l1": "Déficit calórico inteligente",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-13T01:57:33.296Z"
+    }
+  },
+  "2026-04-15": {
+    "1": {
+      "postId": "18016903562675612",
+      "publishedAt": "2026-04-16T18:34:43.496Z",
+      "type": "educativo",
+      "format": "carousel"
+    },
+    "reel-6": {
+      "postId": "18087598400350411",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Dica do Personal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-16T16:52:08.063Z"
+    },
+    "story-video": {
+      "postId": "17884369674483638",
+      "publishedAt": "2026-04-16T16:54:12.626Z",
+      "topic": "Seu metabolismo não é lento — você só não sabe como ativá-lo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-1": {
+      "postId": "17884369674483638",
+      "publishedAt": "2026-04-16T16:54:12.626Z",
+      "topic": "Seu metabolismo não é lento — você só não sabe como ativá-lo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-2": {
+      "postId": "17884369674483638",
+      "publishedAt": "2026-04-16T16:54:12.626Z",
+      "topic": "Seu metabolismo não é lento — você só não sabe como ativá-lo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-3": {
+      "postId": "17884369674483638",
+      "publishedAt": "2026-04-16T16:54:12.626Z",
+      "topic": "Seu metabolismo não é lento — você só não sabe como ativá-lo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-4": {
+      "postId": "17884369674483638",
+      "publishedAt": "2026-04-16T16:54:12.626Z",
+      "topic": "Seu metabolismo não é lento — você só não sabe como ativá-lo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-5": {
+      "postId": "17884369674483638",
+      "publishedAt": "2026-04-16T16:54:12.626Z",
+      "topic": "Seu metabolismo não é lento — você só não sabe como ativá-lo",
+      "slides": 5,
+      "duration": 20
+    },
+    "kling-reel": {
+      "postId": "18097115695856506",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Caminhada não queima gordura — treino de força queima 10x mais",
+      "videoId": "01-caminhada-camera-lateral",
+      "hook": [
+        {
+          "l1": "Você caminha todo dia",
+          "l2": "come salada à noite",
+          "l3": "e o bumbum continua caindo"
+        },
+        {
+          "l1": "A verdade dói",
+          "l2": "mas caminhada não queima",
+          "l3": "a gordura que você pensa"
+        },
+        {
+          "l1": "Treino de força queima 10x",
+          "l2": "mais que cardio infinito",
+          "l3": "e ninguém queria te contar"
+        },
+        {
+          "l1": "Você já sabia disso",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-16T18:37:06.038Z"
+    }
+  },
+  "2026-04-17": {
+    "kling-reel": {
+      "postId": "18018544763664806",
+      "youtubeId": "smsPY6Wrn4I",
+      "type": "kling-reel",
+      "topic": "Cardio excessivo está destruindo seu metabolismo",
+      "videoId": "10-loira-verde-rotacao",
+      "hook": [
+        {
+          "l1": "Você corre 5 dias",
+          "l2": "come salada todo dia",
+          "l3": "e não emagrece."
+        },
+        {
+          "l1": "Seu metabolismo desacelerou",
+          "l2": "não por genética",
+          "l3": "por excesso de cardio."
+        },
+        {
+          "l1": "A garota que emagreceu",
+          "l2": "faz cardio 2 vezes",
+          "l3": "e tem resultado 10x."
+        },
+        {
+          "l1": "Você já percebeu isso?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-17T16:57:41.858Z"
+    },
+    "carousel": {
+      "postId": "18047917688724803",
+      "publishedAt": "2026-04-17T15:52:22.413Z",
+      "topic": "Por que você ainda acredita que tem metabolismo lento (e como isso te sabota)",
+      "slides": 7
+    },
+    "reel-6": {
+      "postId": "18081065417572808",
+      "youtubeId": "7WiOjh1RKro",
+      "type": "dica",
+      "headline": "Dica do Personal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-17T21:07:01.074Z"
+    }
+  },
+  "2026-04-18": {
+    "kling-reel": {
+      "postId": "17978016134848306",
+      "youtubeId": "2RxwGJy5XB4",
+      "type": "kling-reel",
+      "topic": "Treino de glúteo perfeito para a fase folicular",
+      "videoId": "11-ruiva-lilas-caminhada-frontal",
+      "hook": [
+        {
+          "l1": "Você malha glúteo",
+          "l2": "todo dia da mesma",
+          "l3": "forma. Perde 70%."
+        },
+        {
+          "l1": "Seu ciclo",
+          "l2": "muda tudo no seu",
+          "l3": "potencial de"
+        },
+        {
+          "l1": "Personal não fala.",
+          "l2": "Não por maldade.",
+          "l3": "A maioria não"
+        },
+        {
+          "l1": "Você já conhecia",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-18T17:06:08.268Z"
+    },
+    "carousel": {
+      "postId": "18125105920592206",
+      "publishedAt": "2026-04-18T19:44:07.188Z",
+      "topic": "O guia completo: Como treinar glúteo em cada fase do ciclo menstrual",
+      "slides": 7
+    },
+    "reel-6": {
+      "postId": "18127339252587459",
+      "youtubeId": null,
+      "type": "dica",
+      "headline": "Sopa de Frango com Legumes",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-18T22:03:11.996Z"
+    }
+  },
+  "2026-04-19": {
+    "story-video": {
+      "postId": "18114931030673264",
+      "publishedAt": "2026-04-19T10:01:54.374Z",
+      "topic": "5 mentiras fitness que você acredita e que estão te sabotando",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-1": {
+      "postId": "18114931030673264",
+      "publishedAt": "2026-04-19T10:01:54.374Z",
+      "topic": "5 mentiras fitness que você acredita e que estão te sabotando",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-2": {
+      "postId": "18114931030673264",
+      "publishedAt": "2026-04-19T10:01:54.374Z",
+      "topic": "5 mentiras fitness que você acredita e que estão te sabotando",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-3": {
+      "postId": "18114931030673264",
+      "publishedAt": "2026-04-19T10:01:54.374Z",
+      "topic": "5 mentiras fitness que você acredita e que estão te sabotando",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-4": {
+      "postId": "18114931030673264",
+      "publishedAt": "2026-04-19T10:01:54.374Z",
+      "topic": "5 mentiras fitness que você acredita e que estão te sabotando",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-5": {
+      "postId": "18114931030673264",
+      "publishedAt": "2026-04-19T10:01:54.374Z",
+      "topic": "5 mentiras fitness que você acredita e que estão te sabotando",
+      "slides": 5,
+      "duration": 20
+    },
+    "kling-reel": {
+      "postId": "18100580680963032",
+      "youtubeId": "o2OjqwYQKVA",
+      "type": "kling-reel",
+      "topic": "Postura feminina e força de ombro: o segredo que ninguém fala",
+      "videoId": "15-negra-vermelho-cintura-quadril",
+      "hook": [
+        {
+          "l1": "Você malha",
+          "l2": "come certo, dorme",
+          "l3": "e a postura não"
+        },
+        {
+          "l1": "Seu personal nunca",
+          "l2": "sobre treinar",
+          "l3": "de verdade. Nem"
+        },
+        {
+          "l1": "95% das mulheres",
+          "l2": "postura ruim",
+          "l3": "faltam 3"
+        },
+        {
+          "l1": "Você já fez isso?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-19T15:01:02.279Z"
+    },
+    "carousel": {
+      "postId": "17958710790111707",
+      "publishedAt": "2026-04-19T18:07:14.855Z",
+      "topic": "Os 5 piores mitos fitness que destroem o progresso de mulheres inteligentes",
+      "slides": 7
+    },
+    "reel-6": {
+      "postId": "18074912153233295",
+      "youtubeId": "NrL5TCkcvn0",
+      "type": "dica",
+      "headline": "Bowl de Iogurte com Granola",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-19T21:01:36.195Z"
+    }
+  },
+  "2026-04-20": {
+    "story-video": {
+      "postId": "18457909522104739",
+      "publishedAt": "2026-04-20T10:02:13.932Z",
+      "topic": "Você não precisa comer pouco para emagrecer, precisa comer INTELIGENTE",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-1": {
+      "postId": "18457909522104739",
+      "publishedAt": "2026-04-20T10:02:13.932Z",
+      "topic": "Você não precisa comer pouco para emagrecer, precisa comer INTELIGENTE",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-2": {
+      "postId": "18457909522104739",
+      "publishedAt": "2026-04-20T10:02:13.932Z",
+      "topic": "Você não precisa comer pouco para emagrecer, precisa comer INTELIGENTE",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-3": {
+      "postId": "18457909522104739",
+      "publishedAt": "2026-04-20T10:02:13.932Z",
+      "topic": "Você não precisa comer pouco para emagrecer, precisa comer INTELIGENTE",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-4": {
+      "postId": "18457909522104739",
+      "publishedAt": "2026-04-20T10:02:13.932Z",
+      "topic": "Você não precisa comer pouco para emagrecer, precisa comer INTELIGENTE",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-5": {
+      "postId": "18457909522104739",
+      "publishedAt": "2026-04-20T10:02:13.932Z",
+      "topic": "Você não precisa comer pouco para emagrecer, precisa comer INTELIGENTE",
+      "slides": 5,
+      "duration": 20
+    },
+    "carousel": {
+      "postId": "18085927958035451",
+      "publishedAt": "2026-04-20T18:01:32.657Z",
+      "topic": "O mapa completo: como treinar cada fase do seu ciclo para máximo emagrecimento",
+      "slides": 7
+    },
+    "kling-reel": {
+      "postId": "17972451324045915",
+      "youtubeId": "2f2a8Ls_jR0",
+      "type": "kling-reel",
+      "topic": "Fase menstrual muda tudo: seu corpo está pronto para treinar?",
+      "videoId": "12-morena-escura-coral-ombro",
+      "hook": [
+        {
+          "l1": "Você treina todo",
+          "l2": "mesmo nos dias",
+          "l3": "e culpa preguiça."
+        },
+        {
+          "l1": "Seu corpo grita",
+          "l2": "mas você ignora.",
+          "l3": "Hormônio muda"
+        },
+        {
+          "l1": "Fase menstrual é",
+          "l2": "tipo trocar de",
+          "l3": "todo mês sem"
+        },
+        {
+          "l1": "Você já percebeu?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-20T19:08:13.314Z"
+    },
+    "reel-6": {
+      "postId": "18180140650383110",
+      "youtubeId": "O_V2ATdm9vE",
+      "type": "dica",
+      "headline": "Marmita Fitness Completa",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-20T21:15:51.244Z"
+    }
+  },
+  "2026-04-21": {
+    "story-video": {
+      "postId": "18351751768209842",
+      "publishedAt": "2026-04-21T10:01:30.731Z",
+      "topic": "Por que sua amiga come mais e não engorda enquanto você ganha peso olhando para bolo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-1": {
+      "postId": "18351751768209842",
+      "publishedAt": "2026-04-21T10:01:30.731Z",
+      "topic": "Por que sua amiga come mais e não engorda enquanto você ganha peso olhando para bolo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-2": {
+      "postId": "18351751768209842",
+      "publishedAt": "2026-04-21T10:01:30.731Z",
+      "topic": "Por que sua amiga come mais e não engorda enquanto você ganha peso olhando para bolo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-3": {
+      "postId": "18351751768209842",
+      "publishedAt": "2026-04-21T10:01:30.731Z",
+      "topic": "Por que sua amiga come mais e não engorda enquanto você ganha peso olhando para bolo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-4": {
+      "postId": "18351751768209842",
+      "publishedAt": "2026-04-21T10:01:30.731Z",
+      "topic": "Por que sua amiga come mais e não engorda enquanto você ganha peso olhando para bolo",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-5": {
+      "postId": "18351751768209842",
+      "publishedAt": "2026-04-21T10:01:30.731Z",
+      "topic": "Por que sua amiga come mais e não engorda enquanto você ganha peso olhando para bolo",
+      "slides": 5,
+      "duration": 20
+    },
+    "kling-reel": {
+      "postId": "18129192844568395",
+      "youtubeId": "-uvld9IoDLY",
+      "type": "kling-reel",
+      "topic": "Nutrição e Alimentação Estratégica para Mulheres",
+      "videoId": "13-loira-curta-azul-angulo-baixo",
+      "hook": [
+        {
+          "l1": "Você come proteína",
+          "l2": "e tem medo de",
+          "l3": "grande e"
+        },
+        {
+          "l1": "Sua mãe disse",
+          "l2": "Seu personal",
+          "l3": "Ninguém te contou."
+        },
+        {
+          "l1": "Proteína emagrece.",
+          "l2": "Define a silhueta.",
+          "l3": "Você evitou anos."
+        },
+        {
+          "l1": "Já caiu nessa",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-21T15:00:14.993Z"
+    },
+    "carousel": {
+      "postId": "18125802223592739",
+      "publishedAt": "2026-04-21T18:01:44.521Z",
+      "topic": "Os 5 Mitos do Metabolismo Feminino que te Prendem no Mesmo Peso",
+      "slides": 7
+    },
+    "reel-6": {
+      "postId": "18171914185367049",
+      "youtubeId": "rO35ecLGtwc",
+      "type": "dica",
+      "headline": "Granola Caseira Crocante",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-21T21:01:32.129Z"
+    }
+  },
+  "2026-04-22": {
+    "story-video": {
+      "postId": "18006140171722975",
+      "publishedAt": "2026-04-22T10:02:46.827Z",
+      "topic": "Você está treinando CONTRA seu ciclo menstrual sem nem saber",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-1": {
+      "postId": "18006140171722975",
+      "publishedAt": "2026-04-22T10:02:46.827Z",
+      "topic": "Você está treinando CONTRA seu ciclo menstrual sem nem saber",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-2": {
+      "postId": "18006140171722975",
+      "publishedAt": "2026-04-22T10:02:46.827Z",
+      "topic": "Você está treinando CONTRA seu ciclo menstrual sem nem saber",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-3": {
+      "postId": "18006140171722975",
+      "publishedAt": "2026-04-22T10:02:46.827Z",
+      "topic": "Você está treinando CONTRA seu ciclo menstrual sem nem saber",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-4": {
+      "postId": "18006140171722975",
+      "publishedAt": "2026-04-22T10:02:46.827Z",
+      "topic": "Você está treinando CONTRA seu ciclo menstrual sem nem saber",
+      "slides": 5,
+      "duration": 20
+    },
+    "story-new-5": {
+      "postId": "18006140171722975",
+      "publishedAt": "2026-04-22T10:02:46.827Z",
+      "topic": "Você está treinando CONTRA seu ciclo menstrual sem nem saber",
+      "slides": 5,
+      "duration": 20
+    },
+    "carousel": {
+      "postId": "17961120843083315",
+      "publishedAt": "2026-04-22T18:04:31.531Z",
+      "topic": "Guia Prático: Como Treinar em Cada Fase do Seu Ciclo Menstrual",
+      "slides": 7
+    },
+    "kling-reel": {
+      "postId": "18162365407429693",
+      "youtubeId": "1J-XZK6Va5o",
+      "type": "kling-reel",
+      "topic": "Pernas e Ciclo Menstrual — Quando Treinar Perna",
+      "videoId": "14-morena-ondulada-preta-pernas-close",
+      "hook": [
+        {
+          "l1": "Você treina perna",
+          "l2": "todo dia mesmo.",
+          "l3": "E ainda tem medo."
+        },
+        {
+          "l1": "Seu personal",
+          "l2": "Não é maldade.",
+          "l3": "É ciclo menstrual."
+        },
+        {
+          "l1": "Treinar perna",
+          "l2": "É o dia errado.",
+          "l3": "Isso muda tudo."
+        },
+        {
+          "l1": "Você já sabia?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-22T20:42:14.653Z"
+    },
+    "reel-6": {
+      "postId": "17953024772964822",
+      "youtubeId": "bcBsKW28jXU",
+      "type": "dica",
+      "headline": "Smoothie Roxo de Mirtilo",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-22T21:05:51.052Z"
+    }
+  },
+  "2026-04-23": {
+    "kling-reel": {
+      "postId": "18526566109079366",
+      "youtubeId": "KkeIQlZuaFs",
+      "type": "kling-reel",
+      "topic": "Mitos sobre Treino de Força para Mulheres",
+      "videoId": "02-rotacao-360-luz-dourada",
+      "hook": [
+        {
+          "l1": "Você tem medo",
+          "l2": "de ficar grande",
+          "l3": "levantando peso."
+        },
+        {
+          "l1": "Sua mãe disse",
+          "l2": "Sua amiga",
+          "l3": "Mas é mentira."
+        },
+        {
+          "l1": "Força constrói",
+          "l2": "que queima gordura",
+          "l3": "e define o corpo."
+        },
+        {
+          "l1": "Você já sabia",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-23T15:25:06.583Z"
+    },
+    "carousel": {
+      "postId": "18066619931679632",
+      "publishedAt": "2026-04-23T18:02:29.887Z",
+      "topic": "Por Que Seu Glúteo Não Cresce (E Como Mudar Isso Agora)",
+      "slides": 7
+    },
+    "reel-6": {
+      "postId": "17861947116682931",
+      "youtubeId": "CDPpcyJV7i0",
+      "type": "dica",
+      "headline": "Pão Nuvem Proteico",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-23T21:02:56.573Z"
+    }
+  },
+  "2026-04-25": {
+    "kling-reel": {
+      "postId": "18084161033367263",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Caminhada estratégica: o cardio que não prejudica seu emagrecimento",
+      "videoId": "03-close-rosto-sorriso",
+      "hook": [
+        {
+          "l1": "Você corre 1 hora",
+          "l2": "todo dia.",
+          "l3": "Está emagreçendo?"
+        },
+        {
+          "l1": "O cardio demais",
+          "l2": "come seu músculo.",
+          "l3": "Seu metabolismo"
+        },
+        {
+          "l1": "Caminhada",
+          "l2": "preserva a massa.",
+          "l3": "Corpo muda mais"
+        },
+        {
+          "l1": "Você já testou?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-25T15:30:27.193Z"
+    },
+    "carousel": {
+      "postId": "17966146341020034",
+      "publishedAt": "2026-04-25T18:03:03.794Z",
+      "topic": "Os 4 segredos do metabolismo feminino que ninguém te conta",
+      "slides": 7
+    },
+    "reel-6": {
+      "postId": "18119319019654326",
+      "youtubeId": null,
+      "type": "receita",
+      "headline": "Smoothie de Energia Matinal",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-25T21:03:32.888Z"
+    }
+  },
+  "2026-04-26": {
+    "kling-reel": {
+      "postId": "18006301484886236",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Força feminina: o segredo que ninguém quer que você descubra",
+      "videoId": "04-cintura-quadril-movimento",
+      "hook": [
+        {
+          "l1": "Você treina há",
+          "l2": "com 2kg de peso",
+          "l3": "e nada muda."
+        },
+        {
+          "l1": "Seu corpo acostuma",
+          "l2": "em 2 semanas.",
+          "l3": "Depois só sofre."
+        },
+        {
+          "l1": "Força real emagra",
+          "l2": "tonifica mais",
+          "l3": "e muito mais"
+        },
+        {
+          "l1": "Você já testou?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-26T15:02:43.120Z"
+    },
+    "reel-6": {
+      "postId": "18204284101355518",
+      "youtubeId": null,
+      "type": "receita",
+      "headline": "Suco Anti-inflamatório de Laranja",
+      "image": "reel-dica.png",
+      "publishedAt": "2026-04-26T21:05:25.239Z"
+    }
+  },
+  "2026-04-27": {
+    "story-video": {
+      "postId": "17886703710507157",
+      "publishedAt": "2026-04-27T14:47:04.552Z",
+      "topic": "O que você DEVE comer em cada fase do seu ciclo (e por quê)",
+      "slides": 5,
+      "duration": 15
+    },
+    "story-new-1": {
+      "postId": "17886703710507157",
+      "publishedAt": "2026-04-27T14:47:04.552Z",
+      "topic": "O que você DEVE comer em cada fase do seu ciclo (e por quê)",
+      "slides": 5,
+      "duration": 15
+    },
+    "story-new-2": {
+      "postId": "17886703710507157",
+      "publishedAt": "2026-04-27T14:47:04.552Z",
+      "topic": "O que você DEVE comer em cada fase do seu ciclo (e por quê)",
+      "slides": 5,
+      "duration": 15
+    },
+    "story-new-3": {
+      "postId": "17886703710507157",
+      "publishedAt": "2026-04-27T14:47:04.552Z",
+      "topic": "O que você DEVE comer em cada fase do seu ciclo (e por quê)",
+      "slides": 5,
+      "duration": 15
+    },
+    "story-new-4": {
+      "postId": "17886703710507157",
+      "publishedAt": "2026-04-27T14:47:04.552Z",
+      "topic": "O que você DEVE comer em cada fase do seu ciclo (e por quê)",
+      "slides": 5,
+      "duration": 15
+    },
+    "story-new-5": {
+      "postId": "17886703710507157",
+      "publishedAt": "2026-04-27T14:47:04.552Z",
+      "topic": "O que você DEVE comer em cada fase do seu ciclo (e por quê)",
+      "slides": 5,
+      "duration": 15
+    },
+    "kling-reel": {
+      "postId": "18062606873408285",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Postura e hormônios: como sua coluna impacta seus ciclos",
+      "videoId": "05-camera-baixo-para-cima",
+      "hook": [
+        {
+          "l1": "Você malha",
+          "l2": "Come bem também.",
+          "l3": "Mas algo bloqueia."
+        },
+        {
+          "l1": "Sua coluna curvada",
+          "l2": "está sabotando",
+          "l3": "hormônios agora."
+        },
+        {
+          "l1": "Postura errada",
+          "l2": "seu metabolismo e",
+          "l3": "descontrola ciclo."
+        },
+        {
+          "l1": "Você já sentiu",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-04-27T15:02:23.779Z"
+    }
+  },
+  "2026-06-01": {
+    "kling-reel": {
+      "videoId": "11-ruiva-lilas-caminhada-frontal",
+      "publishedAt": "2026-06-01T18:25:31Z",
+      "postId": "run-26773664652"
+    }
+  }
+}
