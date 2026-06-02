@@ -305,14 +305,7 @@ async function gerarLegendaClaude(titulo, plano, fonte) {
   });
   const corpo = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
 
-  const ctas = {
-    basico:   `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEntre no Alerta Patriota e receba 3 análises políticas por dia, direto no seu WhatsApp.\n👉 alertapatriota.vercel.app`,
-    patriota: `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEntre no Alerta Patriota e receba análises do Capitão Braga todos os dias.\n👉 alertapatriota.vercel.app`,
-    vip:      `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEsse é o nível VIP — análises que a mídia não mostra. Acesse e assine agora.\n👉 alertapatriota.vercel.app`,
-    elite:    `\n\n─────────────────────\n📲 *Recebeu esse conteúdo?*\nEsse é o nível Elite Global — análise internacional do Prof. Cavalcanti. Acesse e assine.\n👉 alertapatriota.vercel.app`,
-  };
-
-  return `${headers[plano]}\n${corpo}${ctas[plano]}`;
+  return `${headers[plano]}\n${corpo}`;
 }
 
 async function enviarImagemWPP(imageUrl, groupJid, legenda) {
