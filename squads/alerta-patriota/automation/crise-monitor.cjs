@@ -41,10 +41,29 @@ async function jaDisparouCriseNaUltimaHora() {
   return parseInt(rows[0].total) > 0;
 }
 
-// ── DISPARO DOS CARDS EXTRAS ───────────────────────────────────────────────
-function dispararCardsExtras() {
-  console.log('  🚨 Gerando cards de crise para todos os grupos...');
-  const result = spawnSync('node', ['whatsapp-cards.cjs'], {
+const EVO_URL  = process.env.EVOLUTION_API_URL;
+const EVO_KEY  = process.env.EVOLUTION_API_KEY;
+const EVO_INST = process.env.EVOLUTION_INSTANCIA || 'alertapatriota';
+const GROUP_IDS = {
+  basico:   process.env.WPP_GROUP_BASICO,
+  patriota: process.env.WPP_GROUP_PATRIOTA,
+};
+
+// ── FOMO DE TEXTO para Básico + Patriota ──────────────────────────────────
+async function enviarFOMOCrise(groupJid) {
+  const msg = `🚨 *MODO CRISE ATIVADO — Alerta Patriota*\n\nSituação política grave se desenvolvendo agora.\n\nOs membros VIP e Elite estão acompanhando em tempo real com análise completa do Capitão Braga — atualização a cada 1 hora.\n\n🔥 Faça upgrade agora para acompanhar ao vivo:\n👉 alertapatriota.vercel.app`;
+  const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
+    body: JSON.stringify({ number: groupJid, textMessage: { text: msg } }),
+  });
+  return res.ok;
+}
+
+// ── CARDS EXTRAS apenas para VIP + Elite ──────────────────────────────────
+function dispararCardsVIPElite() {
+  console.log('  🚨 Gerando cards de crise para VIP + Elite...');
+  const result = spawnSync('node', ['whatsapp-cards.cjs', 'vip', 'elite'], {
     cwd: __dirname,
     stdio: 'inherit',
     env: { ...process.env },
@@ -65,7 +84,6 @@ async function main() {
     return;
   }
 
-  // Verifica se já disparou crise na última hora (evita spam)
   if (await jaDisparouCriseNaUltimaHora()) {
     console.log('⏭️  Modo crise já foi ativado na última hora. Aguardando próxima janela.');
     return;
@@ -74,10 +92,20 @@ async function main() {
   console.log(`🚨 MODO CRISE ATIVADO — ${qtd} alertas urgentes!`);
 
   await sendTelegram(
-    `🚨 *MODO CRISE — Alerta Patriota*\n\n${qtd} alertas urgentes nas últimas 6 horas!\n\nMárcio Crise está disparando publicação extra em todos os grupos agora.\n\n📅 ${dataBRT()} · ${horaBRT()} BRT`
+    `🚨 *MODO CRISE — Alerta Patriota*\n\n${qtd} alertas urgentes nas últimas 6h!\n\n📋 VIP+Elite → cards em tempo real\n📢 Básico+Patriota → mensagem FOMO\n\n📅 ${dataBRT()} · ${horaBRT()} BRT`
   );
 
-  const ok = dispararCardsExtras();
+  // Básico + Patriota → FOMO de texto (não cards)
+  console.log('  📢 Enviando FOMO para Básico + Patriota...');
+  for (const [plano, jid] of Object.entries(GROUP_IDS)) {
+    if (!jid) continue;
+    const ok = await enviarFOMOCrise(jid);
+    console.log(`  ${ok ? '✅' : '❌'} FOMO ${plano}`);
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  // VIP + Elite → cards visuais completos
+  const ok = dispararCardsVIPElite();
 
   // Registra no log
   await sql`

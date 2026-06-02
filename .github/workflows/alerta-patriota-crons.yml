@@ -6,6 +6,8 @@ on:
     - cron: '0 9,15,21 * * *'
     # Radar político a cada 30min das 8h às 23h BRT (11h às 2h UTC)
     - cron: '0,30 11-23,0,1,2 * * *'
+    # VIP + Elite extras — 3 publicações adicionais (10h, 16h, 22h BRT = 13h, 19h, 1h UTC)
+    - cron: '0 13,19,1 * * *'
     # Márcio Crise — verifica crise a cada 2h
     - cron: '0 */2 * * *'
     # Tereza Termômetro — todo domingo às 23h UTC (20h BRT)
@@ -77,6 +79,55 @@ jobs:
             -d "parse_mode=Markdown" \
             --data-urlencode "text=❌ *FALHA — Cards Visuais WhatsApp*
           O job de cards falhou no GitHub Actions.
+          🔗 Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  # ── CARDS PREMIUM — VIP + ELITE (3x extras: 10h, 16h, 22h BRT) ─────────
+  whatsapp-cards-premium:
+    name: Cards Premium — VIP + Elite (6x/dia)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 13,19,1 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - name: Instalar Chromium para Puppeteer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y chromium-browser
+          echo "PUPPETEER_EXEC_PATH=$(which chromium-browser)" >> $GITHUB_ENV
+          echo "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true" >> $GITHUB_ENV
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - name: Gerar e enviar cards extras para VIP e Elite
+        working-directory: squads/alerta-patriota/automation
+        env:
+          DATABASE_URL:          ${{ secrets.ALERTA_DB_URL }}
+          EVOLUTION_API_URL:     https://evolution-api-production-8be2.up.railway.app
+          EVOLUTION_API_KEY:     alertapatriota-token-2026
+          EVOLUTION_INSTANCIA:   alertapatriota
+          WPP_GROUP_BASICO:      120363409640100922@g.us
+          WPP_GROUP_PATRIOTA:    120363408243517495@g.us
+          WPP_GROUP_VIP:         120363425999377985@g.us
+          WPP_GROUP_ELITE:       120363426153474301@g.us
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          CLOUDINARY_CLOUD_NAME: demazkgy2
+          CLOUDINARY_API_KEY:    ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          NEXT_PUBLIC_APP_URL:   https://alertapatriota.vercel.app
+          PUPPETEER_EXEC_PATH:   ${{ env.PUPPETEER_EXEC_PATH }}
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.ALERTA_TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}
+        run: node whatsapp-cards.cjs vip elite
+      - name: Notificar Telegram — falha
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Cards Premium VIP+Elite*
           🔗 Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ── COLETA DE NOTÍCIAS ────────────────────────────────────────────────────
