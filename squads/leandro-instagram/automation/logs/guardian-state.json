@@ -1,20 +1,4 @@
 {
-  "falhas": {
-    "daily-generator": {
-      "data": "2026-06-01",
-      "count": 3,
-      "ultimaFalha": "2026-06-01T23:20:29.175Z"
-    },
-    "story-07h": {
-      "data": "2026-06-01",
-      "count": 1,
-      "ultimaFalha": "2026-06-01T18:23:13.305Z"
-    },
-    "kling-reel-20h": {
-      "data": "2026-06-01",
-      "count": 1,
-      "ultimaFalha": "2026-06-01T18:23:14.539Z"
-    }
-  },
-  "ultimaVerificacao": "2026-06-01T23:20:30.652Z"
+  "falhas": {},
+  "ultimaVerificacao": "2026-06-02T01:42:36.252Z"
 }
