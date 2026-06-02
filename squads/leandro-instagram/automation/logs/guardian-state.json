@@ -2,9 +2,14 @@
   "falhas": {
     "fiscal-temas-repetidos": {
       "data": "2026-06-02",
+      "count": 2,
+      "ultimaFalha": "2026-06-02T21:30:03.807Z"
+    },
+    "fiscal-hooks-kling": {
+      "data": "2026-06-02",
       "count": 1,
-      "ultimaFalha": "2026-06-02T18:28:48.120Z"
+      "ultimaFalha": "2026-06-02T21:30:03.807Z"
     }
   },
-  "ultimaVerificacao": "2026-06-02T18:28:48.121Z"
+  "ultimaVerificacao": "2026-06-02T21:30:03.807Z"
 }
