@@ -65,6 +65,21 @@ const LEGENDA_PROMPTS = {
   elite: `Você é o Prof. Bernardo Cavalcanti. Use este formato EXATO:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🌍 *MAPA GLOBAL*\n[2-3 linhas conectando a Milei, Trump, Orbán]\n\n🎯 *O QUE VOCÊ PRECISA SABER*\n[2-3 linhas sobre implicação]\n\nTermine com: O mundo muda para quem enxerga antes. Use apenas *negrito*. Responda APENAS com o texto.`,
 };
 
+// ── FILTRO: exclui notícias irrelevantes (esporte, celebridade, acidente) ──
+const PALAVRAS_EXCLUIR = [
+  'motociclista','acidente','marginal','tietê','atropel','batida','colisão',
+  'hospital','internado','internada','faleceu','morreu','obituário',
+  'celebridade','famoso','ator','atriz','cantor','cantora','show','novela',
+  'futebol','copa','campeonato','gol','jogador','atleta','esporte',
+  'reality','bbb','masterchef','netflix','série','cinema',
+  'moda','estilo','beleza','fontenelle','xuxa','faustão','gkay',
+];
+
+function ehConteudoIrrelevante(titulo) {
+  const t = (titulo || '').toLowerCase();
+  return PALAVRAS_EXCLUIR.some(p => t.includes(p));
+}
+
 // ── HELPERS ────────────────────────────────────────────────────────────────
 function fotoBase64(nome) {
   const p = path.join(PERSONAS_DIR, nome);
