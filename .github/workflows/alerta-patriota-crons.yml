@@ -6,6 +6,10 @@ on:
     - cron: '0 9,15,21 * * *'
     # Radar político a cada 30min das 8h às 23h BRT (11h às 2h UTC)
     - cron: '0,30 11-23,0,1,2 * * *'
+    # Márcio Crise — verifica crise a cada 2h
+    - cron: '0 */2 * * *'
+    # Tereza Termômetro — todo domingo às 23h UTC (20h BRT)
+    - cron: '0 23 * * 0'
   workflow_dispatch:
     inputs:
       etapa:
@@ -62,7 +66,18 @@ jobs:
           NEXT_PUBLIC_APP_URL:   https://alertapatriota.vercel.app
           PUPPETEER_EXEC_PATH:   ${{ env.PUPPETEER_EXEC_PATH }}
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.ALERTA_TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}
         run: node whatsapp-cards.cjs
+      - name: Notificar Telegram — falha crítica
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Cards Visuais WhatsApp*
+          O job de cards falhou no GitHub Actions.
+          🔗 Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ── COLETA DE NOTÍCIAS ────────────────────────────────────────────────────
   coletar:
@@ -424,7 +439,6 @@ jobs:
   radar:
     name: Raquel Radar — Monitorar políticos 30min
     runs-on: ubuntu-latest
-    # Só executa no trigger de radar (não no trigger de coleta)
     if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 5
     steps:
@@ -434,3 +448,88 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
             | tee /tmp/radar.json
           echo "Resultado: $(cat /tmp/radar.json)"
+
+  # ── FASE 2 — MÁRCIO CRISE (a cada 2h) ───────────────────────────────────
+  crise-monitor:
+    name: Márcio Crise — Detector de crise política
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 */2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - name: Instalar Chromium para Puppeteer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y chromium-browser
+          echo "PUPPETEER_EXEC_PATH=$(which chromium-browser)" >> $GITHUB_ENV
+          echo "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true" >> $GITHUB_ENV
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - name: Verificar nível de alerta e disparar modo crise
+        working-directory: squads/alerta-patriota/automation
+        env:
+          DATABASE_URL:          ${{ secrets.ALERTA_DB_URL }}
+          EVOLUTION_API_URL:     https://evolution-api-production-8be2.up.railway.app
+          EVOLUTION_API_KEY:     alertapatriota-token-2026
+          EVOLUTION_INSTANCIA:   alertapatriota
+          WPP_GROUP_BASICO:      120363409640100922@g.us
+          WPP_GROUP_PATRIOTA:    120363408243517495@g.us
+          WPP_GROUP_VIP:         120363425999377985@g.us
+          WPP_GROUP_ELITE:       120363426153474301@g.us
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          CLOUDINARY_CLOUD_NAME: demazkgy2
+          CLOUDINARY_API_KEY:    ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          NEXT_PUBLIC_APP_URL:   https://alertapatriota.vercel.app
+          PUPPETEER_EXEC_PATH:   ${{ env.PUPPETEER_EXEC_PATH }}
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.ALERTA_TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}
+        run: node crise-monitor.cjs
+      - name: Notificar Telegram — falha
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Márcio Crise*
+          Erro no detector de crise. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  # ── FASE 2 — TEREZA TERMÔMETRO (todo domingo 20h BRT) ───────────────────
+  termometro:
+    name: Tereza Termômetro — Termômetro da Liberdade (domingos)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 23 * * 0' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - name: Gerar e enviar Termômetro da Liberdade
+        working-directory: squads/alerta-patriota/automation
+        env:
+          EVOLUTION_API_URL:   https://evolution-api-production-8be2.up.railway.app
+          EVOLUTION_API_KEY:   alertapatriota-token-2026
+          EVOLUTION_INSTANCIA: alertapatriota
+          WPP_GROUP_BASICO:    120363409640100922@g.us
+          WPP_GROUP_PATRIOTA:  120363408243517495@g.us
+          WPP_GROUP_VIP:       120363425999377985@g.us
+          WPP_GROUP_ELITE:     120363426153474301@g.us
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.ALERTA_TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}
+        run: node whatsapp-termometro.cjs
+      - name: Notificar Telegram — falha
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Tereza Termômetro*
+          Erro ao gerar/enviar o Termômetro da Liberdade. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

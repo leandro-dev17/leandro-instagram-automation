@@ -16,6 +16,7 @@ const { neon }        = require('@neondatabase/serverless');
 const Anthropic       = require('@anthropic-ai/sdk');
 const puppeteer       = require('puppeteer');
 const cloudinary      = require('cloudinary').v2;
+const { sendTelegram, horaBRT, dataBRT } = require('./telegram-reporter.cjs');
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const DB_URL   = process.env.DATABASE_URL;
@@ -295,6 +296,42 @@ async function enviarImagemWPP(imageUrl, groupJid, legenda) {
   return res.ok;
 }
 
+// ── ENVIO DE TEXTO SIMPLES (para FOMO e avisos) ────────────────────────────
+async function enviarTextoWPP(groupJid, texto) {
+  const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
+    body: JSON.stringify({ number: groupJid, textMessage: { text: texto } }),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    console.log(`  ⚠️  sendText ${res.status}: ${err.substring(0, 100)}`);
+  }
+  return res.ok;
+}
+
+// ── FÁBIO FOMO — teaser para grupos inferiores ─────────────────────────────
+async function dispararFOMO(hook, planoExclusivo) {
+  const label    = planoExclusivo === 'elite' ? 'Elite Global' : 'VIP Premium';
+  const hookCurto = hook.length > 70 ? hook.substring(0, 67) + '...' : hook;
+
+  const mensagem = `🔥 *EXCLUSIVO ${label.toUpperCase()} — AGORA*\n\n"${hookCurto}"\n\n👆 Essa análise só os membros ${label} receberam hoje.\n\nFaça upgrade e nunca mais perca as análises mais profundas do Alerta Patriota:\n👉 alertapatriota.vercel.app`;
+
+  // VIP → Básico + Patriota | Elite → Básico + Patriota + VIP
+  const destinos = planoExclusivo === 'elite'
+    ? [GROUP_IDS.basico, GROUP_IDS.patriota, GROUP_IDS.vip]
+    : [GROUP_IDS.basico, GROUP_IDS.patriota];
+
+  let enviados = 0;
+  for (const jid of destinos) {
+    if (!jid) continue;
+    if (await enviarTextoWPP(jid, mensagem)) enviados++;
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  console.log(`  🔥 FOMO: ${enviados}/${destinos.length} grupos notificados`);
+  return enviados;
+}
+
 // ── MAIN ───────────────────────────────────────────────────────────────────
 async function processarPlano(plano, browser) {
   console.log(`\n  [${plano}] Buscando notícia...`);
@@ -348,8 +385,14 @@ async function processarPlano(plano, browser) {
     if (plano==='elite')    await sql`UPDATE noticias SET postada_elite=true,postada_elite_at=NOW() WHERE id=${n.id}`;
     await sql`INSERT INTO agentes_log(agente,acao,status,detalhes) VALUES('gerador-card',${`card_${plano}`},'sucesso',${JSON.stringify({hook,noticiaId:n.id})})`;
     console.log(`  ✅ Card enviado para o grupo ${plano}!`);
+
+    // Fábio FOMO — dispara teaser nos grupos inferiores após VIP ou Elite
+    if (plano === 'vip' || plano === 'elite') {
+      await dispararFOMO(hook, plano);
+    }
   } else {
     console.log(`  ❌ Falha ao enviar para Evolution API`);
+    await sendTelegram(`❌ *FALHA — Card WhatsApp*\nGrupo: ${plano}\nHook: "${hook.substring(0, 60)}"\n🕐 ${horaBRT()} BRT`);
   }
 
   await new Promise(r => setTimeout(r, 3000));
@@ -365,14 +408,31 @@ async function main() {
     executablePath: process.env.PUPPETEER_EXEC_PATH || undefined,
   });
 
+  const resultados = [];
   try {
     for (const plano of planos) {
       if (!PERSONAS[plano]) { console.log(`Plano inválido: ${plano}`); continue; }
-      await processarPlano(plano, browser);
+      try {
+        await processarPlano(plano, browser);
+        resultados.push({ plano, ok: true });
+      } catch (e) {
+        console.error(`  ❌ Erro no plano ${plano}:`, e.message);
+        resultados.push({ plano, ok: false, erro: e.message });
+      }
     }
   } finally {
     await browser.close();
   }
+
+  // Resumo no Telegram
+  const ok  = resultados.filter(r => r.ok).map(r => `✅ ${r.plano}`).join('\n');
+  const err = resultados.filter(r => !r.ok).map(r => `❌ ${r.plano}: ${r.erro?.substring(0,60)}`).join('\n');
+  const fomo = planos.includes('vip') || planos.includes('elite') ? '\n🔥 FOMO disparado nos grupos inferiores' : '';
+
+  await sendTelegram(
+    `🎨 *Cards Visuais — Alerta Patriota*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n${ok}${err ? '\n' + err : ''}${fomo}`
+  );
+
   console.log('\n✅ Cards concluídos!');
 }
 
