@@ -35,7 +35,7 @@ const CHAT_ID       = process.env.TELEGRAM_CHAT_ID;
 const SCHEDULE_DIR  = path.join(__dirname, 'schedule');
 const TEMAS_FILE    = path.join(SCHEDULE_DIR, 'temas-usados.json');
 const TEMAS_REPO    = 'squads/leandro-instagram/automation/schedule/temas-usados.json';
-const DIAS_JANELA   = 14; // dias mínimos entre o mesmo tema
+const DIAS_JANELA   = 7;  // dias mínimos entre o mesmo tema (era 14 — muito sensível)
 
 // Palavras-chave de comparação (normaliza temas para detectar similaridade)
 const KEYWORDS = [
@@ -66,10 +66,13 @@ function extrairKeywords(texto) {
   return new Set(KEYWORDS.filter(k => lower.includes(k.normalize('NFD').replace(/[̀-ͯ]/g, ''))));
 }
 
-function similares(kw1, kw2) {
+function similares(kw1, kw2, tipo) {
   if (kw1.size === 0 || kw2.size === 0) return false;
   const intersecao = [...kw1].filter(k => kw2.has(k));
-  return intersecao.length >= 2; // 2+ palavras-chave em comum = similar
+  // Carrossel exige 3+ keywords em comum (conteúdo mais específico)
+  // Kling exige 3+ também (era 2, mas gerava muitos falso-positivos em fitness)
+  const minimo = tipo === 'carousel' ? 3 : 3;
+  return intersecao.length >= minimo;
 }
 
 function carregarSchedule() {
@@ -148,7 +151,7 @@ async function main() {
   for (const proximo of proximos7) {
     for (const anterior of ultimos14) {
       if (proximo.tipo !== anterior.tipo) continue;
-      if (similares(proximo.kw, anterior.kw)) {
+      if (similares(proximo.kw, anterior.kw, proximo.tipo)) {
         repeticoes.push({
           tipo:        proximo.tipo,
           proximoData: proximo.data,
@@ -191,9 +194,9 @@ async function main() {
     '\n\n💡 Verifique o schedule em: squads/leandro-instagram/automation/schedule/'
   );
 
-  // Repetições são avisos, não problemas críticos → exit 0 (não escala ao Claude)
-  // A menos que sejam muitas repetições (> 5 na mesma semana)
-  if (repeticoes.length > 5) process.exit(1);
+  // Só é crítico se houver muitas repetições EXATAS na próxima semana (> 10 com critério estrito)
+  // Fitness naturalmente revisita temas — não escala ao Claude por isso
+  if (repeticoes.length > 10) process.exit(1);
 }
 
 main().catch(err => {

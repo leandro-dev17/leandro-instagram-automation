@@ -78,8 +78,10 @@ async function main() {
   }
 
   // ── CHECK 1: Tracking populado? ───────────────────────────────────────────
+  // Só verifica últimos 21 dias — ignora dados históricos do PC (abril/2026)
+  const corte21d     = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
   const klingEntries = Object.entries(tracking)
-    .filter(([, p]) => p['kling-reel'])
+    .filter(([d, p]) => p['kling-reel'] && d >= corte21d)
     .sort(([a], [b]) => a.localeCompare(b));
 
   if (klingEntries.length === 0) {

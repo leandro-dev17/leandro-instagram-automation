@@ -132,13 +132,20 @@ async function main() {
   try {
     if (fs.existsSync(RECIPES_FILE)) {
       const tracker = JSON.parse(fs.readFileSync(RECIPES_FILE, 'utf8'));
-      const total    = tracker.recipes?.length || 0;
-      const pointer  = tracker.currentIndex || 0;
-      const restantes = total - pointer;
-      if (restantes < 7) {
-        alertas.push(`🟡 Receitas esgotando: ${restantes} restantes de ${total}`);
+      // O tracker usa { used: ["id1", "id2", ...] } + batch files separados
+      const usedSet = new Set(tracker.used || []);
+      // Conta total nas batches
+      let totalBatch = 0;
+      const recipesDir = path.join(__dirname, 'recipes');
+      fs.readdirSync(recipesDir).filter(f => f.startsWith('batch') && f.endsWith('.json')).forEach(f => {
+        try { totalBatch += JSON.parse(fs.readFileSync(path.join(recipesDir, f), 'utf8')).length; } catch {}
+      });
+      const restantes = totalBatch - usedSet.size;
+      if (restantes < 15) {
+        alertas.push(`🟡 Receitas esgotando: ${restantes} disponíveis de ${totalBatch}`);
       }
-      relatorio.push(`✅ Receitas: ${restantes} disponíveis (pointer ${pointer}/${total})`);
+      relatorio.push(`✅ Receitas: ${restantes} disponíveis (${usedSet.size} usadas de ${totalBatch})`);
+
     } else {
       relatorio.push(`ℹ️ recipe-tracker.json não encontrado`);
     }
