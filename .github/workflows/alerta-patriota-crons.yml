@@ -400,6 +400,21 @@ jobs:
           sleep 30
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/upgrade-comportamental" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
+  # ── FISCAL FLORA FOTO — roda logo após cards (3x/dia) ───────────────────
+  fiscal-cards:
+    name: Flora Foto — Fiscal de Cards e Imagens
+    runs-on: ubuntu-latest
+    needs: [whatsapp-cards]
+    if: always() && (github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch')
+    timeout-minutes: 5
+    steps:
+      - name: Verificar qualidade dos cards enviados
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-cards" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/fiscal-cards.json
+          echo "Resultado: $(cat /tmp/fiscal-cards.json)"
+
   # ── FASE 4 — FISCAIS 24/7 (a cada 30min) ─────────────────────────────────
   fiscais:
     name: Fiscais 24/7 — Saúde do sistema
@@ -435,6 +450,33 @@ jobs:
         run: |
           sleep 5
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/guardiao-seguranca" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Flora Foto — Fiscal de Cards
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-cards" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Diana Duplicata — Fiscal de Duplicatas
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-duplicatas" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Clara Conteúdo — Fiscal de Conteúdo
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-conteudo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Wagner Workflow — Fiscal do GitHub Actions
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-workflow" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            -H "X-Github-Token: ${{ secrets.ALERTA_GITHUB_TOKEN }}"
+
+      - name: Escalonamento Claude — Alertas críticos sem resolução
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/escalar-claude" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── FASE 4 — BACKUP DIÁRIO (às 3h BRT = 6h UTC) ──────────────────────────
   backup:
