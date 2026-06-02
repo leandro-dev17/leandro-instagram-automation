@@ -385,17 +385,13 @@ async function processarPlano(plano, browser) {
     if (plano==='elite')    await sql`UPDATE noticias SET postada_elite=true,postada_elite_at=NOW() WHERE id=${n.id}`;
     await sql`INSERT INTO agentes_log(agente,acao,status,detalhes) VALUES('gerador-card',${`card_${plano}`},'sucesso',${JSON.stringify({hook,noticiaId:n.id})})`;
     console.log(`  ✅ Card enviado para o grupo ${plano}!`);
-
-    // Fábio FOMO — dispara teaser nos grupos inferiores após VIP ou Elite
-    if (plano === 'vip' || plano === 'elite') {
-      await dispararFOMO(hook, plano);
-    }
   } else {
     console.log(`  ❌ Falha ao enviar para Evolution API`);
     await sendTelegram(`❌ *FALHA — Card WhatsApp*\nGrupo: ${plano}\nHook: "${hook.substring(0, 60)}"\n🕐 ${horaBRT()} BRT`);
   }
 
   await new Promise(r => setTimeout(r, 3000));
+  return ok ? hook : null;
 }
 
 async function main() {
@@ -409,12 +405,18 @@ async function main() {
   });
 
   const resultados = [];
+  let melhorHookVIP   = null;
+  let melhorHookElite = null;
+
   try {
     for (const plano of planos) {
       if (!PERSONAS[plano]) { console.log(`Plano inválido: ${plano}`); continue; }
       try {
-        await processarPlano(plano, browser);
+        const hook = await processarPlano(plano, browser);
         resultados.push({ plano, ok: true });
+        // Guarda o hook para FOMO (só 1 por rodada)
+        if (plano === 'vip'   && hook && !melhorHookVIP)   melhorHookVIP   = hook;
+        if (plano === 'elite' && hook && !melhorHookElite) melhorHookElite = hook;
       } catch (e) {
         console.error(`  ❌ Erro no plano ${plano}:`, e.message);
         resultados.push({ plano, ok: false, erro: e.message });
@@ -424,13 +426,22 @@ async function main() {
     await browser.close();
   }
 
+  // Fábio FOMO — dispara APENAS 1× por rodada, usando o melhor hook disponível
+  // Prioriza Elite (mais premium), depois VIP
+  const hookFOMO  = melhorHookElite || melhorHookVIP;
+  const planoFOMO = melhorHookElite ? 'elite' : melhorHookVIP ? 'vip' : null;
+  if (hookFOMO && planoFOMO) {
+    console.log('\n🔥 Disparando FOMO único para Básico + Patriota...');
+    await dispararFOMO(hookFOMO, planoFOMO);
+  }
+
   // Resumo no Telegram
   const ok  = resultados.filter(r => r.ok).map(r => `✅ ${r.plano}`).join('\n');
   const err = resultados.filter(r => !r.ok).map(r => `❌ ${r.plano}: ${r.erro?.substring(0,60)}`).join('\n');
-  const fomo = planos.includes('vip') || planos.includes('elite') ? '\n🔥 FOMO disparado nos grupos inferiores' : '';
+  const fomoTxt = planoFOMO ? `\n🔥 FOMO enviado (${planoFOMO})` : '';
 
   await sendTelegram(
-    `🎨 *Cards Visuais — Alerta Patriota*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n${ok}${err ? '\n' + err : ''}${fomo}`
+    `🎨 *Cards Visuais — Alerta Patriota*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n${ok}${err ? '\n' + err : ''}${fomoTxt}`
   );
 
   console.log('\n✅ Cards concluídos!');
