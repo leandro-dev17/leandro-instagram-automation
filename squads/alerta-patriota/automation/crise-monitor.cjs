@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-/**
- * crise-monitor.cjs — Márcio Crise
- * Detecta crises (2+ notícias urgentes em 6h) e publica extra para VIP+Elite
- * FOMO de texto para Básico+Patriota
- * Roda via GitHub Actions a cada 2h (cron: '0 */2 * * *')
- */
+// crise-monitor.cjs — Marcio Crise
+// Detecta crises (2+ noticias urgentes em 6h) e publica extra para VIP+Elite
+// FOMO de texto para Basico+Patriota
+// Roda via GitHub Actions a cada 2h
 'use strict';
 
 const path = require('path');
