@@ -110,23 +110,20 @@ function ehConteudoIrrelevante(titulo) {
 const VERCEL_URL     = process.env.NEXT_PUBLIC_APP_URL || 'https://alertapatriota.vercel.app';
 const PERSONAS_LOCAL = path.join(__dirname, '../app/public/personas');
 
-// Usa arquivo local quando disponível (GitHub Actions tem o checkout completo)
-// assim não depende do Vercel ter feito deploy das imagens ainda
-function fotoUrl(nome) {
+// Converte imagem local para base64 data URL
+// Embed direto no HTML — sem dependência de URL externa nem file://, funciona sempre
+function imgBase64(nome) {
   const localPath = path.join(PERSONAS_LOCAL, nome);
   if (fs.existsSync(localPath)) {
-    return `file://${localPath}`;
+    const data = fs.readFileSync(localPath);
+    return `data:image/png;base64,${data.toString('base64')}`;
   }
+  // Fallback para Vercel se arquivo local não existir
   return `${VERCEL_URL}/personas/${nome}`;
 }
 
-function logoUrl() {
-  const localPath = path.join(PERSONAS_LOCAL, 'logo.png');
-  if (fs.existsSync(localPath)) {
-    return `file://${localPath}`;
-  }
-  return `${VERCEL_URL}/personas/logo.png`;
-}
+function fotoUrl(nome) { return imgBase64(nome); }
+function logoUrl()     { return imgBase64('logo.png'); }
 
 function escolherFoto(fotos) {
   // Cada publicação usa uma imagem diferente, variando pelo horário
@@ -419,19 +416,15 @@ async function processarPlano(plano, browser) {
   // Renderiza HTML → PNG
   const html = gerarHTML(plano, hook, fonte, n.urgente);
 
-  // Salva HTML em arquivo temporário para que file:// URLs nas imagens funcionem
-  // page.setContent() não permite carregar file:// — page.goto('file://...') sim
-  const os = require('os');
-  const htmlPath = path.join(os.tmpdir(), `card-${plano}-${Date.now()}.html`);
-  fs.writeFileSync(htmlPath, html, 'utf8');
-
+  // Imagens já estão em base64 no HTML — sem requests externos, sem file://
+  // domcontentloaded é suficiente; aguardamos 1.5s para CSS pintar o background
   const page = await browser.newPage();
   await page.setViewport({ width:1080, height:1080 });
-  await page.goto(`file://${htmlPath}`, { waitUntil:'networkidle0', timeout:20000 });
+  await page.setContent(html, { waitUntil:'domcontentloaded', timeout:20000 });
+  await new Promise(r => setTimeout(r, 1500));
   const pngPath = path.join(OUTPUT, `card-${plano}.png`);
   await page.screenshot({ path: pngPath, type:'png', clip:{x:0,y:0,width:1080,height:1080} });
   await page.close();
-  fs.unlinkSync(htmlPath);
   console.log(`  🖼️  PNG gerado: ${pngPath}`);
 
   // Upload Cloudinary
@@ -465,13 +458,7 @@ async function main() {
 
   const browser = await puppeteer.launch({
     headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-      '--allow-file-access-from-files', // permite carregar imagens locais via file://
-    ],
+    args: ['--no-sandbox','--disable-setuid-sandbox','--disable-gpu','--disable-dev-shm-usage'],
     executablePath: process.env.PUPPETEER_EXEC_PATH || undefined,
   });
 
