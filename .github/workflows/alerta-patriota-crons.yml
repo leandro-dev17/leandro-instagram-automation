@@ -24,9 +24,12 @@ permissions:
 
 jobs:
   # ── CARDS VISUAIS WHATSAPP (3x/dia) ──────────────────────────────────────
+  # Roda APÓS o resumir para garantir que há notícias resumidas disponíveis
+  # NÃO chama publicar-noticias separado — o card já envia imagem + texto completo na caption
   whatsapp-cards:
     name: Cards Visuais — Imagem + Texto nos 4 grupos
     runs-on: ubuntu-latest
+    needs: [resumir]
     if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 20
     steps:
@@ -42,14 +45,6 @@ jobs:
       - name: Instalar dependências
         run: npm install
         working-directory: squads/alerta-patriota/automation
-      - name: Coletar e processar notícias
-        run: |
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/coletar-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-          sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/curar-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-          sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/resumir-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-          sleep 30
       - name: Gerar e enviar cards para os 4 grupos
         working-directory: squads/alerta-patriota/automation
         env:
@@ -85,6 +80,7 @@ jobs:
   whatsapp-cards-premium:
     name: Cards Premium — VIP + Elite (6x/dia)
     runs-on: ubuntu-latest
+    needs: [resumir]
     if: github.event.schedule == '0 13,19,1 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 20
     steps:
@@ -177,30 +173,6 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
             | tee /tmp/resumir.json
           echo "Resultado: $(cat /tmp/resumir.json)"
-
-  # ── PUBLICAÇÃO NOS GRUPOS ─────────────────────────────────────────────────
-  publicar:
-    name: Paulo Publicador — Enviar para grupos WPP
-    runs-on: ubuntu-latest
-    needs: resumir
-    timeout-minutes: 5
-    steps:
-      - name: Aguardar resumos prontos
-        run: sleep 60
-      - name: Publicar no Alerta Básico
-        run: |
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=basico" \
-            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-      - name: Publicar no Alerta Patriota
-        run: |
-          sleep 10
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=patriota" \
-            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-      - name: Publicar no VIP Premium
-        run: |
-          sleep 10
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=vip" \
-            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── FASE 5 — ELITE GLOBAL (coleta international antes das BR) ────────────
   elite-global:
