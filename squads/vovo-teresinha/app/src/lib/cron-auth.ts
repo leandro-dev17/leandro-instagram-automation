@@ -5,13 +5,14 @@
  *
  * COMPORTAMENTO:
  *  • CRON_SECRET presente  → valida header "Authorization: Bearer <secret>"
- *  • CRON_SECRET ausente em produção → LOGA ERRO CRÍTICO mas PERMITE a execução
- *    (evita paralisia total de todos os crons enquanto a variável não é adicionada)
+ *  • CRON_SECRET ausente em produção → LOGA ERRO CRÍTICO e BLOQUEIA (401)
+ *    para evitar execução não autenticada de jobs sensíveis.
  *  • CRON_SECRET ausente fora de produção → permite (ambiente de dev/preview)
  *
  * CONFIGURAÇÃO OBRIGATÓRIA:
  *  Vercel Dashboard → Settings → Environment Variables → Production
  *  Adicione:  CRON_SECRET = <valor secreto longo e aleatório>
+ *  O mesmo valor deve estar em: vercel.json → crons → headers → Authorization: Bearer <valor>
  *  Depois faça redeploy para que a variável seja injetada no runtime.
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -36,16 +37,13 @@ export function cronAutorizado(req: NextRequest, context: string): AuthResult {
   // ── Variável não definida ──────────────────────────────────────────────────
   if (!secret) {
     if (isProd) {
-      // CRÍTICO: loga o problema mas NÃO bloqueia — evita paralisia total dos crons.
-      // A variável DEVE ser adicionada no Vercel o mais rápido possível.
       console.error(
-        `[${context}] ⚠️  CRON_SECRET ausente nas variáveis de ambiente de produção. ` +
-          "Os crons estão sendo executados SEM autenticação. " +
+        `[${context}] 🚨 CRON_SECRET ausente nas variáveis de ambiente de produção. ` +
           "Acesse Vercel Dashboard → Settings → Environment Variables, " +
-          "adicione CRON_SECRET e faça redeploy IMEDIATAMENTE."
+          "adicione CRON_SECRET e faça redeploy IMEDIATAMENTE. " +
+          "Requisição BLOQUEADA por segurança."
       );
-      // Permite a execução para não interromper todos os jobs
-      return { ok: true, motivo: "secret_ausente" };
+      return { ok: false, motivo: "secret_ausente" };
     }
 
     // Fora de produção (desenvolvimento / preview): libera sem aviso crítico
@@ -66,7 +64,8 @@ export function cronAutorizado(req: NextRequest, context: string): AuthResult {
       `[${context}] Header Authorization inválido. ` +
         `Recebido: "${preview}" (esperado: "Bearer ***"). ` +
         "Verifique se CRON_SECRET no ambiente corresponde ao valor configurado " +
-        "e se o chamador está enviando o header corretamente."
+        "nos headers dos cron jobs (vercel.json) e se o chamador está enviando " +
+        "o header corretamente."
     );
     return { ok: false, motivo: "header_invalido" };
   }

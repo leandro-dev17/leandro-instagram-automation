@@ -1,39 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-
-function autorizado(req: NextRequest): { ok: boolean; motivo?: string } {
-  const secret = process.env.CRON_SECRET;
-  const isProd = process.env.NODE_ENV === "production";
-
-  if (!secret) {
-    if (isProd) {
-      console.error(
-        "[push-diario] CRON_SECRET ausente nas variáveis de ambiente de produção. " +
-          "Acesse Vercel Dashboard → Settings → Environment Variables, " +
-          "adicione CRON_SECRET e faça redeploy."
-      );
-      return { ok: false, motivo: "secret_ausente" };
-    }
-    console.warn("[push-diario] CRON_SECRET não definido — acesso permitido fora de produção.");
-    return { ok: true };
-  }
-
-  const authHeader = req.headers.get("authorization") ?? "";
-  const esperado = `Bearer ${secret}`;
-  if (authHeader !== esperado) {
-    console.warn(
-      "[push-diario] Header Authorization inválido. " +
-        `Recebido: "${authHeader.substring(0, 15)}${authHeader.length > 15 ? "…" : ""}" ` +
-        "(esperado: \"Bearer ***\")."
-    );
-    return { ok: false, motivo: "header_invalido" };
-  }
-
-  return { ok: true };
-}
+import { cronAutorizado } from "@/lib/cron-auth";
 
 export async function GET(req: NextRequest) {
-  const auth = autorizado(req);
+  const auth = cronAutorizado(req, "push-diario");
   if (!auth.ok) {
     return NextResponse.json(
       {
