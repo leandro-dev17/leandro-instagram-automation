@@ -102,139 +102,124 @@ function gerarHTML(plano, hook, fonte, urgente) {
   const foto = fotoUrl(escolherFoto(p.fotos));
   const logo = logoUrl();
   const isElite = plano === 'elite';
+
+  // Tamanho da fonte do hook baseado no comprimento — legível no celular
   const hl = hook.length;
+  const hookSize = hl <= 30 ? '96px' : hl <= 45 ? '82px' : hl <= 60 ? '70px' : '58px';
+
+  // Hook em caixa alta para impacto visual
+  const hookUpper = hook.toUpperCase();
 
   if (isElite) {
-    // ── PROF. CAVALCANTI: foto + card ESCURO com bordas arredondadas ──
+    // ── PROF. CAVALCANTI: full-bleed com gradiente roxo ──
     return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{width:1080px;height:1080px;overflow:hidden;background:#07071a;
-     font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;
-     display:flex;flex-direction:column;}
-.foto{flex:1;min-height:0;
-      background:url('${foto}') center top/cover no-repeat;position:relative;}
-.foto::before{content:'';position:absolute;top:0;left:0;right:0;height:110px;
-              background:linear-gradient(to bottom,rgba(4,4,20,.7),transparent);}
-.label{position:absolute;top:24px;left:32px;}
-.l1{display:block;font-size:15px;font-weight:900;color:#a855f7;
-    letter-spacing:3px;text-transform:uppercase;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.9);}
-.l2{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.65);letter-spacing:2px;margin-top:5px;}
-.logo-wrap{position:absolute;top:20px;right:28px;}
-.logo{width:44px;height:44px;border-radius:50%;border:2px solid #a855f7;object-fit:cover;}
-.card{background:#07071a;border-radius:24px 24px 0 0;
-      border-top:1px solid rgba(168,85,247,.3);
-      box-shadow:0 -5px 24px rgba(0,0,0,.6);flex-shrink:0;}
-.inner{padding:20px 36px 14px;}
-.badge{display:inline-flex;align-items:center;gap:8px;
-       background:${urgente?'#5b21b6':'rgba(88,28,135,.5)'};
-       border:1px solid ${urgente?'#7c3aed':'rgba(168,85,247,.4)'};
-       color:#c4b5fd;font-size:13px;font-weight:800;
-       padding:6px 16px;border-radius:4px;letter-spacing:2px;
-       text-transform:uppercase;margin-bottom:13px;}
-.dot{width:6px;height:6px;background:#a855f7;border-radius:50%;flex-shrink:0;}
-.hl{font-size:${hl>70?'26px':hl>55?'29px':hl>40?'32px':'36px'};
-    font-weight:900;color:#fff;line-height:1.2;margin-bottom:10px;letter-spacing:-.3px;}
-.corpo{font-size:17px;color:rgba(255,255,255,.58);line-height:1.45;margin-bottom:14px;}
-.sep{width:100%;height:1px;background:linear-gradient(to right,rgba(168,85,247,.4),transparent);margin-bottom:12px;}
-.nome{font-size:19px;font-weight:900;color:#c4b5fd;letter-spacing:.3px;}
-.cargo{font-size:12px;color:rgba(196,181,253,.45);letter-spacing:1px;margin-top:3px;}
-.barra{background:rgba(88,28,135,.55);border-top:1px solid rgba(168,85,247,.2);
-       padding:13px 36px;display:flex;align-items:center;justify-content:space-between;}
-.barra-txt{font-size:12px;font-weight:800;color:#c4b5fd;letter-spacing:2px;text-transform:uppercase;}
-.cta{background:#0d0d1a;border-top:1px solid rgba(168,85,247,.15);
-     padding:10px 36px;display:flex;align-items:center;justify-content:space-between;}
-.cta-left{font-size:13px;color:rgba(255,255,255,.5);letter-spacing:.3px;}
-.cta-link{font-size:14px;font-weight:900;color:#a855f7;letter-spacing:.5px;}
+body{width:1080px;height:1080px;overflow:hidden;background:#07071a;position:relative;}
+.foto{position:absolute;inset:0;
+      background:url('${foto}') center top/cover no-repeat;}
+.grad{position:absolute;inset:0;
+      background:linear-gradient(to bottom,
+        rgba(7,7,26,.30) 0%,
+        rgba(7,7,26,.0)  14%,
+        rgba(7,7,26,.0)  52%,
+        rgba(7,7,26,.80) 72%,
+        rgba(7,7,26,.96) 100%);}
+.badge{position:absolute;top:44px;left:44px;
+       background:${urgente?'#7c3aed':'#5b21b6'};color:#e9d5ff;
+       font-family:Arial Black,Impact,sans-serif;
+       font-size:24px;font-weight:900;letter-spacing:4px;
+       padding:12px 28px;text-transform:uppercase;}
+${logo ? `.logo{position:absolute;top:36px;right:44px;
+  width:68px;height:68px;border-radius:50%;
+  border:3px solid #a855f7;object-fit:cover;}`:''}
+.hook{position:absolute;bottom:148px;left:0;right:0;padding:0 50px;
+      font-family:Arial Black,Impact,sans-serif;
+      font-size:${hookSize};font-weight:900;color:#fff;
+      line-height:1.05;text-transform:uppercase;
+      text-shadow:0 4px 24px rgba(0,0,0,.95);}
+.footer{position:absolute;bottom:0;left:0;right:0;
+        background:rgba(88,28,135,.9);
+        border-top:3px solid #a855f7;
+        padding:24px 44px;
+        display:flex;align-items:center;justify-content:space-between;}
+.f-left{font-size:20px;font-weight:900;color:#e9d5ff;
+        letter-spacing:2px;text-transform:uppercase;}
+.f-right{text-align:right;}
+.f-nome{font-size:18px;font-weight:800;color:#fff;}
+.f-cargo{font-size:11px;color:rgba(233,213,255,.6);
+         letter-spacing:1px;margin-top:3px;text-transform:uppercase;}
 </style></head><body>
-  <div class="foto">
-    <div class="label"><span class="l1">ANÁLISE EXCLUSIVA</span><span class="l2">ELITE GLOBAL</span></div>
-    ${logo ? `<div class="logo-wrap"><img src="${logo}" class="logo"/></div>` : ''}
-  </div>
-  <div class="card">
-    <div class="inner">
-      <div class="badge"><span class="dot"></span>${urgente ? 'ANÁLISE URGENTE' : 'PERSPECTIVA GLOBAL'}</div>
-      <div class="hl">${hook}</div>
-      <div class="corpo">Fonte: ${fonte}</div>
-      <div class="sep"></div>
-      <div class="nome">PROF. DR. BERNARDO CAVALCANTI</div>
-      <div class="cargo">ANALISTA POLÍTICO GLOBAL · ELITE GLOBAL</div>
-    </div>
-    <div class="barra">
-      <span class="barra-txt">O MUNDO MUDA PARA QUEM ENXERGA ANTES.</span>
-    </div>
-    <div class="cta">
-      <span class="cta-left">📲 Gostou? Compartilhe e convide seus amigos:</span>
-      <span class="cta-link">alertapatriota.vercel.app</span>
+  <div class="foto"></div>
+  <div class="grad"></div>
+  <div class="badge">${urgente ? '🚨 URGENTE' : 'ANÁLISE GLOBAL'}</div>
+  ${logo ? `<img src="${logo}" class="logo"/>` : ''}
+  <div class="hook">${hookUpper}</div>
+  <div class="footer">
+    <div class="f-left">O MUNDO MUDA PARA<br>QUEM ENXERGA ANTES.</div>
+    <div class="f-right">
+      <div class="f-nome">PROF. BERNARDO CAVALCANTI</div>
+      <div class="f-cargo">ELITE GLOBAL</div>
     </div>
   </div>
 </body></html>`;
   }
 
-  // ── CAPITÃO BRAGA: foto + card BRANCO com bordas arredondadas ──
-  const LABELS = {
-    basico:   { l1:'ALERTA DO DIA',    l2:'INFORMAÇÃO SEM FILTRO'  },
-    patriota: { l1:'COMENTARISTA RAIZ',l2:'REAÇÃO À NOTÍCIA'       },
-    vip:      { l1:'ANÁLISE VIP',      l2:'O QUE A MÍDIA ESCONDE'  },
+  // ── CAPITÃO BRAGA: full-bleed foto com texto grande e impactante ──
+  const BADGE_LABEL = {
+    basico:   urgente ? '🚨 URGENTE'    : 'POLÍTICA',
+    patriota: urgente ? '🚨 URGENTE'    : 'ANÁLISE PATRIOTA',
+    vip:      urgente ? '🚨 URGENTE'    : '🔥 VIP EXCLUSIVO',
   };
-  const lbl = LABELS[plano] || LABELS.patriota;
+  const badge = BADGE_LABEL[plano] || 'POLÍTICA';
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{width:1080px;height:1080px;overflow:hidden;background:#000;
-     font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;
-     display:flex;flex-direction:column;}
-.foto{flex:1;min-height:0;
-      background:url('${foto}') center top/cover no-repeat;position:relative;}
-.foto::before{content:'';position:absolute;top:0;left:0;right:0;height:100px;
-              background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent);}
-.label{position:absolute;top:22px;left:30px;}
-.l1{display:block;font-size:15px;font-weight:900;color:#ffd700;
-    letter-spacing:2px;text-transform:uppercase;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.8);}
-.l2{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:1.5px;margin-top:4px;}
-.logo-wrap{position:absolute;top:18px;right:26px;}
-.logo{width:40px;height:40px;border-radius:50%;border:2px solid #ffd700;object-fit:cover;}
-.card{background:#fff;border-radius:24px 24px 0 0;
-      box-shadow:0 -4px 24px rgba(0,0,0,.22);flex-shrink:0;}
-.inner{padding:20px 34px 14px;}
-.row{display:flex;align-items:center;gap:12px;margin-bottom:11px;}
-.icone{width:38px;height:38px;min-width:38px;background:#c0392b;border-radius:50%;
-       display:flex;align-items:center;justify-content:center;font-size:19px;color:#fff;}
-.titulo{font-family:-apple-system,'Arial Black',Impact,sans-serif;
-        font-size:36px;font-weight:900;
-        color:${urgente ? '#c0392b' : '#111'};line-height:1;letter-spacing:1px;}
-.hl{font-size:${hl>70?'22px':hl>55?'24px':hl>40?'26px':'28px'};
-    font-weight:800;color:#111;line-height:1.22;margin-bottom:7px;}
-.corpo{font-size:17px;color:#666;line-height:1.45;margin-bottom:9px;}
-.acento{font-size:18px;font-weight:700;color:#c0392b;line-height:1.3;}
-.barra{background:#1a5c2e;padding:14px 34px;
-       display:flex;align-items:center;justify-content:space-between;}
-.barra-txt{font-size:14px;font-weight:900;color:#fff;letter-spacing:1.5px;text-transform:uppercase;}
-.barra-dir{text-align:right;}
-.barra-nome{font-size:13px;font-weight:800;color:#fff;}
-.barra-cargo{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.5px;margin-top:1px;}
+body{width:1080px;height:1080px;overflow:hidden;background:#000;position:relative;}
+.foto{position:absolute;inset:0;
+      background:url('${foto}') center top/cover no-repeat;}
+.grad{position:absolute;inset:0;
+      background:linear-gradient(to bottom,
+        rgba(0,0,0,.28) 0%,
+        rgba(0,0,0,.0)  14%,
+        rgba(0,0,0,.0)  52%,
+        rgba(0,0,0,.80) 72%,
+        rgba(0,0,0,.96) 100%);}
+.badge{position:absolute;top:44px;left:44px;
+       background:#c0392b;color:#fff;
+       font-family:Arial Black,Impact,sans-serif;
+       font-size:24px;font-weight:900;letter-spacing:3px;
+       padding:12px 28px;text-transform:uppercase;}
+${logo ? `.logo{position:absolute;top:36px;right:44px;
+  width:68px;height:68px;border-radius:50%;
+  border:3px solid #ffd700;object-fit:cover;}`:''}
+.hook{position:absolute;bottom:148px;left:0;right:0;padding:0 50px;
+      font-family:Arial Black,Impact,sans-serif;
+      font-size:${hookSize};font-weight:900;color:#fff;
+      line-height:1.05;text-transform:uppercase;
+      text-shadow:0 4px 24px rgba(0,0,0,.95);}
+.footer{position:absolute;bottom:0;left:0;right:0;
+        background:#c0392b;
+        padding:24px 44px;
+        display:flex;align-items:center;justify-content:space-between;}
+.f-left{font-size:20px;font-weight:900;color:#fff;
+        letter-spacing:2px;text-transform:uppercase;}
+.f-right{text-align:right;}
+.f-nome{font-size:18px;font-weight:800;color:#fff;}
+.f-cargo{font-size:11px;color:rgba(255,255,255,.7);
+         letter-spacing:1px;margin-top:3px;text-transform:uppercase;}
 </style></head><body>
-  <div class="foto">
-    <div class="label"><span class="l1">${lbl.l1}</span><span class="l2">${lbl.l2}</span></div>
-    ${logo ? `<div class="logo-wrap"><img src="${logo}" class="logo"/></div>` : ''}
-  </div>
-  <div class="card">
-    <div class="inner">
-      <div class="row">
-        <div class="icone">${urgente ? '🚨' : '⚠'}</div>
-        <span class="titulo">${urgente ? 'URGENTE!' : 'ATENÇÃO!'}</span>
-      </div>
-      <div class="hl">${hook}</div>
-      <div class="corpo">Fonte: ${fonte}</div>
-      <div class="acento">${urgente ? 'Isso não pode ficar sem resposta!' : 'Até quando vamos aceitar isso?'}</div>
-    </div>
-    <div class="barra">
-      <span class="barra-txt">DEUS, PÁTRIA E FAMÍLIA — SEMPRE.</span>
-      <div class="barra-dir">
-        <div class="barra-nome">CAPITÃO ROBERTO BRAGA</div>
-        <div class="barra-cargo">COMENTARISTA DO ALERTA PATRIOTA</div>
-      </div>
+  <div class="foto"></div>
+  <div class="grad"></div>
+  <div class="badge">${badge}</div>
+  ${logo ? `<img src="${logo}" class="logo"/>` : ''}
+  <div class="hook">${hookUpper}</div>
+  <div class="footer">
+    <div class="f-left">DEUS, PÁTRIA E FAMÍLIA</div>
+    <div class="f-right">
+      <div class="f-nome">CAPITÃO ROBERTO BRAGA</div>
+      <div class="f-cargo">ALERTA PATRIOTA</div>
     </div>
   </div>
 </body></html>`;
