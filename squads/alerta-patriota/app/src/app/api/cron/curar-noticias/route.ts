@@ -53,9 +53,16 @@ const TEMAS_EXCLUIR = [
   // Trânsito / acidente / polícia (sem contexto político)
   "motociclista", "acidente na", "engavetamento", "batida na",
   "morte no trânsito", "atropelamento",
-  // Outros irrelevantes
-  "receita de", "saúde e bem-estar", "dieta", "emagrecimento",
+  // Saúde e medicina sem contexto político
+  "lipogênese", "oncologia", "pancreátic", "farmacêutica não quer",
+  "gordura que", "emagrecimento", "dieta", "nutrição", "alimento saudável",
+  "suplemento", "vitamina", "câncer de", "tumor", "pressão alta",
+  "diabetes", "colesterol", "remédio caseiro", "receita de",
+  "saúde e bem-estar", "bem-estar", "culinária",
+  // Moda e comportamento
   "horóscopo", "astrologia", "moda e beleza",
+  "mulher é impedida", "mulher brasileira foi impedida",
+  "roupa que", "biquíni na",
 ];
 
 function ehEsporteOuEntretenimento(titulo: string): boolean {
@@ -85,10 +92,14 @@ async function classificarComClaude(noticias: Array<{ id: number; titulo: string
       max_tokens: 200,
       messages: [{
         role: "user",
-        content: `Você é um curador de notícias para um público conservador e patriota brasileiro.
-Das notícias abaixo, selecione os números das 3 mais relevantes e impactantes para esse público.
-Priorize: STF, governo Lula, impostos, família, segurança, corrupção, soberania.
-Responda APENAS com os números separados por vírgula. Ex: 2,5,7
+        content: `Você é um curador de notícias POLÍTICAS para um público conservador e patriota brasileiro.
+
+SELECIONE apenas as 3 notícias sobre: STF, governo federal, Lula, impostos, deputados conservadores, Congresso, votações, corrupção, segurança pública, soberania nacional, economia política, censura, família, liberdade religiosa, Bolsonaro, Nikolas, Eduardo Bolsonaro.
+
+REJEITE completamente notícias sobre: saúde, medicina, dieta, ciência, esporte, celebridade, entretenimento, moda, comportamento, tecnologia sem relação política, animais, culinária.
+
+Das notícias abaixo, responda APENAS com os números das 3 selecionadas, separados por vírgula. Ex: 2,5,7
+Se não houver 3 políticas, responda com as que houver.
 
 ${lista}`,
       }],
