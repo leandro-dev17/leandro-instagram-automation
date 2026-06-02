@@ -496,8 +496,27 @@ async function generateImage(prompt, outputPath, topicHint) {
 
     if (attempt > 1) console.log(`  [QC] Tentativa ${attempt}/${MAX_ATTEMPTS} — regenerando...`);
 
-    // 1. Gera imagem
-    const imageUrl = await generateOnce(apiKey, fullPrompt);
+    // 1. Gera imagem — com retry para erros temporários do serviço (flag 3)
+    let imageUrl;
+    let geracaoOk = false;
+    for (let kieAttempt = 1; kieAttempt <= 3; kieAttempt++) {
+      try {
+        imageUrl = await generateOnce(apiKey, fullPrompt);
+        geracaoOk = true;
+        break;
+      } catch (err) {
+        const isTransient = err.message.includes('flag 3') || err.message.includes('internal error') || err.message.includes('try again');
+        if (isTransient && kieAttempt < 3) {
+          const delay = kieAttempt * 30000; // 30s, 60s
+          console.log(`  [KIE] Erro temporário (tentativa ${kieAttempt}/3): ${err.message.slice(0, 80)}`);
+          console.log(`  [KIE] Aguardando ${delay / 1000}s antes de tentar novamente...`);
+          await new Promise(r => setTimeout(r, delay));
+        } else {
+          throw err; // erro não-temporário ou esgotou retries KIE
+        }
+      }
+    }
+    if (!geracaoOk) continue; // não deveria chegar aqui, mas por segurança
 
     // 2. Baixa para arquivo temporário
     const tmpPath = outputPath.replace(/\.png$/, `_tmp${attempt}.png`);
