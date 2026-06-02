@@ -348,6 +348,8 @@ jobs:
         working-directory: squads/leandro-instagram/automation
         env:
           TEMP_DIR: /tmp/bionexus_render
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
   # ── 05:30 BRT — Fiscal de Cronograma ───────────────────────────────────────
   fiscal-cronograma:

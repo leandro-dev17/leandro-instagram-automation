@@ -34,6 +34,7 @@ const { execSync }   = require('child_process');
 
 const { uploadVideo }                             = require('./lib/cloudinary.cjs');
 const { publishReel, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
+const { lerTrackingCompleto, salvarTracking }     = require('./lib/tracking-github.cjs');
 const { publishShort }                            = require('./lib/youtube.cjs');
 const { notifyReel, notifyError }                 = require('./lib/telegram.cjs');
 
@@ -102,13 +103,13 @@ function syncPoolFromDisk() {
   }
 }
 
-// ── Retorna histórico de uso dos últimos N dias ─────────────────────────────────
-function getRecentUsage(days = 14) {
+// ── Retorna histórico de uso dos últimos N dias (lê do GitHub para diversidade real) ──
+async function getRecentUsage(days = 14) {
   const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
   const usage = {}; // { videoId: lastUsedDate }
-  if (!fs.existsSync(trackingFile)) return usage;
   try {
-    const tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8'));
+    // Usa lerTrackingCompleto para obter histórico real do GitHub (não só local)
+    const tracking = await lerTrackingCompleto(trackingFile);
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     for (const [dateStr, posts] of Object.entries(tracking)) {
@@ -122,9 +123,10 @@ function getRecentUsage(days = 14) {
 }
 
 // ── Escolhe o vídeo ideal: grade semanal + diversidade de modelo + anti-repetição ─
-function pickBestVideo(requestedId, theme) {
+// NOTA: virou async porque getRecentUsage agora lê do GitHub
+async function pickBestVideo(requestedId, theme) {
   syncPoolFromDisk();
-  const usage   = getRecentUsage(21);
+  const usage   = await getRecentUsage(21);
   const today   = new Date().toISOString().slice(0, 10);
   const weekday = new Date(today + 'T12:00:00').getDay();
   const preferred = WEEKLY_SCHEDULE[weekday] || {};
@@ -134,13 +136,11 @@ function pickBestVideo(requestedId, theme) {
     return Math.round((new Date(today) - new Date(usage[videoId])) / 86400000);
   }
 
-  // Coleta modelos e estilos usados nos últimos 3 dias para evitar repetição visual
+  // Coleta modelos e estilos usados nos últimos 3 dias (usa tracking completo do GitHub)
   const recentModels = new Set();
   const recentStyles = new Set();
-  const tracking = (() => {
-    const f = path.join(LOGS_DIR, 'published-posts.json');
-    try { return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : {}; } catch { return {}; }
-  })();
+  const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
+  const tracking = await lerTrackingCompleto(trackingFile);
   const sortedDates = Object.keys(tracking).sort().slice(-3);
   for (const d of sortedDates) {
     const vid = tracking[d]?.['kling-reel']?.videoId;
@@ -186,8 +186,8 @@ function pickBestVideo(requestedId, theme) {
 }
 
 // ── Auto-gera novo vídeo em background se pool diverso estiver esgotado ──────────
-function schedulePoolRefresh() {
-  const usage = getRecentUsage(7);
+async function schedulePoolRefresh() {
+  const usage = await getRecentUsage(7);
   // Conta apenas vídeos priority 2 (diversas) disponíveis no disco e não usados recentemente
   const diverseAvailable = VIDEO_POOL.filter(v => v.priority === 2 && fs.existsSync(path.join(POOL_DIR, v.file)));
   const freshDiverse = diverseAvailable.filter(v => !usage[v.id]);
@@ -234,8 +234,8 @@ function findDayPlan(dateStr) {
   return null;
 }
 
-function resolveVideoPath(videoId, theme) {
-  const best = pickBestVideo(videoId, theme);
+async function resolveVideoPath(videoId, theme) {
+  const best = await pickBestVideo(videoId, theme);
   const p = path.join(POOL_DIR, best.file);
   if (best.id !== videoId) {
     log(`  🔄 Substituído: "${videoId}" → "${best.id}" (melhor opção para evitar repetição)`);
@@ -243,15 +243,14 @@ function resolveVideoPath(videoId, theme) {
   return { path: p, videoId: best.id };
 }
 
-function savePublished(dateStr, data) {
+async function savePublished(dateStr, data) {
   const trackingFile = path.join(LOGS_DIR, 'published-posts.json');
-  let tracking = {};
-  if (fs.existsSync(trackingFile)) {
-    try { tracking = JSON.parse(fs.readFileSync(trackingFile, 'utf8')); } catch {}
-  }
+  // Lê tracking completo do GitHub para não sobrescrever entradas de outros jobs
+  let tracking = await lerTrackingCompleto(trackingFile);
   if (!tracking[dateStr]) tracking[dateStr] = {};
   tracking[dateStr]['kling-reel'] = { ...data, publishedAt: new Date().toISOString() };
-  fs.writeFileSync(trackingFile, JSON.stringify(tracking, null, 2));
+  // Salva local E commita no GitHub
+  await salvarTracking(trackingFile, tracking);
 }
 
 // ── Gerador de hook provocativo via Claude ──────────────────────────────────────
@@ -503,16 +502,16 @@ async function main() {
   log(`Kling Reel Publisher — ${dateStr}`);
   log('═══════════════════════════════════════════');
 
-  // Verifica se já foi publicado hoje (evita 2ª execução via StartWhenAvailable)
+  // Verifica se já foi publicado hoje — lê do GITHUB para pegar publicações de outros jobs
   const trackingFilePath = path.join(LOGS_DIR, 'published-posts.json');
-  if (fs.existsSync(trackingFilePath)) {
-    try {
-      const existing = JSON.parse(fs.readFileSync(trackingFilePath, 'utf8'));
-      if (existing[dateStr]?.['kling-reel']) {
-        log(`⚠ Kling reel já publicado hoje às ${existing[dateStr]['kling-reel'].publishedAt} (ID: ${existing[dateStr]['kling-reel'].postId}). Abortando para evitar duplicata.`);
-        process.exit(0);
-      }
-    } catch {}
+  try {
+    const existingTracking = await lerTrackingCompleto(trackingFilePath);
+    if (existingTracking[dateStr]?.['kling-reel']) {
+      log(`⚠ Kling reel já publicado hoje às ${existingTracking[dateStr]['kling-reel'].publishedAt} (ID: ${existingTracking[dateStr]['kling-reel'].postId}). Abortando para evitar duplicata.`);
+      process.exit(0);
+    }
+  } catch (err) {
+    log(`⚠ Erro ao verificar tracking no GitHub: ${err.message} — continuando`);
   }
 
   // 1. Carrega plano do dia
@@ -536,11 +535,11 @@ async function main() {
   log(`Vídeo solicitado: ${reelKling.video_id}`);
 
   // 2. Seleciona melhor vídeo (anti-repetição) e localiza no pool
-  const { path: poolVideoPath, videoId: chosenVideoId } = resolveVideoPath(reelKling.video_id, reelKling.topic);
+  const { path: poolVideoPath, videoId: chosenVideoId } = await resolveVideoPath(reelKling.video_id, reelKling.topic);
   log(`Pool: ${poolVideoPath}`);
 
   // Dispara geração de novos vídeos em background se pool estiver ficando sem frescos
-  schedulePoolRefresh();
+  await schedulePoolRefresh();
 
   if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
 
@@ -623,7 +622,7 @@ async function main() {
   await notifyReel('kling', reelKling.topic, postId, dateStr, youtubeId);
 
   // 11. Rastreamento
-  savePublished(dateStr, {
+  await savePublished(dateStr, {
     postId,
     youtubeId,
     type: 'kling-reel',
