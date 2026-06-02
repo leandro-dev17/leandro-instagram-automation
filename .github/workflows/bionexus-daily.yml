@@ -11,7 +11,7 @@ on:
     - cron: '0 16 * * *'     # 13:00 BRT — Fiscal de Horários (detecta falhas da manhã)
     - cron: '59 14 * * *'    # 11:59 BRT — Reel Kling
     - cron: '0 18 * * *'     # 15:00 BRT — Carrossel (7 slides)
-    - cron: '30 20 * * *'    # 17:30 BRT — Reel Dica do Personal
+    - cron: '30 20 * * 0,1,3,5'  # 17:30 BRT Seg/Qua/Sex/Dom — Reel Receita (4x/semana)
     - cron: '0 22 * * *'     # 19:00 BRT — Fiscal de Publicações (detecta falhas + recuperação)
     - cron: '45 23 * * *'    # 20:45 BRT — Relatório Diário (resumo do dia)
     - cron: '50 23 * * *'    # 20:50 BRT — Backup de Publicações (histórico no GitHub)

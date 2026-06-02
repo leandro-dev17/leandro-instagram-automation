@@ -156,17 +156,25 @@ async function pickBestVideo(requestedId, theme) {
   const priority2Available = available.filter(v => (v.priority || 1) === 2);
   const pool = priority2Available.length > 0 ? priority2Available : available;
 
-  // Sistema de pontuação — aplicado apenas ao pool filtrado (priority 2 ou todos se não houver)
+  // Rotação por data: garante vídeo diferente a cada dia mesmo sem histórico
+  // Evita que o WEEKLY_SCHEDULE seja o único diferenciador quando tracking está vazio
+  const dateDayNum  = Math.floor(Date.now() / 86400000); // dias desde epoch
+  const poolSize    = pool.length;
+
   const themeLower = (theme || '').toLowerCase();
-  const scored = pool.map(v => {
+  const scored = pool.map((v, poolIdx) => {
     let score = 0;
-    score += daysSinceUsed(v.id) * 3;                             // +3 por dia sem uso (aumentado)
-    if (v.model === preferred.model) score += 50;                  // +50 se é a modelo do dia (aumentado)
-    if (v.style === preferred.style) score += 25;                  // +25 se é o estilo do dia (aumentado)
+    score += daysSinceUsed(v.id) * 3;                             // +3 por dia sem uso
+    // WEEKLY_SCHEDULE: bônus reduzido — apenas tiebreaker, não dominante
+    if (v.model === preferred.model) score += 10;                  // +10 (era +50) — preferência fraca
+    if (v.style === preferred.style) score += 5;                   // +5 (era +25) — preferência fraca
     if (recentModels.has(v.model)) score -= 60;                    // -60 se modelo apareceu nos últimos 3 dias
     if (recentStyles.has(v.style)) score -= 30;                    // -30 se estilo apareceu nos últimos 3 dias
-    if (daysSinceUsed(v.id) < 7) score -= 20;                     // -20 se usado na última semana (reduzido)
+    if (daysSinceUsed(v.id) < 7) score -= 20;                     // -20 se usado na última semana
     if (v.tags.some(t => themeLower.includes(t))) score += 15;    // +15 por compatibilidade de tema
+    // Rotação diária: cada dia tem um vídeo "preferido" diferente baseado na data
+    // Garante variedade mesmo quando todos estão igualmente "frescos"
+    if (dateDayNum % poolSize === poolIdx) score += 30;            // +30 para o vídeo da vez
     return { entry: v, score };
   });
 
