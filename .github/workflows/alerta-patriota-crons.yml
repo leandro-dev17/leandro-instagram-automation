@@ -12,6 +12,10 @@ on:
     - cron: '0 */2 * * *'
     # Tereza Termômetro — todo domingo às 23h UTC (20h BRT)
     - cron: '0 23 * * 0'
+    # Davi Dossiê PDF Elite — todo sábado às 13h UTC (10h BRT)
+    - cron: '0 13 * * 6'
+    # Análise Semanal VIP — toda segunda às 10h UTC (7h BRT)
+    - cron: '0 10 * * 1'
   workflow_dispatch:
     inputs:
       etapa:
@@ -478,6 +482,11 @@ jobs:
           sleep 5
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/escalar-claude" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
+      - name: Sequência Não-Conversão — E-mails automáticos para leads
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/sequencia-nao-conversao" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
   # ── FASE 4 — BACKUP DIÁRIO (às 3h BRT = 6h UTC) ──────────────────────────
   backup:
     name: Bruno Backup — Snapshot diário
@@ -598,3 +607,63 @@ jobs:
             -d "parse_mode=Markdown" \
             --data-urlencode "text=❌ *FALHA — Tereza Termômetro*
           Erro ao gerar/enviar o Termômetro da Liberdade. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  # ── FASE 2 — DAVI DOSSIÊ PDF ELITE (sábados 10h BRT = 13h UTC) ──────────
+  dossie-elite:
+    name: Davi Dossiê — PDF Semanal Elite (sábados)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 13 * * 6' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
+      - name: Instalar Chromium para Puppeteer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y chromium-browser
+          echo "PUPPETEER_EXEC_PATH=$(which chromium-browser)" >> $GITHUB_ENV
+          echo "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true" >> $GITHUB_ENV
+      - name: Instalar dependências
+        run: npm install
+        working-directory: squads/alerta-patriota/automation
+      - name: Gerar e enviar Dossiê PDF ao grupo Elite
+        working-directory: squads/alerta-patriota/automation
+        env:
+          DATABASE_URL:          ${{ secrets.ALERTA_DB_URL }}
+          EVOLUTION_API_URL:     https://evolution-api-production-8be2.up.railway.app
+          EVOLUTION_API_KEY:     alertapatriota-token-2026
+          EVOLUTION_INSTANCIA:   alertapatriota
+          WPP_GROUP_ELITE:       120363426153474301@g.us
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          CLOUDINARY_CLOUD_NAME: demazkgy2
+          CLOUDINARY_API_KEY:    ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          NEXT_PUBLIC_APP_URL:   https://alertapatriota.vercel.app
+          PUPPETEER_EXEC_PATH:   ${{ env.PUPPETEER_EXEC_PATH }}
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+          TELEGRAM_BOT_TOKEN:    ${{ secrets.ALERTA_TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:      ${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}
+        run: node whatsapp-dossie.cjs
+      - name: Notificar Telegram — falha
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Davi Dossiê PDF*
+          Erro ao gerar o Dossiê Semanal Elite. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  # ── FASE 2 — ANÁLISE SEMANAL VIP (segundas 7h BRT = 10h UTC) ────────────
+  analise-semanal-vip:
+    name: Análise Semanal — Semana em Perspectiva VIP (segundas)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 10 * * 1' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Enviar Análise Semanal ao grupo VIP
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/analise-semanal-vip" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/analise-vip.json
+          echo "Resultado: $(cat /tmp/analise-vip.json)"
