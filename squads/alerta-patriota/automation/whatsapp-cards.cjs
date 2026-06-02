@@ -236,7 +236,9 @@ async function gerarHookeClaude(titulo, plano) {
     model: 'claude-haiku-4-5-20251001', max_tokens: 60,
     messages: [{ role: 'user', content: `${HOOK_PROMPTS[plano]}\n\nNOTÍCIA: "${titulo}"` }],
   });
-  return msg.content[0].type === 'text' ? msg.content[0].text.trim().replace(/["""]/g, '') : titulo;
+  return msg.content[0].type === 'text'
+    ? msg.content[0].text.trim().replace(/["""]/g, '').replace(/^#+\s*/, '')
+    : titulo;
 }
 
 async function gerarLegendaClaude(titulo, plano, fonte) {
