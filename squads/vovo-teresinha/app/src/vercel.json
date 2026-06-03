@@ -1,0 +1,74 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/fiscal-banco",
+      "schedule": "0 3 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/fiscal-diario",
+      "schedule": "0 6 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/fiscal-erros-api",
+      "schedule": "0 7 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/fiscal-login",
+      "schedule": "0 */6 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/fiscal-pagamentos",
+      "schedule": "0 8 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/trial-expirando",
+      "schedule": "0 10 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/agente-assinaturas",
+      "schedule": "0 2 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/push-diario",
+      "schedule": "0 12 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/criador-receitas",
+      "schedule": "0 1 * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    },
+    {
+      "path": "/api/cron/saude-pwa",
+      "schedule": "*/15 * * * *",
+      "headers": {
+        "Authorization": "Bearer ${CRON_SECRET}"
+      }
+    }
+  ]
+}
