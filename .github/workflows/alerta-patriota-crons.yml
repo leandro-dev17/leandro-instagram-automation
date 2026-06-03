@@ -4,8 +4,12 @@ on:
   schedule:
     # Coleta notícias 3x/dia (UTC = 9h, 15h, 21h = 6h, 12h, 18h BRT)
     - cron: '0 9,15,21 * * *'
-    # Radar político a cada 30min das 8h às 23h BRT (11h às 2h UTC)
+    # Radar político e fiscais a cada 30min das 8h às 23h BRT (11h às 2h UTC)
     - cron: '0,30 11-23,0,1,2 * * *'
+    # Bot Responder a cada 5min (horário ativo BRT = 11h-02h UTC)
+    - cron: '*/5 11-23,0,1,2 * * *'
+    # Gerentes a cada 10min (críticos — precisam de resposta rápida)
+    - cron: '*/10 * * * *'
     # VIP + Elite extras — 3 publicações adicionais (10h, 16h, 22h BRT = 13h, 19h, 1h UTC)
     - cron: '0 13,19,1 * * *'
     # Márcio Crise — verifica crise a cada 2h
@@ -351,17 +355,40 @@ jobs:
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-facebook" \
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
-  # ── BOT DE RESPOSTAS (a cada 5 min) ──────────────────────────────────────
+  # ── BOT DE RESPOSTAS (a cada 5min — resposta rápida aos membros VIP/Elite) ──
   bot-responder:
-    name: Bot Responder — VIP e Elite
+    name: Bot Responder — VIP e Elite (5min)
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '*/5 11-23,0,1,2 * * *' || github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 3
     steps:
       - name: Processar fila de respostas
         run: |
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/bot-responder" \
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── GERENTES (a cada 10min — resposta rápida a problemas críticos) ─────────
+  gerentes-rapidos:
+    name: Gerentes — Consolidação hierárquica (10min)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '*/10 * * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Coronel Técnico — Infraestrutura
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-tecnico" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      - name: Sargento Conteúdo — Pipeline e Cards
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-conteudo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      - name: Major Financeiro — Receita e Pagamentos
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-financeiro" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      - name: Capitã Clientes — Membros e Retenção
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-clientes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── FASE 4 — ENGAJAMENTO E RETENÇÃO (1x/dia às 9h BRT) ──────────────────
   engajamento:
