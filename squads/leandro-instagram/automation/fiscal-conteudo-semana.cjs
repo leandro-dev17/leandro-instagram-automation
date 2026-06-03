@@ -35,8 +35,7 @@ const path = require('path');
 
 const REPO         = process.env.GITHUB_REPOSITORY || 'leandro-dev17/leandro-instagram-automation';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const BOT_TOKEN    = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID      = process.env.TELEGRAM_CHAT_ID;
+const { salvarResultado } = require('./lib/fiscal-resultado.cjs');
 
 // Contagens mínimas esperadas por semana (7 dias)
 const MINIMOS = {
@@ -66,14 +65,7 @@ async function githubApi(endpoint) {
   return res.json();
 }
 
-async function enviarTelegram(msg) {
-  if (!BOT_TOKEN || !CHAT_ID) { console.log(msg.replace(/<[^>]+>/g, '')); return; }
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' }),
-  });
-}
+// Sem envio direto ao Telegram — o guardião aciona Claude que notifica
 
 async function main() {
   const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -124,23 +116,15 @@ async function main() {
   }
 
   if (problemas.length === 0 && avisos.length === 0) {
-    console.log('✅ Taxa de publicação OK — todos os tipos dentro do esperado.');
+    console.log('✅ Taxa de publicação OK.');
     return;
   }
 
-  const icone = problemas.length > 0 ? '🔴' : '🟡';
-  await enviarTelegram(
-    `${icone} <b>Fiscal Conteúdo Semanal — ${data}</b>\n\n` +
-    linhas.join('\n') +
-    (problemas.length > 0
-      ? '\n\n❌ <b>Conteúdo insuficiente esta semana:</b>\n' + problemas.map(p => `• ${p}`).join('\n')
-      : '') +
-    (avisos.length > 0
-      ? '\n\n⚠️ <b>Atenção:</b>\n' + avisos.map(a => `• ${a}`).join('\n')
-      : '') +
-    '\n\nVerifique os jobs em: github.com/' + REPO + '/actions'
-  );
-
+  salvarResultado('conteudo-semana', problemas, avisos, {
+    contagem, linhas,
+    instrucao: 'Verifique os jobs que falharam na semana em github.com/' + REPO + '/actions e dispare recuperação.',
+  });
+  console.log(linhas.join('\n'));
   if (problemas.length > 0) process.exit(1);
 }
 

@@ -30,10 +30,9 @@ const { lerTrackingCompleto } = require('./lib/tracking-github.cjs');
   }
 })();
 
-const BOT_TOKEN    = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID      = process.env.TELEGRAM_CHAT_ID;
-const LOGS_DIR     = path.join(__dirname, 'logs');
+const LOGS_DIR      = path.join(__dirname, 'logs');
 const TRACKING_FILE = path.join(LOGS_DIR, 'published-posts.json');
+const { salvarResultado } = require('./lib/fiscal-resultado.cjs');
 
 // Hooks de fallback conhecidos (gerados quando Claude falha)
 const HOOKS_FALLBACK = [
@@ -63,14 +62,7 @@ function verificarLinhas(hook) {
   return linhasLongas;
 }
 
-async function enviarTelegram(msg) {
-  if (!BOT_TOKEN || !CHAT_ID) { console.log(msg.replace(/<[^>]+>/g, '')); return; }
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' }),
-  });
-}
+// Sem envio direto ao Telegram — o guardião aciona Claude que notifica
 
 async function main() {
   const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -123,18 +115,16 @@ async function main() {
   }
 
   if (problemas.length === 0 && avisos.length === 0) {
-    console.log(`✅ Qualidade OK — ${klingComHook.length} hooks verificados, todos gerados pelo Claude.`);
+    console.log(`✅ Qualidade OK — ${klingComHook.length} hooks verificados.`);
     return;
   }
 
-  const icone = problemas.length > 0 ? '🔴' : '🟡';
-  await enviarTelegram(
-    `${icone} <b>Fiscal Hooks Kling — ${data}</b>\n\n` +
-    (problemas.length > 0 ? problemas.join('\n') + '\n\n' : '') +
-    (avisos.length > 0 ? avisos.join('\n') : '') +
-    (problemas.length > 0 ? '\n\n🤖 Problema crítico: escalando ao Claude Resolver' : '')
-  );
-
+  salvarResultado('hooks-kling', problemas, avisos, {
+    hooksVerificados: klingComHook.length,
+    fallbacksConsecutivos,
+    instrucao: 'Verifique se a ANTHROPIC_API_KEY está válida. Hook fallback significa que Claude falhou ao gerar o texto do reel.',
+  });
+  console.log([...problemas, ...avisos].join('\n'));
   if (problemas.length > 0) process.exit(1);
 }
 

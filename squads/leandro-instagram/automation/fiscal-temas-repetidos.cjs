@@ -51,14 +51,8 @@ const KEYWORDS = [
   'sono','descanso','recuperação',
 ];
 
-async function enviarTelegram(msg) {
-  if (!BOT_TOKEN || !CHAT_ID) { console.log(msg.replace(/<[^>]+>/g, '')); return; }
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' }),
-  });
-}
+const { salvarResultado } = require('./lib/fiscal-resultado.cjs');
+// Sem envio direto ao Telegram — o guardião aciona Claude que notifica
 
 function extrairKeywords(texto) {
   if (!texto) return new Set();
@@ -177,25 +171,20 @@ async function main() {
   console.log(`Temas salvos: ${temasUsados.janela28d.length} | Repetições: ${repeticoes.length}`);
 
   if (repeticoes.length === 0) {
-    console.log('✅ Diversidade de temas OK — nenhuma repetição detectada nos próximos 7 dias.');
+    console.log('✅ Diversidade de temas OK — nenhuma repetição detectada.');
     return;
   }
 
-  // Monta alerta com repetições encontradas
-  const linhas = repeticoes.slice(0, 5).map(r =>
-    `• <b>${r.tipo.toUpperCase()}</b> ${r.proximoData}:\n  "${r.proximoTema.slice(0, 60)}"\n  ↩️ Similar a ${r.anteriorData}: "${r.anteriorTema.slice(0, 50)}"\n  (palavras em comum: ${r.kw.join(', ')})`
+  console.log(`${repeticoes.length} repetição(ões) detectada(s) nos próximos 7 dias.`);
+
+  // Grava resultado para o guardião acionar Claude — não avisa Telegram diretamente
+  salvarResultado('temas-repetidos',
+    repeticoes.length > 10 ? [`${repeticoes.length} temas repetidos — schedule precisa ser revisado`] : [],
+    repeticoes.slice(0, 5).map(r => `${r.tipo} ${r.proximoData}: "${r.proximoTema.slice(0,50)}" similar a ${r.anteriorData}`),
+    { repeticoes, totalTemas: temasUsados.janela28d.length,
+      instrucao: 'Revise o weekly-planner para evitar temas similares em < 7 dias. Considere atualizar trending-topics.json.' }
   );
 
-  await enviarTelegram(
-    `🟡 <b>Fiscal Temas Repetidos — ${data}</b>\n\n` +
-    `${repeticoes.length} tema(s) repetido(s) nos próximos 7 dias:\n\n` +
-    linhas.join('\n\n') +
-    (repeticoes.length > 5 ? `\n\n...e mais ${repeticoes.length - 5} repetição(ões)` : '') +
-    '\n\n💡 Verifique o schedule em: squads/leandro-instagram/automation/schedule/'
-  );
-
-  // Só é crítico se houver muitas repetições EXATAS na próxima semana (> 10 com critério estrito)
-  // Fitness naturalmente revisita temas — não escala ao Claude por isso
   if (repeticoes.length > 10) process.exit(1);
 }
 

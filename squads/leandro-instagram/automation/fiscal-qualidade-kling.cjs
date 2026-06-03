@@ -30,10 +30,9 @@ const { lerTrackingCompleto } = require('./lib/tracking-github.cjs');
   }
 })();
 
-const BOT_TOKEN    = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID      = process.env.TELEGRAM_CHAT_ID;
-const LOGS_DIR     = path.join(__dirname, 'logs');
+const LOGS_DIR      = path.join(__dirname, 'logs');
 const TRACKING_FILE = path.join(LOGS_DIR, 'published-posts.json');
+const { salvarResultado } = require('./lib/fiscal-resultado.cjs');
 
 // Mapeamento videoId → modelo (para detectar repetição por modelo, não só por ID)
 const VIDEO_MODEL_MAP = {
@@ -52,14 +51,7 @@ function getModelFromVideoId(videoId) {
   return VIDEO_MODEL_MAP[num.padStart(2, '0')] || VIDEO_MODEL_MAP[num] || `desconhecido(${num})`;
 }
 
-async function enviarTelegram(msg) {
-  if (!BOT_TOKEN || !CHAT_ID) { console.log(msg.replace(/<[^>]+>/g, '')); return; }
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' }),
-  });
-}
+// Sem envio direto ao Telegram — o guardião aciona Claude que notifica o usuário
 
 async function main() {
   const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -134,24 +126,25 @@ async function main() {
     console.log(`Últimos ${ultimos7.length} klings | Modelos únicos: ${modelos7.join(', ')}`);
   }
 
-  // ── RESULTADO ─────────────────────────────────────────────────────────────
+  // ── RESULTADO — grava para o guardião, NÃO envia Telegram diretamente ────
   if (problemas.length === 0 && avisos.length === 0) {
     console.log('✅ Diversidade OK — nenhum problema detectado.');
-    return; // Sem alertas quando tudo está bem (evita spam)
+    return;
   }
 
-  const icone = problemas.length > 0 ? '🔴' : '🟡';
+  // Grava resultado: guardião lê e aciona Claude imediatamente na 1ª falha
+  const ultimos7  = klingEntries.slice(-7);
+  salvarResultado('qualidade-kling', problemas, avisos, {
+    klingEntries:    klingEntries.length,
+    modelos7:        [...new Set(ultimos7.map(([, p]) => getModelFromVideoId(p['kling-reel'].videoId)).filter(Boolean))],
+    ultimaPublicacao: klingEntries[klingEntries.length - 1]?.[0] || 'nunca',
+    instrucao:       'Verifique o tracking de kling em published-posts.json. Se modelos repetidos, o sistema de diversidade pode estar com bug.',
+  });
+
+  // Apenas log no console — Telegram fica com Claude
   const linhas = [...problemas, ...avisos];
+  console.log(linhas.map(l => l.replace(/<[^>]+>/g, '')).join('\n'));
 
-  await enviarTelegram(
-    `${icone} <b>Fiscal Qualidade Kling — ${data}</b>\n\n` +
-    linhas.join('\n\n') +
-    (problemas.length > 0
-      ? '\n\n🤖 Escalando para Claude Resolver...'
-      : '')
-  );
-
-  // Problemas críticos → exit 1 para o guardião escalar ao Claude Resolver
   if (problemas.length > 0) process.exit(1);
 }
 

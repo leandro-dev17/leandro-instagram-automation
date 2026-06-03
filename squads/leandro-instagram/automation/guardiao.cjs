@@ -371,31 +371,55 @@ async function auditoriaCompleta() {
     const critico = job.critico !== false; // publicações são críticas por padrão
     console.log(`[guardiao] ${job.label} — falha #${count} (${critico ? 'crítico' : 'qualidade'})`);
 
-    if (count < LIMITE_ALERTA_TELEGRAM) {
-      // 1ª-2ª falha: retry silencioso (publicações) ou apenas log (fiscais)
-      if (critico) {
-        console.log(`[guardiao] Retry silencioso para ${job.id}...`);
-        await dispararJob(job.id);
-      } else {
-        console.log(`[guardiao] Fiscal ${job.id} falhou — aguardando próxima execução automática`);
+    if (!critico) {
+      // ── FISCAL DE QUALIDADE: aciona Claude IMEDIATAMENTE na 1ª falha ────────
+      // O fiscal gravou o resultado em logs/fiscal-{nome}-resultado.json
+      // Claude analisa o problema específico e notifica o Leandro com diagnóstico
+      const nomeFiscal = job.id.replace('fiscal-', '');
+      const resultadoPath = path.join(LOGS_DIR, `fiscal-${nomeFiscal}-resultado.json`);
+      let dadosFiscal = { jobId: job.id, count };
+
+      try {
+        const { lerResultado } = require('./lib/fiscal-resultado.cjs');
+        const resultado = lerResultado(nomeFiscal);
+        if (resultado) dadosFiscal = { ...dadosFiscal, ...resultado };
+      } catch { /* usa contexto mínimo */ }
+
+      if (count === 1) {
+        // 1ª falha → Claude analisa e notifica
+        console.log(`[guardiao] Fiscal falhou — acionando Claude Resolver com contexto do problema...`);
+        await invocarClaudeResolver(
+          'falha_fiscal',
+          `Fiscal "${job.label}" detectou problema de qualidade. Analise o resultado e corrija se possível.`,
+          dadosFiscal
+        );
+      } else if (count === LIMITE_ALERTA_TELEGRAM) {
+        // 3ª falha → alerta direto (Claude pode estar falhando também)
+        await enviarTelegram(
+          `🟡 <b>Guardião — Fiscal ${job.label}</b>\n\nFalha #${count} — Claude não conseguiu resolver.\nVerifique manualmente.`
+        );
+      } else if (count >= LIMITE_CLAUDE_RESOLVER) {
+        // 4ª+ → força nova tentativa do Claude
+        await invocarClaudeResolver('falha_fiscal_persistente', `Fiscal "${job.label}" falhou ${count}x`, dadosFiscal);
       }
 
-    } else if (count === LIMITE_ALERTA_TELEGRAM) {
-      // 3ª falha: sempre alerta + retry
-      await enviarTelegram(
-        `🟡 <b>Guardião — ${critico ? 'Publicação' : 'Fiscal'}: ${job.label}</b>\n\n` +
-        `Falha #${count} (BRT ${job.janelaBRT})\n` +
-        `🔄 Retry automático sendo acionado...`
-      );
-      await dispararJob(job.id);
-
-    } else if (count >= LIMITE_CLAUDE_RESOLVER) {
-      // 4ª+ falha: Claude Resolver com contexto completo
-      await invocarClaudeResolver(
-        critico ? 'falha_job' : 'falha_fiscal',
-        `${critico ? 'Publicação' : 'Fiscal de qualidade'} "${job.label}" falhou ${count}x consecutivas`,
-        { jobId: job.id, count, conclusion: job.conclusion, critico }
-      );
+    } else {
+      // ── PUBLICAÇÃO CRÍTICA: lógica original ──────────────────────────────────
+      if (count < LIMITE_ALERTA_TELEGRAM) {
+        console.log(`[guardiao] Retry silencioso para ${job.id}...`);
+        await dispararJob(job.id);
+      } else if (count === LIMITE_ALERTA_TELEGRAM) {
+        await enviarTelegram(
+          `🟡 <b>Guardião — Publicação: ${job.label}</b>\n\nFalha #${count} (BRT ${job.janelaBRT})\n🔄 Retry acionado...`
+        );
+        await dispararJob(job.id);
+      } else if (count >= LIMITE_CLAUDE_RESOLVER) {
+        await invocarClaudeResolver(
+          'falha_job',
+          `Publicação "${job.label}" falhou ${count}x consecutivas`,
+          { jobId: job.id, count, conclusion: job.conclusion }
+        );
+      }
     }
   }
 
