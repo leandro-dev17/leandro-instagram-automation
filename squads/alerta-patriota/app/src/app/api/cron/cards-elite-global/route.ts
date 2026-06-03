@@ -45,11 +45,11 @@ async function dispararAgente(rota: string, secret: string) {
 }
 
 export async function GET(req: NextRequest) {
+  if (!verificarCronSecret(req)) {
+    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  }
+  const secret = req.headers.get("authorization") ?? "";
   try {
-    const secret = req.headers.get("authorization")?.replace("Bearer ", "") ?? "";
-    if (!verificarCronSecret(secret)) {
-      return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-    }
 
     // Tentativa 1 — busca notícia já pronta
     let noticia = await buscarProximaGlobal();

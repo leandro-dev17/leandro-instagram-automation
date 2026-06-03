@@ -80,9 +80,11 @@ export default function AdminConteudo() {
     setPublicando(id);
     setMsg(null);
     try {
-      const res = await fetch("/api/cron/publicar-noticias", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ""}` },
+      // Chama via rota admin (sem expor secret no frontend)
+      const res = await fetch("/api/admin/publicar-agora", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noticia_id: id }),
       });
       const d = await res.json();
       if (d.ok !== false) {

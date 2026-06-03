@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { sql } from "@/lib/db";
 import { getUsuarioLogado } from "@/lib/auth";
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Notícia não encontrada" }, { status: 404 });
     }
 
-    const token = crypto.randomUUID().replace(/-/g, "").substring(0, 16);
+    const token = randomUUID().replace(/-/g, "").substring(0, 16);
 
     await sql`
       INSERT INTO links_compartilhamento (usuario_id, noticia_id, token)
