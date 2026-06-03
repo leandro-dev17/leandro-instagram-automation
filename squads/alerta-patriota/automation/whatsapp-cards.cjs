@@ -525,13 +525,17 @@ async function main() {
       if (!PERSONAS[plano]) { console.log(`Plano inválido: ${plano}`); continue; }
       try {
         const hook = await processarPlano(plano, browser);
-        resultados.push({ plano, ok: true });
-        // Guarda o hook para FOMO (só 1 por rodada)
-        if (plano === 'vip'   && hook && !melhorHookVIP)   melhorHookVIP   = hook;
-        if (plano === 'elite' && hook && !melhorHookElite) melhorHookElite = hook;
+        // null = limite atingido ou sem notícia — NÃO é sucesso
+        if (hook !== null && hook !== undefined) {
+          resultados.push({ plano, ok: true, enviado: true });
+          if (plano === 'vip'   && !melhorHookVIP)   melhorHookVIP   = hook;
+          if (plano === 'elite' && !melhorHookElite) melhorHookElite = hook;
+        } else {
+          resultados.push({ plano, ok: false, enviado: false, erro: 'sem notícia ou limite diário atingido' });
+        }
       } catch (e) {
         console.error(`  ❌ Erro no plano ${plano}:`, e.message);
-        resultados.push({ plano, ok: false, erro: e.message });
+        resultados.push({ plano, ok: false, enviado: false, erro: e.message });
       }
     }
   } finally {
@@ -547,14 +551,27 @@ async function main() {
     await dispararFOMO(hookFOMO, planoFOMO);
   }
 
-  // Resumo no Telegram
-  const ok  = resultados.filter(r => r.ok).map(r => `✅ ${r.plano}`).join('\n');
-  const err = resultados.filter(r => !r.ok).map(r => `❌ ${r.plano}: ${r.erro?.substring(0,60)}`).join('\n');
+  // Resumo honesto no Telegram — só ✅ quando card foi realmente enviado
+  const enviados = resultados.filter(r => r.enviado);
+  const naoEnviados = resultados.filter(r => !r.enviado);
   const fomoTxt = planoFOMO ? `\n🔥 FOMO enviado (${planoFOMO})` : '';
 
-  await sendTelegram(
-    `🎨 *Cards Visuais — Alerta Patriota*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n${ok}${err ? '\n' + err : ''}${fomoTxt}`
-  );
+  if (enviados.length > 0) {
+    const okTxt = enviados.map(r => `✅ ${r.plano}`).join('\n');
+    const errTxt = naoEnviados.length > 0
+      ? '\n' + naoEnviados.map(r => `⏭️ ${r.plano}: ${r.erro?.substring(0,50)}`).join('\n')
+      : '';
+    await sendTelegram(
+      `🎨 *Cards Visuais — Alerta Patriota*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n${okTxt}${errTxt}${fomoTxt}`
+    );
+  } else {
+    // Nenhum card enviado — alerta real para investigar
+    await sendTelegram(
+      `⚠️ *Cards Visuais — NENHUM CARD ENVIADO*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n` +
+      naoEnviados.map(r => `⏭️ ${r.plano}: ${r.erro?.substring(0,60)}`).join('\n') +
+      '\n\nVerifique: limite diário, notícias disponíveis ou erro no script.'
+    );
+  }
 
   console.log('\n✅ Cards concluídos!');
 }
