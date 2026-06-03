@@ -141,24 +141,29 @@ function imgBase64(nome) {
 function fotoUrl(nome) { return imgBase64(nome); }
 function logoUrl()     { return imgBase64('logo.png'); }
 
-// Offset por grupo garante que cada grupo usa imagem DIFERENTE na mesma rodada
-const FOTO_OFFSET = { basico: 0, patriota: 3, vip: 6, elite: 0 };
-
-function escolherFoto(fotos, plano) {
-  // Cada grupo usa imagem diferente:
-  // - hora BRT diferencia publicações do mesmo dia
-  // - offset por plano garante que basico/patriota/vip nunca repetem a mesma
-  const agora = new Date();
-  const horaBRT = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })).getHours();
-  const inicioAno = new Date(agora.getFullYear(), 0, 0);
-  const diaDoAno  = Math.floor((agora - inicioAno) / 86400000);
-  const offset    = FOTO_OFFSET[plano] || 0;
-  return fotos[(diaDoAno * 24 + horaBRT + offset) % fotos.length];
+// Escolhe foto sequencialmente pelo total de publicações já enviadas para o grupo
+// Garante que cada notícia publicada usa a PRÓXIMA imagem disponível, sem repetição
+// Só repetem após esgotar todas as 9 imagens (ciclo completo)
+async function escolherFoto(fotos, plano) {
+  try {
+    const rows = await sql`
+      SELECT COUNT(*) as total FROM agentes_log
+      WHERE agente = 'gerador-card'
+        AND acao = ${`card_${plano}`}
+        AND status = 'sucesso'
+    `;
+    const totalPublicados = parseInt(rows[0].total) || 0;
+    return fotos[totalPublicados % fotos.length];
+  } catch {
+    // Fallback: usa hora atual se banco falhar
+    const h = new Date().getHours();
+    return fotos[h % fotos.length];
+  }
 }
 
-function gerarHTML(plano, hook, fonte, urgente) {
+async function gerarHTML(plano, hook, fonte, urgente) {
   const p = PERSONAS[plano];
-  const foto = fotoUrl(escolherFoto(p.fotos, plano));
+  const foto = fotoUrl(await escolherFoto(p.fotos, plano));
   const logo = logoUrl();
   const isElite = plano === 'elite';
 
@@ -462,7 +467,7 @@ async function processarPlano(plano, browser) {
   console.log(`  💡 Hook: "${hook}"`);
 
   // Renderiza HTML → PNG
-  const html = gerarHTML(plano, hook, fonte, n.urgente);
+  const html = await gerarHTML(plano, hook, fonte, n.urgente);
 
   // Imagens já estão em base64 no HTML — sem requests externos, sem file://
   // domcontentloaded é suficiente; aguardamos 1.5s para CSS pintar o background
