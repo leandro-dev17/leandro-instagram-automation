@@ -487,6 +487,83 @@ jobs:
           sleep 5
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/sequencia-nao-conversao" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
+      # ── NOVOS FISCAIS (13 agentes) ─────────────────────────────────────────
+      - name: Mateus Manchete — Fiscal de Pipeline
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-pipeline" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Sofia Stoque — Fiscal de Estoque de Notícias
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Roberto RSS — Fiscal de Fontes RSS
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-fontes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Pedro Pontual — Fiscal de Agendamento
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-agendamento" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Vera Verificação — Fiscal de Publicações Especiais
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-especiais" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Marcos MRR — Fiscal de Receita
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-mrr" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Tereza Trial — Fiscal de Trials
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-trials" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Carlos Cargo — Fiscal de Membros nos Grupos
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-grupos" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Inaê Inadimplência — Fiscal Financeiro
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-inadimplentes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Arturo Apis — Fiscal de APIs Externas
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-apis-externas" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Vitor Validador — Fiscal de Qualidade dos Resumos
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-qualidade-resumo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      # ── GERENTES (consolidação hierárquica, rodam por último) ──────────────
+      - name: Coronel Técnico — Gerente de Infraestrutura
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-tecnico" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Sargento Conteúdo — Gerente de Conteúdo
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-conteudo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Major Financeiro — Gerente Financeiro
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-financeiro" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Capitã Clientes — Gerente de Clientes
+        run: |
+          sleep 5
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-clientes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
   # ── FASE 4 — BACKUP DIÁRIO (às 3h BRT = 6h UTC) ──────────────────────────
   backup:
     name: Bruno Backup — Snapshot diário
