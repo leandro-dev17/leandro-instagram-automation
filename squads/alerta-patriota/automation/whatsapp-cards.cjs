@@ -141,20 +141,24 @@ function imgBase64(nome) {
 function fotoUrl(nome) { return imgBase64(nome); }
 function logoUrl()     { return imgBase64('logo.png'); }
 
-function escolherFoto(fotos) {
-  // Cada publicação usa uma imagem diferente, variando pelo horário
-  // Combina dia do ano + hora BRT → garante imagem diferente em cada slot do dia
-  // e que o mesmo slot não repita a mesma imagem nos dias seguintes
+// Offset por grupo garante que cada grupo usa imagem DIFERENTE na mesma rodada
+const FOTO_OFFSET = { basico: 0, patriota: 3, vip: 6, elite: 0 };
+
+function escolherFoto(fotos, plano) {
+  // Cada grupo usa imagem diferente:
+  // - hora BRT diferencia publicações do mesmo dia
+  // - offset por plano garante que basico/patriota/vip nunca repetem a mesma
   const agora = new Date();
   const horaBRT = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })).getHours();
   const inicioAno = new Date(agora.getFullYear(), 0, 0);
   const diaDoAno  = Math.floor((agora - inicioAno) / 86400000);
-  return fotos[(diaDoAno * 24 + horaBRT) % fotos.length];
+  const offset    = FOTO_OFFSET[plano] || 0;
+  return fotos[(diaDoAno * 24 + horaBRT + offset) % fotos.length];
 }
 
 function gerarHTML(plano, hook, fonte, urgente) {
   const p = PERSONAS[plano];
-  const foto = fotoUrl(escolherFoto(p.fotos));
+  const foto = fotoUrl(escolherFoto(p.fotos, plano));
   const logo = logoUrl();
   const isElite = plano === 'elite';
 
@@ -396,20 +400,55 @@ async function dispararFOMO(hook, planoExclusivo) {
 }
 
 // ── MAIN ───────────────────────────────────────────────────────────────────
+// Fontes generalistas que não devem ser publicadas
+const FONTES_EXCLUIR = ['metrópoles', 'metropoles', 'uol', 'globo', 'folha', 'estadão'];
+
+function ehFonteIrrelevante(fonte) {
+  const f = (fonte || '').toLowerCase();
+  return FONTES_EXCLUIR.some(s => f.includes(s));
+}
+
+// Limite diário de cards por grupo (evita publicar em excesso por testes/dispatches)
+const LIMITE_DIARIO = { basico: 3, patriota: 3, vip: 6, elite: 6 };
+
+async function jaAtingiuLimiteDiario(plano) {
+  try {
+    const rows = await sql`
+      SELECT COUNT(*) as total FROM agentes_log
+      WHERE agente = 'gerador-card'
+        AND acao = ${`card_${plano}`}
+        AND status = 'sucesso'
+        AND created_at > NOW() - INTERVAL '24 hours'
+    `;
+    const total = parseInt(rows[0].total);
+    const limite = LIMITE_DIARIO[plano] || 3;
+    if (total >= limite) {
+      console.log(`  ⏭️  ${plano} já atingiu limite de ${limite} cards nas últimas 24h (atual: ${total})`);
+      return true;
+    }
+    return false;
+  } catch { return false; }
+}
+
 async function processarPlano(plano, browser) {
   console.log(`\n  [${plano}] Buscando notícia...`);
   const groupJid = GROUP_IDS[plano];
   if (!groupJid) { console.log(`  ⚠️  Grupo ${plano} não configurado`); return; }
 
-  const isElite = plano === 'elite';
-  let rows;
-  if (plano === 'basico')   rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_basico=false AND resumo_braga IS NOT NULL AND global=false ORDER BY urgente DESC,created_at DESC LIMIT 1`;
-  if (plano === 'patriota') rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_patriota=false AND resumo_braga IS NOT NULL AND global=false ORDER BY urgente DESC,created_at DESC LIMIT 1`;
-  if (plano === 'vip')      rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_vip=false AND resumo_braga IS NOT NULL AND global=false ORDER BY urgente DESC,created_at DESC LIMIT 1`;
-  if (plano === 'elite')    rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_elite=false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC,global DESC,created_at DESC LIMIT 1`;
+  // Verifica limite diário — impede excesso por múltiplos workflow_dispatch
+  if (await jaAtingiuLimiteDiario(plano)) return null;
 
-  // Filtra notícias irrelevantes (esporte, celebridade, acidente etc)
-  const rowsFiltradas = (rows || []).filter(r => !ehConteudoIrrelevante(r.titulo));
+  let rows;
+  // Exclui Metrópoles e outras fontes generalistas diretamente no SQL
+  if (plano === 'basico')   rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_basico=false AND resumo_braga IS NOT NULL AND global=false AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'patriota') rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_patriota=false AND resumo_braga IS NOT NULL AND global=false AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'vip')      rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_vip=false AND resumo_braga IS NOT NULL AND global=false AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'elite')    rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_elite=false AND resumo_cavalcanti IS NOT NULL AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,global DESC,created_at DESC LIMIT 5`;
+
+  // Filtra título irrelevante E fonte generalista, pega a primeira válida
+  const rowsFiltradas = (rows || []).filter(r =>
+    !ehConteudoIrrelevante(r.titulo) && !ehFonteIrrelevante(r.fonte)
+  );
   if (!rowsFiltradas.length) { console.log(`  ⚠️  Sem notícia política disponível para ${plano}`); return; }
   const n = rowsFiltradas[0];
   const fonte = n.fonte || 'Alerta Patriota';
