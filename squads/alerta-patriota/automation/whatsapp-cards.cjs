@@ -418,17 +418,18 @@ const LIMITE_DIARIO = { basico: 3, patriota: 3, vip: 6, elite: 6 };
 
 async function jaAtingiuLimiteDiario(plano) {
   try {
+    // Conta cards enviados HOJE no fuso BRT (zera à meia-noite, não janela rolling)
     const rows = await sql`
       SELECT COUNT(*) as total FROM agentes_log
       WHERE agente = 'gerador-card'
         AND acao = ${`card_${plano}`}
         AND status = 'sucesso'
-        AND created_at > NOW() - INTERVAL '24 hours'
+        AND created_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo'
     `;
     const total = parseInt(rows[0].total);
     const limite = LIMITE_DIARIO[plano] || 3;
     if (total >= limite) {
-      console.log(`  ⏭️  ${plano} já atingiu limite de ${limite} cards nas últimas 24h (atual: ${total})`);
+      console.log(`  ⏭️  ${plano} já atingiu limite de ${limite} cards hoje (atual: ${total})`);
       return true;
     }
     return false;
