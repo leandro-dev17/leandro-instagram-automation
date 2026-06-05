@@ -5,9 +5,11 @@
  *
  * COMPORTAMENTO (ordem de verificação):
  *
- *  1. Header "x-vercel-cron: 1" presente (disparo automático do Vercel Cron):
+ *  1. Header "x-vercel-cron" presente com qualquer valor não-vazio
+ *     (disparo automático do Vercel Cron):
  *     → SEMPRE aceito. O Vercel injeta este header exclusivamente em disparos
  *       legítimos da sua infraestrutura de cron — não é forjável externamente.
+ *       Aceita "1" ou qualquer outro valor que o Vercel venha a usar.
  *       Não exige CRON_SECRET para disparos automáticos.
  *
  *  2. Header "x-vercel-cron" ausente (chamada manual / externa):
@@ -19,7 +21,7 @@
  *  O Vercel NÃO interpola variáveis de ambiente (${VAR}) dentro de campos
  *  "headers" do vercel.json. A string seria enviada literalmente como
  *  "Bearer ${CRON_SECRET}", causando 401 em todos os jobs.
- *  A autenticação primária em produção usa o header nativo "x-vercel-cron: 1",
+ *  A autenticação primária em produção usa o header nativo "x-vercel-cron",
  *  injetado automaticamente pelo Vercel em cada disparo de cron.
  *
  * CONFIGURAÇÃO RECOMENDADA:
@@ -42,7 +44,8 @@ export interface AuthResult {
  * Valida se a requisição possui autorização válida para crons.
  *
  * Aceita:
- *  - Header "x-vercel-cron: 1" (disparo automático do Vercel — sempre aceito)
+ *  - Header "x-vercel-cron" com qualquer valor não-vazio (disparo automático
+ *    do Vercel — sempre aceito, independente do valor exato do header)
  *  - Header "Authorization: Bearer <CRON_SECRET>" sozinho (chamadas manuais/externas)
  *
  * @param req     - NextRequest recebido pelo handler
@@ -52,14 +55,18 @@ export function cronAutorizado(req: NextRequest, context: string): AuthResult {
   const secret = process.env.CRON_SECRET;
   const isProd = process.env.NODE_ENV === "production";
 
-  const isVercelCron = req.headers.get("x-vercel-cron") === "1";
+  // Aceita qualquer valor não-vazio do header x-vercel-cron.
+  // O Vercel documenta o valor "1", mas a verificação estrita === "1" pode
+  // bloquear disparos legítimos caso o Vercel altere o valor em futuras versões.
+  // O header não é acessível nem forjável por chamadas externas — apenas a
+  // infraestrutura interna do Vercel o injeta.
+  const xVercelCronHeader = req.headers.get("x-vercel-cron");
+  const isVercelCron = typeof xVercelCronHeader === "string" && xVercelCronHeader.trim() !== "";
+
   const authHeader = req.headers.get("authorization") ?? "";
   const bearerValido = secret ? authHeader === `Bearer ${secret}` : false;
 
   // ── Disparo automático do Vercel Cron ─────────────────────────────────────
-  // O header x-vercel-cron:1 é injetado exclusivamente pela infraestrutura do
-  // Vercel — não é acessível nem forjável por chamadas externas. Basta ele para
-  // autenticar disparos legítimos de cron, independentemente de CRON_SECRET.
   if (isVercelCron) {
     if (!secret) {
       console.warn(
@@ -68,12 +75,16 @@ export function cronAutorizado(req: NextRequest, context: string): AuthResult {
           "e faça redeploy. Aceito via header nativo x-vercel-cron."
       );
     }
+    console.log(
+      `[${context}] ✅ Disparo legítimo do Vercel Cron (x-vercel-cron: "${xVercelCronHeader}").`
+    );
     return { ok: true };
   }
 
   // ── Chamada manual / externa (sem x-vercel-cron) ──────────────────────────
   if (secret) {
     if (bearerValido) {
+      console.log(`[${context}] ✅ Chamada manual autenticada via Bearer token.`);
       return { ok: true };
     }
 
