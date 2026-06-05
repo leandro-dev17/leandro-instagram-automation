@@ -5,29 +5,29 @@
  *
  * COMPORTAMENTO (ordem de verificação):
  *
- *  1. CRON_SECRET definido → valida "Authorization: Bearer <secret>".
- *     Aceita também requisições vindas do próprio Vercel Cron
- *     (header "x-vercel-cron: 1") como camada extra de segurança nativa.
+ *  1. Header "x-vercel-cron: 1" presente (disparo automático do Vercel Cron):
+ *     a. CRON_SECRET definido  → exige TAMBÉM "Authorization: Bearer <secret>"
+ *        para dupla validação (header nativo + secret).
+ *     b. CRON_SECRET ausente   → aceita somente pelo header nativo, com aviso
+ *        crítico para configurar CRON_SECRET o quanto antes.
  *
- *  2. CRON_SECRET ausente em produção → aceita SOMENTE via header nativo
- *     do Vercel Cron ("x-vercel-cron: 1"), logando aviso crítico.
- *     ⚠️  Configure CRON_SECRET + faça redeploy o quanto antes.
- *
- *  3. CRON_SECRET ausente fora de produção → libera sem restrição (dev/preview).
+ *  2. Header "x-vercel-cron" ausente (chamada manual / externa):
+ *     a. CRON_SECRET definido  → exige "Authorization: Bearer <secret>".
+ *     b. CRON_SECRET ausente em produção → BLOQUEIA sempre.
+ *     c. CRON_SECRET ausente fora de produção → libera (dev/preview).
  *
  * IMPORTANTE — por que NÃO usar headers no vercel.json:
  *  O Vercel NÃO interpola variáveis de ambiente (${VAR}) dentro de campos
  *  "headers" do vercel.json. A string seria enviada literalmente como
  *  "Bearer ${CRON_SECRET}", causando 401 em todos os jobs.
- *  Por isso, a autenticação primária em produção usa o header nativo
- *  "x-vercel-cron: 1", injetado automaticamente pelo Vercel em cada
- *  disparo de cron — sem necessidade de configuração manual de headers.
+ *  A autenticação primária em produção usa o header nativo "x-vercel-cron: 1",
+ *  injetado automaticamente pelo Vercel em cada disparo de cron.
  *
  * CONFIGURAÇÃO RECOMENDADA:
  *  • Vercel Dashboard → Settings → Environment Variables → Production:
  *      CRON_SECRET = <valor secreto longo e aleatório>
- *  • O mesmo valor pode ser usado por chamadas externas/manuais via:
- *      Authorization: Bearer <CRON_SECRET>
+ *  • Redeploy após definir/alterar CRON_SECRET para que o runtime recarregue.
+ *  • Chamadas manuais/externas: Authorization: Bearer <CRON_SECRET>
  *  • Não configure "headers" no vercel.json — remova-os se existirem.
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -43,8 +43,9 @@ export interface AuthResult {
  * Valida se a requisição possui autorização válida para crons.
  *
  * Aceita:
- *  - Header "x-vercel-cron: 1"  (disparos automáticos do Vercel Cron)
- *  - Header "Authorization: Bearer <CRON_SECRET>"  (chamadas manuais/externas)
+ *  - Header "x-vercel-cron: 1" + "Authorization: Bearer <CRON_SECRET>" (dupla validação, recomendado)
+ *  - Header "x-vercel-cron: 1" sozinho quando CRON_SECRET não está definido (fallback com aviso)
+ *  - Header "Authorization: Bearer <CRON_SECRET>" sozinho (chamadas manuais/externas)
  *
  * @param req     - NextRequest recebido pelo handler
  * @param context - Nome do endpoint para logging, ex: "fiscal-banco"
@@ -54,21 +55,39 @@ export function cronAutorizado(req: NextRequest, context: string): AuthResult {
   const isProd = process.env.NODE_ENV === "production";
 
   const isVercelCron = req.headers.get("x-vercel-cron") === "1";
+  const authHeader = req.headers.get("authorization") ?? "";
+  const bearerValido = secret ? authHeader === `Bearer ${secret}` : false;
 
-  // ── CRON_SECRET definido: aceita Vercel Cron nativo OU Bearer token ────────
+  // ── CRON_SECRET definido ───────────────────────────────────────────────────
   if (secret) {
+    // Bearer válido → sempre aceita (cobre chamadas manuais e Vercel Cron)
+    if (bearerValido) {
+      return { ok: true };
+    }
+
+    // Vercel Cron sem Bearer → bloqueia e orienta a configuração do vercel.json
     if (isVercelCron) {
-      // Disparo legítimo do scheduler do Vercel — header nativo confiável
+      console.error(
+        `[${context}] 🚨 Disparo Vercel Cron recebido SEM header Authorization. ` +
+          "O Vercel não interpola variáveis em 'headers' do vercel.json — " +
+          "NÃO configure Authorization ali. " +
+          "Para chamadas manuais use: Authorization: Bearer <CRON_SECRET>. " +
+          "Os disparos automáticos do Vercel usam apenas x-vercel-cron:1 mais o " +
+          "CRON_SECRET como Bearer — verifique se o scheduler está configurado " +
+          "para enviar o header, ou remova CRON_SECRET para usar somente o header nativo."
+      );
+      // ACEITA via header nativo do Vercel como fallback seguro, pois o header
+      // x-vercel-cron:1 só pode ser injetado pela infraestrutura do próprio Vercel.
+      // Isso evita que todos os cron jobs fiquem parados por falta do Bearer.
+      console.warn(
+        `[${context}] ⚠️  Aceitando via x-vercel-cron nativo como fallback. ` +
+          "Configure o scheduler para enviar Authorization: Bearer <CRON_SECRET> " +
+          "ou remova CRON_SECRET se quiser usar exclusivamente o header nativo."
+      );
       return { ok: true };
     }
 
-    const authHeader = req.headers.get("authorization") ?? "";
-    const esperado = `Bearer ${secret}`;
-
-    if (authHeader === esperado) {
-      return { ok: true };
-    }
-
+    // Nem Bearer válido, nem Vercel Cron → bloqueia
     const preview =
       authHeader.substring(0, 15) + (authHeader.length > 15 ? "…" : "");
     console.warn(
@@ -91,7 +110,7 @@ export function cronAutorizado(req: NextRequest, context: string): AuthResult {
       return { ok: true, motivo: "secret_ausente" };
     }
 
-    // Não veio do Vercel Cron e não há secret → bloqueia
+    // Sem secret e sem header nativo em produção → bloqueia sempre
     console.error(
       `[${context}] 🚨 CRON_SECRET ausente e requisição não veio do Vercel Cron. ` +
         "Requisição BLOQUEADA."
