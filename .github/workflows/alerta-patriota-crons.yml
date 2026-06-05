@@ -279,7 +279,10 @@ jobs:
         run: npm install
         working-directory: squads/alerta-patriota/automation
       - name: Instalar FFMPEG
-        run: sudo apt-get install -y ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
       - name: Publicar Story Bom Dia
         working-directory: squads/alerta-patriota/automation
         env:
@@ -305,7 +308,10 @@ jobs:
         with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
       - run: npm install
         working-directory: squads/alerta-patriota/automation
-      - run: sudo apt-get install -y ffmpeg
+      - name: Instalar FFMPEG
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
       - name: Publicar Reel de Notícias
         working-directory: squads/alerta-patriota/automation
         env:
