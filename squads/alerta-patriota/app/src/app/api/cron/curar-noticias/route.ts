@@ -97,12 +97,14 @@ async function classificarComClaude(noticias: Array<{ id: number; titulo: string
         role: "user",
         content: `Você é um curador de notícias POLÍTICAS para um público conservador e patriota brasileiro.
 
-SELECIONE apenas as 3 notícias sobre: STF, governo federal, Lula, impostos, deputados conservadores, Congresso, votações, corrupção, segurança pública, soberania nacional, economia política, censura, família, liberdade religiosa, Bolsonaro, Nikolas, Eduardo Bolsonaro.
+SELECIONE até 6 notícias sobre: STF, governo federal, Lula, impostos, deputados conservadores (Nikolas Ferreira, Eduardo Bolsonaro, Marco Feliciano, Damares Alves), Congresso, votações, corrupção, segurança pública, soberania nacional, economia política, censura, família, liberdade religiosa, Bolsonaro, empresários conservadores.
 
-REJEITE completamente notícias sobre: saúde, medicina, dieta, ciência, esporte, celebridade, entretenimento, moda, comportamento, tecnologia sem relação política, animais, culinária.
+INCLUA SEMPRE conteúdo de: Nikolas Ferreira, Eduardo Bolsonaro, Marco Feliciano, Damares Alves, Jovem Pan — mesmo que seja vídeo ou live.
 
-Das notícias abaixo, responda APENAS com os números das 3 selecionadas, separados por vírgula. Ex: 2,5,7
-Se não houver 3 políticas, responda com as que houver.
+REJEITE completamente notícias sobre: saúde, medicina, dieta, nutrição, ciência sem política, esporte, futebol, celebridade, entretenimento, moda, comportamento, culinária, receitas, bem-estar, animais, horóscopo, tecnologia sem relação política.
+
+Das notícias abaixo, responda APENAS com os números das selecionadas, separados por vírgula. Ex: 1,2,5,7
+Se não houver 6 políticas, selecione as que houver.
 
 ${lista}`,
       }],

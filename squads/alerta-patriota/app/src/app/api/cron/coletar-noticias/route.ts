@@ -23,17 +23,42 @@ const FONTES_BR = [
 
 // YouTube RSS dos canais dos principais deputados e figuras conservadoras
 // Coletado direto na fonte — não depende de portais mencionarem o nome deles
+// urgente=true: conteúdo deles é sempre prioridade máxima
 const FONTES_YOUTUBE_DEPUTADOS = [
-  { nome: "Nikolas Ferreira",  url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCcJiaqLbdHMZUKFABlqP2Kw" },
-  { nome: "Eduardo Bolsonaro", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCiKLz6Bqm_BKnBRFWfXv_3Q" },
-  { nome: "Marco Feliciano",   url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCf7LNrXhz2hOIHPbvYYLfbw" },
-  { nome: "Damares Alves",     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsLo154Krjwbt8ZoNiam149" },
-  { nome: "Jovem Pan News",    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvFBSKy7dUNvfMnAT_Rkwig" },
+  { nome: "Nikolas Ferreira",  url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCcJiaqLbdHMZUKFABlqP2Kw", urgente: true },
+  { nome: "Eduardo Bolsonaro", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCiKLz6Bqm_BKnBRFWfXv_3Q", urgente: true },
+  { nome: "Marco Feliciano",   url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCf7LNrXhz2hOIHPbvYYLfbw", urgente: true },
+  { nome: "Damares Alves",     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsLo154Krjwbt8ZoNiam149", urgente: true },
+  { nome: "Jovem Pan News",    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvFBSKy7dUNvfMnAT_Rkwig", urgente: false },
 ];
+
+function fixMojibake(s: string): string {
+  let result = "";
+  let i = 0;
+  while (i < s.length) {
+    const code = s.charCodeAt(i);
+    if ((code === 0xC2 || code === 0xC3) && i + 1 < s.length) {
+      const next = s.charCodeAt(i + 1);
+      if (next >= 0x80 && next <= 0xBF) {
+        result += String.fromCodePoint(((code & 0x1F) << 6) | (next & 0x3F));
+        i += 2;
+        continue;
+      }
+    }
+    result += s[i];
+    i++;
+  }
+  return result;
+}
 
 function extrairTag(xml: string, tag: string): string {
   const m = xml.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?<\\/${tag}>`, "s"));
-  return m ? m[1].trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#8217;/g, "'").replace(/&#8220;/g, '"').replace(/&#8221;/g, '"') : "";
+  if (!m) return "";
+  const texto = m[1].trim()
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&#8217;/g, "'").replace(/&#8220;/g, '"').replace(/&#8221;/g, '"')
+    .replace(/&nbsp;/g, " ").replace(/&#\d+;/g, "");
+  return fixMojibake(texto);
 }
 
 function extrairLink(item: string): string {
@@ -90,7 +115,7 @@ export async function GET(req: NextRequest) {
   try {
     // Coleta portais + YouTube dos deputados em paralelo
     const todasFontes = [
-      ...FONTES_BR,
+      ...FONTES_BR.map(f => ({ ...f, urgente: false })),
       ...FONTES_YOUTUBE_DEPUTADOS.map(f => ({ ...f, categoria: "politica" })),
     ];
 
@@ -104,8 +129,8 @@ export async function GET(req: NextRequest) {
           if (existe.length > 0) { duplicatas++; continue; }
 
           await sql`
-            INSERT INTO noticias (titulo, fonte, url, categoria, created_at)
-            VALUES (${n.titulo}, ${n.fonte}, ${n.url}, ${n.categoria}, NOW())
+            INSERT INTO noticias (titulo, fonte, url, categoria, urgente, created_at)
+            VALUES (${n.titulo}, ${n.fonte}, ${n.url}, ${n.categoria}, ${(n as { urgente?: boolean }).urgente ?? false}, NOW())
           `;
           coletadas++;
         } catch { erros++; }
