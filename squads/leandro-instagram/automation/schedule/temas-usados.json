@@ -1,131 +1,6 @@
 {
-  "geradoEm": "2026-06-05T15:17:55.252Z",
+  "geradoEm": "2026-06-06T13:58:06.981Z",
   "janela28d": [
-    {
-      "data": "2026-05-19",
-      "tipo": "carousel",
-      "tema": "Os 7 mitos mais perigosos que te impedem de treinar pesado (e o que a ciência realmente diz)",
-      "keywords": []
-    },
-    {
-      "data": "2026-05-19",
-      "tipo": "kling",
-      "tema": "Força não é privilégio de homem — é direito de mulher",
-      "keywords": [
-        "força"
-      ]
-    },
-    {
-      "data": "2026-05-20",
-      "tipo": "carousel",
-      "tema": "O guia científico completo: como treinar cada FASE do seu ciclo menstrual para resultados 3x melhores",
-      "keywords": [
-        "ciclo",
-        "fase",
-        "menstrual"
-      ]
-    },
-    {
-      "data": "2026-05-20",
-      "tipo": "kling",
-      "tema": "Cintura e hormônios: por que sua barriga incha em certas semanas",
-      "keywords": [
-        "hormônio",
-        "hormonio",
-        "cintura"
-      ]
-    },
-    {
-      "data": "2026-05-21",
-      "tipo": "carousel",
-      "tema": "Por que comer pouco te mantém gorda (e como aumentar comida E emagrecer)",
-      "keywords": [
-        "emagrecer"
-      ]
-    },
-    {
-      "data": "2026-05-21",
-      "tipo": "kling",
-      "tema": "Proteína é a chave para emagrecer e manter glúteo",
-      "keywords": [
-        "glúteo",
-        "gluteo",
-        "emagrecer",
-        "proteína",
-        "proteina"
-      ]
-    },
-    {
-      "data": "2026-05-22",
-      "tipo": "carousel",
-      "tema": "O protocolo científico para crescer glúteo sincronizado com seu ciclo menstrual",
-      "keywords": [
-        "glúteo",
-        "gluteo",
-        "ciclo",
-        "menstrual"
-      ]
-    },
-    {
-      "data": "2026-05-22",
-      "tipo": "kling",
-      "tema": "Pernas definidas e fortes: o segredo que ninguém te conta",
-      "keywords": [
-        "perna"
-      ]
-    },
-    {
-      "data": "2026-05-23",
-      "tipo": "carousel",
-      "tema": "Os 7 maiores mitos sobre treino de força que te mantêm fraca",
-      "keywords": [
-        "força"
-      ]
-    },
-    {
-      "data": "2026-05-23",
-      "tipo": "kling",
-      "tema": "Força não deixa mulher 'grande' — deixa PODEROSA",
-      "keywords": [
-        "força"
-      ]
-    },
-    {
-      "data": "2026-05-24",
-      "tipo": "carousel",
-      "tema": "O guia científico: o que comer em cada fase do ciclo menstrual para não sabotar seu emagrecimento",
-      "keywords": [
-        "emagrecimento",
-        "ciclo",
-        "fase",
-        "menstrual"
-      ]
-    },
-    {
-      "data": "2026-05-24",
-      "tipo": "kling",
-      "tema": "Você come como louca porque sua alimentação está errada para seu ciclo",
-      "keywords": [
-        "alimentação",
-        "ciclo"
-      ]
-    },
-    {
-      "data": "2026-05-25",
-      "tipo": "carousel",
-      "tema": "Por que seu metabolismo 'travou' e como ativar novamente",
-      "keywords": [
-        "metabolismo"
-      ]
-    },
-    {
-      "data": "2026-05-25",
-      "tipo": "kling",
-      "tema": "Seu metabolismo não está quebrado — você está comendo ERRADO",
-      "keywords": [
-        "metabolismo"
-      ]
-    },
     {
       "data": "2026-05-26",
       "tipo": "carousel",
@@ -378,7 +253,100 @@
         "carboidrato",
         "nutrição"
       ]
+    },
+    {
+      "data": "2026-06-09",
+      "tipo": "carousel",
+      "tema": "Por Que Contar Caloria Igual Todos os Dias Trava Seu Emagrecimento",
+      "keywords": [
+        "emagrecimento"
+      ]
+    },
+    {
+      "data": "2026-06-09",
+      "tipo": "kling",
+      "tema": "Nutrição Inteligente: Comendo Melhor, Não Menos",
+      "keywords": [
+        "nutrição"
+      ]
+    },
+    {
+      "data": "2026-06-10",
+      "tipo": "carousel",
+      "tema": "Core Forte = Postura Melhor = Metabolismo Acelerado (A Conexão que Ninguém Fala)",
+      "keywords": [
+        "metabolismo",
+        "core"
+      ]
+    },
+    {
+      "data": "2026-06-10",
+      "tipo": "kling",
+      "tema": "Ombro e Postura: A Chave para Metabolismo Acelerado",
+      "keywords": [
+        "metabolismo",
+        "ombro"
+      ]
+    },
+    {
+      "data": "2026-06-11",
+      "tipo": "carousel",
+      "tema": "O Guia Científico: Como seu Metabolismo Muda a Cada Fase do Ciclo Menstrual",
+      "keywords": [
+        "metabolismo",
+        "ciclo",
+        "fase",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-06-11",
+      "tipo": "kling",
+      "tema": "Metabolismo Feminino e Queima de Gordura Estratégica",
+      "keywords": [
+        "metabolismo",
+        "gordura"
+      ]
+    },
+    {
+      "data": "2026-06-12",
+      "tipo": "carousel",
+      "tema": "Por Que Seu Glúteo Não Cresce: O Guia Completo de Ativação Muscular Feminina",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-06-12",
+      "tipo": "kling",
+      "tema": "Glúteo em Ação: Rotação de Movimento e Força Feminina",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "força"
+      ]
+    },
+    {
+      "data": "2026-06-13",
+      "tipo": "carousel",
+      "tema": "A Fórmula Real de Proteína para Mulheres que Querem Emagrecer SEM Ficar com Fome",
+      "keywords": [
+        "emagrecer",
+        "proteína",
+        "proteina"
+      ]
+    },
+    {
+      "data": "2026-06-13",
+      "tipo": "kling",
+      "tema": "Nutrição Feminina: Proteína e Transformação Real",
+      "keywords": [
+        "proteína",
+        "proteina",
+        "nutrição"
+      ]
     }
   ],
-  "repeticoesDetectadas": 1
+  "repeticoesDetectadas": 2
 }
