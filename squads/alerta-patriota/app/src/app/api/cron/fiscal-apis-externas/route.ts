@@ -53,30 +53,28 @@ export async function GET(req: NextRequest) {
 
   const inicio = Date.now();
 
-  const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!;
-  const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY!;
-  const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET!;
+  const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "demazkgy2";
   const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL!;
   const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY!;
   const MERCADOPAGO_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN!;
   const BREVO_API_KEY = process.env.BREVO_API_KEY!;
 
   const resultados: ResultadoApi[] = await Promise.all([
-    testarApi("Cloudinary", () => {
-      const creds = Buffer.from(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`).toString("base64");
-      return fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/ping`, {
-        headers: { Authorization: `Basic ${creds}` },
-      });
-    }),
+    testarApi("Cloudinary", () =>
+      // Ping público — não requer autenticação
+      fetch(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/sample.jpg`, { method: "HEAD" })
+    ),
 
     testarApi("Evolution API", () =>
-      fetch(`${EVOLUTION_API_URL}/instance/fetchInstances`, {
+      // connectionState usa a chave da instância (não a global)
+      fetch(`${EVOLUTION_API_URL}/instance/connectionState/${process.env.EVOLUTION_INSTANCIA || "alertapatriota"}`, {
         headers: { apikey: EVOLUTION_API_KEY },
       })
     ),
 
     testarApi("Mercado Pago", () =>
-      fetch("https://api.mercadopago.com/v1/account/settlement_report/config", {
+      // /v1/users/me funciona com qualquer access_token válido
+      fetch("https://api.mercadopago.com/v1/users/me", {
         headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
       })
     ),

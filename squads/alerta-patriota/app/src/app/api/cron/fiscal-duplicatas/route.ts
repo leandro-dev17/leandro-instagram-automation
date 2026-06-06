@@ -29,9 +29,10 @@ export async function GET(req: NextRequest) {
         AND b.id > a.id
         AND b.enviado_at - a.enviado_at < INTERVAL '20 minutes'
         AND b.enviado_at > NOW() - INTERVAL '2 hours'
+        AND a.enviado_at > NOW() - INTERVAL '2 hours'
       JOIN grupos_whatsapp g ON g.id = a.grupo_id
-      WHERE a.enviado_at > NOW() - INTERVAL '2 hours'
       ORDER BY a.enviado_at DESC
+      LIMIT 20
     `;
 
     for (const dup of duplicatasTipo) {
