@@ -23,22 +23,19 @@
  *  Sem CRON_SECRET configurado em produção, o Vercel NÃO injeta o header,
  *  isVercelCron = false, e todos os crons caem no bloco de bloqueio → 401.
  *
- * SOLUÇÃO OBRIGATÓRIA (sem esta etapa o código nunca funcionará):
+ * ✅ SOLUÇÃO OBRIGATÓRIA (ação humana necessária no Vercel Dashboard):
  *  1. Acesse: Vercel Dashboard → [projeto] → Settings → Environment Variables
- *  2. Adicione: CRON_SECRET = <string longa e aleatória> (escopo: Production)
- *  3. Clique em "Save" e aguarde o redeploy automático (ou dispare manualmente)
- *  4. Após o redeploy, o Vercel passará a injetar "x-vercel-cron: 1" + o header
+ *  2. Adicione: CRON_SECRET = <string longa e aleatória, ex: openssl rand -hex 32>
+ *     Escopo: Production (e Preview se quiser testar lá também)
+ *  3. Clique em "Save"
+ *  4. Dispare um redeploy manual (Deployments → "..." → Redeploy) OU aguarde
+ *     o próximo deploy automático via git push.
+ *  5. Após o redeploy, o Vercel passará a injetar "x-vercel-cron: 1" +
  *     "Authorization: Bearer <CRON_SECRET>" automaticamente em cada disparo.
  *
- * NOTA IMPORTANTE sobre interpolação no vercel.json:
- *  O Vercel interpola variáveis de ambiente nos campos "headers" do vercel.json
- *  usando a sintaxe $NOME_VAR (sem chaves). Porém, para crons, o mecanismo
- *  nativo de autenticação via CRON_SECRET (header x-vercel-cron + Authorization)
- *  já é gerenciado automaticamente pelo Vercel — NÃO é necessário configurar
- *  "headers" manualmente no vercel.json para os crons.
- *
  * CHAMADAS MANUAIS / EXTERNAS (ex: curl, Postman, outro serviço):
- *  curl -H "Authorization: Bearer <CRON_SECRET>" https://seu-app.vercel.app/api/cron/fiscal-banco
+ *  curl -H "Authorization: Bearer <CRON_SECRET>" \
+ *       https://seu-app.vercel.app/api/cron/fiscal-banco
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -47,6 +44,28 @@ import { NextRequest } from "next/server";
 export interface AuthResult {
   ok: boolean;
   motivo?: "secret_ausente" | "header_invalido";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alerta de inicialização: dispara UMA VEZ no cold start se CRON_SECRET não
+// estiver definido em produção. Torna o problema imediatamente visível nos
+// logs do Vercel sem precisar esperar uma requisição chegar.
+// ─────────────────────────────────────────────────────────────────────────────
+if (
+  process.env.NODE_ENV === "production" &&
+  !process.env.CRON_SECRET
+) {
+  console.error(
+    "[cron-auth] 🚨 CONFIGURAÇÃO CRÍTICA AUSENTE: CRON_SECRET não está definido " +
+      "nas variáveis de ambiente de produção. " +
+      "CONSEQUÊNCIA: TODOS os cron jobs retornarão HTTP 401 pois o Vercel não " +
+      "injetará o header 'x-vercel-cron' sem esta variável. " +
+      "━━━ AÇÃO NECESSÁRIA ━━━ " +
+      "1) Vercel Dashboard → Settings → Environment Variables. " +
+      "2) Adicione CRON_SECRET = <valor aleatório seguro> — escopo: Production. " +
+      "3) Salve e execute um redeploy. " +
+      "Referência: https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"
+  );
 }
 
 /**
