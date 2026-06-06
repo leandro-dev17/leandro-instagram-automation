@@ -25,7 +25,8 @@
  *
  * ✅ SOLUÇÃO OBRIGATÓRIA (ação humana necessária no Vercel Dashboard):
  *  1. Acesse: Vercel Dashboard → [projeto] → Settings → Environment Variables
- *  2. Adicione: CRON_SECRET = <string longa e aleatória, ex: openssl rand -hex 32>
+ *  2. Adicione: CRON_SECRET = <string longa e aleatória>
+ *     Gere com: openssl rand -hex 32
  *     Escopo: Production (e Preview se quiser testar lá também)
  *  3. Clique em "Save"
  *  4. Dispare um redeploy manual (Deployments → "..." → Redeploy) OU aguarde
@@ -56,15 +57,24 @@ if (
   !process.env.CRON_SECRET
 ) {
   console.error(
-    "[cron-auth] 🚨 CONFIGURAÇÃO CRÍTICA AUSENTE: CRON_SECRET não está definido " +
-      "nas variáveis de ambiente de produção. " +
-      "CONSEQUÊNCIA: TODOS os cron jobs retornarão HTTP 401 pois o Vercel não " +
-      "injetará o header 'x-vercel-cron' sem esta variável. " +
-      "━━━ AÇÃO NECESSÁRIA ━━━ " +
-      "1) Vercel Dashboard → Settings → Environment Variables. " +
-      "2) Adicione CRON_SECRET = <valor aleatório seguro> — escopo: Production. " +
-      "3) Salve e execute um redeploy. " +
-      "Referência: https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"
+    "\n" +
+    "╔══════════════════════════════════════════════════════════════════╗\n" +
+    "║  [cron-auth] 🚨 CONFIGURAÇÃO CRÍTICA AUSENTE: CRON_SECRET       ║\n" +
+    "╠══════════════════════════════════════════════════════════════════╣\n" +
+    "║  CONSEQUÊNCIA: TODOS os cron jobs estão retornando HTTP 401.    ║\n" +
+    "║  O Vercel NÃO injeta o header 'x-vercel-cron' sem esta          ║\n" +
+    "║  variável definida nas Environment Variables do projeto.        ║\n" +
+    "╠══════════════════════════════════════════════════════════════════╣\n" +
+    "║  AÇÃO NECESSÁRIA (operador humano):                             ║\n" +
+    "║  1) Vercel Dashboard → [projeto] → Settings →                   ║\n" +
+    "║     Environment Variables                                       ║\n" +
+    "║  2) Adicione: CRON_SECRET = <valor aleatório seguro>            ║\n" +
+    "║     Gere com: openssl rand -hex 32                              ║\n" +
+    "║     Escopo: Production                                          ║\n" +
+    "║  3) Salve e execute um Redeploy manual.                         ║\n" +
+    "║  Ref: https://vercel.com/docs/cron-jobs/manage-cron-jobs        ║\n" +
+    "║       #securing-cron-jobs                                       ║\n" +
+    "╚══════════════════════════════════════════════════════════════════╝\n"
   );
 }
 
@@ -131,13 +141,12 @@ export function cronAutorizado(req: NextRequest, context: string): AuthResult {
   // ── CRON_SECRET ausente, sem header nativo ────────────────────────────────
   if (isProd) {
     console.error(
-      `[${context}] 🚨 CRON_SECRET ausente e requisição não veio do Vercel Cron. ` +
-        "━━━ AÇÃO NECESSÁRIA ━━━ " +
-        "1) Acesse Vercel Dashboard → Settings → Environment Variables. " +
-        "2) Adicione CRON_SECRET = <valor secreto aleatório> com escopo Production. " +
-        "3) Salve e aguarde o redeploy. " +
-        "Sem isso, o Vercel não injeta x-vercel-cron e TODOS os crons retornam 401. " +
-        "Requisição BLOQUEADA."
+      `[${context}] 🚨 BLOQUEADO — CRON_SECRET ausente e requisição não veio do Vercel Cron. ` +
+        "TODOS OS CRONS ESTÃO FALHANDO COM 401. " +
+        "AÇÃO NECESSÁRIA: Vercel Dashboard → Settings → Environment Variables → " +
+        "Adicione CRON_SECRET=<openssl rand -hex 32> com escopo Production → " +
+        "Salve → Redeploy. " +
+        "Ref: https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"
     );
     return { ok: false, motivo: "secret_ausente" };
   }
