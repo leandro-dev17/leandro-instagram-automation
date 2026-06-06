@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
       SELECT id, titulo, url
       FROM noticias
       WHERE resumo_braga IS NULL
-        AND global = false
+        AND (global IS NULL OR global = false)
         AND created_at >= NOW() - INTERVAL '8 hours'
       ORDER BY created_at DESC
       LIMIT 20
