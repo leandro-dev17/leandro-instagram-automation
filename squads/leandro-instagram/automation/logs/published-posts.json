@@ -1620,5 +1620,37 @@
       ],
       "publishedAt": "2026-06-06T16:02:00.740Z"
     }
+  },
+  "2026-06-07": {
+    "kling-reel": {
+      "postId": "17941690185230095",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Fase Folicular: Quando Seu Metabolismo Está Acelerado",
+      "videoId": "13-loira-curta-azul-angulo-baixo",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-06-07T16:05:52.072Z"
+    }
   }
 }
