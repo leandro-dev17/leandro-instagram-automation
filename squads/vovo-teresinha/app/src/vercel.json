@@ -1,4 +1,5 @@
 {
+  "_AVISO_GUARDIAO": "🚨 TODOS OS CRONS ESTÃO COM HTTP 401 — CAUSA: CRON_SECRET ausente no Vercel Dashboard. AÇÃO OBRIGATÓRIA: Vercel Dashboard → [projeto] → Settings → Environment Variables → Adicionar CRON_SECRET=<openssl rand -hex 32> com escopo Production → Save → Redeploy manual.",
   "crons": [
     {
       "path": "/api/cron/fiscal-banco",
