@@ -102,8 +102,13 @@ const PALAVRAS_EXCLUIR = [
   'câncer de','tumor','oncologia','pressão alta','diabetes','colesterol',
   'remédio caseiro','médico diz','estudo mostra','pesquisa revela',
   'exercício físico','musculação','academia','bem-estar','saúde e bem',
-  // Entretenimento e celebridades
-  'hospital','internado','internada','faleceu','morreu','obituário',
+  // Mortes de artistas / músicos / entretenimento
+  'falecimento','faleceu','morreu','obituário','morre o','morre a',
+  'morte do cantor','morte da cantora','morte do músico','morte do artista',
+  'lendário frontman','banda argentina','banda de rock','rock argentino',
+  'músico argentino','cantor argentino','artista argentino',
+  'roqueiro','frontman','los redonditos','indio solari',
+  'hospital','internado','internada',
   'celebridade','famoso','ator','atriz','cantor','cantora','show','novela',
   'fontenelle','xuxa','faustão','gkay','virgínia','influencer',
   // Esporte
@@ -300,21 +305,31 @@ async function gerarHookeClaude(titulo, plano) {
 }
 
 async function gerarLegendaClaude(titulo, plano, fonte) {
-  const hora = new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Sao_Paulo' });
-  const data = new Date().toLocaleDateString('pt-BR', { day:'numeric', month:'short', timeZone:'America/Sao_Paulo' });
-  const headers = {
-    basico:   `╔══════════════════╗\n║  🇧🇷 ALERTA BÁSICO  ║\n╚══════════════════╝\n_${data} · ${hora} · ${fonte}_\n`,
-    patriota: `╔══════════════════╗\n║  ⚡ ALERTA PATRIOTA ║\n╚══════════════════╝\n_${data} · ${hora} · ${fonte}_\n`,
-    vip:      `╔══════════════════╗\n║   🔥 VIP PREMIUM   ║\n╚══════════════════╝\n_${data} · ${hora} · ${fonte}_\n`,
-    elite:    `╔══════════════════╗\n║  🎖️  ELITE GLOBAL  ║\n╚══════════════════╝\n*Prof. Dr. Bernardo Cavalcanti*\n_${data} · ${hora} · ${fonte}_\n`,
+  // Prompts atualizados: sem cabeçalho artificial, texto direto como se a persona digitou
+  const legendaPrompts = {
+    basico: `Você é o Capitão Roberto Braga. Escreva 3-4 linhas diretamente sobre esta notícia, como se estivesse digitando para seus seguidores agora. Sem cabeçalho, sem data, sem nome de seção. Comece direto com o conteúdo. Termine com: Deus, Pátria e Família — sempre. Responda APENAS com o texto.`,
+    patriota: `Você é o Capitão Roberto Braga. Escreva 4-5 linhas sobre esta notícia: fato + comentário apaixonado. Sem cabeçalho, sem data. Comece direto. Termine com: Deus, Pátria e Família — sempre. Responda APENAS com o texto.`,
+    vip: `Você é o Capitão Roberto Braga. Escreva análise no formato:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🔍 *O QUE A MÍDIA ESCONDE*\n[2-3 linhas]\n\n🎯 *O QUE ISSO SIGNIFICA*\n[2-3 linhas]\n\nSem cabeçalho de seção antes. Termine com: Deus, Pátria e Família — sempre. Use *negrito*. Responda APENAS com o texto.`,
+    elite: `Você é o Prof. Bernardo Cavalcanti. Escreva análise no formato:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🌍 *MAPA GLOBAL*\n[2-3 linhas conectando a Milei, Trump, Orbán ou cenário internacional]\n\n🎯 *O QUE VOCÊ PRECISA SABER*\n[2-3 linhas sobre implicação]\n\nSem cabeçalho antes. Termine com: O mundo muda para quem enxerga antes. Use *negrito*. Responda APENAS com o texto.`,
   };
+
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001', max_tokens: 500,
-    messages: [{ role: 'user', content: `${LEGENDA_PROMPTS[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
+    messages: [{ role: 'user', content: `${legendaPrompts[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });
-  const corpo = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+  const corpo = msg.content[0].type === 'text'
+    ? msg.content[0].text.trim().replace(/^#+\s*/gm, '').replace(/\*\*/g, '*')
+    : '';
 
-  return `${headers[plano]}\n${corpo}`;
+  // Assinatura natural no final — sem caixa, sem data/hora
+  const assinaturas = {
+    basico:   `\n\n_Fonte: ${fonte}_`,
+    patriota: `\n\n_Fonte: ${fonte}_`,
+    vip:      `\n\n_Fonte: ${fonte}_`,
+    elite:    `\n\n_Prof. Bernardo Cavalcanti · Elite Global_\n_Fonte: ${fonte}_`,
+  };
+
+  return `${corpo}${assinaturas[plano]}`;
 }
 
 async function enviarImagemWPP(imageUrl, groupJid, legenda) {
@@ -446,9 +461,9 @@ async function processarPlano(plano, browser) {
 
   let rows;
   // Exclui Metrópoles e outras fontes generalistas diretamente no SQL
-  if (plano === 'basico')   rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_basico=false AND resumo_braga IS NOT NULL AND global=false AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
-  if (plano === 'patriota') rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_patriota=false AND resumo_braga IS NOT NULL AND global=false AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
-  if (plano === 'vip')      rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_vip=false AND resumo_braga IS NOT NULL AND global=false AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'basico')   rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_basico=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'patriota') rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_patriota=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'vip')      rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_vip=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
   if (plano === 'elite')    rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_elite=false AND resumo_cavalcanti IS NOT NULL AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,global DESC,created_at DESC LIMIT 5`;
 
   // Filtra título irrelevante E fonte generalista, pega a primeira válida

@@ -199,12 +199,6 @@ jobs:
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/resumir-noticias-global" \
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
-      - name: Paulo Elite — Publica no grupo Elite
-        run: |
-          sleep 90
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=elite" \
-            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-
       - name: Personagem da Semana (só segundas)
         run: |
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/personagem-semana" \
