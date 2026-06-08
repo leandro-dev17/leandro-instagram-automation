@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
         ORDER BY created_at DESC LIMIT 1
       ` as Promise<{ status: string; created_at: string }[]>,
       buscarUltimo("lisa-login"),
-      buscarUltimo("fiscal-api"),
+      buscarUltimo("andre-api"),        // corrigido: era "fiscal-api" (nome errado)
       buscarUltimo("wanderley-whatsapp"),
       buscarUltimo("bruna-banco"),
       buscarUltimo("felipe-fiscal"),

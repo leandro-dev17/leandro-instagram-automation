@@ -86,36 +86,33 @@ export async function GET(req: NextRequest) {
         AND created_at >= NOW() - INTERVAL '10 hours'
       ORDER BY
         CASE WHEN categoria = 'curada' THEN 0 ELSE 1 END,
+        urgente DESC,
         created_at DESC
-      LIMIT 5
+      LIMIT 15
     `;
 
     for (const noticia of pendentes) {
       try {
-        // Gera 4 versões em paralelo: 3 do Capitão Braga + 1 do Prof. Cavalcanti (para o Elite)
-        const [basico, patriota, vip, cavalcanti] = await Promise.all([
-          gerarResumo(noticia.titulo, noticia.url, PROMPT_BRAGA_BASICO),
-          gerarResumo(noticia.titulo, noticia.url, PROMPT_BRAGA_PATRIOTA),
+        // Gera 2 versões em paralelo: Braga (VIP — melhor qualidade) + Cavalcanti (Elite)
+        // Nota: todas as publicações Básico/Patriota/VIP usam resumo_braga na entrega
+        const [braga, cavalcanti] = await Promise.all([
           gerarResumo(noticia.titulo, noticia.url, PROMPT_BRAGA_VIP),
           gerarResumo(noticia.titulo, noticia.url, PROMPT_CAVALCANTI_ELITE),
         ]);
 
         await sql`
           UPDATE noticias
-          SET resumo_braga = ${vip},
+          SET resumo_braga = ${braga},
               resumo_cavalcanti = ${cavalcanti},
               categoria = COALESCE(NULLIF(categoria, 'curada'), categoria)
           WHERE id = ${noticia.id}
         `;
 
-        // Salva versões separadas em posts_whatsapp como rascunho
+        // Salva rascunhos em posts_whatsapp por grupo
         const grupoRows = await sql`SELECT id, plano FROM grupos_whatsapp WHERE ativo = true`;
 
         for (const grupo of grupoRows) {
-          const conteudo = grupo.plano === "basico" ? basico
-            : grupo.plano === "patriota" ? patriota
-            : grupo.plano === "elite" ? cavalcanti
-            : vip;
+          const conteudo = grupo.plano === "elite" ? cavalcanti : braga;
 
           await sql`
             INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status)

@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "alerta-patriota-secret";
 const COOKIE_NAME = process.env.COOKIE_NAME || "alerta-patriota-session";
 
 export function gerarToken(payload: { id: number; email: string; tipo: string }): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
 export function verificarToken(token: string): { id: number; email: string; tipo: string } | null {

@@ -66,7 +66,7 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
   // Log
   await sql`
     INSERT INTO agentes_log (agente, acao, status, detalhes)
-    VALUES ('augusto-assinaturas', 'ativar_acesso', 'sucesso', ${JSON.stringify({ usuarioId, plano, mpSubscriptionId })})
+    VALUES ('augusto-assinaturas', 'ativar_acesso', 'sucesso', ${JSON.stringify({ usuarioId, plano, mpSubscriptionId, dataId: mpSubscriptionId })})
   `;
 }
 
@@ -177,6 +177,18 @@ export async function POST(req: NextRequest) {
     const tipo = body.type as string;
     const dataId = body.data?.id as string | undefined;
     if (!dataId) return NextResponse.json({ ok: true });
+
+    // Rate limiting: rejeita o mesmo dataId processado nos últimos 5 minutos
+    const jaProcessado = await sql`
+      SELECT id FROM agentes_log
+      WHERE agente = 'augusto-assinaturas'
+        AND (detalhes->>'dataId') = ${dataId}
+        AND created_at > NOW() - INTERVAL '5 minutes'
+      LIMIT 1
+    `.catch(() => []);
+    if (jaProcessado.length > 0) {
+      return NextResponse.json({ ok: true, motivo: "duplicata ignorada" });
+    }
 
     if (tipo === "subscription_preapproval") {
       const preApprovalClient = new PreApproval(client);
