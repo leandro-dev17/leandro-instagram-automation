@@ -31,6 +31,7 @@ const FONTES_YOUTUBE_DEPUTADOS = [
   { nome: "Damares Alves",     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCUygDoaCJVidyeo9dQFQFnA", urgente: true, curada: true },
   { nome: "Gustavo Gayer",     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCbmVlqWD6lqn1Ur1Zv25IIg", urgente: true, curada: true },
   { nome: "Jair Bolsonaro",    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8hGUtfEgvvnp6IaHSAg1OQ", urgente: true, curada: true },
+  { nome: "Flávio Bolsonaro",  url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCl2HptoHv6PjZMQAwTdA--Q", urgente: true, curada: true },
   { nome: "Jovem Pan News",    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvFBSKy7dUNvfMnAT_Rkwig", urgente: false, curada: false },
 ];
 
