@@ -28,13 +28,13 @@ export async function GET(req: NextRequest) {
     const [{ total_assinaturas_ativas }] = await sql`
       SELECT COUNT(*)::int AS total_assinaturas_ativas
       FROM assinaturas
-      WHERE status = 'ativa'
+      WHERE status = 'ativo'
     `;
 
     const [{ receitas_24h }] = await sql`
       SELECT COUNT(*)::int AS receitas_24h
       FROM receitas
-      WHERE criada_em >= ${ontem}::timestamptz
+      WHERE created_at >= ${ontem}::timestamptz
     `;
 
     console.log(

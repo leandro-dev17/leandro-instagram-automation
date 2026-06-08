@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
 
     const vencidas = await sql`
       UPDATE assinaturas
-      SET status = 'inativa'
-      WHERE status = 'ativa'
+      SET status = 'cancelado'
+      WHERE status = 'ativo'
         AND renovada_em < ${agora}::timestamptz - INTERVAL '30 days'
       RETURNING id, usuario_id, renovada_em
     `;

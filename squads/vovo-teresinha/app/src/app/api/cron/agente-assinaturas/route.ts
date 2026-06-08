@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const ativasExpiradas = await sql`
       UPDATE assinaturas
       SET status = 'expirada'
-      WHERE status = 'ativa'
+      WHERE status = 'ativo'
         AND renovada_em < ${agora}::timestamptz - INTERVAL '30 days'
       RETURNING id, usuario_id, renovada_em
     `;

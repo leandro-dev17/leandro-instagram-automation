@@ -1,94 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
-import { cronAutorizado } from "@/lib/cron-auth";
+import { enviarTelegram } from "@/lib/telegram";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://receitinhas-vovo-teresinha.vercel.app";
 
 export async function GET(req: NextRequest) {
-  const auth = cronAutorizado(req, "saude-pwa");
-  if (!auth.ok) {
-    return NextResponse.json(
-      {
-        erro: "Não autorizado",
-        ...(process.env.NODE_ENV !== "production" && { diagnostico: auth.motivo }),
-      },
-      { status: 401 }
-    );
+  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   }
 
-  const sql = neon(process.env.DATABASE_URL!);
+  const problemas: string[] = [];
+  const checks: Record<string, boolean> = {};
 
+  // Verifica manifest.json
   try {
-    // Verifica saúde geral do PWA: banco acessível, tabelas principais respondem
-    const checks: Record<string, boolean> = {};
-    const erros: Record<string, string> = {};
-
-    // Check 1: banco acessível
-    try {
-      await sql`SELECT 1`;
-      checks.banco = true;
-    } catch (e) {
-      checks.banco = false;
-      erros.banco = e instanceof Error ? e.message : String(e);
-    }
-
-    // Check 2: tabela usuários
-    try {
-      await sql`SELECT COUNT(*)::int FROM usuarios LIMIT 1`;
-      checks.tabela_usuarios = true;
-    } catch (e) {
-      checks.tabela_usuarios = false;
-      erros.tabela_usuarios = e instanceof Error ? e.message : String(e);
-    }
-
-    // Check 3: tabela receitas
-    try {
-      await sql`SELECT COUNT(*)::int FROM receitas LIMIT 1`;
-      checks.tabela_receitas = true;
-    } catch (e) {
-      checks.tabela_receitas = false;
-      erros.tabela_receitas = e instanceof Error ? e.message : String(e);
-    }
-
-    // Check 4: tabela assinaturas
-    try {
-      await sql`SELECT COUNT(*)::int FROM assinaturas LIMIT 1`;
-      checks.tabela_assinaturas = true;
-    } catch (e) {
-      checks.tabela_assinaturas = false;
-      erros.tabela_assinaturas = e instanceof Error ? e.message : String(e);
-    }
-
-    // Check 5: push_subscriptions ativas
-    try {
-      const [{ total }] = await sql`
-        SELECT COUNT(*)::int AS total FROM push_subscriptions WHERE ativo = true
-      `;
-      checks.push_subscriptions = true;
-      console.log(`[saude-pwa] Push subscriptions ativas: ${total}`);
-    } catch (e) {
-      checks.push_subscriptions = false;
-      erros.push_subscriptions = e instanceof Error ? e.message : String(e);
-    }
-
-    const tudo_ok = Object.values(checks).every(Boolean);
-
-    if (!tudo_ok) {
-      console.error("[saude-pwa] ⚠️ Falhas detectadas:", erros);
+    const res = await fetch(`${APP_URL}/manifest.json`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) {
+      problemas.push(`manifest.json retornou ${res.status}`);
+      checks.manifest = false;
     } else {
-      console.log("[saude-pwa] ✅ Todos os checks passaram.");
+      const manifest = await res.json();
+      const camposObrigatorios = ["name", "icons", "start_url", "display"];
+      const faltando = camposObrigatorios.filter((c) => !manifest[c]);
+      if (faltando.length > 0) {
+        problemas.push(`manifest.json sem campos: ${faltando.join(", ")}`);
+        checks.manifest = false;
+      } else {
+        checks.manifest = true;
+      }
     }
+  } catch {
+    problemas.push("manifest.json inacessível (timeout)");
+    checks.manifest = false;
+  }
 
-    return NextResponse.json({
-      ok: tudo_ok,
-      checks,
-      ...(Object.keys(erros).length > 0 && { erros }),
-      verificado_em: new Date().toISOString(),
-    });
-  } catch (err: unknown) {
-    const mensagem = err instanceof Error ? err.message : String(err);
-    console.error("[saude-pwa] Erro inesperado:", mensagem);
-    return NextResponse.json(
-      { erro: "Erro interno no saude-pwa", detalhe: mensagem },
-      { status: 500 }
+  // Verifica Service Worker
+  try {
+    const res = await fetch(`${APP_URL}/sw.js`, { signal: AbortSignal.timeout(8000) });
+    checks.sw = res.ok;
+    if (!res.ok) problemas.push(`sw.js retornou ${res.status}`);
+  } catch {
+    problemas.push("sw.js inacessível");
+    checks.sw = false;
+  }
+
+  // Verifica ícones
+  for (const icone of ["/selo-vovo.png", "/icon-512.png"]) {
+    try {
+      const res = await fetch(`${APP_URL}${icone}`, { signal: AbortSignal.timeout(5000) });
+      checks[icone] = res.ok;
+      if (!res.ok) problemas.push(`Ícone ${icone} retornou ${res.status}`);
+    } catch {
+      problemas.push(`Ícone ${icone} inacessível`);
+      checks[icone] = false;
+    }
+  }
+
+  // Verifica VAPID configurado
+  checks.vapid = !!process.env.VAPID_PUBLIC_KEY && !!process.env.VAPID_PRIVATE_KEY;
+  if (!checks.vapid) problemas.push("VAPID keys não configuradas");
+
+  if (problemas.length > 0) {
+    const data = new Date().toLocaleDateString("pt-BR");
+    await enviarTelegram(
+      `💻 <b>Saúde do PWA — ${data}</b>\n\n` +
+        `⚠️ Problemas detectados:\n` +
+        problemas.map((p) => `❌ ${p}`).join("\n") +
+        `\n\nVerifique os arquivos públicos do app.`
     );
   }
+
+  return NextResponse.json({ ok: problemas.length === 0, checks, problemas });
 }
