@@ -23,13 +23,15 @@ const FONTES_BR = [
 
 // YouTube RSS dos canais dos principais deputados e figuras conservadoras
 // Coletado direto na fonte — não depende de portais mencionarem o nome deles
-// urgente=true: conteúdo deles é sempre prioridade máxima
+// urgente=true + categoria=curada: bypassa o curador, vai direto pro resumidor
 const FONTES_YOUTUBE_DEPUTADOS = [
-  { nome: "Nikolas Ferreira",  url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCcJiaqLbdHMZUKFABlqP2Kw", urgente: true },
-  { nome: "Eduardo Bolsonaro", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCiKLz6Bqm_BKnBRFWfXv_3Q", urgente: true },
-  { nome: "Marco Feliciano",   url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCf7LNrXhz2hOIHPbvYYLfbw", urgente: true },
-  { nome: "Damares Alves",     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsLo154Krjwbt8ZoNiam149", urgente: true },
-  { nome: "Jovem Pan News",    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvFBSKy7dUNvfMnAT_Rkwig", urgente: false },
+  { nome: "Nikolas Ferreira",  url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCxI9vN6UbxmBt8VIvUKtJaA", urgente: true, curada: true },
+  { nome: "Eduardo Bolsonaro", url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCkR6xPOHhpjq3wnFchVI4sg", urgente: true, curada: true },
+  { nome: "Marco Feliciano",   url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCpdI21rGF-U3fMoTMCHotSA", urgente: true, curada: true },
+  { nome: "Damares Alves",     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCUygDoaCJVidyeo9dQFQFnA", urgente: true, curada: true },
+  { nome: "Gustavo Gayer",     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCbmVlqWD6lqn1Ur1Zv25IIg", urgente: true, curada: true },
+  { nome: "Jair Bolsonaro",    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8hGUtfEgvvnp6IaHSAg1OQ", urgente: true, curada: true },
+  { nome: "Jovem Pan News",    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvFBSKy7dUNvfMnAT_Rkwig", urgente: false, curada: false },
 ];
 
 function fixMojibake(s: string): string {
@@ -115,7 +117,7 @@ export async function GET(req: NextRequest) {
   try {
     // Coleta portais + YouTube dos deputados em paralelo
     const todasFontes = [
-      ...FONTES_BR.map(f => ({ ...f, urgente: false })),
+      ...FONTES_BR.map(f => ({ ...f, urgente: false, curada: false })),
       ...FONTES_YOUTUBE_DEPUTADOS.map(f => ({ ...f, categoria: "politica" })),
     ];
 
@@ -128,9 +130,15 @@ export async function GET(req: NextRequest) {
           const existe = await sql`SELECT id FROM noticias WHERE url = ${n.url} LIMIT 1`;
           if (existe.length > 0) { duplicatas++; continue; }
 
+          const isCurada = (n as { curada?: boolean }).curada ?? false;
           await sql`
             INSERT INTO noticias (titulo, fonte, url, categoria, urgente, created_at)
-            VALUES (${n.titulo}, ${n.fonte}, ${n.url}, ${n.categoria}, ${(n as { urgente?: boolean }).urgente ?? false}, NOW())
+            VALUES (
+              ${n.titulo}, ${n.fonte}, ${n.url},
+              ${isCurada ? "curada" : (n.categoria ?? "politica")},
+              ${(n as { urgente?: boolean }).urgente ?? false},
+              NOW()
+            )
           `;
           coletadas++;
         } catch { erros++; }
