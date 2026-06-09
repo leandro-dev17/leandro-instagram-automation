@@ -51,6 +51,16 @@ jobs:
           VERCEL_PROJECT_ID: prj_RtqsbSdxPMz81W2cr0tJyatRJGMv
           VERCEL_TEAM_ID: team_JnDwQYGSI9RBjHyIygKLR56b
 
+      - name: Checks de saúde do banco (guardião-24-7)
+        run: |
+          RESP=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/guardiao-24-7")
+          echo "guardiao-24-7 HTTP $RESP"
+        env:
+          CRON_SECRET: ${{ secrets.VOWO_CRON_SECRET }}
+          APP_URL: https://receitinhas-vovo-teresinha.vercel.app
+
       - name: Commitar correções (se o guardião corrigiu algo)
         run: |
           git config user.name  "Guardião BioNexus"
