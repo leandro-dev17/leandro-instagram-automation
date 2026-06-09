@@ -5,6 +5,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { neon } from "@neondatabase/serverless";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { enviarTelegram } from "@/lib/telegram";
 
@@ -63,7 +64,9 @@ export async function GET(req: NextRequest) {
           const fixSQL = AUTOCORRECT[chave];
           if (fixSQL) {
             try {
-              await sql.unsafe(fixSQL);
+              // Neon não tem .unsafe() — usa tagged template trick para DDL dinâmico
+              const rawSql = neon(process.env.DATABASE_URL!);
+              await rawSql([fixSQL] as unknown as TemplateStringsArray);
               corrigidos.push(chave);
             } catch (e) {
               naoCorrigidos.push(`${chave}: ${String(e).slice(0, 100)}`);
