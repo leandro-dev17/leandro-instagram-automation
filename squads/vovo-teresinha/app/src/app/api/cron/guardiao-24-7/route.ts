@@ -30,7 +30,7 @@ async function jaAlertouRecente(sql: ReturnType<typeof neon>, chave: string): Pr
       WHERE chave = ${chave}
         AND atualizado_em > NOW() - INTERVAL '30 minutes'
       LIMIT 1
-    `;
+    ` as unknown[];
     return rows.length > 0;
   } catch { return false; }
 }
@@ -52,7 +52,7 @@ async function tentativasClaude(sql: ReturnType<typeof neon>): Promise<number> {
       SELECT COUNT(*)::int AS total FROM falhas_agentes
       WHERE agente = 'claude-revisor'
         AND criado_em > NOW() - INTERVAL '2 hours'
-    `;
+    ` as { total: number }[];
     return Number(rows[0]?.total ?? 0);
   } catch { return 0; }
 }
@@ -105,11 +105,11 @@ export async function GET(req: NextRequest) {
       HAVING COUNT(*) >= 3
       ORDER BY total DESC
       LIMIT 5
-    `;
+    ` as { agente: string; total: number }[];
 
     if (falhasRecentes.length > 0) {
       const resumo = falhasRecentes
-        .map((r: { agente: string; total: number }) => `${r.agente} (${r.total}x)`)
+        .map((r) => `${r.agente} (${r.total}x)`)
         .join(", ");
       const chave = `g247_falhas_${falhasRecentes[0].agente}`;
       if (!(await jaAlertouRecente(sql, chave))) {
@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
       SELECT COUNT(*)::int AS total FROM whatsapp_fila
       WHERE enviado = false
         AND agendado_para < NOW() - INTERVAL '30 minutes'
-    `;
+    ` as { total: number }[];
     const qtdFila = Number(filaWpp[0]?.total ?? 0);
 
     if (qtdFila > 50 && !(await jaAlertouRecente(sql, "g247_wpp_fila"))) {
@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
           SELECT 1 FROM assinaturas a
           WHERE a.usuario_id = u.id AND a.status = 'ativo'
         )
-    `;
+    ` as { total: number }[];
     const qtdPremiumSemAss = Number(premiumSemAss[0]?.total ?? 0);
 
     if (qtdPremiumSemAss > 0 && !(await jaAlertouRecente(sql, "g247_premium_sem_ass"))) {
@@ -155,8 +155,8 @@ export async function GET(req: NextRequest) {
     // ── CHECK 5: BACKLOG TOTAL DE FALHAS ────────────────────────────────────
     const [backlog] = await sql`
       SELECT COUNT(*)::int AS total FROM falhas_agentes WHERE resolvido = false
-    `;
-    const totalFalhas = Number(backlog.total);
+    ` as { total: number }[];
+    const totalFalhas = Number(backlog?.total ?? 0);
 
     if (totalFalhas > 30 && !(await jaAlertouRecente(sql, "g247_backlog_alto"))) {
       await registrarAlerta(sql, "g247_backlog_alto");
@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
     const trialsVencidos = await sql`
       SELECT COUNT(*)::int AS total FROM usuarios
       WHERE tipo_usuario = 'trial' AND trial_fim < NOW()
-    `;
+    ` as { total: number }[];
     const qtdTrials = Number(trialsVencidos[0]?.total ?? 0);
 
     if (qtdTrials > 0 && !(await jaAlertouRecente(sql, "g247_trials_vencidos"))) {
