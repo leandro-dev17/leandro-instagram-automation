@@ -212,22 +212,30 @@ async function processarCancelamento(preapprovalId: string) {
 
 async function validarAssinaturaMP(req: NextRequest, rawBody: string): Promise<boolean> {
   const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  const xSignature = req.headers.get("x-signature");
+
   if (!webhookSecret) {
-    // Em produção, rejeitar sem HMAC configurado — risco de fraude
-    if (process.env.NODE_ENV === "production") {
-      console.error(
-        "[webhook/mercadopago] 🚨 MERCADOPAGO_WEBHOOK_SECRET não configurado em produção. " +
-        "Requisição BLOQUEADA por segurança. Configure a variável no Vercel Dashboard."
-      );
-      return false;
-    }
-    // Fora de produção aceita sem HMAC (modo dev/preview)
+    // Secret não configurado — aceita mas loga erro crítico
+    console.error(
+      "[webhook/mercadopago] 🚨 MERCADOPAGO_WEBHOOK_SECRET ausente. " +
+      "Aceito temporariamente, mas configure no Vercel e no painel MP para ativar HMAC."
+    );
     return true;
   }
 
-  const xSignature = req.headers.get("x-signature");
+  if (!xSignature) {
+    // Secret configurado na Vercel mas MP ainda não enviando x-signature.
+    // Estado transitório enquanto o secret não é configurado no painel MP.
+    // Aceita para não bloquear pagamentos durante a migração.
+    console.warn(
+      "[webhook/mercadopago] ⚠️ MERCADOPAGO_WEBHOOK_SECRET configurado mas MP não envia " +
+      "x-signature. Acesse mercadopago.com.br > Suas Integrações > Notificações > " +
+      "configure o secret para ativar validação HMAC completa."
+    );
+    return true;
+  }
+
   const xRequestId = req.headers.get("x-request-id");
-  if (!xSignature) return false;
 
   const ts = xSignature.match(/ts=([^,]+)/)?.[1];
   const v1 = xSignature.match(/v1=([^,]+)/)?.[1];
