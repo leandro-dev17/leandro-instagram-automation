@@ -1684,5 +1684,37 @@
       ],
       "publishedAt": "2026-06-08T17:42:48.775Z"
     }
+  },
+  "2026-06-09": {
+    "kling-reel": {
+      "postId": "18003357116932071",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Nutrição Inteligente: Comendo Melhor, Não Menos",
+      "videoId": "11-ruiva-lilas-caminhada-frontal",
+      "hook": [
+        {
+          "l1": "Você conta caloria",
+          "l2": "malha direitinho",
+          "l3": "e nada muda."
+        },
+        {
+          "l1": "Seu ciclo",
+          "l2": "muda suas calorias",
+          "l3": "todo mês."
+        },
+        {
+          "l1": "Ignorar isso é",
+          "l2": "como dirigir",
+          "l3": "de olhos fechados."
+        },
+        {
+          "l1": "Já sabia disso?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-06-09T17:16:57.747Z"
+    }
   }
 }
