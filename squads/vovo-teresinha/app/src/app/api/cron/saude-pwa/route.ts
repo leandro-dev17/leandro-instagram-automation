@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enviarTelegram } from "@/lib/telegram";
+import { cronAutorizado } from "@/lib/cron-auth";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://receitinhas-vovo-teresinha.vercel.app";
 
 export async function GET(req: NextRequest) {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const auth = cronAutorizado(req, "saude-pwa");
+  if (!auth.ok) {
+    return NextResponse.json(
+      {
+        erro: "Não autorizado",
+        ...(process.env.NODE_ENV !== "production" && { diagnostico: auth.motivo }),
+      },
+      { status: 401 }
+    );
   }
 
   const problemas: string[] = [];
