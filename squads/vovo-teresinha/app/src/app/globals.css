@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  --vovo-creme: #FDF6EC;
+  --vovo-marrom: #5C3D2E;
+  --vovo-marrom-mid: #8B6355;
+  --vovo-rosa: #C8806A;
+  --vovo-laranja: #E8A87C;
+  --vovo-lock: #B0A090;
+  --vovo-verde: #6B8F71;
+
+  --background: var(--vovo-creme);
+  --foreground: var(--vovo-marrom);
+}
+
+body {
+  background-color: var(--vovo-creme);
+  color: var(--vovo-marrom);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.btn-primary {
+  background-color: var(--vovo-rosa);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover {
+  background-color: var(--vovo-marrom);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--vovo-marrom);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: 2px solid var(--vovo-marrom);
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: var(--vovo-marrom);
+  color: white;
+}
+
+.card {
+  background-color: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(92, 61, 46, 0.08);
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e0da;
+  border-radius: 0.75rem;
+  background-color: white;
+  color: var(--vovo-marrom);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  border-color: var(--vovo-rosa);
+}
+
+.badge-free {
+  background-color: var(--vovo-verde);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.badge-premium {
+  background-color: var(--vovo-laranja);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.badge-lock {
+  background-color: var(--vovo-lock);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.btn-primary,
+.btn-secondary {
+  cursor: pointer;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

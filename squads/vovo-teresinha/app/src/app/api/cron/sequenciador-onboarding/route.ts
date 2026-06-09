@@ -69,13 +69,13 @@ export async function GET(req: NextRequest) {
     let totalEnviados = 0;
 
     for (const etapa of ETAPAS) {
-      const de = new Date(Date.now() - (etapa.dia + 0.5) * 86400000).toISOString();
-      const ate = new Date(Date.now() - (etapa.dia - 0.5) * 86400000).toISOString();
-
-      // Busca usuários que se cadastraram exatamente nesse dia
+      // Busca usuários cadastrados nesse dia usando trial_fim como proxy
+      // (trial_fim = data_cadastro + 7 dias, então data_cadastro = trial_fim - 7 dias)
+      const de7 = new Date(Date.now() - (etapa.dia + 0.5 + 7) * 86400000).toISOString();
+      const ate7 = new Date(Date.now() - (etapa.dia - 0.5 + 7) * 86400000).toISOString();
       const usuarios = await sql`
         SELECT id, email, nome FROM usuarios
-        WHERE criado_em BETWEEN ${de}::timestamptz AND ${ate}::timestamptz
+        WHERE trial_fim BETWEEN ${de7}::timestamptz AND ${ate7}::timestamptz
           AND tipo_usuario != 'admin'
       ` as { id: number; email: string; nome: string }[];
 

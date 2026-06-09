@@ -1,0 +1,103 @@
+import { sql } from "@/lib/db";
+
+const EVO_URL = process.env.EVOLUTION_API_URL;
+const EVO_KEY = process.env.EVOLUTION_API_KEY;
+const EVO_INST = process.env.EVOLUTION_INSTANCIA;
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://receitinhas-vovo-teresinha.vercel.app";
+const GRUPO_WPP = process.env.WHATSAPP_GROUP_LINK || "";
+
+export async function enviarViaEvolution(telefone: string, texto: string): Promise<boolean> {
+  if (!EVO_URL || !EVO_KEY || !EVO_INST) return false;
+  const numero = telefone.replace(/\D/g, "");
+  if (!numero || numero.length < 10) return false;
+
+  try {
+    const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: EVO_KEY },
+      body: JSON.stringify({
+        number: `${numero}@s.whatsapp.net`,
+        textMessage: { text: texto },
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function enfileirarMensagem(usuarioId: number, tipo: string) {
+  await sql`
+    INSERT INTO whatsapp_fila (usuario_id, tipo, mensagem, agendado_para)
+    VALUES (${usuarioId}, ${tipo}, ${tipo}, NOW())
+    ON CONFLICT DO NOTHING
+  `.catch(() => {});
+}
+
+export function buildMensagem(tipo: string, nome: string, sexo: "M" | "F" = "F"): string {
+  const bemVindo = sexo === "M" ? "Bem-vindo" : "Bem-vinda";
+  const aluno = sexo === "M" ? "aluno" : "aluna";
+
+  switch (tipo) {
+    case "boas_vindas_premium":
+      return (
+        `🎉 *Parabéns! Você agora é Premium!*\n\n` +
+        `Olá ${nome}! A Vovó Teresinha ficou tão feliz! 👵❤️\n\n` +
+        `Você tem acesso a todas as receitinhas deliciosas, plano semanal, geladeira inteligente e muito mais!\n\n` +
+        `👉 ${APP_URL}/receitas\n\n` +
+        `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    case "boas_vindas_trial":
+      return (
+        `🎁 *Seus 7 dias grátis começaram!*\n\n` +
+        `Olá ${nome}! A Vovó está animada com você por aqui! 👵\n\n` +
+        `Durante 7 dias você tem acesso completo a todas as receitas premium. Aproveite cada receitinha!\n\n` +
+        `👉 ${APP_URL}/receitas\n\n` +
+        `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    case "boas_vindas_app":
+      return (
+        `🌸 *${bemVindo} às Receitinhas da Vovó!*\n\n` +
+        `Olá ${nome}! A Vovó Teresinha está tão feliz que você chegou! 👵❤️\n\n` +
+        `Aqui você encontra centenas de receitinhas deliciosas e saudáveis feitas com todo carinho.\n\n` +
+        (GRUPO_WPP ? `Entre também no nosso grupinho! 👇\n${GRUPO_WPP}\n\n` : "") +
+        `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    case "boas_vindas_aluna":
+      return (
+        `🏋️ *${bemVindo}, ${aluno} do Personal Leandro!*\n\n` +
+        `Olá ${nome}! A Vovó ficou tão feliz quando o personal favorito dela me contou que você ia vir! 👵💪\n\n` +
+        `Você já tem acesso COMPLETO a todas as receitas, inclusive a área exclusiva do Personal Leandro. É presente dele pra você! 🎁\n\n` +
+        `👉 ${APP_URL}/receitas\n\n` +
+        `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    case "trial_expirando_3":
+      return (
+        `⏰ *Seu trial expira em 3 dias!*\n\n` +
+        `Olá ${nome}! A Vovó fica triste de te ver ir embora... 😢\n\n` +
+        `Não perca o acesso às suas receitinhas! Assine agora:\n` +
+        `💎 Trimestral: R$29,90 (só R$9,97/mês)\n` +
+        `⭐ Anual: R$79,90 (só R$6,65/mês!)\n\n` +
+        `👉 ${APP_URL}/assinar\n\n` +
+        `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    case "trial_expirando_1":
+      return (
+        `⚠️ *Último dia do seu trial!*\n\n` +
+        `Olá ${nome}! Hoje é o último dia do seu acesso premium gratuito!\n\n` +
+        `A Vovó não quer que você fique sem suas receitinhas! Assine agora:\n` +
+        `💎 Trimestral: R$29,90\n` +
+        `⭐ Anual: R$79,90\n\n` +
+        `👉 ${APP_URL}/assinar\n\n` +
+        `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    default:
+      return tipo;
+  }
+}
