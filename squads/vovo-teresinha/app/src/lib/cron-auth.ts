@@ -76,6 +76,29 @@ if (
     "║       #securing-cron-jobs                                       ║\n" +
     "╚══════════════════════════════════════════════════════════════════╝\n"
   );
+
+  // ── Alerta Telegram no cold start ─────────────────────────────────────────
+  // Tenta notificar via Telegram imediatamente ao detectar a ausência do secret.
+  // Usa fetch direto para evitar import circular com lib/telegram.
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+  if (telegramToken && telegramChatId) {
+    const msg = encodeURIComponent(
+      "🚨 <b>CRON_SECRET AUSENTE — Receitinhas da Vovó Teresinha</b>\n\n" +
+      "Todos os cron jobs estão retornando HTTP 401 (Não autorizado).\n\n" +
+      "<b>AÇÃO NECESSÁRIA:</b>\n" +
+      "1. Vercel Dashboard → Settings → Environment Variables\n" +
+      "2. Adicione: <code>CRON_SECRET = $(openssl rand -hex 32)</code>\n" +
+      "   Escopo: <b>Production</b>\n" +
+      "3. Salve e faça Redeploy manual\n\n" +
+      "<i>Nenhum cron (fiscal-banco, fiscal-diario, agente-assinaturas, etc.) " +
+      "está sendo executado até esta variável ser configurada.</i>"
+    );
+    fetch(
+      `https://api.telegram.org/bot${telegramToken}/sendMessage` +
+      `?chat_id=${telegramChatId}&parse_mode=HTML&text=${msg}`
+    ).catch(() => {/* silencioso — não bloqueia o boot */});
+  }
 }
 
 /**
