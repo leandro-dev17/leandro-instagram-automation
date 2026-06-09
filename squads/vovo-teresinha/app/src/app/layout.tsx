@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Receitinhas da Vovó Teresinha",
   description: "Centenas de receitas gostosas com o carinho de uma avó amorosa! 💕",
   manifest: "/manifest.json",
-  icons: { icon: "/selo-vovo.png", apple: "/selo-vovo.png" },
+  icons: { apple: "/icon-192.png" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
