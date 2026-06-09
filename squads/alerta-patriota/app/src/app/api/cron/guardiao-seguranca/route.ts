@@ -15,13 +15,14 @@ import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
 
-// Agentes do Squad de Revisão de Código com seus intervalos máximos
+// Agentes do Squad de Revisão de Código — todos a cada 30 minutos
+// O Guardião roda a cada 30min e dispara TODOS em cada execução
 const SQUAD_REVISAO = [
-  { agente: "fiscal-codigo-seguranca",  rota: "/api/cron/fiscal-codigo-seguranca",  maxHoras: 6.5  },
-  { agente: "fiscal-codigo-schema",     rota: "/api/cron/fiscal-codigo-schema",     maxHoras: 6.5  },
-  { agente: "fiscal-codigo-logica",     rota: "/api/cron/fiscal-codigo-logica",     maxHoras: 6.5  },
-  { agente: "fiscal-codigo-performance",rota: "/api/cron/fiscal-codigo-performance",maxHoras: 6.5  },
-  { agente: "gerente-codigo",           rota: "/api/cron/gerente-codigo",           maxHoras: 2.5  },
+  { agente: "fiscal-codigo-seguranca",   rota: "/api/cron/fiscal-codigo-seguranca"   },
+  { agente: "fiscal-codigo-schema",      rota: "/api/cron/fiscal-codigo-schema"      },
+  { agente: "fiscal-codigo-logica",      rota: "/api/cron/fiscal-codigo-logica"      },
+  { agente: "fiscal-codigo-performance", rota: "/api/cron/fiscal-codigo-performance" },
+  { agente: "gerente-codigo",            rota: "/api/cron/gerente-codigo"            },
 ];
 
 async function dispararAgente(rota: string, metodo: string = "GET"): Promise<boolean> {
