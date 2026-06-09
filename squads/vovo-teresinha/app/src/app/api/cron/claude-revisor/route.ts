@@ -25,7 +25,14 @@ const ARQUIVO_POR_TIPO: Record<string, string> = {
   "codigo_schema":      `${BASE}/app/api/admin/setup/route.ts`,
   "codigo_logica":      `${BASE}/app/api/cron/agente-assinaturas/route.ts`,
   "codigo_performance": `${BASE}/lib/agente-falha.ts`,
+  // codigo_estatico: arquivo vem no campo 'arquivo' do alerta → resolvido em runtime
 };
+
+// Extrai o nome do cron do alerta estático: "[nome-do-cron] problema"
+function extrairArquivoEstatico(mensagem: string): string | null {
+  const m = mensagem.match(/^\[([^\]]+)\]/);
+  return m ? `${BASE}/app/api/cron/${m[1]}/route.ts` : null;
+}
 
 async function lerArquivoGitHub(path: string): Promise<string> {
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
@@ -134,7 +141,10 @@ export async function POST(req: NextRequest) {
 
     // Determina arquivo principal a corrigir
     const tipoAlerta = alertas[0].tipo;
-    const arquivo = ARQUIVO_POR_TIPO[tipoAlerta] || `${BASE}/lib/auth.ts`;
+    // Para alertas estáticos, o arquivo vem codificado na mensagem: "[nome-cron] problema"
+    const arquivo = tipoAlerta === "codigo_estatico"
+      ? (extrairArquivoEstatico(alertas[0].mensagem) ?? `${BASE}/app/api/cron/agente-assinaturas/route.ts`)
+      : (ARQUIVO_POR_TIPO[tipoAlerta] || `${BASE}/lib/auth.ts`);
 
     // Lê arquivo do GitHub
     let codigoAtual = "";

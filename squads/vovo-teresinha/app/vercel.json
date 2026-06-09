@@ -189,6 +189,10 @@
       "schedule": "0 11 * * *"
     },
     {
+      "path": "/api/cron/fiscal-codigo-estatico",
+      "schedule": "0 2 * * *"
+    },
+    {
       "path": "/api/cron/fiscal-codigo-seguranca",
       "schedule": "0 3 * * *"
     },

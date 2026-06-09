@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
         'fiscal-codigo-seguranca',
         'fiscal-codigo-schema',
         'fiscal-codigo-logica',
-        'fiscal-codigo-performance'
+        'fiscal-codigo-performance',
+        'fiscal-codigo-estatico'
       )
         AND resolvido = false
         AND criado_em > NOW() - INTERVAL '6 hours'
