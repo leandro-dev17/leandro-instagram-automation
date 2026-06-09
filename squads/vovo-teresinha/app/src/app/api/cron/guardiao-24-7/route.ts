@@ -26,21 +26,22 @@ const CRON = process.env.CRON_SECRET || "";
 async function jaAlertouRecente(sql: ReturnType<typeof neon>, chave: string): Promise<boolean> {
   try {
     const rows = await sql`
-      SELECT 1 FROM app_configuracoes
+      SELECT valor FROM app_configuracoes
       WHERE chave = ${chave}
-        AND atualizado_em > NOW() - INTERVAL '30 minutes'
       LIMIT 1
-    ` as unknown[];
-    return rows.length > 0;
+    ` as { valor: string }[];
+    if (rows.length === 0) return false;
+    const diffMin = (Date.now() - new Date(rows[0].valor).getTime()) / 60000;
+    return diffMin < 30;
   } catch { return false; }
 }
 
 async function registrarAlerta(sql: ReturnType<typeof neon>, chave: string) {
   try {
     await sql`
-      INSERT INTO app_configuracoes (chave, valor, atualizado_em)
-      VALUES (${chave}, ${new Date().toISOString()}, NOW())
-      ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor, atualizado_em = NOW()
+      INSERT INTO app_configuracoes (chave, valor)
+      VALUES (${chave}, ${new Date().toISOString()})
+      ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor
     `;
   } catch { /* silencioso */ }
 }

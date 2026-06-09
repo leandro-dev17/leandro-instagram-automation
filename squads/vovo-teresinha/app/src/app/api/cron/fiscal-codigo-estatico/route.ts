@@ -166,14 +166,14 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
 
   try {
-    // Dedup: só roda a cada 4h
+    // Dedup: só roda a cada 4h — usa coluna 'valor' que sempre existe
     const dedupRows = await sql`
-      SELECT atualizado_em FROM app_configuracoes
+      SELECT valor FROM app_configuracoes
       WHERE chave = 'fiscal_estatico_ultima_rodada'
-    ` as { atualizado_em: string }[];
+    ` as { valor: string }[];
 
     if (dedupRows.length > 0) {
-      const diffH = (Date.now() - new Date(dedupRows[0].atualizado_em).getTime()) / 3600000;
+      const diffH = (Date.now() - new Date(dedupRows[0].valor).getTime()) / 3600000;
       if (diffH < 4) {
         return NextResponse.json({
           ok: true,
@@ -208,11 +208,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Registra timestamp (dedup)
+    // Registra timestamp (dedup via coluna 'valor')
     await sql`
-      INSERT INTO app_configuracoes (chave, valor, atualizado_em)
-      VALUES ('fiscal_estatico_ultima_rodada', ${new Date().toISOString()}, NOW())
-      ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor, atualizado_em = NOW()
+      INSERT INTO app_configuracoes (chave, valor)
+      VALUES ('fiscal_estatico_ultima_rodada', ${new Date().toISOString()})
+      ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor
     `;
 
     const totalProblemas = todos.length;
