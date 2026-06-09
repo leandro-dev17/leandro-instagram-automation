@@ -1,0 +1,252 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/trial-expirando",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/push-diario",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/whatsapp-fila",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/bonus-sazonal",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/monitor-relatorios",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/previsao-receita",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/rotacao-receitas-free",
+      "schedule": "0 4 1 * *"
+    },
+    {
+      "path": "/api/cron/rotador-senhas",
+      "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron/compliance-lgpd",
+      "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/cron/fiscal-diario",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/saude-pwa",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/reputacao-email",
+      "schedule": "30 6 * * 1"
+    },
+    {
+      "path": "/api/cron/agente-assinaturas",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/gerente-operacoes",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/ceo-relatorio",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/gerente-conteudo",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/criador-receitas",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/disparador-campanhas",
+      "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/gerente-financeiro",
+      "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/cron/gerente-tecnico",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/gerente-clientes",
+      "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/cron/guardiao-seguranca",
+      "schedule": "30 10 * * *"
+    },
+    {
+      "path": "/api/cron/preditor-churn",
+      "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/cron/cacador-desistentes",
+      "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/cron/campanha-recuperacao",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron/backup-monitor",
+      "schedule": "30 14 * * *"
+    },
+    {
+      "path": "/api/cron/circuit-breaker",
+      "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/cron/fila-dlq",
+      "schedule": "30 16 * * *"
+    },
+    {
+      "path": "/api/cron/engajamento",
+      "schedule": "30 17 * * *"
+    },
+    {
+      "path": "/api/cron/recepcionista-wpp",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/publicador-wpp",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/conversor-wpp",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/moderacao-grupo",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/respondedor-vovo-wpp",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/calculador-comissao",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/anti-fraude-afiliados",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/confirmador-comissao",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/pagamento-afiliados",
+      "schedule": "0 10 1 * *"
+    },
+    {
+      "path": "/api/cron/curador-receitas-personal",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/monitor-alunas",
+      "schedule": "30 7 * * 1"
+    },
+    {
+      "path": "/api/cron/personalizador-alunas",
+      "schedule": "30 8 * * 1"
+    },
+    {
+      "path": "/api/cron/observador-mercado",
+      "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/fiscal-banco",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/fiscal-erros-api",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/fiscal-login",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/fiscal-pagamentos",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/performance",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/fiscal-codigo-seguranca",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/fiscal-codigo-schema",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/fiscal-codigo-logica",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/fiscal-codigo-performance",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/gerente-codigo",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/heartbeat-receitas",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/gerente-retencao",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/notificador-trial",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/sequenciador-onboarding",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/enviador-push",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/conversor-free",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/cron/curador-avaliacoes",
+      "schedule": "0 16 * * 5"
+    },
+    {
+      "path": "/api/cron/comunicador-novidades",
+      "schedule": "0 10 * * 3"
+    },
+    {
+      "path": "/api/cron/fiscal-imagens",
+      "schedule": "0 7 * * 2"
+    },
+    {
+      "path": "/api/cron/limpador-dados",
+      "schedule": "0 3 * * 0"
+    }
+  ]
+}

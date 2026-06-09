@@ -1,3 +1,8 @@
+/**
+ * PUSH DIÁRIO — Coleta dados para o enviador-push
+ * Busca destinatários com assinatura ativa e retorna subscriptions.
+ * O envio efetivo é feito pelo agente enviador-push (que usa web-push + VAPID).
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { cronAutorizado } from "@/lib/cron-auth";
@@ -22,22 +27,17 @@ export async function GET(req: NextRequest) {
       SELECT u.id AS usuario_id, u.email, u.nome, pn.endpoint, pn.chave_p256dh, pn.chave_auth
       FROM usuarios u
       JOIN push_subscriptions pn ON pn.usuario_id = u.id
-      JOIN assinaturas a ON a.usuario_id = u.id
-      WHERE a.status IN ('ativa', 'trial')
-        AND pn.ativo = true
+      LEFT JOIN assinaturas a ON a.usuario_id = u.id AND a.status = 'ativo'
+      WHERE pn.ativo = true
+        AND (a.id IS NOT NULL OR u.tipo_usuario IN ('premium', 'trial'))
       LIMIT 500
     `;
 
-    // Busca receita do dia (mais recente criada hoje ou ontem)
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const hojeIso = hoje.toISOString();
-
+    // Busca receita do dia (mais recente)
     const [receitaDia] = await sql`
       SELECT id, titulo, descricao
       FROM receitas
-      WHERE criada_em >= ${hojeIso}::timestamptz
-      ORDER BY criada_em DESC
+      ORDER BY created_at DESC
       LIMIT 1
     `;
 
@@ -49,8 +49,6 @@ export async function GET(req: NextRequest) {
       ok: true,
       destinatarios: destinatarios.length,
       receita_dia: receitaDia ?? null,
-      // O envio efetivo das notificações push deve ser feito por worker separado
-      // usando as subscriptions retornadas. Este endpoint apenas coleta os dados.
       subscriptions: destinatarios,
     });
   } catch (err: unknown) {
