@@ -58,7 +58,7 @@ jobs:
             "$APP_URL/api/cron/guardiao-24-7")
           echo "guardiao-24-7 HTTP $RESP"
         env:
-          CRON_SECRET: ${{ secrets.VOWO_CRON_SECRET }}
+          CRON_SECRET: ${{ secrets.VOVO_CRON_SECRET }}
           APP_URL: https://receitinhas-vovo-teresinha.vercel.app
 
       - name: Commitar correções (se o guardião corrigiu algo)
@@ -68,8 +68,27 @@ jobs:
           # Adiciona apenas arquivos do app Vovó Teresinha e estado de incidentes
           git add squads/vovo-teresinha/app/src/ || true
           git add squads/vovo-teresinha/guardian/incidents.json || true
-          git diff --staged --quiet && echo "Sem correções para commitar." || \
-            git commit -m "fix(auto): guardião corrigiu falha detectada $(date +'%Y-%m-%d %H:%M UTC')"
-          git push || echo "Push falhou — pode haver conflito, próxima execução tenta novamente."
+          if git diff --staged --quiet; then
+            echo "Sem correções para commitar."
+            exit 0
+          fi
+          git commit -m "fix(auto): guardião corrigiu falha detectada $(date +'%Y-%m-%d %H:%M UTC')"
+
+          # Tenta pushar com retry: se outro workflow empurrou commits no meio
+          # tempo, faz rebase em cima do main remoto e tenta de novo.
+          for tentativa in 1 2 3; do
+            if git push; then
+              echo "Push concluído na tentativa $tentativa."
+              exit 0
+            fi
+            echo "Push falhou (tentativa $tentativa) — buscando atualizações e tentando rebase..."
+            git fetch origin main
+            if ! git rebase origin/main; then
+              echo "Rebase com conflito — abortando rebase, descartando correção desta rodada."
+              git rebase --abort
+              exit 0
+            fi
+          done
+          echo "Push falhou após 3 tentativas — correção será refeita na próxima execução."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

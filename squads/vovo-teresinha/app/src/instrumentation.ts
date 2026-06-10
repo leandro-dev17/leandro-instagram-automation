@@ -87,6 +87,36 @@ export async function register() {
           UNIQUE(usuario_id, semana, slot)
         )
       `;
+
+      // Push subscriptions: flag de assinatura ativa (usada pelos crons de push)
+      await sql`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT true`;
+
+      // Agendamento de publicação de receitas (usado pelo criador-receitas)
+      await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'publicada'`;
+      await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS agendada_para TIMESTAMPTZ`;
+      await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS publicada_em TIMESTAMPTZ`;
+      await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`;
+
+      // Logs de erros de API (fiscal-erros-api)
+      await sql`
+        CREATE TABLE IF NOT EXISTS logs_erros_api (
+          id SERIAL PRIMARY KEY,
+          endpoint TEXT NOT NULL,
+          erro TEXT,
+          criada_em TIMESTAMPTZ DEFAULT NOW()
+        )
+      `;
+
+      // Logs de tentativas de login (fiscal-login)
+      await sql`
+        CREATE TABLE IF NOT EXISTS logs_login (
+          id SERIAL PRIMARY KEY,
+          email TEXT,
+          ip TEXT,
+          sucesso BOOLEAN NOT NULL,
+          criada_em TIMESTAMPTZ DEFAULT NOW()
+        )
+      `;
     } catch (err) {
       console.error("[instrumentation] migration error:", err);
     }

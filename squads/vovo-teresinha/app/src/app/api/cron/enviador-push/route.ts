@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const destinatarios = await sql`
       SELECT DISTINCT ON (pn.endpoint)
         u.id AS usuario_id, u.nome,
-        pn.id AS sub_id, pn.endpoint, pn.chave_p256dh, pn.chave_auth
+        pn.id AS sub_id, pn.endpoint, pn.p256dh AS chave_p256dh, pn.auth AS chave_auth
       FROM usuarios u
       JOIN push_subscriptions pn ON pn.usuario_id = u.id
       LEFT JOIN assinaturas a ON a.usuario_id = u.id AND a.status = 'ativo'

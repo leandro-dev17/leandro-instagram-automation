@@ -10,14 +10,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Email e senha são obrigatórios" }, { status: 400 });
     }
 
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "desconhecido";
+    const emailNormalizado = email.toLowerCase().trim();
+
     const rows = await sql`
       SELECT id, nome, email, senha_hash, tipo_usuario, trial_fim
       FROM usuarios
-      WHERE email = ${email.toLowerCase().trim()}
+      WHERE email = ${emailNormalizado}
       LIMIT 1
     `;
 
     if (rows.length === 0) {
+      sql`INSERT INTO logs_login (email, ip, sucesso) VALUES (${emailNormalizado}, ${ip}, false)`.catch(() => {});
       return NextResponse.json({ erro: "Email ou senha incorretos" }, { status: 401 });
     }
 
@@ -25,8 +32,11 @@ export async function POST(req: NextRequest) {
     const valid = await comparePassword(senha, user.senha_hash);
 
     if (!valid) {
+      sql`INSERT INTO logs_login (email, ip, sucesso) VALUES (${emailNormalizado}, ${ip}, false)`.catch(() => {});
       return NextResponse.json({ erro: "Email ou senha incorretos" }, { status: 401 });
     }
+
+    sql`INSERT INTO logs_login (email, ip, sucesso) VALUES (${emailNormalizado}, ${ip}, true)`.catch(() => {});
 
     const token = signToken({
       id: user.id,

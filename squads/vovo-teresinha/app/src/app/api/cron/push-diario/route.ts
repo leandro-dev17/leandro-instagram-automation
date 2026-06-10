@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     // Busca usuários com assinatura ativa que aceitaram push notifications
     const destinatarios = await sql`
-      SELECT u.id AS usuario_id, u.email, u.nome, pn.endpoint, pn.chave_p256dh, pn.chave_auth
+      SELECT u.id AS usuario_id, u.email, u.nome, pn.endpoint, pn.p256dh AS chave_p256dh, pn.auth AS chave_auth
       FROM usuarios u
       JOIN push_subscriptions pn ON pn.usuario_id = u.id
       LEFT JOIN assinaturas a ON a.usuario_id = u.id AND a.status = 'ativo'

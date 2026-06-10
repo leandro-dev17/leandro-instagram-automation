@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 
     // Busca usuários premium com push subscription ativa
     const pushDestinatarios = await sql`
-      SELECT u.id, u.nome, pn.endpoint, pn.chave_p256dh, pn.chave_auth
+      SELECT u.id, u.nome, pn.endpoint, pn.p256dh AS chave_p256dh, pn.auth AS chave_auth
       FROM usuarios u
       JOIN push_subscriptions pn ON pn.usuario_id = u.id
       WHERE u.tipo_usuario IN ('premium', 'trial')
