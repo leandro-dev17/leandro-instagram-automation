@@ -162,3 +162,6 @@ export async function marcarFalhaResolvida(agente: string): Promise<void> {
     );
   }
 }
+
+// Alias usado pelos crons (commits anteriores referenciam resolverFalhas)
+export const resolverFalhas = marcarFalhaResolvida;
