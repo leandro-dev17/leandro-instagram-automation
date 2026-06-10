@@ -76,10 +76,10 @@ export function isPremium(tipo: string, trial_fim: string | null): boolean {
 
 export function validateMercadoPagoWebhook(payload: unknown): payload is Record<string, unknown> {
   if (!payload || typeof payload !== "object") {
-    throw new Error("webhook_mp_payload_required");
+    throw new WebhookValidationError("webhook_mp_payload_required", 400);
   }
   if (!("id" in payload || "type" in payload || "data" in payload)) {
-    throw new Error("webhook_mp_invalid_structure");
+    throw new WebhookValidationError("webhook_mp_invalid_structure", 400);
   }
   return true;
 }
@@ -89,41 +89,18 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
   const extractedSignature = Array.isArray(signature) ? signature[0] : signature;
   
   if (!extractedSignature || extractedSignature.trim() === "") {
-    throw new Error("webhook_mp_signature_missing");
+    throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
   
   return extractedSignature;
 }
 
 export class WebhookValidationError extends Error {
-  constructor(
-    message: string,
-    public statusCode: 400 | 401 | 403 = 400,
-  ) {
+  statusCode: number;
+
+  constructor(message: string, statusCode: number = 403) {
     super(message);
     this.name = "WebhookValidationError";
-  }
-}
-
-export function validateMercadoPagoRequest(
-  payload: unknown,
-  headers: Record<string, string | string[]>,
-): void {
-  if (!payload) {
-    throw new WebhookValidationError("webhook_mp_payload_required", 400);
-  }
-
-  if (typeof payload !== "object") {
-    throw new WebhookValidationError("webhook_mp_payload_invalid", 400);
-  }
-
-  const signature = headers["x-signature"] || headers["X-Signature"];
-  if (!signature) {
-    throw new WebhookValidationError("webhook_mp_signature_missing", 401);
-  }
-
-  const extractedSignature = Array.isArray(signature) ? signature[0] : signature;
-  if (!extractedSignature || extractedSignature.trim() === "") {
-    throw new WebhookValidationError("webhook_mp_signature_invalid", 403);
+    this.statusCode = statusCode;
   }
 }
