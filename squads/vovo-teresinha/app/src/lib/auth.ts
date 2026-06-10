@@ -73,3 +73,14 @@ export function isPremium(tipo: string, trial_fim: string | null): boolean {
   if (tipo === "free" && isTrialActive(trial_fim)) return true;
   return false;
 }
+
+export function validateMercadoPagoWebhook(payload: unknown): payload is Record<string, unknown> {
+  if (!payload || typeof payload !== "object") return false;
+  return "id" in payload || "type" in payload || "data" in payload;
+}
+
+export function extractMercadoPagoSignature(headers: Record<string, string | string[]>): string | null {
+  const signature = headers["x-signature"] || headers["X-Signature"];
+  if (Array.isArray(signature)) return signature[0] || null;
+  return signature || null;
+}
