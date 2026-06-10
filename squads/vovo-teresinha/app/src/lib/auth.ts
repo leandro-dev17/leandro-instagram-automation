@@ -88,9 +88,42 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
   const signature = headers["x-signature"] || headers["X-Signature"];
   const extractedSignature = Array.isArray(signature) ? signature[0] : signature;
   
-  if (!extractedSignature) {
+  if (!extractedSignature || extractedSignature.trim() === "") {
     throw new Error("webhook_mp_signature_missing");
   }
   
   return extractedSignature;
+}
+
+export class WebhookValidationError extends Error {
+  constructor(
+    message: string,
+    public statusCode: 400 | 401 | 403 = 400,
+  ) {
+    super(message);
+    this.name = "WebhookValidationError";
+  }
+}
+
+export function validateMercadoPagoRequest(
+  payload: unknown,
+  headers: Record<string, string | string[]>,
+): void {
+  if (!payload) {
+    throw new WebhookValidationError("webhook_mp_payload_required", 400);
+  }
+
+  if (typeof payload !== "object") {
+    throw new WebhookValidationError("webhook_mp_payload_invalid", 400);
+  }
+
+  const signature = headers["x-signature"] || headers["X-Signature"];
+  if (!signature) {
+    throw new WebhookValidationError("webhook_mp_signature_missing", 401);
+  }
+
+  const extractedSignature = Array.isArray(signature) ? signature[0] : signature;
+  if (!extractedSignature || extractedSignature.trim() === "") {
+    throw new WebhookValidationError("webhook_mp_signature_invalid", 403);
+  }
 }
