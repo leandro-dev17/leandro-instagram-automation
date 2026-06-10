@@ -17,6 +17,12 @@ export async function GET(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!);
 
   try {
+    // Garante colunas de agendamento de publicação
+    await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'publicada'`;
+    await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS agendada_para TIMESTAMPTZ`;
+    await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS publicada_em TIMESTAMPTZ`;
+    await sql`ALTER TABLE receitas ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL`;
+
     // Verifica receitas pendentes de publicação e publica as agendadas para hoje
     const agora = new Date().toISOString();
 

@@ -17,6 +17,17 @@ export async function GET(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!);
 
   try {
+    // Garante estrutura da tabela
+    await sql`
+      CREATE TABLE IF NOT EXISTS logs_login (
+        id SERIAL PRIMARY KEY,
+        email TEXT,
+        ip TEXT,
+        sucesso BOOLEAN NOT NULL,
+        criada_em TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
     // Detecta tentativas de login suspeitas nas últimas 24h (>= 5 falhas por IP)
     const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 

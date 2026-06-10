@@ -17,6 +17,16 @@ export async function GET(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!);
 
   try {
+    // Garante estrutura da tabela
+    await sql`
+      CREATE TABLE IF NOT EXISTS logs_erros_api (
+        id SERIAL PRIMARY KEY,
+        endpoint TEXT NOT NULL,
+        erro TEXT,
+        criada_em TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
     // Verifica erros de API registrados nas últimas 24h
     const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
