@@ -28,12 +28,12 @@ export async function reportarFalha(
 
     try {
       const resultado = await Promise.race([
-        sql<FalhaResult[]>`
+        sql`
           SELECT COUNT(*) as total FROM falhas_agentes
           WHERE agente = ${agente}
             AND resolvido = FALSE
             AND criado_em > NOW() - INTERVAL '2 hours'
-        `,
+        ` as unknown as Promise<FalhaResult[]>,
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
         ),
