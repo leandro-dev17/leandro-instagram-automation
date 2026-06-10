@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
+import { enviarSaudadeVovo } from "@/lib/reengajamento";
 
 export async function GET(req: NextRequest) {
   if (!cronAutorizado(req)) {
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
         `;
         emails.push(user.email);
         novos_para_contatar++;
+        await enviarSaudadeVovo(user.usuario_id);
       }
     }
 

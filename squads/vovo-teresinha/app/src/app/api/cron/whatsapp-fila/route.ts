@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     // Busca mensagens pendentes prontas para envio (máx 3 tentativas)
     const pendentes = await sql`
-      SELECT wf.id, wf.tipo, wf.tentativas,
+      SELECT wf.id, wf.tipo, wf.mensagem, wf.tentativas,
              u.nome, u.whatsapp,
              COALESCE(al.sexo, 'F') as sexo
       FROM whatsapp_fila wf
@@ -61,7 +61,8 @@ export async function GET(req: NextRequest) {
     let falhas = 0;
 
     for (const msg of pendentes) {
-      const texto = buildMensagem(msg.tipo, msg.nome || "amiga", msg.sexo);
+      const extra = msg.mensagem && msg.mensagem !== msg.tipo ? msg.mensagem : undefined;
+      const texto = buildMensagem(msg.tipo, msg.nome || "amiga", msg.sexo, extra);
       const ok = await enviarViaEvolution(msg.whatsapp, texto);
 
       if (ok) {

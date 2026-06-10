@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
+import { enviarSaudadeVovo } from "@/lib/reengajamento";
 
 export async function GET(req: NextRequest) {
   if (!cronAutorizado(req)) {
@@ -85,6 +86,15 @@ export async function GET(req: NextRequest) {
 
     const em_risco = unicos.length;
 
+    // Envia mensagem da vovó sentindo saudade para quem está sumido (cooldown evita spam)
+    let mensagens_enviadas = 0;
+    for (const i of unicos) {
+      if (i.motivo === "sem login há 14 dias" || i.motivo.startsWith("conta antiga")) {
+        const enviada = await enviarSaudadeVovo(i.usuario_id);
+        if (enviada) mensagens_enviadas++;
+      }
+    }
+
     // Salva contagem em app_configuracoes
     await sql`
       INSERT INTO app_configuracoes (chave, valor) VALUES ('usuarios_risco_churn', ${String(em_risco)})
@@ -110,7 +120,7 @@ export async function GET(req: NextRequest) {
     };
 
     await resolverFalhas("preditor-churn");
-    return NextResponse.json({ em_risco, detalhes });
+    return NextResponse.json({ em_risco, mensagens_enviadas, detalhes });
   } catch (err) {
     await reportarFalha("preditor-churn", String(err));
     return NextResponse.json({ erro: "Falha no preditor de churn", detalhes: String(err) }, { status: 500 });

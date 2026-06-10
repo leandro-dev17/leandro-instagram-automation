@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
 
     sql`INSERT INTO logs_login (email, ip, sucesso) VALUES (${emailNormalizado}, ${ip}, true)`.catch(() => {});
 
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ`
+      .then(() => sql`UPDATE usuarios SET last_login = NOW() WHERE id = ${user.id}`)
+      .catch(() => {});
+
     const token = signToken({
       id: user.id,
       email: user.email,

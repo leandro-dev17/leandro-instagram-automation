@@ -251,6 +251,10 @@
     {
       "path": "/api/cron/limpador-dados",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/convite-fim-de-semana",
+      "schedule": "0 9 * * 5"
     }
   ]
 }

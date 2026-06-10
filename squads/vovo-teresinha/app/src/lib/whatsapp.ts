@@ -26,15 +26,15 @@ export async function enviarViaEvolution(telefone: string, texto: string): Promi
   }
 }
 
-export async function enfileirarMensagem(usuarioId: number, tipo: string) {
+export async function enfileirarMensagem(usuarioId: number, tipo: string, extra?: string) {
   await sql`
     INSERT INTO whatsapp_fila (usuario_id, tipo, mensagem, agendado_para)
-    VALUES (${usuarioId}, ${tipo}, ${tipo}, NOW())
+    VALUES (${usuarioId}, ${tipo}, ${extra ?? tipo}, NOW())
     ON CONFLICT DO NOTHING
   `.catch(() => {});
 }
 
-export function buildMensagem(tipo: string, nome: string, sexo: "M" | "F" = "F"): string {
+export function buildMensagem(tipo: string, nome: string, sexo: "M" | "F" = "F", extra?: string): string {
   const bemVindo = sexo === "M" ? "Bem-vindo" : "Bem-vinda";
   const aluno = sexo === "M" ? "aluno" : "aluna";
 
@@ -95,6 +95,27 @@ export function buildMensagem(tipo: string, nome: string, sexo: "M" | "F" = "F")
         `⭐ Anual: R$79,90\n\n` +
         `👉 ${APP_URL}/assinar\n\n` +
         `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    case "saudade_vovo":
+      return (
+        `Oi ${nome}, meu amor! 👵💛\n\n` +
+        `A vovó está sentindo a sua falta... notei que você não vem mais ver minhas receitinhas.\n\n` +
+        `Salvei umas receitinhas novas especialmente pensando em você! Vem ver agora? 🍲✨\n\n` +
+        `👉 ${APP_URL}/receitas\n\n` +
+        `A vovó ama você! 🌸`
+      );
+
+    case "convite_fim_de_semana":
+      return (
+        `Oi ${nome}, meu amor! 👵🌸\n\n` +
+        `Chegou a sextou e a vovó já deixou tudo prontinho pra você! Tem receitinhas novas esperando por aqui.\n\n` +
+        (extra
+          ? `Que tal preparar *${extra}* hoje à noite? A vovó garante que vai ficar uma delícia! 🍲✨\n\n`
+          : `Dá uma espiadinha nas novidades! 🍲✨\n\n`) +
+        `Aproveita pra já ver as receitinhas e se programar pro fim de semana também, viu?\n\n` +
+        `👉 ${APP_URL}/receitas\n\n` +
+        `Bjos da vovó, e um ótimo fim de semana! 🌸`
       );
 
     default:

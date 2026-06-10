@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
+import { enviarSaudadeVovo } from "@/lib/reengajamento";
 
 // Engajamento baseado em favoritos adicionados nos últimos 7 / 30 dias
 // Alunas com tipo_usuario = 'aluna_leandro'
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
     const ativas:     string[] = [];
     const poucoAtiva: string[] = [];
     const inativas:   string[] = [];
+    let mensagens_enviadas = 0;
 
     for (const a of alunas as { id: number; nome: string; email: string }[]) {
       const favs       = mapFavs.get(a.id) ?? 0;
@@ -61,6 +63,8 @@ export async function GET(req: NextRequest) {
         poucoAtiva.push(`⚠️ ${a.nome} (${favs} favs no total)`);
       } else {
         inativas.push(`🔴 ${a.nome} — sem favoritos nem plano semanal`);
+        const enviada = await enviarSaudadeVovo(a.id);
+        if (enviada) mensagens_enviadas++;
       }
     }
 
@@ -87,6 +91,7 @@ export async function GET(req: NextRequest) {
       ativas: ativas.length,
       poucoAtiva: poucoAtiva.length,
       inativas: inativas.length,
+      mensagens_enviadas,
     });
   } catch (err) {
     await reportarFalha("monitor-alunas", String(err));

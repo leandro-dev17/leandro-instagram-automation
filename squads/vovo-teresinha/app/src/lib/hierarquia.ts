@@ -37,6 +37,7 @@ export const HIERARQUIA: Record<string, { gerente: string; especialista?: string
   "engajamento":               { gerente: "gerente-clientes" },
   "cacador-desistentes":       { gerente: "gerente-clientes" },
   "campanha-recuperacao":      { gerente: "gerente-clientes" },
+  "convite-fim-de-semana":     { gerente: "gerente-clientes" },
 
   // Retenção → Gerente de Retenção
   "gerente-retencao":          { gerente: "gerente-clientes" },

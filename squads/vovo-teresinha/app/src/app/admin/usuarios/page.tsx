@@ -11,7 +11,21 @@ type Usuario = {
   tipo_usuario: string;
   plano: string | null;
   trial_fim: string | null;
+  last_login: string | null;
+  favoritos_count: number;
 };
+
+function formatarUltimoAcesso(last_login: string | null): { texto: string; cor: string } {
+  if (!last_login) return { texto: "nunca acessou", cor: "#dc2626" };
+
+  const dias = Math.floor((Date.now() - new Date(last_login).getTime()) / (1000 * 60 * 60 * 24));
+
+  if (dias <= 0) return { texto: "acessou hoje", cor: "#16a34a" };
+  if (dias === 1) return { texto: "há 1 dia", cor: "#16a34a" };
+  if (dias <= 6) return { texto: `há ${dias} dias`, cor: "#92400e" };
+  if (dias <= 14) return { texto: `há ${dias} dias`, cor: "#ea580c" };
+  return { texto: `há ${dias} dias`, cor: "#dc2626" };
+}
 
 const TIPOS = ["free", "premium", "aluna_leandro", "admin"];
 
@@ -144,6 +158,20 @@ export default function AdminUsuariosPage() {
                           trial até {new Date(u.trial_fim).toLocaleDateString("pt-BR")}
                         </span>
                       )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{
+                          backgroundColor: `${formatarUltimoAcesso(u.last_login).cor}20`,
+                          color: formatarUltimoAcesso(u.last_login).cor,
+                        }}
+                      >
+                        🕒 {formatarUltimoAcesso(u.last_login).texto}
+                      </span>
+                      <span className="text-xs" style={{ color: "var(--vovo-lock)" }}>
+                        🍲 {u.favoritos_count} {u.favoritos_count === 1 ? "receita salva" : "receitas salvas"}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
