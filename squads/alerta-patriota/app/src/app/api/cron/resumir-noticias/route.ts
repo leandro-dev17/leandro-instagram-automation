@@ -1,3 +1,4 @@
+```typescript
 /**
  * AGENTE BERNARDO RESUMIDOR
  * Usa Claude para reescrever notícias no tom do Capitão Braga (3 versões).
@@ -12,9 +13,6 @@ import { alertarTelegram } from "@/lib/telegram";
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-// FIX 1 & 2: Prompts corrigidos — formatação WhatsApp (*negrito*), sem markdown de título, sem cabeçalho separado
-// REGRAS COMUNS: usar apenas *texto* para negrito (NÃO **texto**), nunca usar # ou ## headings
 
 const PROMPT_BRAGA_BASICO = `Você é o Capitão Braga, ex-militar evangélico, direto e patriota.
 Reescreva esta notícia em 3-4 linhas no ponto de vista conservador.
@@ -44,97 +42,214 @@ NÃO copie o texto original — crie conteúdo próprio.
 Termine SEMPRE com a linha: Deus, Pátria e Família — sempre.
 Responda APENAS com o texto da mensagem, nada mais.`;
 
-// Prof. Cavalcanti para o grupo Elite
 const PROMPT_CAVALCANTI_ELITE = `Você é o Prof. Bernardo Cavalcanti, ex-professor da USP, consultor político global.
 Escreva uma análise de 5-7 linhas com perspectiva conservadora e global.
 Conecte ao cenário político mais amplo e, quando relevante, a movimentos como Milei, Trump, etc.
 Use linguagem sofisticada mas acessível. Seja preciso e analítico, sem exagero emocional.
 NÃO use markdown de título (sem # ou ##). NÃO use ** — use apenas * para negrito se necessário.
-NÃO adicione cabeçalho ou label no início. Comece direto com a análise.
-NÃO copie o texto original — crie análise própria.
-Termine SEMPRE com a linha: O mundo muda para quem enxerga antes.
+NÃO adicione cabeçalho ou label. Comece direto com a análise.
+NÃO copie o texto original — crie conteúdo próprio.
+Termine SEMPRE com: Análise do Prof. Cavalcanti.
 Responda APENAS com o texto da mensagem, nada mais.`;
 
-async function gerarResumo(titulo: string, url: string, prompt: string): Promise<string> {
-  const msg = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 400,
-    messages: [{
-      role: "user",
-      content: `${prompt}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${url}`,
-    }],
-  });
-  return msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+interface Noticia {
+  id: number;
+  titulo: string;
+  conteudo: string;
+  fonte: string;
+  url: string;
+  data_publicacao: string;
+  resumido: boolean;
+  hash_conteudo: string;
 }
 
-export async function GET(req: NextRequest) {
-  if (!verificarCronSecret(req)) {
-    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-  }
+interface NoticiaComResumos {
+  id: number;
+  titulo: string;
+  conteudo: string;
+  fonte: string;
+  url: string;
+  data_publicacao: string;
+  resumido: boolean;
+  hash_conteudo: string;
+  resumo_braga_basico?: string;
+  resumo_braga_patriota?: string;
+  resumo_braga_vip?: string;
+  resumo_cavalcanti_elite?: string;
+}
 
-  const inicio = Date.now();
-  let processadas = 0;
-  let erros = 0;
+async function gerarResumo(conteudo: string, prompt: string): Promise<string> {
+  const message = await anthropic.messages.create({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 500,
+    messages: [
+      {
+        role: "user",
+        content: `${prompt}\n\nNotícia:\n${conteudo}`,
+      },
+    ],
+  });
 
+  const textBlock = message.content.find((block) => block.type === "text");
+  return textBlock && textBlock.type === "text" ? textBlock.text : "";
+}
+
+async function obterNoticiasNaoResumidas(): Promise<Noticia[]> {
   try {
-    // Busca notícias curadas sem resumo ainda (prioridade para 'curada', depois qualquer nova)
-    const pendentes = await sql`
-      SELECT id, titulo, url
-      FROM noticias
-      WHERE resumo_braga IS NULL
-        AND (global IS NULL OR global = false)
-        AND created_at >= NOW() - INTERVAL '10 hours'
-      ORDER BY
-        CASE WHEN categoria = 'curada' THEN 0 ELSE 1 END,
-        urgente DESC,
-        created_at DESC
-      LIMIT 15
+    const noticias = await sql<Noticia[]>`
+      SELECT 
+        id, 
+        titulo, 
+        conteudo, 
+        fonte, 
+        url, 
+        data_publicacao, 
+        resumido,
+        hash_conteudo
+      FROM noticias 
+      WHERE resumido = false 
+        AND data_publicacao > NOW() - INTERVAL '6 hours'
+      ORDER BY data_publicacao DESC
+      LIMIT 50
+    `;
+    return noticias;
+  } catch (error) {
+    console.error("Erro ao buscar notícias:", error);
+    throw error;
+  }
+}
+
+async function atualizarNoticiaComResumos(
+  noticiaId: number,
+  resumos: {
+    braga_basico?: string;
+    braga_patriota?: string;
+    braga_vip?: string;
+    cavalcanti_elite?: string;
+  }
+): Promise<void> {
+  try {
+    await sql`
+      UPDATE noticias 
+      SET 
+        resumo_braga_basico = ${resumos.braga_basico || null},
+        resumo_braga_patriota = ${resumos.braga_patriota || null},
+        resumo_braga_vip = ${resumos.braga_vip || null},
+        resumo_cavalcanti_elite = ${resumos.cavalcanti_elite || null},
+        resumido = true,
+        data_resumo = NOW()
+      WHERE id = ${noticiaId}
+    `;
+  } catch (error) {
+    console.error(`Erro ao atualizar notícia ${noticiaId}:`, error);
+    throw error;
+  }
+}
+
+async function deduplicarNoticias(): Promise<number> {
+  try {
+    const resultado = await sql<{ count: number }[]>`
+      WITH ranked AS (
+        SELECT 
+          id,
+          ROW_NUMBER() OVER (PARTITION BY hash_conteudo ORDER BY data_publicacao DESC) as rn
+        FROM noticias
+        WHERE data_publicacao > NOW() - INTERVAL '6 hours'
+          AND hash_conteudo IS NOT NULL
+      )
+      DELETE FROM noticias
+      WHERE id IN (
+        SELECT id FROM ranked WHERE rn > 1
+      )
+      RETURNING COUNT(*) as count
+    `;
+    
+    return resultado.length > 0 ? resultado[0].count : 0;
+  } catch (error) {
+    console.error("Erro ao deduplicar notícias:", error);
+    return 0;
+  }
+}
+
+async function marcarDuplicatasComRemocao(): Promise<number> {
+  try {
+    const duplicatas = await sql<{ id: number }[]>`
+      SELECT id FROM noticias n1
+      WHERE data_publicacao > NOW() - INTERVAL '6 hours'
+        AND EXISTS (
+          SELECT 1 FROM noticias n2 
+          WHERE n1.hash_conteudo = n2.hash_conteudo
+            AND n1.id > n2.id
+            AND n1.hash_conteudo IS NOT NULL
+        )
     `;
 
-    for (const noticia of pendentes) {
-      try {
-        // Gera 2 versões em paralelo: Braga (VIP — melhor qualidade) + Cavalcanti (Elite)
-        // Nota: todas as publicações Básico/Patriota/VIP usam resumo_braga na entrega
-        const [braga, cavalcanti] = await Promise.all([
-          gerarResumo(noticia.titulo, noticia.url, PROMPT_BRAGA_VIP),
-          gerarResumo(noticia.titulo, noticia.url, PROMPT_CAVALCANTI_ELITE),
-        ]);
-
-        await sql`
-          UPDATE noticias
-          SET resumo_braga = ${braga},
-              resumo_cavalcanti = ${cavalcanti},
-              categoria = COALESCE(NULLIF(categoria, 'curada'), categoria)
-          WHERE id = ${noticia.id}
-        `;
-
-        // Salva rascunhos em posts_whatsapp por grupo
-        const grupoRows = await sql`SELECT id, plano FROM grupos_whatsapp WHERE ativo = true`;
-
-        for (const grupo of grupoRows) {
-          const conteudo = grupo.plano === "elite" ? cavalcanti : braga;
-
-          await sql`
-            INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status)
-            VALUES (${grupo.id}, ${noticia.id}, ${conteudo}, 'noticia', 'rascunho')
-            ON CONFLICT DO NOTHING
-          `;
-        }
-
-        processadas++;
-      } catch { erros++; }
+    if (duplicatas.length > 0) {
+      const ids = duplicatas.map((d) => d.id);
+      await sql`
+        DELETE FROM noticias 
+        WHERE id = ANY(${ids})
+      `;
+      return duplicatas.length;
     }
 
-    await sql`
-      INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-      VALUES ('bernardo-resumidor', 'resumir_noticias', 'sucesso',
-        ${JSON.stringify({ processadas, erros })},
-        ${Date.now() - inicio})
-    `;
-
-    return NextResponse.json({ ok: true, processadas, erros });
-  } catch (err) {
-    await alertarTelegram("🔴", "Falha Agente Bernardo Resumidor", String(err));
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return 0;
+  } catch (error) {
+    console.error("Erro ao marcar duplicatas:", error);
+    return 0;
   }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const secret = request.headers.get("x-cron-secret");
+    if (!verificarCronSecret(secret)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Passo 1: Deduplicar notícias
+    console.log("Iniciando deduplicação de notícias...");
+    const removidas = await marcarDuplicatasComRemocao();
+    console.log(`${removidas} notícias duplicadas removidas`);
+
+    // Passo 2: Buscar notícias não resumidas
+    const noticias = await obterNoticiasNaoResumidas();
+    console.log(`Encontradas ${noticias.length} notícias para resumir`);
+
+    if (noticias.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: "Nenhuma notícia para resumir",
+        duplicatasRemovidas: removidas,
+      });
+    }
+
+    // Passo 3: Gerar resumos
+    const resumosGerados: { noticiaId: number; success: boolean }[] = [];
+
+    for (const noticia of noticias) {
+      try {
+        console.log(`Processando notícia ${noticia.id}: ${noticia.titulo}`);
+
+        const resumos = await Promise.all([
+          gerarResumo(noticia.conteudo, PROMPT_BRAGA_BASICO),
+          gerarResumo(noticia.conteudo, PROMPT_BRAGA_PATRIOTA),
+          gerarResumo(noticia.conteudo, PROMPT_BRAGA_VIP),
+          gerarResumo(noticia.conteudo, PROMPT_CAVALCANTI_ELITE),
+        ]);
+
+        await atualizarNoticiaComResumos(noticia.id, {
+          braga_basico: resumos[0],
+          braga_patriota: resumos[1],
+          braga_vip: resumos[2],
+          cavalcanti_elite: resumos[3],
+        });
+
+        resumosGerados.push({ noticiaId: noticia.id, success: true });
+        console.log(`Notícia ${noticia.id} resumida com sucesso`);
+      } catch (error) {
+        console.error(`Erro ao processar notícia ${noticia.id}:`, error);
+        resumosGerados.push({ noticiaId: noticia.id, success: false });
+
+        await alertarTelegram(
+          `❌ Erro ao resumir notícia ${noticia
