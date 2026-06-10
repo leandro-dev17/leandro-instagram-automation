@@ -75,12 +75,22 @@ export function isPremium(tipo: string, trial_fim: string | null): boolean {
 }
 
 export function validateMercadoPagoWebhook(payload: unknown): payload is Record<string, unknown> {
-  if (!payload || typeof payload !== "object") return false;
-  return "id" in payload || "type" in payload || "data" in payload;
+  if (!payload || typeof payload !== "object") {
+    throw new Error("webhook_mp_payload_required");
+  }
+  if (!("id" in payload || "type" in payload || "data" in payload)) {
+    throw new Error("webhook_mp_invalid_structure");
+  }
+  return true;
 }
 
-export function extractMercadoPagoSignature(headers: Record<string, string | string[]>): string | null {
+export function extractMercadoPagoSignature(headers: Record<string, string | string[]>): string {
   const signature = headers["x-signature"] || headers["X-Signature"];
-  if (Array.isArray(signature)) return signature[0] || null;
-  return signature || null;
+  const extractedSignature = Array.isArray(signature) ? signature[0] : signature;
+  
+  if (!extractedSignature) {
+    throw new Error("webhook_mp_signature_missing");
+  }
+  
+  return extractedSignature;
 }
