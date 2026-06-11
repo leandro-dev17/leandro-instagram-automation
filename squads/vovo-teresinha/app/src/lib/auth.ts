@@ -96,11 +96,35 @@ export function validateMercadoPagoWebhook(payload: unknown): payload is Record<
 
 export function extractMercadoPagoSignature(headers: Record<string, string | string[]>): string {
   const signature = headers["x-signature"] || headers["X-Signature"];
-  const extractedSignature = Array.isArray(signature) ? signature[0] : signature;
   
-  if (!extractedSignature || extractedSignature.trim() === "") {
+  if (!signature) {
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
   
+  const extractedSignature = Array.isArray(signature) ? signature[0] : signature;
+  
+  if (!extractedSignature || extractedSignature.trim() === "") {
+    throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
+  }
+  
   return extractedSignature;
+}
+
+export function validateMercadoPagoSignature(
+  signature: string,
+  requestId: string,
+  payload: Record<string, unknown>
+): boolean {
+  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+  
+  if (!secret) {
+    throw new WebhookValidationError("webhook_mp_secret_not_configured", 500);
+  }
+  
+  const payloadString = JSON.stringify(payload);
+  const message = `${requestId}${payloadString}`;
+  const crypto = require("crypto");
+  const hash = crypto.createHmac("sha256", secret).update(message).digest("hex");
+  
+  return signature === hash;
 }
