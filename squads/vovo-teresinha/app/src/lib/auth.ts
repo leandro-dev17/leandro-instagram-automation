@@ -74,6 +74,16 @@ export function isPremium(tipo: string, trial_fim: string | null): boolean {
   return false;
 }
 
+export class WebhookValidationError extends Error {
+  constructor(
+    public code: string,
+    public statusCode: number
+  ) {
+    super(code);
+    this.name = "WebhookValidationError";
+  }
+}
+
 export function validateMercadoPagoWebhook(payload: unknown): payload is Record<string, unknown> {
   if (!payload || typeof payload !== "object") {
     throw new WebhookValidationError("webhook_mp_payload_required", 400);
@@ -93,14 +103,4 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
   }
   
   return extractedSignature;
-}
-
-export class WebhookValidationError extends Error {
-  statusCode: number;
-
-  constructor(message: string, statusCode: number = 403) {
-    super(message);
-    this.name = "WebhookValidationError";
-    this.statusCode = statusCode;
-  }
 }
