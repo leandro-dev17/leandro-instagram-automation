@@ -1,4 +1,3 @@
-```typescript
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
@@ -101,25 +100,28 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
   if (!signature) {
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
-  
-  return Array.isArray(signature) ? signature[0] : signature;
+
+  if (typeof signature !== "string") {
+    throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
+  }
+
+  return signature;
 }
 
 export function validateMercadoPagoSignature(
   signature: string,
   requestId: string,
-  timestamp: string
+  secret: string
 ): boolean {
-  const MP_WEBHOOK_SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  
-  if (!MP_WEBHOOK_SECRET) {
-    throw new WebhookValidationError("webhook_mp_secret_not_configured", 403);
+  if (!signature || !requestId || !secret) {
+    throw new WebhookValidationError("webhook_mp_validation_params_missing", 401);
   }
-  
-  if (!signature || !requestId || !timestamp) {
-    throw new WebhookValidationError("webhook_mp_signature_params_missing", 400);
-  }
-  
-  return true;
+
+  const expectedSignature = generateMercadoPagoSignature(requestId, secret);
+  return signature === expectedSignature;
 }
-```
+
+export function generateMercadoPagoSignature(requestId: string, secret: string): string {
+  const crypto = require("crypto");
+  return crypto.createHash("sha256").update(`${requestId}${secret}`).digest("hex");
+}
