@@ -1,127 +1,44 @@
 {
-  "geradoEm": "2026-06-10T15:54:01.741Z",
+  "geradoEm": "2026-06-11T16:14:09.294Z",
   "janela28d": [
     {
-      "data": "2026-05-26",
+      "data": "2026-05-31",
       "tipo": "carousel",
-      "tema": "O guia científico: Como seu metabolismo muda em cada fase do ciclo menstrual",
+      "tema": "O guia completo de treino de glúteo por fase do ciclo menstrual",
       "keywords": [
-        "metabolismo",
+        "glúteo",
+        "gluteo",
         "ciclo",
         "fase",
         "menstrual"
       ]
     },
     {
-      "data": "2026-05-26",
-      "tipo": "kling",
-      "tema": "Mito: Comer igual todos os dias é a chave para emagrecer",
-      "keywords": [
-        "emagrecer"
-      ]
-    },
-    {
-      "data": "2026-05-27",
-      "tipo": "carousel",
-      "tema": "Por que mulheres precisam treinar PESADO para ver resultado — e como começar sem medo",
-      "keywords": []
-    },
-    {
-      "data": "2026-05-27",
-      "tipo": "kling",
-      "tema": "Treinar pesado não vai deixar você grande — vai deixar você INCRÍVEL",
-      "keywords": []
-    },
-    {
-      "data": "2026-05-28",
-      "tipo": "carousel",
-      "tema": "Resistência à insulina: o vilão invisível que te prende no emagrecimento",
-      "keywords": [
-        "emagrecimento"
-      ]
-    },
-    {
-      "data": "2026-05-28",
-      "tipo": "kling",
-      "tema": "Você emagrece, mas ganha tudo de volta? Culpa sua ou culpa da insulina?",
-      "keywords": []
-    },
-    {
-      "data": "2026-05-29",
-      "tipo": "carousel",
-      "tema": "Por que seu glúteo não cresce mesmo treinando — e como ativar a musculatura CERTA",
-      "keywords": [
-        "glúteo",
-        "gluteo"
-      ]
-    },
-    {
-      "data": "2026-05-29",
-      "tipo": "kling",
-      "tema": "Glúteo não cresce com agachamento se você não ativar primeiro",
-      "keywords": [
-        "glúteo",
-        "gluteo"
-      ]
-    },
-    {
-      "data": "2026-05-30",
-      "tipo": "carousel",
-      "tema": "Os 5 motivos científicos pelos quais déficit calórico radical PIORA seu metabolismo feminino",
-      "keywords": [
-        "metabolismo",
-        "déficit"
-      ]
-    },
-    {
-      "data": "2026-05-30",
-      "tipo": "kling",
-      "tema": "Caminhada é cardio? Saiba por que mulheres emagrecem mais com caminhada estratégica",
-      "keywords": [
-        "cardio",
-        "caminhada"
-      ]
-    },
-    {
       "data": "2026-05-31",
-      "tipo": "carousel",
-      "tema": "Fase Lútea vs Fase Folicular: qual é a melhor para crescimento de glúteo e coxa?",
+      "tipo": "kling",
+      "tema": "Glúteo redondo vs. glúteo caído: a diferença está na fase do seu ciclo",
       "keywords": [
         "glúteo",
         "gluteo",
-        "coxa",
+        "ciclo",
         "fase"
-      ]
-    },
-    {
-      "data": "2026-05-31",
-      "tipo": "kling",
-      "tema": "Rotação de quadril e desenvolvimento simétrico de glúteo ao longo do ciclo",
-      "keywords": [
-        "glúteo",
-        "gluteo",
-        "ciclo"
       ]
     },
     {
       "data": "2026-06-01",
       "tipo": "carousel",
-      "tema": "Por que sua fome AUMENTA na fase lútea e como proteína estratégica controla isso",
+      "tema": "Como adaptar sua ingestão calórica a cada fase do ciclo para emagrecer sem sofrer",
       "keywords": [
-        "proteína",
-        "proteina",
+        "emagrecer",
+        "ciclo",
         "fase"
       ]
     },
     {
       "data": "2026-06-01",
       "tipo": "kling",
-      "tema": "Nutrição feminina: por que proteína é o segredo que esconde das mulheres",
-      "keywords": [
-        "proteína",
-        "proteina",
-        "nutrição"
-      ]
+      "tema": "Por que você emagrece mais em uma semana que na outra",
+      "keywords": []
     },
     {
       "data": "2026-06-02",
@@ -345,6 +262,95 @@
         "proteína",
         "proteina",
         "nutrição"
+      ]
+    },
+    {
+      "data": "2026-06-14",
+      "tipo": "carousel",
+      "tema": "Os 7 Maiores Mitos Sobre Emagrecimento Que Te Mantêm Gorda",
+      "keywords": [
+        "emagrecimento"
+      ]
+    },
+    {
+      "data": "2026-06-14",
+      "tipo": "kling",
+      "tema": "O Maior Mito Sobre Emagrecimento Que Te Mantém Gorda",
+      "keywords": [
+        "emagrecimento"
+      ]
+    },
+    {
+      "data": "2026-06-15",
+      "tipo": "carousel",
+      "tema": "Os 3 Movimentos Que Realmente Transformam Seu Glúteo (Não É Agachamento)",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-06-15",
+      "tipo": "kling",
+      "tema": "Seu Glúteo Não Cresce Porque Você Está Treinando Errado",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-06-16",
+      "tipo": "carousel",
+      "tema": "Os 4 pilares que aumentam o metabolismo feminino (e ninguém está falando sobre isso)",
+      "keywords": [
+        "metabolismo"
+      ]
+    },
+    {
+      "data": "2026-06-16",
+      "tipo": "kling",
+      "tema": "A verdade sobre cardio infinito e por que não funciona para emagrecer",
+      "keywords": [
+        "emagrecer",
+        "cardio"
+      ]
+    },
+    {
+      "data": "2026-06-17",
+      "tipo": "carousel",
+      "tema": "O mapa completo do treino por ciclo: como periodizar seu treino com seus hormônios",
+      "keywords": [
+        "ciclo",
+        "hormônio",
+        "hormonio"
+      ]
+    },
+    {
+      "data": "2026-06-17",
+      "tipo": "kling",
+      "tema": "Postura, glúteo e ciclo menstrual: por que sua postura piora na menstruação",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "ciclo",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-06-18",
+      "tipo": "carousel",
+      "tema": "Os 5 mitos de emagrecimento que estão matando seu resultado (e a ciência que prova)",
+      "keywords": [
+        "emagrecimento"
+      ]
+    },
+    {
+      "data": "2026-06-18",
+      "tipo": "kling",
+      "tema": "Motivação real: por que comparação sabota seu emagrecimento",
+      "keywords": [
+        "emagrecimento",
+        "motivação"
       ]
     }
   ],
