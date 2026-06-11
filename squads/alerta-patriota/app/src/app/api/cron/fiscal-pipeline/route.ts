@@ -110,7 +110,20 @@ async function verificarStepNoBanco(
   return rows.length > 0;
 }
 
-async function tentarAutoFix(stepsEmFalta: string[]): Promise<Record<string, string>> {
+const COOLDOWN_AUTOFIX_MS = 60 * 60 * 1000; // 1h: evita re-disparar o mesmo step em loop
+
+async function jaTentouRecentemente(step: string, ciclo: Ciclo): Promise<boolean> {
+  const rows = await sql`
+    SELECT id FROM agentes_log
+    WHERE agente = 'mateus-manchete'
+      AND acao = ${`auto_fix_${step}_${ciclo}`}
+      AND created_at >= NOW() - INTERVAL '1 hour'
+    LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
+async function tentarAutoFix(stepsEmFalta: string[], ciclo: Ciclo): Promise<Record<string, string>> {
   const resultado: Record<string, string> = {};
   const headers = {
     Authorization: `Bearer ${CRON_SECRET}`,
@@ -130,12 +143,22 @@ async function tentarAutoFix(stepsEmFalta: string[]): Promise<Record<string, str
     const rota = rotasPorStep[step];
     if (!rota) continue;
 
+    if (await jaTentouRecentemente(step, ciclo)) {
+      resultado[step] = "pulado_cooldown";
+      continue;
+    }
+
     try {
       const res = await fetch(rota, { method: "GET", headers, signal: AbortSignal.timeout(30000) });
       resultado[step] = res.ok ? "chamado" : `erro_${res.status}`;
     } catch (e) {
       resultado[step] = `falhou: ${String(e).slice(0, 80)}`;
     }
+
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('mateus-manchete', ${`auto_fix_${step}_${ciclo}`}, 'sucesso', ${JSON.stringify({ resultado: resultado[step] })})
+    `.catch(() => {});
 
     await new Promise((r) => setTimeout(r, 3000));
   }
@@ -195,7 +218,7 @@ export async function GET(req: NextRequest) {
         };
 
         const autoFixResult = stepsEmFalta.length > 0
-          ? await tentarAutoFix(stepsEmFalta)
+          ? await tentarAutoFix(stepsEmFalta, cicloFalho.ciclo)
           : {};
 
         const mensagemAlerta = `Pipeline incompleta no ciclo ${cicloLabel[cicloFalho.ciclo]}. Steps em falta: ${stepsEmFalta.join(", ") || "nenhum (card pendente)"}. Auto-fix: ${JSON.stringify(autoFixResult)}`;

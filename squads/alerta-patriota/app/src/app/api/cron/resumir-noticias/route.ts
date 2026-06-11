@@ -1,8 +1,8 @@
-```typescript
 /**
  * AGENTE BERNARDO RESUMIDOR
- * Usa Claude para reescrever notícias no tom do Capitão Braga (3 versões).
- * Versão básica: só resumo | Patriota: + comentário | VIP: + gancho urgente
+ * Usa Claude para reescrever notícias curadas no tom do Capitão Braga
+ * (resumo_braga, usado pelos grupos básico/patriota/vip) e do
+ * Prof. Bernardo Cavalcanti (resumo_cavalcanti, usado pelo grupo elite).
  * GET /api/cron/resumir-noticias
  */
 
@@ -14,27 +14,9 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const PROMPT_BRAGA_BASICO = `Você é o Capitão Braga, ex-militar evangélico, direto e patriota.
-Reescreva esta notícia em 3-4 linhas no ponto de vista conservador.
-Seja direto e use linguagem simples que o brasileiro comum entende.
-NÃO use markdown de título (sem # ou ##). NÃO use ** — use apenas * para negrito se necessário.
-NÃO adicione cabeçalho ou label no início. Comece direto com o conteúdo.
-NÃO copie o texto original — crie conteúdo próprio.
-Termine SEMPRE com a linha: Deus, Pátria e Família — sempre.
-Responda APENAS com o texto da mensagem, nada mais.`;
-
-const PROMPT_BRAGA_PATRIOTA = `Você é o Capitão Braga, ex-militar evangélico, direto e indignado.
-Reescreva esta notícia em 4-6 linhas: primeiro o fato, depois seu comentário apaixonado.
-Conecte ao impacto na família brasileira.
-NÃO use markdown de título (sem # ou ##). NÃO use ** — use apenas * para negrito se necessário.
-NÃO adicione cabeçalho ou label no início. Comece direto com o conteúdo.
-NÃO copie o texto original — crie conteúdo próprio.
-Termine SEMPRE com a linha: Deus, Pátria e Família — sempre.
-Responda APENAS com o texto da mensagem, nada mais.`;
-
-const PROMPT_BRAGA_VIP = `Você é o Capitão Braga, ex-militar evangélico, analítico e contundente.
+const PROMPT_BRAGA = `Você é o Capitão Braga, ex-militar evangélico, analítico e contundente.
 Crie um GANCHO forte na primeira linha que prenda a atenção imediatamente.
-Em seguida escreva 5-7 linhas: fato + análise profunda + o que isso significa para o Brasil.
+Em seguida escreva 4-6 linhas: fato + análise + o que isso significa para o Brasil.
 Mostre o que está por trás, o que a mídia não conta.
 NÃO use markdown de título (sem # ou ##). NÃO use ** — use apenas * para negrito se necessário.
 NÃO adicione cabeçalho ou label antes do gancho. Comece direto com o gancho forte.
@@ -42,200 +24,110 @@ NÃO copie o texto original — crie conteúdo próprio.
 Termine SEMPRE com a linha: Deus, Pátria e Família — sempre.
 Responda APENAS com o texto da mensagem, nada mais.`;
 
-const PROMPT_CAVALCANTI_ELITE = `Você é o Prof. Bernardo Cavalcanti, ex-professor da USP, consultor político global.
-Escreva uma análise de 5-7 linhas com perspectiva conservadora e global.
+const PROMPT_CAVALCANTI = `Você é o Prof. Bernardo Cavalcanti, ex-professor da USP, consultor político global.
+Escreva uma análise de 5-7 linhas com perspectiva conservadora e global sobre esta notícia brasileira.
 Conecte ao cenário político mais amplo e, quando relevante, a movimentos como Milei, Trump, etc.
 Use linguagem sofisticada mas acessível. Seja preciso e analítico, sem exagero emocional.
 NÃO use markdown de título (sem # ou ##). NÃO use ** — use apenas * para negrito se necessário.
 NÃO adicione cabeçalho ou label. Comece direto com a análise.
 NÃO copie o texto original — crie conteúdo próprio.
 Termine SEMPRE com: Análise do Prof. Cavalcanti.
-Responda APENAS com o texto da análise, nada mais.`;
+Responda APENAS com o texto da mensagem, nada mais.`;
 
 interface Noticia {
   id: number;
   titulo: string;
-  conteudo: string;
+  conteudo_original: string | null;
   url: string;
-  fonte: string;
-  data_criacao: string;
-  hash_conteudo: string;
 }
 
-interface Resumido {
-  id: number;
-  resumo_basico: string;
-  resumo_patriota: string;
-  resumo_vip: string;
-  resumo_elite: string;
-  processado_em: string;
+async function gerarResumo(titulo: string, conteudo: string, url: string, prompt: string): Promise<string> {
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 450,
+    messages: [
+      {
+        role: "user",
+        content: `${prompt}\n\nNOTÍCIA: "${titulo}"\n${conteudo ? `CONTEÚDO: ${conteudo}\n` : ""}FONTE: ${url}`,
+      },
+    ],
+  });
+
+  const textBlock = message.content.find((block) => block.type === "text");
+  return textBlock && textBlock.type === "text" ? textBlock.text.trim() : "";
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest) {
+  if (!verificarCronSecret(req)) {
+    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  }
+
+  const inicio = Date.now();
+  let processadas = 0;
+  let erros = 0;
+
   try {
-    // Verificar secret do cron
-    const secret = request.nextUrl.searchParams.get("secret");
-    if (!verificarCronSecret(secret)) {
-      return NextResponse.json(
-        { erro: "Secret inválido" },
-        { status: 401 }
-      );
-    }
-
-    // Buscar notícias não processadas das últimas 6 horas
-    const seisHorasAtras = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-    
     const noticias = await sql<Noticia[]>`
-      SELECT id, titulo, conteudo, url, fonte, data_criacao, hash_conteudo
+      SELECT id, titulo, conteudo_original, url
       FROM noticias
-      WHERE data_criacao >= ${seisHorasAtras}
-      AND id NOT IN (
-        SELECT noticia_id FROM noticias_resumidas
-      )
-      GROUP BY id, titulo, conteudo, url, fonte, data_criacao, hash_conteudo
-      LIMIT 100
+      WHERE categoria = 'curada'
+        AND resumo_braga IS NULL
+        AND (global IS NULL OR global = false)
+        AND created_at >= NOW() - INTERVAL '8 hours'
+      ORDER BY created_at DESC
+      LIMIT 10
     `;
 
     if (noticias.length === 0) {
-      return NextResponse.json({
-        mensagem: "Nenhuma notícia nova para processar",
-        processadas: 0,
-      });
+      await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
+        VALUES ('bernardo-resumidor', 'resumir_noticias', 'sucesso',
+          ${JSON.stringify({ processadas: 0, erros: 0, motivo: "sem noticias curadas pendentes" })},
+          ${Date.now() - inicio})
+      `;
+      return NextResponse.json({ ok: true, processadas: 0, erros: 0, motivo: "sem notícias curadas pendentes" });
     }
 
-    const resumidas: Resumido[] = [];
-    const erros: Array<{ id: number; erro: string }> = [];
-
-    // Processar cada notícia
     for (const noticia of noticias) {
       try {
-        const textoParaResumir = `Título: ${noticia.titulo}\n\nConteúdo: ${noticia.conteudo}`;
+        const conteudo = noticia.conteudo_original || "";
+        const [resumoBraga, resumoCavalcanti] = await Promise.all([
+          gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_BRAGA),
+          gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_CAVALCANTI),
+        ]);
 
-        // Gerar resumo básico
-        const respostaBasica = await anthropic.messages.create({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 500,
-          messages: [
-            {
-              role: "user",
-              content: `${PROMPT_BRAGA_BASICO}\n\nNotícia:\n${textoParaResumir}`,
-            },
-          ],
-        });
+        if (!resumoBraga || !resumoCavalcanti) {
+          erros++;
+          continue;
+        }
 
-        const resumoBasico =
-          respostaBasica.content[0].type === "text"
-            ? respostaBasica.content[0].text
-            : "";
-
-        // Gerar resumo patriota
-        const respostaPatriota = await anthropic.messages.create({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 500,
-          messages: [
-            {
-              role: "user",
-              content: `${PROMPT_BRAGA_PATRIOTA}\n\nNotícia:\n${textoParaResumir}`,
-            },
-          ],
-        });
-
-        const resumoPatriota =
-          respostaPatriota.content[0].type === "text"
-            ? respostaPatriota.content[0].text
-            : "";
-
-        // Gerar resumo VIP
-        const respostaVip = await anthropic.messages.create({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 700,
-          messages: [
-            {
-              role: "user",
-              content: `${PROMPT_BRAGA_VIP}\n\nNotícia:\n${textoParaResumir}`,
-            },
-          ],
-        });
-
-        const resumoVip =
-          respostaVip.content[0].type === "text"
-            ? respostaVip.content[0].text
-            : "";
-
-        // Gerar resumo elite
-        const respostaElite = await anthropic.messages.create({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 700,
-          messages: [
-            {
-              role: "user",
-              content: `${PROMPT_CAVALCANTI_ELITE}\n\nNotícia:\n${textoParaResumir}`,
-            },
-          ],
-        });
-
-        const resumoElite =
-          respostaElite.content[0].type === "text"
-            ? respostaElite.content[0].text
-            : "";
-
-        // Inserir na base de dados
         await sql`
-          INSERT INTO noticias_resumidas (noticia_id, resumo_basico, resumo_patriota, resumo_vip, resumo_elite, processado_em, hash_conteudo)
-          VALUES (${noticia.id}, ${resumoBasico}, ${resumoPatriota}, ${resumoVip}, ${resumoElite}, NOW(), ${noticia.hash_conteudo})
-          ON CONFLICT (noticia_id) DO NOTHING
+          UPDATE noticias
+          SET resumo_braga = ${resumoBraga}, resumo_cavalcanti = ${resumoCavalcanti}
+          WHERE id = ${noticia.id}
         `;
 
-        resumidas.push({
-          id: noticia.id,
-          resumo_basico: resumoBasico,
-          resumo_patriota: resumoPatriota,
-          resumo_vip: resumoVip,
-          resumo_elite: resumoElite,
-          processado_em: new Date().toISOString(),
-        });
-      } catch (erro) {
-        const mensagemErro = erro instanceof Error ? erro.message : String(erro);
-        erros.push({
-          id: noticia.id,
-          erro: mensagemErro,
-        });
-        console.error(`Erro ao processar notícia ${noticia.id}:`, erro);
+        processadas++;
+      } catch {
+        erros++;
       }
     }
 
-    // Alertar Telegram se houver erros
-    if (erros.length > 0) {
-      await alertarTelegram(
-        `⚠️ Resumidor: ${erros.length} erros ao processar ${noticias.length} notícias`
-      );
-    }
+    const duracao = Date.now() - inicio;
 
-    return NextResponse.json({
-      mensagem: "Resumidor executado",
-      processadas: resumidas.length,
-      erros: erros.length,
-      detalhes: {
-        sucesso: resumidas.length,
-        falhas: erros.length,
-        erros: erros.slice(0, 5),
-      },
-    });
-  } catch (erro) {
-    console.error("Erro no resumidor:", erro);
-    const mensagemErro = erro instanceof Error ? erro.message : String(erro);
-    
-    await alertarTelegram(
-      `❌ Resumidor: Erro fatal - ${mensagemErro}`
-    );
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
+      VALUES ('bernardo-resumidor', 'resumir_noticias', ${erros === 0 ? "sucesso" : "aviso"},
+        ${JSON.stringify({ processadas, erros })}, ${duracao})
+    `;
 
-    return NextResponse.json(
-      {
-        erro: "Erro ao processar resumos",
-        detalhes: mensagemErro,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: true, processadas, erros });
+  } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Bernardo Resumidor", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
+      VALUES ('bernardo-resumidor', 'resumir_noticias', 'erro', ${JSON.stringify({ erro: String(err) })}, ${Date.now() - inicio})
+    `.catch(() => {});
+    return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }
-```
