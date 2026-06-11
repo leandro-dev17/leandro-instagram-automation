@@ -714,6 +714,12 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" | tee /tmp/gerente.json
           echo "Resultado: $(cat /tmp/gerente.json)"
 
+      - name: Agente Médico — Checagem de saúde do banco (auto-cura)
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/agente-medico?servico=banco" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" | tee /tmp/medico.json
+          echo "Resultado: $(cat /tmp/medico.json)"
+
   # ── GUARDIÃO 24/7 — fiscaliza squad de revisão a cada 30min ─────────────
   guardiao-24-7:
     name: Guardião — Fiscaliza Squad de Revisão de Código (30min)

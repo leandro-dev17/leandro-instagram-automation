@@ -1,0 +1,76 @@
+/**
+ * AGENTE MÁRIO MÉDICO — Auto-cura de serviços com falha
+ * Acionado pelos fiscais via Telegram ou direto quando detectam problema.
+ * Protocolo por serviço com backoff exponencial.
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
+
+const EVO_URL = process.env.EVOLUTION_API_URL;
+const EVO_KEY = process.env.EVOLUTION_API_KEY;
+const EVO_INST = process.env.EVOLUTION_INSTANCIA || "alertapatriota";
+const APP_URL  = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
+
+async function curarBanco(): Promise<boolean> {
+  for (let i = 0; i < 5; i++) {
+    try {
+      await sql`SELECT 1`;
+      return true;
+    } catch {
+      await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+    }
+  }
+  return false;
+}
+
+async function curarWhatsApp(): Promise<boolean> {
+  if (!EVO_URL || !EVO_KEY) return false;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await fetch(`${EVO_URL}/instance/connect/${EVO_INST}`, {
+        headers: { apikey: EVO_KEY },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) return true;
+    } catch {
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  return false;
+}
+
+export async function GET(req: NextRequest) {
+  if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const servico = searchParams.get("servico") || "all";
+  const resultados: Record<string, boolean> = {};
+
+  try {
+    if (servico === "banco" || servico === "all") {
+      const ok = await curarBanco();
+      resultados.banco = ok;
+      if (!ok) await alertarTelegram("🚨", "Mário Médico — NÃO CUROU o banco", "Neon não responde após 5 tentativas. Verificar console.neon.tech");
+    }
+
+    if (servico === "whatsapp" || servico === "all") {
+      const ok = await curarWhatsApp();
+      resultados.whatsapp = ok;
+      if (!ok) await alertarTelegram("🚨", "Mário Médico — NÃO CUROU WhatsApp", "Evolution API não reconecta. Acesse o manager para escanear QR.");
+    }
+
+    // Registra resultado
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('agente-medico', 'auto_cura', ${Object.values(resultados).every(Boolean) ? 'sucesso' : 'erro'},
+        ${JSON.stringify({ servico, resultados })})
+    `.catch(() => {});
+
+    return NextResponse.json({ ok: true, resultados });
+  } catch (err) {
+    await alertarTelegram("🚨", "Mário Médico — ERRO CRÍTICO", String(err));
+    return NextResponse.json({ erro: String(err) }, { status: 500 });
+  }
+}
