@@ -50,206 +50,192 @@ NÃO use markdown de título (sem # ou ##). NÃO use ** — use apenas * para ne
 NÃO adicione cabeçalho ou label. Comece direto com a análise.
 NÃO copie o texto original — crie conteúdo próprio.
 Termine SEMPRE com: Análise do Prof. Cavalcanti.
-Responda APENAS com o texto da mensagem, nada mais.`;
+Responda APENAS com o texto da análise, nada mais.`;
 
 interface Noticia {
   id: number;
   titulo: string;
   conteudo: string;
-  fonte: string;
   url: string;
-  data_publicacao: string;
-  resumido: boolean;
+  fonte: string;
+  data_criacao: string;
   hash_conteudo: string;
 }
 
-interface NoticiaComResumos {
+interface Resumido {
   id: number;
-  titulo: string;
-  conteudo: string;
-  fonte: string;
-  url: string;
-  data_publicacao: string;
-  resumido: boolean;
-  hash_conteudo: string;
-  resumo_braga_basico?: string;
-  resumo_braga_patriota?: string;
-  resumo_braga_vip?: string;
-  resumo_cavalcanti_elite?: string;
+  resumo_basico: string;
+  resumo_patriota: string;
+  resumo_vip: string;
+  resumo_elite: string;
+  processado_em: string;
 }
 
-async function gerarResumo(conteudo: string, prompt: string): Promise<string> {
-  const message = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
-    max_tokens: 500,
-    messages: [
-      {
-        role: "user",
-        content: `${prompt}\n\nNotícia:\n${conteudo}`,
-      },
-    ],
-  });
-
-  const textBlock = message.content.find((block) => block.type === "text");
-  return textBlock && textBlock.type === "text" ? textBlock.text : "";
-}
-
-async function obterNoticiasNaoResumidas(): Promise<Noticia[]> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const noticias = await sql<Noticia[]>`
-      SELECT 
-        id, 
-        titulo, 
-        conteudo, 
-        fonte, 
-        url, 
-        data_publicacao, 
-        resumido,
-        hash_conteudo
-      FROM noticias 
-      WHERE resumido = false 
-        AND data_publicacao > NOW() - INTERVAL '6 hours'
-      ORDER BY data_publicacao DESC
-      LIMIT 50
-    `;
-    return noticias;
-  } catch (error) {
-    console.error("Erro ao buscar notícias:", error);
-    throw error;
-  }
-}
-
-async function atualizarNoticiaComResumos(
-  noticiaId: number,
-  resumos: {
-    braga_basico?: string;
-    braga_patriota?: string;
-    braga_vip?: string;
-    cavalcanti_elite?: string;
-  }
-): Promise<void> {
-  try {
-    await sql`
-      UPDATE noticias 
-      SET 
-        resumo_braga_basico = ${resumos.braga_basico || null},
-        resumo_braga_patriota = ${resumos.braga_patriota || null},
-        resumo_braga_vip = ${resumos.braga_vip || null},
-        resumo_cavalcanti_elite = ${resumos.cavalcanti_elite || null},
-        resumido = true,
-        data_resumo = NOW()
-      WHERE id = ${noticiaId}
-    `;
-  } catch (error) {
-    console.error(`Erro ao atualizar notícia ${noticiaId}:`, error);
-    throw error;
-  }
-}
-
-async function deduplicarNoticias(): Promise<number> {
-  try {
-    const resultado = await sql<{ count: number }[]>`
-      WITH ranked AS (
-        SELECT 
-          id,
-          ROW_NUMBER() OVER (PARTITION BY hash_conteudo ORDER BY data_publicacao DESC) as rn
-        FROM noticias
-        WHERE data_publicacao > NOW() - INTERVAL '6 hours'
-          AND hash_conteudo IS NOT NULL
-      )
-      DELETE FROM noticias
-      WHERE id IN (
-        SELECT id FROM ranked WHERE rn > 1
-      )
-      RETURNING COUNT(*) as count
-    `;
-    
-    return resultado.length > 0 ? resultado[0].count : 0;
-  } catch (error) {
-    console.error("Erro ao deduplicar notícias:", error);
-    return 0;
-  }
-}
-
-async function marcarDuplicatasComRemocao(): Promise<number> {
-  try {
-    const duplicatas = await sql<{ id: number }[]>`
-      SELECT id FROM noticias n1
-      WHERE data_publicacao > NOW() - INTERVAL '6 hours'
-        AND EXISTS (
-          SELECT 1 FROM noticias n2 
-          WHERE n1.hash_conteudo = n2.hash_conteudo
-            AND n1.id > n2.id
-            AND n1.hash_conteudo IS NOT NULL
-        )
-    `;
-
-    if (duplicatas.length > 0) {
-      const ids = duplicatas.map((d) => d.id);
-      await sql`
-        DELETE FROM noticias 
-        WHERE id = ANY(${ids})
-      `;
-      return duplicatas.length;
-    }
-
-    return 0;
-  } catch (error) {
-    console.error("Erro ao marcar duplicatas:", error);
-    return 0;
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const secret = request.headers.get("x-cron-secret");
+    // Verificar secret do cron
+    const secret = request.nextUrl.searchParams.get("secret");
     if (!verificarCronSecret(secret)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { erro: "Secret inválido" },
+        { status: 401 }
+      );
     }
 
-    // Passo 1: Deduplicar notícias
-    console.log("Iniciando deduplicação de notícias...");
-    const removidas = await marcarDuplicatasComRemocao();
-    console.log(`${removidas} notícias duplicadas removidas`);
-
-    // Passo 2: Buscar notícias não resumidas
-    const noticias = await obterNoticiasNaoResumidas();
-    console.log(`Encontradas ${noticias.length} notícias para resumir`);
+    // Buscar notícias não processadas das últimas 6 horas
+    const seisHorasAtras = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    
+    const noticias = await sql<Noticia[]>`
+      SELECT id, titulo, conteudo, url, fonte, data_criacao, hash_conteudo
+      FROM noticias
+      WHERE data_criacao >= ${seisHorasAtras}
+      AND id NOT IN (
+        SELECT noticia_id FROM noticias_resumidas
+      )
+      GROUP BY id, titulo, conteudo, url, fonte, data_criacao, hash_conteudo
+      LIMIT 100
+    `;
 
     if (noticias.length === 0) {
       return NextResponse.json({
-        success: true,
-        message: "Nenhuma notícia para resumir",
-        duplicatasRemovidas: removidas,
+        mensagem: "Nenhuma notícia nova para processar",
+        processadas: 0,
       });
     }
 
-    // Passo 3: Gerar resumos
-    const resumosGerados: { noticiaId: number; success: boolean }[] = [];
+    const resumidas: Resumido[] = [];
+    const erros: Array<{ id: number; erro: string }> = [];
 
+    // Processar cada notícia
     for (const noticia of noticias) {
       try {
-        console.log(`Processando notícia ${noticia.id}: ${noticia.titulo}`);
+        const textoParaResumir = `Título: ${noticia.titulo}\n\nConteúdo: ${noticia.conteudo}`;
 
-        const resumos = await Promise.all([
-          gerarResumo(noticia.conteudo, PROMPT_BRAGA_BASICO),
-          gerarResumo(noticia.conteudo, PROMPT_BRAGA_PATRIOTA),
-          gerarResumo(noticia.conteudo, PROMPT_BRAGA_VIP),
-          gerarResumo(noticia.conteudo, PROMPT_CAVALCANTI_ELITE),
-        ]);
-
-        await atualizarNoticiaComResumos(noticia.id, {
-          braga_basico: resumos[0],
-          braga_patriota: resumos[1],
-          braga_vip: resumos[2],
-          cavalcanti_elite: resumos[3],
+        // Gerar resumo básico
+        const respostaBasica = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 500,
+          messages: [
+            {
+              role: "user",
+              content: `${PROMPT_BRAGA_BASICO}\n\nNotícia:\n${textoParaResumir}`,
+            },
+          ],
         });
 
-        resumosGerados.push({ noticiaId: noticia.id, success: true });
-        console.log(`Notícia ${noticia.id} resumida com sucesso`);
-      } catch (error) {
-        console.error(`Erro ao processar notícia ${noticia.id}:`, error);
-        resumosGerados.push({ noticiaId: noticia.id, success: false });
+        const resumoBasico =
+          respostaBasica.content[0].type === "text"
+            ? respostaBasica.content[0].text
+            : "";
 
-        await alertarTelegram(
-          `❌ Erro ao resumir notícia ${noticia
+        // Gerar resumo patriota
+        const respostaPatriota = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 500,
+          messages: [
+            {
+              role: "user",
+              content: `${PROMPT_BRAGA_PATRIOTA}\n\nNotícia:\n${textoParaResumir}`,
+            },
+          ],
+        });
+
+        const resumoPatriota =
+          respostaPatriota.content[0].type === "text"
+            ? respostaPatriota.content[0].text
+            : "";
+
+        // Gerar resumo VIP
+        const respostaVip = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 700,
+          messages: [
+            {
+              role: "user",
+              content: `${PROMPT_BRAGA_VIP}\n\nNotícia:\n${textoParaResumir}`,
+            },
+          ],
+        });
+
+        const resumoVip =
+          respostaVip.content[0].type === "text"
+            ? respostaVip.content[0].text
+            : "";
+
+        // Gerar resumo elite
+        const respostaElite = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 700,
+          messages: [
+            {
+              role: "user",
+              content: `${PROMPT_CAVALCANTI_ELITE}\n\nNotícia:\n${textoParaResumir}`,
+            },
+          ],
+        });
+
+        const resumoElite =
+          respostaElite.content[0].type === "text"
+            ? respostaElite.content[0].text
+            : "";
+
+        // Inserir na base de dados
+        await sql`
+          INSERT INTO noticias_resumidas (noticia_id, resumo_basico, resumo_patriota, resumo_vip, resumo_elite, processado_em, hash_conteudo)
+          VALUES (${noticia.id}, ${resumoBasico}, ${resumoPatriota}, ${resumoVip}, ${resumoElite}, NOW(), ${noticia.hash_conteudo})
+          ON CONFLICT (noticia_id) DO NOTHING
+        `;
+
+        resumidas.push({
+          id: noticia.id,
+          resumo_basico: resumoBasico,
+          resumo_patriota: resumoPatriota,
+          resumo_vip: resumoVip,
+          resumo_elite: resumoElite,
+          processado_em: new Date().toISOString(),
+        });
+      } catch (erro) {
+        const mensagemErro = erro instanceof Error ? erro.message : String(erro);
+        erros.push({
+          id: noticia.id,
+          erro: mensagemErro,
+        });
+        console.error(`Erro ao processar notícia ${noticia.id}:`, erro);
+      }
+    }
+
+    // Alertar Telegram se houver erros
+    if (erros.length > 0) {
+      await alertarTelegram(
+        `⚠️ Resumidor: ${erros.length} erros ao processar ${noticias.length} notícias`
+      );
+    }
+
+    return NextResponse.json({
+      mensagem: "Resumidor executado",
+      processadas: resumidas.length,
+      erros: erros.length,
+      detalhes: {
+        sucesso: resumidas.length,
+        falhas: erros.length,
+        erros: erros.slice(0, 5),
+      },
+    });
+  } catch (erro) {
+    console.error("Erro no resumidor:", erro);
+    const mensagemErro = erro instanceof Error ? erro.message : String(erro);
+    
+    await alertarTelegram(
+      `❌ Resumidor: Erro fatal - ${mensagemErro}`
+    );
+
+    return NextResponse.json(
+      {
+        erro: "Erro ao processar resumos",
+        detalhes: mensagemErro,
+      },
+      { status: 500 }
+    );
+  }
+}
+```
