@@ -6,10 +6,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.verce
 const MP_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN!;
 
 const VALORES_ANUAIS: Record<string, number> = {
-  basico: 99,
-  patriota: 239,
-  vip: 479,
-  elite: 499,
+  vip: 99,
+  elite: 199,
 };
 
 export async function POST(req: NextRequest) {
@@ -29,7 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!VALORES_ANUAIS[plano]) {
-      return NextResponse.json({ erro: "Plano inválido. Use: basico, patriota, vip, elite" }, { status: 400 });
+      return NextResponse.json({ erro: "Plano inválido. Use: vip, elite" }, { status: 400 });
     }
 
     if (ciclo !== "anual") {

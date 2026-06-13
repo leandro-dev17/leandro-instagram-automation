@@ -17,8 +17,6 @@ const EVO_KEY  = process.env.EVOLUTION_API_KEY;
 const EVO_INST = process.env.EVOLUTION_INSTANCIA || 'alertapatriota';
 
 const GROUP_IDS = {
-  basico:   process.env.WPP_GROUP_BASICO,
-  patriota: process.env.WPP_GROUP_PATRIOTA,
   vip:      process.env.WPP_GROUP_VIP,
   elite:    process.env.WPP_GROUP_ELITE,
 };
@@ -87,23 +85,6 @@ async function enviarTextoWPP(groupJid, texto) {
   return res.ok;
 }
 
-// ── VERSÃO CURTADA COM FOMO (Básico + Patriota) ───────────────────────────
-function gerarVersaoCurtada(textoCompleto) {
-  // Extrai a linha de temperatura geral do texto completo
-  const linhaTemp = textoCompleto.match(/📊 \*TEMPERATURA GERAL[^\n]*/)?.[0] || '📊 *TEMPERATURA GERAL DA SEMANA: 🔴 CRÍTICA*';
-
-  return `🌡️ *TERMÔMETRO DA LIBERDADE — este domingo*
-
-O Prof. Bernardo Cavalcanti acaba de publicar a análise completa da semana.
-
-${linhaTemp}
-
-👆 A análise completa — com os índices de Liberdade Econômica, Soberania Nacional, Agenda Conservadora e Ameaça Institucional — está disponível AGORA apenas para membros VIP e Elite.
-
-Faça upgrade e receba o Termômetro completo todo domingo às 20h:
-👉 alertapatriota.vercel.app`;
-}
-
 // ── MAIN ──────────────────────────────────────────────────────────────────
 async function main() {
   const diaSemana = new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Sao_Paulo' });
@@ -120,17 +101,13 @@ async function main() {
     process.exit(1);
   }
 
-  const textoCurtado = gerarVersaoCurtada(textoCompleto);
-
-  // VIP e Elite → versão COMPLETA | Básico e Patriota → versão CURTADA com FOMO
+  // VIP e Elite → versão COMPLETA
   const envios = [
-    { plano: 'basico',   jid: GROUP_IDS.basico,   texto: textoCurtado,  label: 'curtada' },
-    { plano: 'patriota', jid: GROUP_IDS.patriota,  texto: textoCurtado,  label: 'curtada' },
-    { plano: 'vip',      jid: GROUP_IDS.vip,       texto: textoCompleto, label: 'completa' },
-    { plano: 'elite',    jid: GROUP_IDS.elite,      texto: textoCompleto, label: 'completa' },
+    { plano: 'vip',      jid: GROUP_IDS.vip,    texto: textoCompleto, label: 'completa' },
+    { plano: 'elite',    jid: GROUP_IDS.elite,  texto: textoCompleto, label: 'completa' },
   ];
 
-  console.log('📤 Enviando — versão completa para VIP+Elite, curtada para Básico+Patriota...');
+  console.log('📤 Enviando versão completa para VIP+Elite...');
   let enviados = 0;
   const erros = [];
 
@@ -143,12 +120,12 @@ async function main() {
   }
 
   const status = erros.length === 0
-    ? `✅ 4/4 grupos (VIP+Elite=completo, Básico+Patriota=FOMO)`
-    : `⚠️ ${enviados}/4 grupos (falhou: ${erros.join(', ')})`;
+    ? `✅ 2/2 grupos (VIP+Elite=completo)`
+    : `⚠️ ${enviados}/2 grupos (falhou: ${erros.join(', ')})`;
 
   await sendTelegram(`🌡️ *Termômetro da Liberdade* — domingo\n${status}\n📅 ${dataBRT()} · ${horaBRT()} BRT`);
 
-  console.log(`\n✅ Termômetro enviado para ${enviados}/4 grupos!`);
+  console.log(`\n✅ Termômetro enviado para ${enviados}/2 grupos!`);
 }
 
 main().catch(async err => {

@@ -16,8 +16,6 @@ const CRON_KEY   = process.env.CRON_SECRET;
 const EVO_URL    = process.env.EVOLUTION_API_URL;
 const EVO_KEY    = process.env.EVOLUTION_API_KEY;
 const EVO_INST   = process.env.EVOLUTION_INSTANCIA || 'alertapatriota';
-const JID_BASICO   = process.env.WPP_GROUP_BASICO;
-const JID_PATRIOTA = process.env.WPP_GROUP_PATRIOTA;
 
 // ── VERIFICA CRISE VIA API VERCEL (sem dependência do Neon aqui) ───────────
 async function verificarCriseViaAPI() {
@@ -33,19 +31,6 @@ async function verificarCriseViaAPI() {
     console.log(`  ⚠️  API modo-crise falhou: ${e.message}`);
     return { crise: false };
   }
-}
-
-// ── FOMO TEXTO para Básico + Patriota ─────────────────────────────────────
-async function enviarFOMO(jid) {
-  const msg = '🚨 *MODO CRISE — Alerta Patriota*\n\nSituação política grave agora.\n\nMembros VIP e Elite acompanham em tempo real com análise do Capitão Braga — atualização a cada hora.\n\n🔥 Faça upgrade para acompanhar ao vivo:\n👉 alertapatriota.vercel.app';
-  try {
-    const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-      body: JSON.stringify({ number: jid, textMessage: { text: msg } }),
-    });
-    return res.ok;
-  } catch { return false; }
 }
 
 // ── CARDS EXTRAS para VIP + Elite ─────────────────────────────────────────
@@ -73,16 +58,8 @@ async function main() {
   console.log('MODO CRISE ATIVADO — ' + urgentes + ' alertas urgentes!');
 
   await sendTelegram(
-    'Modo Crise — Alerta Patriota\n\n' + urgentes + ' alertas urgentes!\n\nVIP+Elite recebem cards.\nBasico+Patriota recebem FOMO.\n\n' + dataBRT() + ' ' + horaBRT() + ' BRT'
+    'Modo Crise — Alerta Patriota\n\n' + urgentes + ' alertas urgentes!\n\nVIP+Elite recebem cards.\n\n' + dataBRT() + ' ' + horaBRT() + ' BRT'
   );
-
-  // Básico + Patriota → FOMO
-  for (const jid of [JID_BASICO, JID_PATRIOTA]) {
-    if (!jid) continue;
-    const ok = await enviarFOMO(jid);
-    console.log((ok ? 'OK' : 'FALHA') + ' FOMO ' + jid);
-    await new Promise(function(r) { setTimeout(r, 2000); });
-  }
 
   // VIP + Elite → cards visuais
   const ok = gerarCardsVIPElite();

@@ -327,11 +327,6 @@ jobs:
           sleep 30
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/moderacao-grupo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
-      - name: Cintia Conversão — Upsell grupo Básico
-        run: |
-          sleep 30
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/conversor-grupo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-
       - name: Ulisses Upgrade — Top 10% engajados (só segunda)
         run: |
           sleep 30
@@ -484,35 +479,21 @@ jobs:
 
   # ── FLORA FOTO — GERADOR DE CARDS (envio para WhatsApp) ───────────────────
   # Endpoint /api/cron/gerar-card nunca era chamado por nenhum cron — causa
-  # raiz dos alertas "cards_sem_envio" (grupos 41-48h sem card).
+  # raiz dos alertas "cards_sem_envio". Apenas VIP e Elite (grupos ativos).
   gerador-cards:
     name: Flora Foto — Gerador de Cards (envio WhatsApp)
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 10
     steps:
       - name: Card VIP
-        if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=vip" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Card Elite
-        if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
           sleep 10
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=elite" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-
-      - name: Card Básico
-        if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
-        run: |
-          sleep 60
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=basico" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-
-      - name: Card Patriota
-        if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
-        run: |
-          sleep 10
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=patriota" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── FASE 4 — BACKUP DIÁRIO (às 3h BRT = 6h UTC) ──────────────────────────
   backup:
@@ -576,8 +557,6 @@ jobs:
           EVOLUTION_API_URL:     https://evolution-api-production-8be2.up.railway.app
           EVOLUTION_API_KEY:     alertapatriota-token-2026
           EVOLUTION_INSTANCIA:   alertapatriota
-          WPP_GROUP_BASICO:      120363409640100922@g.us
-          WPP_GROUP_PATRIOTA:    120363408243517495@g.us
           WPP_GROUP_VIP:         120363425999377985@g.us
           WPP_GROUP_ELITE:       120363426153474301@g.us
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
@@ -618,8 +597,6 @@ jobs:
           EVOLUTION_API_URL:   https://evolution-api-production-8be2.up.railway.app
           EVOLUTION_API_KEY:   alertapatriota-token-2026
           EVOLUTION_INSTANCIA: alertapatriota
-          WPP_GROUP_BASICO:    120363409640100922@g.us
-          WPP_GROUP_PATRIOTA:  120363408243517495@g.us
           WPP_GROUP_VIP:       120363425999377985@g.us
           WPP_GROUP_ELITE:     120363426153474301@g.us
           ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}

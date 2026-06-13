@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const porGrupo: Record<string, number> = {};
     for (const r of hoje) porGrupo[(r as { acao: string }).acao] = parseInt((r as { total: string }).total);
 
-    const limitesEsperados = { card_basico: 1, card_patriota: 1, card_vip: 2, card_elite: 2 };
+    const limitesEsperados = { card_vip: 2, card_elite: 2 };
     for (const [acao, minimo] of Object.entries(limitesEsperados)) {
       const enviados = porGrupo[acao] ?? 0;
       const hora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getHours();
@@ -45,14 +45,14 @@ export async function GET(req: NextRequest) {
   try {
     const estoque = await sql`
       SELECT
-        COUNT(*) FILTER (WHERE resumo_braga IS NOT NULL AND postada_basico = false) as basico,
+        COUNT(*) FILTER (WHERE resumo_braga IS NOT NULL AND postada_vip = false) as vip,
         COUNT(*) FILTER (WHERE resumo_cavalcanti IS NOT NULL AND postada_elite = false) as elite
       FROM noticias
       WHERE created_at > NOW() - INTERVAL '12 hours'
     `;
-    const s = estoque[0] as { basico: string; elite: string };
-    if (parseInt(s.basico) < 1) { problemas.push("Estoque crítico: 0 notícias prontas para Básico/VIP"); score -= 20; }
-    else if (parseInt(s.basico) < 2) { problemas.push("Estoque baixo: apenas 1 notícia para Básico/VIP"); score -= 5; }
+    const s = estoque[0] as { vip: string; elite: string };
+    if (parseInt(s.vip) < 1) { problemas.push("Estoque crítico: 0 notícias prontas para VIP"); score -= 20; }
+    else if (parseInt(s.vip) < 2) { problemas.push("Estoque baixo: apenas 1 notícia para VIP"); score -= 5; }
     if (parseInt(s.elite) < 1) { problemas.push("Estoque crítico: 0 análises prontas para Elite"); score -= 10; }
   } catch { /* silencioso */ }
 

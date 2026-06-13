@@ -198,11 +198,11 @@ export async function POST(req: NextRequest) {
         // external_reference: "usuarioId|plano|ciclo"
         const partes = (pa.external_reference || "").split("|");
         const usuarioId = parseInt(partes[0]);
-        const plano = (partes[1] || "basico") as Plano;
+        const plano = (partes[1] || "vip") as Plano;
         const ciclo = (partes[2] || "mensal") as "mensal" | "anual";
         const valor = (pa.auto_recurring as { transaction_amount?: number })?.transaction_amount ?? 0;
 
-        if (usuarioId && !isNaN(usuarioId) && ["basico","patriota","vip","elite"].includes(plano)) {
+        if (usuarioId && !isNaN(usuarioId) && ["vip","elite"].includes(plano)) {
           await ativarAcesso(usuarioId, plano, dataId, valor, ciclo);
         }
       } else if (["cancelled"].includes(pa.status || "")) {

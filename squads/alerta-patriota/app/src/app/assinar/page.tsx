@@ -5,38 +5,10 @@ import { useRouter } from "next/navigation";
 
 const PLANOS = [
   {
-    id: "basico",
-    nome: "Alerta Básico",
-    preco: "12,90",
-    precoAnual: "99",
-    badge: "",
-    cor: "border-gray-600",
-    corBtn: "bg-gray-600 hover:bg-gray-500",
-    items: [
-      "3 notícias/dia com resumo",
-      "Grupo fechado exclusivo",
-      "Sem publicidade",
-    ],
-  },
-  {
-    id: "patriota",
-    nome: "Alerta Patriota",
-    preco: "29,90",
-    precoAnual: "239",
-    badge: "MAIS POPULAR",
-    cor: "border-yellow-500",
-    corBtn: "bg-yellow-500 hover:bg-yellow-400 text-gray-900",
-    items: [
-      "3 notícias/dia com comentário do Capitão Braga",
-      "Grupo aberto para debate",
-      "Análise política diária",
-    ],
-  },
-  {
     id: "vip",
     nome: "VIP Premium",
-    preco: "59,90",
-    precoAnual: "479",
+    preco: "9,90",
+    precoAnual: "99",
     badge: "MAIS COMPLETO",
     cor: "border-red-500",
     corBtn: "bg-red-600 hover:bg-red-500",
@@ -51,12 +23,11 @@ const PLANOS = [
   {
     id: "elite",
     nome: "Elite Global",
-    preco: "",
-    precoAnual: "499",
+    preco: "19,90",
+    precoAnual: "199",
     badge: "ELITE",
     cor: "border-purple-500",
     corBtn: "bg-purple-700 hover:bg-purple-600",
-    apenasAnual: true,
     items: [
       "8 análises/dia (BR + Internacional)",
       "Prof. Bernardo Cavalcanti exclusivo",
@@ -77,7 +48,7 @@ export default function AssinarPage() {
 
   async function handleAssinar(planoId: string) {
     setLoading(planoId);
-    const cicloFinal = planoId === "elite" ? "anual" : ciclo;
+    const cicloFinal = ciclo;
 
     try {
       // Pix: ciclo anual
@@ -178,10 +149,9 @@ export default function AssinarPage() {
       </div>
 
       {/* Cards de planos */}
-      <div className="max-w-6xl mx-auto px-4 pb-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="max-w-3xl mx-auto px-4 pb-16 grid grid-cols-1 md:grid-cols-2 gap-6">
         {PLANOS.map((plano) => {
-          const ehElite = plano.id === "elite";
-          const precoExibido = ciclo === "anual" ? `R$${plano.precoAnual}/ano` : (plano.preco ? `R$${plano.preco}/mês` : `R$${plano.precoAnual}/ano`);
+          const precoExibido = ciclo === "anual" ? `R$${plano.precoAnual}/ano` : `R$${plano.preco}/mês`;
 
           return (
             <div key={plano.id} className={`relative bg-gray-900 border-2 ${plano.cor} rounded-2xl p-6 flex flex-col`}>
@@ -195,8 +165,8 @@ export default function AssinarPage() {
 
               <div className="mb-4">
                 <span className="text-3xl font-extrabold text-yellow-400">{precoExibido}</span>
-                {!ehElite && ciclo === "mensal" && <p className="text-green-500 text-xs mt-0.5">▸ Experimente 7 dias pagando só R$1</p>}
-                {ciclo === "anual" && !ehElite && <p className="text-green-400 text-xs mt-0.5">equivale a R${(Number(plano.precoAnual) / 12).toFixed(2).replace(".", ",")}/mês</p>}
+                {ciclo === "mensal" && <p className="text-green-500 text-xs mt-0.5">▸ Experimente 7 dias pagando só R$1</p>}
+                {ciclo === "anual" && <p className="text-green-400 text-xs mt-0.5">equivale a R${(Number(plano.precoAnual) / 12).toFixed(2).replace(".", ",")}/mês</p>}
               </div>
 
               <ul className="space-y-2 flex-1 mb-6">
@@ -213,7 +183,7 @@ export default function AssinarPage() {
                 disabled={loading === plano.id}
                 className={`w-full py-3 rounded-xl font-bold text-white transition-colors ${plano.corBtn} disabled:opacity-50`}
               >
-                {loading === plano.id ? "Processando..." : ehElite ? "Entrar no Elite" : "Entrar por R$1"}
+                {loading === plano.id ? "Processando..." : "Entrar por R$1"}
               </button>
             </div>
           );

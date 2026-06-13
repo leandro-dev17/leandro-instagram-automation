@@ -10,8 +10,6 @@ import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
 
 const LIMITE_HORAS_SEM_CARD: Record<string, number> = {
-  basico:   9,  // 3 cards/dia = a cada ~8h
-  patriota: 9,
   vip:      5,  // 6 cards/dia = a cada ~4h
   elite:    5,
 };
@@ -39,8 +37,8 @@ export async function GET(req: NextRequest) {
   try {
     // ── 1. VERIFICAR CARDS ENVIADOS HOJE (por grupo) ─────────────────────────
     // Usa agentes_log — única fonte de verdade para cards visuais
-    for (const plano of ["basico", "patriota", "vip", "elite"]) {
-      const limite = LIMITE_HORAS_SEM_CARD[plano] || 9;
+    for (const plano of ["vip", "elite"]) {
+      const limite = LIMITE_HORAS_SEM_CARD[plano] || 5;
 
       // Último card enviado com sucesso para este grupo
       const ultimoCard = await sql`
