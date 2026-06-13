@@ -145,9 +145,10 @@ jobs:
 
   # ── FASE 7 — FACEBOOK (3x/dia + sábado) ─────────────────────────────────
   facebook:
-    name: Facebook — Postar teaser + Semana em Revista
+    name: "[DESATIVADO] Facebook — Postar teaser + Semana em Revista"
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    # Desativado: prioridade para os grupos de WhatsApp
+    if: false
     timeout-minutes: 10
     steps:
       - name: Postar teaser no Facebook
@@ -162,9 +163,10 @@ jobs:
 
   # ── INSTAGRAM @roberto.braga.alerta.patriota ────────────────────────────
   instagram-story:
-    name: Instagram — Story Bom Dia (8h BRT)
+    name: "[DESATIVADO] Instagram — Story Bom Dia (8h BRT)"
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    # Desativado: prioridade para os grupos de WhatsApp
+    if: false
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -192,9 +194,10 @@ jobs:
         run: node instagram-story.cjs
 
   instagram-reels:
-    name: Instagram — Reel de Notícias (12h BRT)
+    name: "[DESATIVADO] Instagram — Reel de Notícias (12h BRT)"
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    # Desativado: prioridade para os grupos de WhatsApp
+    if: false
     needs: instagram-story
     timeout-minutes: 20
     steps:
@@ -221,9 +224,10 @@ jobs:
         run: node instagram-reels.cjs
 
   instagram-responder:
-    name: Instagram — Responder comentários
+    name: "[DESATIVADO] Instagram — Responder comentários"
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    # Desativado: prioridade para os grupos de WhatsApp
+    if: false
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
@@ -242,9 +246,10 @@ jobs:
         run: node instagram-responder.cjs
 
   facebook-comentarios:
-    name: Facebook — Responder comentários com CTA
+    name: "[DESATIVADO] Facebook — Responder comentários com CTA"
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    # Desativado: prioridade para os grupos de WhatsApp
+    if: false
     timeout-minutes: 5
     steps:
       - name: Responder comentários
@@ -476,6 +481,38 @@ jobs:
         run: |
           sleep 5
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-clientes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── FLORA FOTO — GERADOR DE CARDS (envio para WhatsApp) ───────────────────
+  # Endpoint /api/cron/gerar-card nunca era chamado por nenhum cron — causa
+  # raiz dos alertas "cards_sem_envio" (grupos 41-48h sem card).
+  gerador-cards:
+    name: Flora Foto — Gerador de Cards (envio WhatsApp)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - name: Card VIP
+        if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=vip" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Card Elite
+        if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          sleep 10
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=elite" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Card Básico
+        if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          sleep 60
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=basico" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Card Patriota
+        if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          sleep 10
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=patriota" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── FASE 4 — BACKUP DIÁRIO (às 3h BRT = 6h UTC) ──────────────────────────
   backup:
