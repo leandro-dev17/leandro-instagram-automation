@@ -1812,5 +1812,37 @@
       ],
       "publishedAt": "2026-06-12T17:30:26.662Z"
     }
+  },
+  "2026-06-13": {
+    "kling-reel": {
+      "postId": "18468261646108294",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Seus Hormônios Controlam Seu Treino — Você Está Ignorando Isso",
+      "videoId": "11-ruiva-lilas-caminhada-frontal",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-06-13T16:08:21.684Z"
+    }
   }
 }
