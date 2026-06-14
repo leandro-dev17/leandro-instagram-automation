@@ -114,7 +114,7 @@ async function verificarCardGerado(cardDesdeHoraBRT: number, fimVerificacaoBRT: 
 
 // Desde a descontinuação dos planos Básico/Patriota, tanto as janelas "todos"
 // quanto "vip_elite" afetam os mesmos dois grupos pagos.
-function gruposAfetados(_tipo: GrupoTipo): string[] {
+function gruposAfetados(): string[] {
   return ["vip", "elite"];
 }
 
@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
       const cardGerado = await verificarCardGerado(janela.cardDesdeHoraBRT, janela.verificacaoFimBRT);
 
       if (!cardGerado) {
-        const grupos = gruposAfetados(janela.grupos);
+        const grupos = gruposAfetados();
         const horaBRTAtualFormatada = new Date().toLocaleString("pt-BR", {
           timeZone: "America/Sao_Paulo",
           hour: "2-digit",

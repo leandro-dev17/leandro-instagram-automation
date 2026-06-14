@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     const limitesEsperados = { card_vip: 2, card_elite: 2 };
     for (const [acao, minimo] of Object.entries(limitesEsperados)) {
       const enviados = porGrupo[acao] ?? 0;
+      // Server roda em UTC (padrão Vercel) — toLocaleString converte corretamente para BRT
       const hora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getHours();
       if (hora >= 14 && enviados < minimo) {
         problemas.push(`${acao}: apenas ${enviados}/${minimo} cards enviados hoje`);

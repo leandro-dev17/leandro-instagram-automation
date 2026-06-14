@@ -115,10 +115,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, motivo: "Sem alertas para corrigir" });
     }
 
-    // Verifica se já tentou corrigir recentemente (dedup)
+    // Verifica se já tentou corrigir e falhou recentemente (dedup)
     const jaCorrigiu = await sql`
       SELECT id FROM agentes_log WHERE agente = 'claude-revisor'
-      AND created_at > NOW() - INTERVAL '1 hour' LIMIT 1
+      AND status = 'erro'
+      AND created_at > NOW() - INTERVAL '1 hour'
     `;
     const tentativas = jaCorrigiu.length;
 

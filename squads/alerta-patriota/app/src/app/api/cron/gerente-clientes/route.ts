@@ -30,26 +30,20 @@ export async function GET(req: NextRequest) {
     else if (n >= 3) { problemas.push(`${n} cancelamentos nas últimas 24h`); score -= 10; }
   } catch (err) { problemas.push(`Erro ao verificar cancelamentos: ${String(err)}`); score -= 5; }
 
-  // 2. Variação de membros nos grupos
+  // 2. Variação de membros nos grupos (usa as variações já calculadas pelo carlos-cargo)
   try {
-    const grupos = await sql`
-      SELECT nome, plano, membros_ativos FROM grupos_whatsapp WHERE ativo = true
-    `;
     const snapAnterior = await sql`
       SELECT detalhes FROM agentes_log
       WHERE agente = 'carlos-cargo' AND acao = 'membros_snapshot'
       ORDER BY created_at DESC LIMIT 1
     `;
     if (snapAnterior.length > 0) {
-      const snap = (snapAnterior[0] as { detalhes: Record<string, number> }).detalhes ?? {};
-      for (const g of grupos) {
-        const grupo = g as { nome: string; plano: string; membros_ativos: number };
-        const anterior = snap[grupo.plano] ?? grupo.membros_ativos;
-        if (anterior > 0) {
-          const queda = ((anterior - grupo.membros_ativos) / anterior) * 100;
-          if (queda > 20) { problemas.push(`Grupo ${grupo.plano}: queda de ${queda.toFixed(0)}% de membros`); score -= 20; }
-          else if (queda > 10) { problemas.push(`Grupo ${grupo.plano}: queda de ${queda.toFixed(0)}% de membros`); score -= 10; }
-        }
+      const detalhes = (snapAnterior[0] as { detalhes: { variacoes?: Array<{ nome: string; plano: string; variacao_percent: number; critico: boolean; alerta: boolean }> } }).detalhes;
+      const variacoes = detalhes?.variacoes ?? [];
+      for (const v of variacoes) {
+        const queda = -v.variacao_percent;
+        if (v.critico || queda > 20) { problemas.push(`Grupo ${v.plano}: queda de ${queda.toFixed(0)}% de membros`); score -= 20; }
+        else if (v.alerta || queda > 10) { problemas.push(`Grupo ${v.plano}: queda de ${queda.toFixed(0)}% de membros`); score -= 10; }
       }
     }
   } catch (err) { problemas.push(`Erro ao verificar variação de membros: ${String(err)}`); score -= 5; }

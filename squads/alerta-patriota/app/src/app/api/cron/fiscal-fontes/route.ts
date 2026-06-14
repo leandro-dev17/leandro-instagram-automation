@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
         horasSemNoticia = 999;
       }
 
-      const precisaTestarFeed = horasSemNoticia === null || horasSemNoticia > LIMITE_HORAS_INATIVIDADE;
+      const precisaTestarFeed = horasSemNoticia > LIMITE_HORAS_INATIVIDADE;
 
       if (precisaTestarFeed) {
         const resultado = await testarFeed(fonte.url);

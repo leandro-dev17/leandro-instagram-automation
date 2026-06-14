@@ -33,7 +33,7 @@ async function testarApi(
 
     const ms = Date.now() - t;
 
-    if (!res.ok && res.status !== 200) {
+    if (!res.ok) {
       return { nome, status: "down", ms, erro: `HTTP ${res.status}` };
     }
     if (ms > 3000) {

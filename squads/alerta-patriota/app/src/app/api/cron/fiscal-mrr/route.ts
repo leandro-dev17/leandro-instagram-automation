@@ -140,6 +140,7 @@ export async function GET(req: NextRequest) {
           total_assinantes: totalAssinantes,
           por_plano: porPlano,
           mrr_anterior: mrrAnterior,
+          snapshot_anterior_encontrado: snapshotAnterior.length > 0,
           queda_percent: quedaPercent,
           novos_24h: qtdNovos,
           cancelamentos_24h: qtdCancelamentos,

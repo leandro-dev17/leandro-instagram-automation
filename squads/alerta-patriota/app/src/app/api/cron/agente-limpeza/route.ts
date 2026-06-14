@@ -34,15 +34,16 @@ export async function GET(req: NextRequest) {
     }
 
     const [logRes, noticiasRes, alertasRes, postsRes] = await Promise.all([
-      sql`DELETE FROM agentes_log WHERE created_at < NOW() - INTERVAL '90 days'`,
+      sql`DELETE FROM agentes_log WHERE created_at < NOW() - INTERVAL '90 days' RETURNING id`,
       sql`
         DELETE FROM noticias
         WHERE postada_vip = true
           AND postada_elite = true
           AND created_at < NOW() - INTERVAL '60 days'
+        RETURNING id
       `,
-      sql`DELETE FROM alertas WHERE resolvido = true AND created_at < NOW() - INTERVAL '30 days'`,
-      sql`DELETE FROM posts_whatsapp WHERE enviado_at < NOW() - INTERVAL '90 days'`,
+      sql`DELETE FROM alertas WHERE resolvido = true AND created_at < NOW() - INTERVAL '30 days' RETURNING id`,
+      sql`DELETE FROM posts_whatsapp WHERE enviado_at < NOW() - INTERVAL '90 days' RETURNING id`,
     ]);
 
     const contagens = {

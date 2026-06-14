@@ -36,6 +36,8 @@ export async function GET(req: NextRequest) {
     if (taxaErro > 0.3) alertas.push(`Taxa de erro alta: ${Math.round(taxaErro * 100)}% nas últimas 6h (${erros[0].total}/${total[0].total})`);
 
     // 4. Agentes com múltiplas falhas consecutivas (possível loop de erro)
+    // Janela menor (2h) que a taxa de erro geral (6h) propositalmente: um loop de
+    // erro precisa ser detectado rápido, enquanto a taxa geral mede degradação ao longo do dia.
     const falhasConsecutivas = await sql`
       SELECT agente, COUNT(*) as falhas
       FROM agentes_log

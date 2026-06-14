@@ -18,15 +18,22 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000";
 
-async function buscarProximaGlobal() {
+// Atômico: SELECT + UPDATE em uma única instrução com FOR UPDATE SKIP LOCKED,
+// evitando que cards-elite-global, gerar-card e publicar-noticias peguem a
+// mesma notícia em execuções concorrentes (condição de corrida na Fila Elite).
+async function buscarEMarcarProximaGlobal() {
   const rows = await sql`
-    SELECT id, titulo, fonte, resumo_cavalcanti AS resumo, urgente, created_at
-    FROM noticias
-    WHERE global = true
-      AND postada_elite = false
-      AND resumo_cavalcanti IS NOT NULL
-    ORDER BY urgente DESC, created_at ASC
-    LIMIT 1
+    UPDATE noticias SET postada_elite = true
+    WHERE id = (
+      SELECT id FROM noticias
+      WHERE global = true
+        AND postada_elite = false
+        AND resumo_cavalcanti IS NOT NULL
+      ORDER BY urgente DESC, created_at ASC
+      FOR UPDATE SKIP LOCKED
+      LIMIT 1
+    )
+    RETURNING id, titulo, fonte, resumo_cavalcanti AS resumo, urgente, created_at
   `;
   return rows[0] ?? null;
 }
@@ -52,8 +59,8 @@ export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization") ?? "";
   try {
 
-    // Tentativa 1 — busca notícia já pronta
-    let noticia = await buscarProximaGlobal();
+    // Tentativa 1 — busca e marca notícia já pronta (atômico)
+    let noticia = await buscarEMarcarProximaGlobal();
 
     if (!noticia) {
       // Dispara coleta + resumo e tenta novamente uma vez
@@ -63,7 +70,7 @@ export async function GET(req: NextRequest) {
       // Aguarda processamento assíncrono
       await new Promise(r => setTimeout(r, 8_000));
 
-      noticia = await buscarProximaGlobal();
+      noticia = await buscarEMarcarProximaGlobal();
     }
 
     if (!noticia) {
@@ -72,13 +79,6 @@ export async function GET(req: NextRequest) {
         motivo: "Nenhuma notícia global disponível. Agentes de coleta/resumo acionados.",
       });
     }
-
-    // Marca como postada antes de retornar (idempotência: só uma execução publica)
-    await sql`
-      UPDATE noticias
-      SET postada_elite = true
-      WHERE id = ${noticia.id}
-    `;
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes)

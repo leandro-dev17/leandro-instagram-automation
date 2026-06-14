@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       const msg = alerta.mensagem as string;
 
       for (const [chave, sqlCmd] of Object.entries(AUTOCORRECT)) {
-        if (msg.toLowerCase().includes(chave.split(".")[1].toLowerCase())) {
+        if (msg.toLowerCase().includes(chave.toLowerCase())) {
           try {
             await sql.unsafe(sqlCmd);
             correcoes.push(`✅ Corrigido automaticamente: ${chave}`);
