@@ -9,9 +9,8 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { gerarHTMLCard } from "@/lib/card-generator";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarTexto } from "@/lib/ai";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const EVO_URL  = process.env.EVOLUTION_API_URL;
 const EVO_KEY  = process.env.EVOLUTION_API_KEY;
 const EVO_INST = process.env.EVOLUTION_INSTANCIA || "alertapatriota";
@@ -59,24 +58,23 @@ Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
 };
 
 async function gerarHook(titulo: string, plano: string): Promise<string> {
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 60,
     messages: [{ role: "user", content: `${PROMPTS_HOOK[plano]}\n\nNOTÍCIA: "${titulo}"` }],
   });
-  return msg.content[0].type === "text" ? msg.content[0].text.trim().replace(/["""]/g, "") : titulo;
+  return texto ? texto.replace(/["""]/g, "") : titulo;
 }
 
 async function gerarLegenda(titulo: string, plano: string, fonte: string): Promise<string> {
   const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", timeZone:"America/Sao_Paulo" });
   const data = new Date().toLocaleDateString("pt-BR", { day:"numeric", month:"short", timeZone:"America/Sao_Paulo" });
 
-  const msg = await anthropic.messages.create({
+  const corpo = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 500,
     messages: [{ role: "user", content: `${PROMPTS_LEGENDA[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });
-  const corpo = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
 
   // Header formatado por grupo
   const headers: Record<string, string> = {

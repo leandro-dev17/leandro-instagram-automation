@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const MP_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN!;
@@ -37,6 +38,21 @@ export async function POST(req: NextRequest) {
     const valor = VALORES_ANUAIS[plano];
     const idempotencyKey = randomUUID();
 
+    // Busca usuário existente ou cria um novo (necessário para ativar acesso após o pagamento)
+    let usuarioId: number;
+    const usuarios = await sql`SELECT id FROM usuarios WHERE email = ${email.toLowerCase()} LIMIT 1`;
+    if (usuarios.length > 0) {
+      usuarioId = usuarios[0].id;
+    } else {
+      const senhaAleatoria = await bcrypt.hash(randomUUID(), 10);
+      const novoUsuario = await sql`
+        INSERT INTO usuarios (nome, email, senha_hash, telefone, status)
+        VALUES (${nome}, ${email.toLowerCase()}, ${senhaAleatoria}, ${telefone || null}, 'trial')
+        RETURNING id
+      `;
+      usuarioId = novoUsuario[0].id;
+    }
+
     const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
@@ -55,7 +71,7 @@ export async function POST(req: NextRequest) {
         },
         description: `Alerta Patriota - Plano ${plano.charAt(0).toUpperCase() + plano.slice(1)} Anual`,
         notification_url: `${APP_URL}/api/webhook/mercadopago`,
-        metadata: { plano, ciclo: "anual", email },
+        metadata: { usuario_id: usuarioId, plano, ciclo: "anual", email },
       }),
     });
 
@@ -79,10 +95,6 @@ export async function POST(req: NextRequest) {
     const qrCode = mpData.point_of_interaction?.transaction_data?.qr_code ?? null;
     const qrBase64 = mpData.point_of_interaction?.transaction_data?.qr_code_base64 ?? null;
     const paymentId = String(mpData.id);
-
-    // Busca usuário se existir
-    const usuarios = await sql`SELECT id FROM usuarios WHERE email = ${email} LIMIT 1`;
-    const usuarioId = usuarios[0]?.id ?? null;
 
     await sql`
       INSERT INTO pagamentos (usuario_id, valor, status, mp_payment_id, metodo)

@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarTexto } from "@/lib/ai";
 
 // ── CREDENCIAIS DISPONÍVEIS ───────────────────────────────────────────────────
 const APP_URL         = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
@@ -28,7 +28,6 @@ const GITHUB_REPO     = "leandro-dev17/leandro-instagram-automation";
 const VERCEL_TOKEN    = process.env.VERCEL_TOKEN || "";
 const VERCEL_PROJ     = "prj_ZYN6c2dhVL3oYGh00URkGot0bMO3";
 const VERCEL_TEAM     = "team_JnDwQYGSI9RBjHyIygKLR56b";
-const anthropic       = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // ── MAPA DE PROBLEMAS → ROTAS DE AUTO-FIX ────────────────────────────────────
 const AUTO_FIX_ROTAS: Record<string, string[]> = {
@@ -48,9 +47,19 @@ const MAPA_ARQUIVOS: Record<string, string> = {
   conteudo_irrelevante:  "squads/alerta-patriota/app/src/app/api/cron/curar-noticias/route.ts",
   workflow_falhando:     ".github/workflows/alerta-patriota-crons.yml",
   fonte_rss_inativa:     "squads/alerta-patriota/app/src/app/api/cron/coletar-noticias/route.ts",
-  fiscal_banco:          "squads/alerta-patriota/app/src/lib/db.ts",
   fiscal_whatsapp:       "squads/alerta-patriota/app/src/lib/whatsapp.ts",
 };
+
+// Arquivos críticos que NUNCA podem ser sobrescritos por auto-fix do Claude —
+// um erro de truncamento aqui derruba autenticação ou conexão com o banco do sistema inteiro
+const ARQUIVOS_PROTEGIDOS = [
+  "squads/alerta-patriota/app/src/lib/auth.ts",
+  "squads/alerta-patriota/app/src/lib/db.ts",
+  "squads/alerta-patriota/app/src/middleware.ts",
+];
+
+// Tamanho máximo de arquivo para auto-fix seguro (evita corrigir com conteúdo truncado)
+const TAMANHO_MAX_AUTOFIX = 12000;
 
 // ── STEP 1: Auto-fix por chamada de rotas ────────────────────────────────────
 async function tentarFixRotas(tipo: string): Promise<{ ok: boolean; acoes: string[] }> {
@@ -114,9 +123,9 @@ async function escreverArquivoGitHub(caminho: string, novoConteudo: string, sha:
 // ── STEP 4: Chamar Claude para analisar e gerar fix ──────────────────────────
 async function analisarComClaude(problema: string, erro: string, codigoAtual: string, arquivo: string): Promise<string | null> {
   try {
-    const msg = await anthropic.messages.create({
+    const texto = await gerarTexto({
       model: "claude-sonnet-4-6",
-      max_tokens: 3000,
+      max_tokens: 8000,
       messages: [{
         role: "user",
         content:
@@ -124,13 +133,12 @@ async function analisarComClaude(problema: string, erro: string, codigoAtual: st
           `PROBLEMA DETECTADO: ${problema}\n` +
           `ERRO ESPECÍFICO: ${erro}\n` +
           `ARQUIVO: ${arquivo}\n\n` +
-          `CÓDIGO ATUAL:\n\`\`\`\n${codigoAtual.substring(0, 8000)}\n\`\`\`\n\n` +
+          `CÓDIGO ATUAL:\n\`\`\`\n${codigoAtual}\n\`\`\`\n\n` +
           `Analise o problema e retorne APENAS o código corrigido completo do arquivo, sem explicações, sem markdown, sem backticks.\n` +
           `O código deve estar pronto para ser commitado diretamente.\n` +
           `Mantenha todo o código original e corrija apenas o que está causando o problema.`,
       }],
     });
-    const texto = msg.content[0].type === "text" ? msg.content[0].text.trim() : null;
     // Remove possíveis backticks se Claude adicionou
     return texto?.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "") || null;
   } catch { return null; }
@@ -213,11 +221,11 @@ export async function POST(req: NextRequest) {
     }
 
     // ── ETAPA 2: Fix de código via Claude + GitHub API ───────────────────────
-    if (!resolvido && MAPA_ARQUIVOS[tipo] && GITHUB_TOKEN) {
+    if (!resolvido && MAPA_ARQUIVOS[tipo] && GITHUB_TOKEN && !ARQUIVOS_PROTEGIDOS.includes(MAPA_ARQUIVOS[tipo])) {
       const arquivo = MAPA_ARQUIVOS[tipo];
       const fileData = await lerArquivoGitHub(arquivo);
 
-      if (fileData) {
+      if (fileData && fileData.conteudo.length <= TAMANHO_MAX_AUTOFIX) {
         etapas.push(`📁 Arquivo lido: ${arquivo} (${fileData.conteudo.length} chars)`);
 
         const novoConteudo = await analisarComClaude(

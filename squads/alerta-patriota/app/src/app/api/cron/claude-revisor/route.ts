@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarTexto } from "@/lib/ai";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
@@ -19,14 +19,23 @@ const VERCEL_TEAM = "team_JnDwQYGSI9RBjHyIygKLR56b";
 const REPO = "leandro-dev17/leandro-instagram-automation";
 const BASE = "squads/alerta-patriota/app/src";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 // Mapa: tipo de alerta → arquivo mais provável para corrigir
 const ARQUIVO_POR_TIPO: Record<string, string> = {
   "codigo_seguranca": `${BASE}/lib/auth.ts`,
   "codigo_schema": `${BASE}/app/api/admin/setup/route.ts`,
   "codigo_logica": `${BASE}/app/api/cron/resumir-noticias/route.ts`,
 };
+
+// Arquivos críticos que NUNCA podem ser sobrescritos por auto-fix do Claude —
+// um erro de truncamento aqui derruba autenticação ou conexão com o banco do sistema inteiro
+const ARQUIVOS_PROTEGIDOS = [
+  `${BASE}/lib/auth.ts`,
+  `${BASE}/lib/db.ts`,
+  `${BASE}/middleware.ts`,
+];
+
+// Tamanho máximo de arquivo para auto-fix seguro (evita corrigir com conteúdo truncado)
+const TAMANHO_MAX_AUTOFIX = 6000;
 
 async function lerArquivoGitHub(path: string): Promise<string> {
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
@@ -126,7 +135,18 @@ export async function POST(req: NextRequest) {
 
     // Determina o arquivo principal a corrigir
     const tipoAlerta = alertas[0].tipo;
-    const arquivo = ARQUIVO_POR_TIPO[tipoAlerta] || `${BASE}/lib/auth.ts`;
+    const arquivo = ARQUIVO_POR_TIPO[tipoAlerta];
+
+    // Arquivo crítico (auth/db/middleware) ou tipo sem mapeamento seguro → não faz auto-fix, escala direto
+    if (!arquivo || ARQUIVOS_PROTEGIDOS.includes(arquivo)) {
+      await alertarTelegram("🚨", "CLAUDE REVISOR — Arquivo protegido, escalando para revisão manual",
+        `Tipo: ${tipoAlerta}\nArquivo: ${arquivo || "(sem mapeamento)"}\n\nProblemas:\n${alertas.map(a => `• ${a.mensagem}`).join("\n")}\n\n1. Abra o Claude Code\n2. Execute: /BioNexus Digital\n3. Descreva o problema acima`
+      );
+      await fetch(`${APP}/api/cron/escalar-claude`, {
+        headers: { Authorization: `Bearer ${CRON}` }, signal: AbortSignal.timeout(5000),
+      }).catch(() => {});
+      return NextResponse.json({ ok: false, motivo: "Arquivo protegido — escalado para revisão manual" });
+    }
 
     // Lê o arquivo atual
     let codigoAtual = "";
@@ -137,11 +157,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Não conseguiu ler arquivo" }, { status: 500 });
     }
 
+    // Arquivo muito grande para corrigir com segurança (truncamento corromperia o commit)
+    if (codigoAtual.length > TAMANHO_MAX_AUTOFIX) {
+      await alertarTelegram("🚨", "CLAUDE REVISOR — Arquivo grande demais para auto-fix, escalando",
+        `Arquivo: ${arquivo} (${codigoAtual.length} caracteres)\n\nProblemas:\n${alertas.map(a => `• ${a.mensagem}`).join("\n")}\n\n1. Abra o Claude Code\n2. Execute: /BioNexus Digital\n3. Descreva o problema acima`
+      );
+      await fetch(`${APP}/api/cron/escalar-claude`, {
+        headers: { Authorization: `Bearer ${CRON}` }, signal: AbortSignal.timeout(5000),
+      }).catch(() => {});
+      return NextResponse.json({ ok: false, motivo: "Arquivo grande demais — escalado para revisão manual" });
+    }
+
     // Claude analisa e gera o fix
     const problema = alertas.map(a => a.mensagem).join("\n");
-    const resposta = await anthropic.messages.create({
+    const codigoCorrigido = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 3000,
+      max_tokens: 8000,
       messages: [{
         role: "user",
         content: `Você é um engenheiro sênior. Corrija este código TypeScript/Next.js.
@@ -151,7 +182,7 @@ ${problema}
 
 ARQUIVO ATUAL (${arquivo}):
 \`\`\`typescript
-${codigoAtual.substring(0, 3000)}
+${codigoAtual}
 \`\`\`
 
 Retorne APENAS o código TypeScript corrigido completo, sem explicação, sem markdown, sem \`\`\`.
@@ -159,7 +190,6 @@ O código deve ser válido e compilar sem erros.`,
       }],
     });
 
-    const codigoCorrigido = resposta.content[0].type === "text" ? resposta.content[0].text.trim() : "";
     if (!codigoCorrigido || codigoCorrigido.length < 50) {
       throw new Error("Claude retornou código vazio ou muito curto");
     }

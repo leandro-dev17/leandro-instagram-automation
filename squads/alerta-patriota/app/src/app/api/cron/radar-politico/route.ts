@@ -11,9 +11,7 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { alertarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { gerarTexto } from "@/lib/ai";
 
 // Políticos e empresários de direita monitorados via RSS
 const POLITICOS = [
@@ -109,7 +107,7 @@ async function buscarMencoesRSS(politico: string): Promise<Array<{ titulo: strin
 }
 
 async function gerarAlertaBraga(politico: string, titulo: string): Promise<string> {
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 300,
     messages: [{
@@ -123,11 +121,11 @@ Termine com: "Deus, Pátria e Família — sempre."
 Responda APENAS com o texto.`,
     }],
   });
-  return msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+  return texto;
 }
 
 async function gerarAlertaCavalcanti(politico: string, titulo: string): Promise<string> {
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 350,
     messages: [{
@@ -141,7 +139,7 @@ Termine com: "O mundo muda para quem enxerga antes."
 Responda APENAS com o texto.`,
     }],
   });
-  return msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+  return texto;
 }
 
 export async function GET(req: NextRequest) {

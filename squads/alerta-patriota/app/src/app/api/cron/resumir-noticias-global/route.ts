@@ -9,17 +9,14 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { PROMPT_CAVALCANTI_GLOBAL } from "@/lib/personas";
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { gerarTexto } from "@/lib/ai";
 
 async function gerarResumoGlobal(titulo: string, url: string): Promise<string> {
-  const msg = await anthropic.messages.create({
+  return gerarTexto({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 450,
     messages: [{ role: "user", content: `${PROMPT_CAVALCANTI_GLOBAL}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${url}` }],
   });
-  return msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
 }
 
 export async function GET(req: NextRequest) {

@@ -9,9 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { gerarTexto } from "@/lib/ai";
 
 // FIX 3: Temas que ressoam com o público conservador
 const TEMAS_RELEVANTES = [
@@ -90,7 +88,7 @@ async function classificarComClaude(noticias: Array<{ id: number; titulo: string
   try {
     const lista = noticias.map((n, i) => `${i + 1}. ${n.titulo}`).join("\n");
 
-    const msg = await anthropic.messages.create({
+    const resposta = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 200,
       messages: [{
@@ -110,7 +108,6 @@ ${lista}`,
       }],
     });
 
-    const resposta = msg.content[0].type === "text" ? msg.content[0].text : "";
     const indices = resposta.match(/\d+/g)?.map(Number).filter(n => n >= 1 && n <= noticias.length) || [];
     return indices.map(i => noticias[i - 1].id);
   } catch {

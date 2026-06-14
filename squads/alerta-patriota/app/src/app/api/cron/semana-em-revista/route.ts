@@ -8,9 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { publicarPostFacebook } from "@/lib/facebook";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarTexto } from "@/lib/ai";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
 export async function GET(req: NextRequest) {
@@ -39,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     const lista = noticias.map((n: {titulo: string}, i: number) => `${i+1}️⃣ ${n.titulo}`).join("\n");
 
-    const msg = await anthropic.messages.create({
+    const texto = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 400,
       messages: [{ role: "user", content: `Você é o Capitão Braga. Crie o post "SEMANA EM REVISTA" para o Facebook.
@@ -58,7 +57,6 @@ Máximo 8 linhas. Termine com: "Deus, Pátria e Família — sempre. — Capitã
 Responda APENAS com o texto.` }],
     });
 
-    const texto = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
     if (!texto) return NextResponse.json({ ok: false });
 
     const post = `📰 SEMANA EM REVISTA — Alerta Patriota\n\n${texto}\n\n👉 Receba análises assim todo dia no grupo:\n${APP_URL}/assinar\n\n#AlertaPatriota #SemanEmRevista #Brasil #SemFiltro`;

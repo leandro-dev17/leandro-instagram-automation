@@ -3,7 +3,10 @@ import { cookies } from "next/headers";
 import { sql } from "@/lib/db";
 import type { Usuario } from "@/lib/db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "alerta-patriota-secret";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET não definida — configure o .env.local");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const COOKIE_NAME = process.env.COOKIE_NAME || "alerta-patriota-session";
 
 export function gerarToken(payload: { id: number; email: string; tipo: string }): string {
@@ -42,15 +45,17 @@ export async function requireAdmin(): Promise<Usuario> {
   return usuario;
 }
 
+const COOKIE_SECURE = process.env.NODE_ENV === "production" ? "; Secure" : "";
+
 export function setCookieToken(token: string): Record<string, string> {
   return {
-    "Set-Cookie": `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}`,
+    "Set-Cookie": `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}${COOKIE_SECURE}`,
   };
 }
 
 export function clearCookie(): Record<string, string> {
   return {
-    "Set-Cookie": `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+    "Set-Cookie": `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${COOKIE_SECURE}`,
   };
 }
 

@@ -11,9 +11,7 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { PROMPT_BRAGA, PROMPT_CAVALCANTI } from "@/lib/personas";
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { gerarTexto } from "@/lib/ai";
 
 interface Noticia {
   id: number;
@@ -23,7 +21,7 @@ interface Noticia {
 }
 
 async function gerarResumo(titulo: string, conteudo: string, url: string, prompt: string): Promise<string> {
-  const message = await anthropic.messages.create({
+  return gerarTexto({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 450,
     messages: [
@@ -33,9 +31,6 @@ async function gerarResumo(titulo: string, conteudo: string, url: string, prompt
       },
     ],
   });
-
-  const textBlock = message.content.find((block) => block.type === "text");
-  return textBlock && textBlock.type === "text" ? textBlock.text.trim() : "";
 }
 
 export async function GET(req: NextRequest) {

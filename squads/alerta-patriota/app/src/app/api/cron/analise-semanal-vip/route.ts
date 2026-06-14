@@ -8,9 +8,7 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { alertarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { gerarTexto } from "@/lib/ai";
 
 function ehSegundaFeiraBRT(): boolean {
   const agora = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
@@ -31,7 +29,7 @@ async function gerarAnalise(noticias: { titulo: string; fonte: string }[]): Prom
     .map((n, i) => `${i + 1}. ${n.titulo} — ${n.fonte}`)
     .join("\n");
 
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 400,
     messages: [{
@@ -48,7 +46,7 @@ Responda APENAS com o texto.`,
     }],
   });
 
-  return msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+  return texto;
 }
 
 export async function GET(req: NextRequest) {

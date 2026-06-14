@@ -7,11 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarTexto } from "@/lib/ai";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
@@ -33,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     // Usa Claude para analisar os problemas e sugerir correções
     const problemas = alertasSeguranca.map(a => a.mensagem).join("\n");
-    const analise = await anthropic.messages.create({
+    const texto = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1000,
       messages: [{
@@ -52,7 +51,7 @@ Responda em português, de forma concisa.`,
       }],
     });
 
-    const analiseTexto = analise.content[0].type === "text" ? analise.content[0].text : "Sem análise";
+    const analiseTexto = texto || "Sem análise";
 
     // Registra a análise
     await sql`

@@ -140,7 +140,10 @@ async function desativarAcesso(mpSubscriptionId: string, motivo: "cancelado" | "
 
 async function validarWebhook(req: NextRequest, rawBody: string): Promise<boolean> {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (!secret) return true;
+  if (!secret) {
+    console.error("MERCADOPAGO_WEBHOOK_SECRET não configurada — rejeitando webhook");
+    return false;
+  }
 
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
@@ -228,12 +231,13 @@ export async function POST(req: NextRequest) {
       const payment = await paymentClient.get({ id: dataId });
 
       if (payment.status === "approved") {
-        const meta = payment.metadata as { usuario_id?: number; plano?: string } | undefined;
+        const meta = payment.metadata as { usuario_id?: number; plano?: string; ciclo?: string } | undefined;
         const usuarioId = meta?.usuario_id;
         const plano = (meta?.plano || "elite") as Plano;
+        const ciclo = (meta?.ciclo === "anual" ? "anual" : "mensal") as "mensal" | "anual";
 
-        if (usuarioId) {
-          await ativarAcesso(usuarioId, plano, String(dataId), payment.transaction_amount || 0);
+        if (usuarioId && ["vip", "elite"].includes(plano)) {
+          await ativarAcesso(usuarioId, plano, String(dataId), payment.transaction_amount || 0, ciclo);
         }
       }
     }
