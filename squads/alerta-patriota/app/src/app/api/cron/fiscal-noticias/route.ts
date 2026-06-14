@@ -7,26 +7,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
 type Estoque = {
-  basico: number;
-  patriota: number;
   vip: number;
   elite: number;
 };
 
 async function contarEstoque(): Promise<Estoque> {
-  const [basico, patriota, vip, elite] = await Promise.all([
-    sql`
-      SELECT COUNT(*) as total FROM noticias
-      WHERE resumo_braga IS NOT NULL
-        AND postada_basico = false
-        AND fonte NOT ILIKE '%metropoles%'
-    `,
-    sql`
-      SELECT COUNT(*) as total FROM noticias
-      WHERE resumo_braga IS NOT NULL
-        AND postada_patriota = false
-        AND fonte NOT ILIKE '%metropoles%'
-    `,
+  const [vip, elite] = await Promise.all([
     sql`
       SELECT COUNT(*) as total FROM noticias
       WHERE resumo_braga IS NOT NULL
@@ -41,8 +27,6 @@ async function contarEstoque(): Promise<Estoque> {
   ]);
 
   return {
-    basico: Number(basico[0].total),
-    patriota: Number(patriota[0].total),
     vip: Number(vip[0].total),
     elite: Number(elite[0].total),
   };
@@ -108,8 +92,6 @@ export async function GET(req: NextRequest) {
       const linhas = [
         `⚠️ SOFIA STOQUE — Estoque Crítico`,
         `Notícias prontas:`,
-        `• Básico: ${estoque.basico} ${nivelEstoque(estoque.basico)}`,
-        `• Patriota: ${estoque.patriota} ${nivelEstoque(estoque.patriota)}`,
         `• VIP: ${estoque.vip} ${nivelEstoque(estoque.vip)}`,
         `• Elite: ${estoque.elite} ${nivelEstoque(estoque.elite)}`,
         ``,

@@ -37,9 +37,7 @@ export async function GET(req: NextRequest) {
       sql`DELETE FROM agentes_log WHERE created_at < NOW() - INTERVAL '90 days'`,
       sql`
         DELETE FROM noticias
-        WHERE postada_basico = true
-          AND postada_patriota = true
-          AND postada_vip = true
+        WHERE postada_vip = true
           AND postada_elite = true
           AND created_at < NOW() - INTERVAL '60 days'
       `,

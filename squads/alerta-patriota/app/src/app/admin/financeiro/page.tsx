@@ -3,10 +3,8 @@ import { useEffect, useState } from "react";
 
 // Valores mensais por plano
 const VALOR_PLANO: Record<string, number> = {
-  basico: 12.90,
-  patriota: 29.90,
-  vip: 59.90,
-  elite: 499 / 12, // ~41.58
+  vip: 9.90,
+  elite: 19.90,
 };
 
 type FinData = {
@@ -32,8 +30,6 @@ type Pagamento = {
 
 type StatsData = {
   membros: {
-    basico: number;
-    patriota: number;
     vip: number;
     elite: number;
     ativos: number;
@@ -49,8 +45,6 @@ const STATUS_COR: Record<string, string> = {
 };
 
 const PLANO_COR: Record<string, string> = {
-  basico: "#888",
-  patriota: "#3b82f6",
   vip: "#f97316",
   elite: "#7c3aed",
 };
@@ -114,8 +108,6 @@ export default function AdminFinanceiro() {
 
   // MRR calculado por plano via stats
   const mrrPlanos = stats ? (
-    (stats.membros.basico || 0) * VALOR_PLANO.basico +
-    (stats.membros.patriota || 0) * VALOR_PLANO.patriota +
     (stats.membros.vip || 0) * VALOR_PLANO.vip +
     (stats.membros.elite || 0) * VALOR_PLANO.elite
   ) : mrr;
@@ -154,7 +146,7 @@ export default function AdminFinanceiro() {
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20, marginBottom: 20 }}>
           <h3 style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 }}>Assinaturas Ativas por Plano</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-            {(["basico", "patriota", "vip", "elite"] as const).map(p => {
+            {(["vip", "elite"] as const).map(p => {
               const qtd = stats.membros[p] || 0;
               const contrib = qtd * VALOR_PLANO[p];
               return (

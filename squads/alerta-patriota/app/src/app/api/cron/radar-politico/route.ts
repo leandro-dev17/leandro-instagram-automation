@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
-import { enviarMensagemGrupo, buildFOMO } from "@/lib/whatsapp";
+import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { alertarTelegram } from "@/lib/telegram";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -232,14 +232,6 @@ export async function GET(req: NextRequest) {
             await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoElite[0].id}, ${noticiaId}, ${msgElite}, 'urgente', 'enviado')`.catch(() => {});
           }
         }
-
-        // Fábio FOMO — posta urgência nos grupos inferiores com CTA para VIP
-        const fomoBasico = buildFOMO("basico");
-        const fomoPatriota = buildFOMO("patriota");
-        await Promise.all([
-          enviarMensagemGrupo("basico", fomoBasico),
-          enviarMensagemGrupo("patriota", fomoPatriota),
-        ]);
 
         // Marca como processado
         await sql`UPDATE radar_politico SET processado = true WHERE tweet_id = ${mencao.url}`;

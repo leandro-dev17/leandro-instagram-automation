@@ -7,8 +7,6 @@ type Noticia = {
   fonte: string;
   urgente: boolean;
   global: boolean;
-  postada_basico: boolean;
-  postada_patriota: boolean;
   postada_vip: boolean;
   postada_elite: boolean;
   tem_resumo_braga: boolean;
@@ -184,13 +182,11 @@ export default function AdminConteudo() {
                       </div>
                       {/* Status de publicação por grupo */}
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        <BadgeGrupo ok={n.postada_basico} label="Básico" />
-                        <BadgeGrupo ok={n.postada_patriota} label="Patriota" />
                         <BadgeGrupo ok={n.postada_vip} label="VIP" />
                         <BadgeGrupo ok={n.postada_elite} label="Elite" />
                       </div>
                       {/* Botão publicar */}
-                      {(!n.postada_basico || !n.postada_patriota || !n.postada_vip) && (
+                      {(!n.postada_vip || !n.postada_elite) && (
                         <button
                           onClick={() => publicarAgora(n.id)}
                           disabled={publicando === n.id}

@@ -9,10 +9,10 @@ export async function GET() {
     const [mrr, receita, inadimplentes, cancelamentos, crescimento] = await Promise.all([
       sql`
         SELECT
-          SUM(CASE WHEN plano='basico'   AND ciclo='mensal'  THEN 12.90
-                   WHEN plano='patriota' AND ciclo='mensal'  THEN 29.90
-                   WHEN plano='vip'      AND ciclo='mensal'  THEN 59.90
-                   WHEN plano='elite'    AND ciclo='anual'   THEN 41.58
+          SUM(CASE WHEN plano='vip'   AND ciclo='mensal'  THEN 9.90
+                   WHEN plano='vip'   AND ciclo='anual'   THEN 8.25
+                   WHEN plano='elite' AND ciclo='mensal'  THEN 19.90
+                   WHEN plano='elite' AND ciclo='anual'   THEN 16.58
                    ELSE 0 END) as mrr,
           COUNT(*) as total_ativas
         FROM assinaturas WHERE status = 'ativa'

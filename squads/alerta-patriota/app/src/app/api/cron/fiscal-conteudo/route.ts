@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
     const noticias = await sql`
       SELECT id, titulo, fonte, categoria, created_at
       FROM noticias
-      WHERE postada_basico = true
+      WHERE (postada_vip = true OR postada_elite = true)
         AND created_at > NOW() - INTERVAL '24 hours'
     `;
 

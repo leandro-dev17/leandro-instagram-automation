@@ -12,7 +12,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.verce
 const CRON_SECRET = process.env.CRON_SECRET;
 
 const VALORES_PLANO: Record<string, number> = {
-  basico: 12.90, patriota: 29.90, vip: 59.90, elite: 41.58,
+  vip: 9.90, elite: 19.90,
 };
 
 export async function GET(req: NextRequest) {

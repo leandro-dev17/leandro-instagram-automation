@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "E-mail inválido" }, { status: 400 });
     }
 
-    const planoValido = plano && ["basico", "patriota", "vip", "elite"].includes(plano) ? plano : null;
+    const planoValido = plano && ["vip", "elite"].includes(plano) ? plano : null;
     const origemValida = origem || "landing";
 
     await sql`

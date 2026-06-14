@@ -16,8 +16,6 @@ type Usuario = {
 };
 
 const PLANO_COR: Record<string, string> = {
-  basico: "#888",
-  patriota: "#3b82f6",
   vip: "#f97316",
   elite: "#7c3aed",
 };
@@ -117,7 +115,7 @@ export default function AdminMembros() {
         />
         <select value={filtroPlano} onChange={e => setFiltroPlano(e.target.value)} style={sel}>
           <option value="">Todos os planos</option>
-          {["basico", "patriota", "vip", "elite"].map(p => (
+          {["vip", "elite"].map(p => (
             <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
           ))}
         </select>
@@ -266,7 +264,7 @@ export default function AdminMembros() {
                               style={{ background: "#1e1e2e", border: "1px solid rgba(255,255,255,0.1)", color: "#ccc", borderRadius: 6, padding: "5px 10px", fontSize: 12 }}
                             >
                               <option value="">Selecionar...</option>
-                              {["basico", "patriota", "vip", "elite"].map(p => (
+                              {["vip", "elite"].map(p => (
                                 <option key={p} value={p}>{p}</option>
                               ))}
                             </select>

@@ -1,9 +1,9 @@
 /**
- * AGENTE PAULO BÁSICO / PAULO PATRIOTA / PAULO VIP
+ * AGENTE PAULO VIP / PAULO ELITE
  * Cron job de publicação de notícias nos grupos WhatsApp.
  * Executa 3x/dia: 7h, 13h, 19h (via Vercel Cron ou chamada externa).
  *
- * GET /api/cron/publicar-noticias?grupo=basico|patriota|vip|elite
+ * GET /api/cron/publicar-noticias?grupo=vip|elite
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -31,8 +31,6 @@ function buildMensagemNoticia(plano: Plano, noticia: {
 
   // Cabeçalho por grupo
   const cabecalhos: Record<Plano, string> = {
-    basico:   `🇧🇷 *ALERTA BÁSICO — ${periodo.toUpperCase()} | ${hora}*`,
-    patriota: `⚡ *ALERTA PATRIOTA — ${periodo.toUpperCase()} | ${hora}*`,
     vip:      `🔥 *VIP PREMIUM — ${periodo.toUpperCase()} | ${hora}*`,
     elite:    `🎖️ *ELITE GLOBAL — ${periodo.toUpperCase()} | ${hora}*`,
   };
@@ -61,23 +59,17 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const grupo = (searchParams.get("grupo") || "basico") as Plano;
+  const grupo = (searchParams.get("grupo") || "vip") as Plano;
 
-  if (!["basico", "patriota", "vip", "elite"].includes(grupo)) {
+  if (!["vip", "elite"].includes(grupo)) {
     return NextResponse.json({ erro: "Grupo inválido" }, { status: 400 });
   }
 
   const inicio = Date.now();
 
   try {
-    const isGlobal = grupo === "elite";
-
     // Busca notícia não postada ainda, com resumo disponível
-    const rows = grupo === "basico"
-      ? await sql`SELECT id, titulo, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_basico = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
-      : grupo === "patriota"
-      ? await sql`SELECT id, titulo, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_patriota = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
-      : grupo === "vip"
+    const rows = grupo === "vip"
       ? await sql`SELECT id, titulo, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
       // Elite: aceita notícias BR e globais, desde que tenha resumo_cavalcanti
       : await sql`SELECT id, titulo, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1`;
@@ -103,11 +95,7 @@ export async function GET(req: NextRequest) {
 
     if (enviado) {
       // Marca como postada
-      if (grupo === "basico") {
-        await sql`UPDATE noticias SET postada_basico = true, postada_basico_at = NOW() WHERE id = ${noticia.id}`;
-      } else if (grupo === "patriota") {
-        await sql`UPDATE noticias SET postada_patriota = true, postada_patriota_at = NOW() WHERE id = ${noticia.id}`;
-      } else if (grupo === "vip") {
+      if (grupo === "vip") {
         await sql`UPDATE noticias SET postada_vip = true, postada_vip_at = NOW() WHERE id = ${noticia.id}`;
       } else {
         await sql`UPDATE noticias SET postada_elite = true, postada_elite_at = NOW() WHERE id = ${noticia.id}`;

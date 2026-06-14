@@ -55,17 +55,17 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 4. Limite diário de cards: VIP/Elite não devem exceder 6, Basico/Patriota não devem exceder 3
+    // 4. Limite diário de cards: VIP/Elite não devem exceder 6
     const cardsHoje = await sql`
       SELECT g.plano, COUNT(*) as total
       FROM agentes_log al
-      JOIN grupos_whatsapp g ON g.plano = 'basico'
+      JOIN grupos_whatsapp g ON g.plano IN ('vip', 'elite')
       WHERE al.agente = 'gerador-card' AND al.status = 'sucesso'
       AND al.created_at >= ${hoje.toISOString()}
       GROUP BY g.plano
     `;
     for (const row of cardsHoje) {
-      const limite = ["vip", "elite"].includes(row.plano) ? 6 : 3;
+      const limite = 6;
       if (Number(row.total) > limite) {
         problemas.push({ desc: `Grupo ${row.plano} excedeu limite: ${row.total}/${limite} cards hoje`, severidade: "medio" });
       }

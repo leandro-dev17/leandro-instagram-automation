@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
   checks.push(await testar("assinatura_sem_auth", async () => {
     const r = await fetch(`${APP}/api/assinaturas/criar`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plano: "basico" }), signal: AbortSignal.timeout(8000),
+      body: JSON.stringify({ plano: "vip" }), signal: AbortSignal.timeout(8000),
     });
     const ok = r.status === 401;
     return { nome: "assinatura_sem_auth", ok, detalhe: `status=${r.status} (esperado 401)`, severidade: "critico" };

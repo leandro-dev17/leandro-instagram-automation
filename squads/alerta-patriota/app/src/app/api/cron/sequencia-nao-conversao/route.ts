@@ -64,7 +64,7 @@ function htmlEmail1(nome: string, plano: string): string {
   </div>
   <p style="color:#b0b0b0;font-size:15px">Membros do plano <strong style="color:#ffd700">${plano || "Patriota"}</strong> j&#225; est&#227;o lendo. Voc&#234; ainda n&#227;o.</p>
   <div style="text-align:center;margin:32px 0">
-    <a href="${APP_URL}/assinar?plano=${plano || "patriota"}" style="background:#c0392b;color:#fff;padding:16px 36px;text-decoration:none;font-size:16px;font-weight:bold;border-radius:4px;display:inline-block">QUERO RECEBER AGORA</a>
+    <a href="${APP_URL}/assinar?plano=${plano || "vip"}" style="background:#c0392b;color:#fff;padding:16px 36px;text-decoration:none;font-size:16px;font-weight:bold;border-radius:4px;display:inline-block">QUERO RECEBER AGORA</a>
   </div>
   <p style="color:#555;font-size:12px;text-align:center">7 dias por apenas R$1. Cancele quando quiser.</p>
 </div>
@@ -95,7 +95,7 @@ function htmlEmail2(nome: string, plano: string): string {
     <p style="color:#e8e8e8;font-style:italic;margin:0;font-size:14px">"O Capit&#227;o Braga analisa as not&#237;cias de um jeito que nenhum jornalista tem coragem de fazer." &#8212; <strong>Ana P., SP</strong></p>
   </div>
   <div style="text-align:center;margin:32px 0">
-    <a href="${APP_URL}/assinar?plano=${plano || "patriota"}" style="background:#ffd700;color:#0d0d1a;padding:16px 36px;text-decoration:none;font-size:16px;font-weight:bold;border-radius:4px;display:inline-block">GARANTIR MINHA VAGA AGORA</a>
+    <a href="${APP_URL}/assinar?plano=${plano || "vip"}" style="background:#ffd700;color:#0d0d1a;padding:16px 36px;text-decoration:none;font-size:16px;font-weight:bold;border-radius:4px;display:inline-block">GARANTIR MINHA VAGA AGORA</a>
   </div>
   <p style="color:#555;font-size:12px;text-align:center">Quando as vagas fecharem, voc&#234; vai para a lista de espera.</p>
 </div>
@@ -106,8 +106,8 @@ function htmlEmail2(nome: string, plano: string): string {
 
 function htmlEmail3(nome: string, plano: string): string {
   const firstName = nome ? nome.split(" ")[0] : "Patriota";
-  const precos: Record<string, string> = { basico: "R$12,90", patriota: "R$29,90", vip: "R$59,90", elite: "R$499/ano" };
-  const preco = precos[plano] || "R$12,90";
+  const precos: Record<string, string> = { vip: "R$9,90", elite: "R$19,90" };
+  const preco = precos[plano] || "R$9,90";
   return `
 <!DOCTYPE html>
 <html>
@@ -129,7 +129,7 @@ function htmlEmail3(nome: string, plano: string): string {
   </div>
   <p style="color:#b0b0b0;font-size:15px">Amanhã este preço sobe. Não tem exceção.</p>
   <div style="text-align:center;margin:32px 0">
-    <a href="${APP_URL}/assinar?plano=${plano || "patriota"}&utm_source=email3" style="background:#c0392b;color:#fff;padding:18px 40px;text-decoration:none;font-size:18px;font-weight:bold;border-radius:4px;display:inline-block">ENTRAR COM PRECO FUNDADOR</a>
+    <a href="${APP_URL}/assinar?plano=${plano || "vip"}&utm_source=email3" style="background:#c0392b;color:#fff;padding:18px 40px;text-decoration:none;font-size:18px;font-weight:bold;border-radius:4px;display:inline-block">ENTRAR COM PRECO FUNDADOR</a>
   </div>
   <p style="color:#555;font-size:12px;text-align:center">Alerta Patriota &#8212; Curadoria politica conservadora brasileira.</p>
 </div>
@@ -159,7 +159,7 @@ export async function GET(req: NextRequest) {
     for (const lead of leads) {
       const horasDesde = (Date.now() - new Date(lead.created_at as string).getTime()) / 3600000;
       const ultimo = lead.ultimo_email_enviado as number;
-      const plano = (lead.plano_interesse as string) || "patriota";
+      const plano = (lead.plano_interesse as string) || "vip";
 
       let emailNum = 0;
       let subject = "";

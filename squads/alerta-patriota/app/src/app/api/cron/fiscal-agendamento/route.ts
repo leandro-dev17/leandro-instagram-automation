@@ -107,7 +107,7 @@ async function verificarCardGerado(cardDesdeHoraBRT: number, fimVerificacaoBRT: 
 }
 
 function gruposAfetados(tipo: GrupoTipo): string[] {
-  if (tipo === "todos") return ["basico", "patriota", "vip", "elite"];
+  if (tipo === "todos") return ["vip", "elite"];
   return ["vip", "elite"];
 }
 

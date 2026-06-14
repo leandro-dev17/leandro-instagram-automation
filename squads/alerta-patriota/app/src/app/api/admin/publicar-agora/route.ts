@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const headers = { Authorization: `Bearer ${CRON_SECRET}` };
     const resultados: Record<string, boolean> = {};
 
-    for (const grupo of ["basico", "patriota", "vip", "elite"]) {
+    for (const grupo of ["vip", "elite"]) {
       const res = await fetch(
         `${APP_URL}/api/cron/publicar-noticias?grupo=${grupo}${noticia_id ? `&noticia_id=${noticia_id}` : ""}`,
         { headers, signal: AbortSignal.timeout(15000) }

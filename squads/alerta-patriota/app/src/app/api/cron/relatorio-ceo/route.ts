@@ -25,25 +25,21 @@ export async function GET(req: NextRequest) {
           COUNT(*) FILTER (WHERE status = 'trial')   as trial,
           COUNT(*) FILTER (WHERE status = 'cancelado' AND updated_at >= NOW() - INTERVAL '24 hours') as cancelados_24h,
           COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as novos_24h,
-          COUNT(*) FILTER (WHERE plano = 'basico'   AND status = 'ativo') as basico,
-          COUNT(*) FILTER (WHERE plano = 'patriota' AND status = 'ativo') as patriota,
           COUNT(*) FILTER (WHERE plano = 'vip'      AND status = 'ativo') as vip,
           COUNT(*) FILTER (WHERE plano = 'elite'    AND status = 'ativo') as elite
         FROM usuarios
       `,
       sql`
         SELECT
-          COALESCE(SUM(CASE WHEN plano='basico'   AND ciclo='mensal'  THEN 12.90
-                            WHEN plano='patriota' AND ciclo='mensal'  THEN 29.90
-                            WHEN plano='vip'      AND ciclo='mensal'  THEN 59.90
-                            WHEN plano='elite'    AND ciclo='anual'   THEN 41.58
+          COALESCE(SUM(CASE WHEN plano='vip'      AND ciclo='mensal'  THEN 9.90
+                            WHEN plano='elite'    AND ciclo='mensal'  THEN 19.90
                             ELSE 0 END), 0) as mrr_estimado
         FROM assinaturas WHERE status = 'ativa'
       `,
       sql`
         SELECT
           COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as coletadas_24h,
-          COUNT(*) FILTER (WHERE postada_basico = false AND resumo_braga IS NOT NULL) as aguardando_publicacao
+          COUNT(*) FILTER (WHERE postada_vip = false AND resumo_braga IS NOT NULL) as aguardando_publicacao
         FROM noticias
       `,
       sql`SELECT COUNT(*) as total FROM alertas WHERE resolvido = false`,
@@ -71,7 +67,7 @@ export async function GET(req: NextRequest) {
 <b>MEMBROS</b>
 ${emoji(Number(m.ativos), 100)} Ativos: ${m.ativos} | Trial: ${m.trial}
 📈 Novos (24h): +${m.novos_24h} | Cancelamentos (24h): -${m.cancelados_24h}
-🇧🇷 Básico: ${m.basico} | ⚡ Patriota: ${m.patriota} | 🔥 VIP: ${m.vip} | 🎖️ Elite: ${m.elite}
+🔥 VIP: ${m.vip} | 🎖️ Elite: ${m.elite}
 
 <b>FINANCEIRO</b>
 💰 MRR estimado: R$ ${mrr}

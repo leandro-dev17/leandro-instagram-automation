@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
       `${sMateus.semaforo} Mateus Manchete\n\n` +
       `👥 <b>NEGÓCIO</b>\n` +
       `• Ativos: ${neg.ativos} | Trial: ${neg.trials} | Inadimplentes: ${neg.inadimplentes}\n` +
-      `• Cards hoje: B:${cardsPorPlano["basico"] ?? 0} P:${cardsPorPlano["patriota"] ?? 0} V:${cardsPorPlano["vip"] ?? 0} E:${cardsPorPlano["elite"] ?? 0}\n` +
+      `• Cards hoje: V:${cardsPorPlano["vip"] ?? 0} E:${cardsPorPlano["elite"] ?? 0}\n` +
       `• Alertas abertos: ${alertasN}\n\n` +
       statusGeral;
 

@@ -7,10 +7,8 @@ import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 
 const VALOR_PLANO: Record<string, number> = {
-  basico: 12.9,
-  patriota: 29.9,
-  vip: 59.9,
-  elite: 41.58,
+  vip: 9.9,
+  elite: 19.9,
 };
 
 function formatBRL(v: number): string {
@@ -37,8 +35,8 @@ export async function GET(req: NextRequest) {
     const graves: Array<{ nome: string; plano: string; dias: number }> = [];
 
     for (const u of inadimplentes) {
-      const plano = String(u.plano ?? "basico");
-      const valor = VALOR_PLANO[plano] ?? 12.9;
+      const plano = String(u.plano ?? "vip");
+      const valor = VALOR_PLANO[plano] ?? 9.9;
       totalInadimplencia += valor;
 
       if (!porPlano[plano]) porPlano[plano] = { qtd: 0, valor: 0 };

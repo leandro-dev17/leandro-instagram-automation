@@ -1,7 +1,7 @@
 /**
  * AGENTE BERNARDO RESUMIDOR
  * Usa Claude para reescrever notícias curadas no tom do Capitão Braga
- * (resumo_braga, usado pelos grupos básico/patriota/vip) e do
+ * (resumo_braga, usado pelo grupo vip) e do
  * Prof. Bernardo Cavalcanti (resumo_cavalcanti, usado pelo grupo elite).
  * GET /api/cron/resumir-noticias
  */

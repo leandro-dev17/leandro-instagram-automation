@@ -7,10 +7,8 @@ import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 
 const VALOR_PLANO: Record<string, number> = {
-  basico: 12.9,
-  patriota: 29.9,
-  vip: 59.9,
-  elite: 41.58,
+  vip: 9.9,
+  elite: 19.9,
 };
 
 function formatBRL(v: number): string {

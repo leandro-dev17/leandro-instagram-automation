@@ -17,16 +17,12 @@ export async function GET(req: NextRequest) {
     for (const fonte of FONTES_EXCLUIR) {
       const result = await sql`
         UPDATE noticias
-        SET postada_basico = true,
-            postada_patriota = true,
-            postada_vip = true,
+        SET postada_vip = true,
             postada_elite = true,
-            postada_basico_at = COALESCE(postada_basico_at, NOW()),
-            postada_patriota_at = COALESCE(postada_patriota_at, NOW()),
             postada_vip_at = COALESCE(postada_vip_at, NOW()),
             postada_elite_at = COALESCE(postada_elite_at, NOW())
         WHERE LOWER(fonte) LIKE ${'%' + fonte + '%'}
-          AND (postada_basico = false OR postada_patriota = false OR postada_vip = false OR postada_elite = false)
+          AND (postada_vip = false OR postada_elite = false)
       `;
       totalMarcadas += result.length || 0;
     }

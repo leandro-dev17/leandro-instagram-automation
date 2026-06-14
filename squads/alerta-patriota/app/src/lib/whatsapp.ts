@@ -7,16 +7,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.verce
 
 // IDs dos grupos por plano
 const GROUP_IDS: Record<Plano, string> = {
-  basico: process.env.WPP_GROUP_BASICO || "",
-  patriota: process.env.WPP_GROUP_PATRIOTA || "",
   vip: process.env.WPP_GROUP_VIP || "",
   elite: process.env.WPP_GROUP_ELITE || "",
 };
 
 // Links de convite por plano
 const GROUP_LINKS: Record<Plano, string> = {
-  basico: process.env.WPP_LINK_BASICO || "",
-  patriota: process.env.WPP_LINK_PATRIOTA || "",
   vip: process.env.WPP_LINK_VIP || "",
   elite: process.env.WPP_LINK_ELITE || "",
 };
@@ -43,7 +39,7 @@ export async function enviarMensagemPrivada(telefone: string, texto: string): Pr
   }
 }
 
-// Grupos descontinuados — automação roda só para VIP e Elite
+// Defesa contra valores de plano fora de "vip"/"elite" vindos de dados externos (ex: webhook MP)
 const GRUPOS_ATIVOS: Plano[] = ["vip", "elite"];
 
 export async function enviarMensagemGrupo(plano: Plano, texto: string): Promise<boolean> {
@@ -135,9 +131,9 @@ export function buildBoasVindas(plano: Plano, nome: string): string {
   }
 
   return (
-    `🇧🇷 *${nome}, seja bem-vindo ao Alerta Patriota!*\n\n` +
+    `🔥 *${nome}, seja bem-vindo ao VIP Premium!*\n\n` +
     `Aqui é o Capitão Braga. A partir de agora você vai saber o que realmente está acontecendo no Brasil — sem filtro e sem censura.\n\n` +
-    `Todo dia, nos horários certos, você recebe as notícias que a mídia grande esconde.\n\n` +
+    `Todo dia, nos horários certos, você recebe as notícias que a mídia grande esconde, com meu comentário direto.\n\n` +
     `📲 Seu grupo: ${link}\n\n` +
     `_Deus, Pátria e Família — sempre._`
   );
@@ -153,46 +149,11 @@ export function buildBoasVindasGrupo(plano: Plano, nome: string): string {
     );
   }
 
-  const msgs: Record<Plano, string> = {
-    basico: (
-      `🇧🇷 *Bem-vindo, ${nome}! Aqui é o Capitão Braga.*\n\n` +
-      `Fico feliz de ter mais um patriota conosco! Você vai receber 3 notícias por dia — o que a Globo e a mídia grande escondem do povo.\n\n` +
-      `Fique atento ao grupo. Deus abençoe você e sua família! 🙏\n\n` +
-      `_Deus, Pátria e Família — sempre._`
-    ),
-    patriota: (
-      `🇧🇷 *${nome}, bem-vindo ao Alerta Patriota!*\n\n` +
-      `Capitão Braga aqui. Você escolheu o grupo certo. Além das notícias, vai ter meu comentário direto sobre cada uma delas — sem papas na língua.\n\n` +
-      `Seja muito bem-vindo! 🤝\n\n` +
-      `_Deus, Pátria e Família — sempre._`
-    ),
-    vip: (
-      `🔥 *${nome}, bem-vindo ao VIP Premium!*\n\n` +
-      `Capitão Braga aqui. Você está no grupo mais completo do Alerta Patriota. Notícias, comentários, alertas urgentes quando deputados de direita fazem algo importante — e você pode participar, perguntar, opinar.\n\n` +
-      `Fico honrado com sua confiança. Vamo junto! 💪🇧🇷\n\n` +
-      `_Deus, Pátria e Família — sempre._`
-    ),
-    elite: "",
-  };
-
-  return msgs[plano];
-}
-
-export function buildFOMO(plano: Plano): string {
-  if (plano === "basico") {
-    return (
-      `🔒 *Os membros do Alerta Patriota já sabem.*\n\n` +
-      `Hoje aconteceu algo importante e os membros do grupo Patriota já receberam a análise completa do Capitão Braga.\n\n` +
-      `Faça o upgrade agora por R$29,90/mês e receba comentários diretos em todas as notícias:\n` +
-      `👉 ${APP_URL}/assinar`
-    );
-  }
-
   return (
-    `🚨 *Os membros VIP já sabem o que aconteceu.*\n\n` +
-    `O Capitão Braga acabou de postar uma análise urgente no grupo VIP Premium sobre o que aconteceu agora.\n\n` +
-    `Entre no VIP por R$59,90/mês e nunca fique de fora dos momentos mais importantes:\n` +
-    `👉 ${APP_URL}/assinar`
+    `🔥 *${nome}, bem-vindo ao VIP Premium!*\n\n` +
+    `Capitão Braga aqui. Você está no grupo mais completo do Alerta Patriota. Notícias, comentários, alertas urgentes quando deputados de direita fazem algo importante — e você pode participar, perguntar, opinar.\n\n` +
+    `Fico honrado com sua confiança. Vamo junto! 💪🇧🇷\n\n` +
+    `_Deus, Pátria e Família — sempre._`
   );
 }
 
