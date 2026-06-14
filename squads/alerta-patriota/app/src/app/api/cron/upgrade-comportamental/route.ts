@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
 import { enviarMensagemPrivada } from "@/lib/whatsapp";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
@@ -60,6 +61,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, enviados });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Ulisses Upgrade", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('ulisses-upgrade', 'sugerir_upgrade', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

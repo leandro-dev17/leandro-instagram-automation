@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
 
     if (jobresCriticos.length > 0) {
       const lista = jobresCriticos
-        .map(([nome, n]) => `${nome} (${n}/${Math.min(runs.length, 3)} runs falhando)`)
+        .map(([nome, n]) => `${nome} (${n}/${runs.length} runs falhando)`)
         .join("\n");
 
       const urlsLogs = resumoRuns

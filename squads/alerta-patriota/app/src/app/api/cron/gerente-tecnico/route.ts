@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       const total = parseInt((f as { total: string }).total);
       if (total >= 3) { problemas.push(`${f.agente}: ${total} erros nas últimas 4h`); score -= 10; }
     }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar falhas dos agentes técnicos: ${String(err)}`); score -= 5; }
 
   // 3. Alertas críticos de infraestrutura abertos
   try {
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     `;
     const n = parseInt((alertasCriticos[0] as { total: string }).total);
     if (n > 0) { problemas.push(`${n} alertas críticos de infra abertos`); score -= 15 * Math.min(n, 3); }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar alertas críticos: ${String(err)}`); score -= 5; }
 
   // 4. Agente médico ativo? (deve ter rodado nas últimas 2h)
   try {
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     `;
     if (medico.length === 0) { problemas.push("Agente Médico nunca executou"); score -= 10; }
     else if ((medico[0] as { status: string }).status === "erro") { problemas.push("Agente Médico com erro"); score -= 15; }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar Agente Médico: ${String(err)}`); score -= 5; }
 
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────
   if (score < 50) {

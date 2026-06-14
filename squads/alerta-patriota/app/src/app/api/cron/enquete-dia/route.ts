@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
 import { gerarTexto } from "@/lib/ai";
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     const jaEnviou = await sql`
       SELECT id FROM agentes_log
       WHERE agente = 'enquete-dia' AND status = 'sucesso'
-      AND created_at >= NOW() - INTERVAL '20 hours'
+      AND created_at >= NOW() - INTERVAL '24 hours'
       LIMIT 1
     `;
     if (jaEnviou.length > 0) return NextResponse.json({ ok: true, motivo: "já enviado hoje" });
@@ -91,6 +92,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok, enquete });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Enquete do Dia", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('enquete-dia', 'enviar_enquete', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     // Verifica se já rodou hoje
     const jaRodou = await sql`
       SELECT id FROM agentes_log WHERE agente = 'radar-economico'
-      AND created_at >= NOW() - INTERVAL '20 hours' LIMIT 1
+      AND created_at >= NOW() - INTERVAL '24 hours' LIMIT 1
     `;
     if (jaRodou.length > 0) return NextResponse.json({ ok: true, motivo: "já executado hoje" });
 

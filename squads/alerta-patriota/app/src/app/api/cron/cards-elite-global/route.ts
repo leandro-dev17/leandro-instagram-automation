@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -99,6 +100,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("[cards-elite-global]", err);
+    await alertarTelegram("🔴", "Falha Cards Elite Global", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('cards-elite-global', 'publicar_elite', 'erro', ${JSON.stringify({ erro: String(err) })}::jsonb)
+    `.catch(() => {});
     return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }

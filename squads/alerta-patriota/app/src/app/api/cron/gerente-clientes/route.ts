@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const n = parseInt((cancelamentos[0] as { total: string }).total);
     if (n >= 5) { problemas.push(`${n} cancelamentos nas últimas 24h`); score -= 20; }
     else if (n >= 3) { problemas.push(`${n} cancelamentos nas últimas 24h`); score -= 10; }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar cancelamentos: ${String(err)}`); score -= 5; }
 
   // 2. Variação de membros nos grupos
   try {
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         }
       }
     }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar variação de membros: ${String(err)}`); score -= 5; }
 
   // 3. Usuários inativos (sem engajamento há 15+ dias)
   try {
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     `;
     const n = parseInt((inativos[0] as { total: string }).total);
     if (n > 10) { problemas.push(`${n} membros inativos há 15+ dias`); score -= 10; }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar membros inativos: ${String(err)}`); score -= 5; }
 
   // 4. Bot responder funcionando?
   try {
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     `;
     if (botLog.length === 0) { problemas.push("Bot Responder nunca executou"); score -= 5; }
     else if ((botLog[0] as { status: string }).status === "erro") { problemas.push("Bot Responder com erro"); score -= 10; }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar Bot Responder: ${String(err)}`); score -= 5; }
 
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────
   if (score < 50) {

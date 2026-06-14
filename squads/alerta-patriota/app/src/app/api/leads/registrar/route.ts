@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
+// Rate limiting básico por IP (best-effort, em memória — reseta por instância/deploy,
+// mas já evita flood trivial nesta rota pública sem autenticação)
+const LIMITE_POR_JANELA = 5;
+const JANELA_MS = 60_000;
+const requisicoesPorIp = new Map<string, number[]>();
+
+function excedeuLimite(ip: string): boolean {
+  const agora = Date.now();
+  const historico = (requisicoesPorIp.get(ip) || []).filter((t) => agora - t < JANELA_MS);
+  historico.push(agora);
+  requisicoesPorIp.set(ip, historico);
+  return historico.length > LIMITE_POR_JANELA;
+}
+
 async function ensureLeadsTable() {
   await sql`
     CREATE TABLE IF NOT EXISTS leads (
@@ -19,6 +33,11 @@ async function ensureLeadsTable() {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
+    if (excedeuLimite(ip)) {
+      return NextResponse.json({ erro: "Muitas requisições, tente novamente em breve" }, { status: 429 });
+    }
+
     await ensureLeadsTable();
 
     const body = await req.json() as {

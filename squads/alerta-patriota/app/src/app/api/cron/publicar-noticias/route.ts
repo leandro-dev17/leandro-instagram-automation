@@ -122,6 +122,10 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error(`publicar-noticias (${grupo}) error:`, err);
     await alertarTelegram("🔴", `Falha no Agente Paulo ${grupo}`, String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES (${`paulo-${grupo}`}, 'publicar_noticia', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

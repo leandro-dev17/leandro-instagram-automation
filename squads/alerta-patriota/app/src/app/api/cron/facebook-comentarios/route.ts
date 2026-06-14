@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
 import { buscarComentariosNaoRespondidos, responderComentario } from "@/lib/facebook";
 import { gerarTexto } from "@/lib/ai";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
@@ -18,7 +19,7 @@ async function gerarRespostaComentario(autor: string, comentario: string): Promi
     return `Olá, ${autor}! 🇧🇷 Para entrar no grupo acesse: ${APP_URL}/assinar\n\nDeus, Pátria e Família — sempre. — Capitão Braga`;
   }
   if (texto.includes("preço") || texto.includes("valor") || texto.includes("quanto")) {
-    return `${autor}, temos planos a partir de R$12,90/mês! 🇧🇷\n\nVeja todas as opções: ${APP_URL}/assinar\n\n— Capitão Braga`;
+    return `${autor}, temos planos a partir de R$9,90/mês! 🇧🇷\n\nVeja todas as opções: ${APP_URL}/assinar\n\n— Capitão Braga`;
   }
 
   // Resposta com Claude para comentários complexos
@@ -83,6 +84,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, encontrados: comentarios.length, respondidos });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Comentários Facebook", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('facebook-comentarios', 'responder_comentario', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

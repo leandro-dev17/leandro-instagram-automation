@@ -15,6 +15,14 @@ const MODELO_FALLBACK: Record<string, string> = {
 };
 
 function ehErroDeLimite(err: unknown): boolean {
+  // A SDK da Anthropic expõe `status` (429/529) e `error.type` (rate_limit_error/overloaded_error)
+  // como campos do objeto de erro, não necessariamente no texto — checa ambos antes de cair no fallback de string.
+  const status = (err as { status?: number })?.status;
+  if (status === 429 || status === 529 || status === 503) return true;
+
+  const tipo = (err as { error?: { type?: string } })?.error?.type;
+  if (tipo === "rate_limit_error" || tipo === "overloaded_error") return true;
+
   const msg = String(err);
   return msg.includes("usage limit") || msg.includes("rate_limit") || msg.includes("429") || msg.includes("overloaded");
 }
@@ -51,6 +59,10 @@ export async function gerarTexto(params: MensagemIA): Promise<string> {
     return resposta.content[0].type === "text" ? resposta.content[0].text.trim() : "";
   } catch (err) {
     if (!GROQ_API_KEY || !ehErroDeLimite(err)) throw err;
-    return gerarComGroq(params);
+    try {
+      return await gerarComGroq(params);
+    } catch (errGroq) {
+      throw new Error(`Anthropic e Groq falharam — Anthropic: ${String(err)} | Groq: ${String(errGroq)}`);
+    }
   }
 }

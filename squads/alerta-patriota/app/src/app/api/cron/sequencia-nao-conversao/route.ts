@@ -165,15 +165,19 @@ export async function GET(req: NextRequest) {
       let subject = "";
       let html = "";
 
-      if (horasDesde < 2 && ultimo === 0) {
+      // Janelas em dias completos (não horas exatas) — o cron não roda 24/7 em
+      // intervalos fixos, então uma janela estreita de poucas horas podia nunca
+      // ser alcançada para boa parte dos leads. O dedup por `ultimo_email_enviado`
+      // garante que cada e-mail só sai uma vez.
+      if (horasDesde < 24 && ultimo === 0) {
         emailNum = 1;
         subject = "Voce viu a noticia de hoje? [Alerta Patriota]";
         html = htmlEmail1(lead.nome as string, plano);
-      } else if (horasDesde >= 22 && horasDesde <= 26 && ultimo === 1) {
+      } else if (horasDesde >= 24 && horasDesde < 48 && ultimo === 1) {
         emailNum = 2;
         subject = "O grupo pode fechar novas vagas [Alerta Patriota]";
         html = htmlEmail2(lead.nome as string, plano);
-      } else if (horasDesde >= 46 && horasDesde <= 50 && ultimo === 2) {
+      } else if (horasDesde >= 48 && ultimo === 2) {
         emailNum = 3;
         subject = "Ultima chance — preco fundador acaba hoje [Alerta Patriota]";
         html = htmlEmail3(lead.nome as string, plano);

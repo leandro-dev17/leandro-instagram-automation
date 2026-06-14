@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { gerarTexto } from "@/lib/ai";
+import { alertarTelegram } from "@/lib/telegram";
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
 const EVO_INST = process.env.EVOLUTION_INSTANCIA;
@@ -103,8 +104,21 @@ export async function GET(req: NextRequest) {
       await new Promise(r => setTimeout(r, 3000));
     }
 
+    if (respondidas > 0) {
+      await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes)
+        VALUES ('bot-responder', 'responder_fila', 'sucesso',
+          ${JSON.stringify({ respondidas, pendentes: pendentes.length })})
+      `.catch(() => {});
+    }
+
     return NextResponse.json({ ok: true, respondidas });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Bot Responder", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('bot-responder', 'responder_fila', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

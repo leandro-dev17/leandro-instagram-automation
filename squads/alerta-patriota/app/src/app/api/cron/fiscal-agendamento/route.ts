@@ -83,10 +83,16 @@ function horaBRTParaUTC(horaBRT: number): Date {
   const hoje = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
   const horaInteira = Math.floor(horaBRT);
   const minutos = Math.round((horaBRT - horaInteira) * 60);
-  // BRT = UTC - 3h
-  const utcHora = horaInteira + 3;
-  const dataUTC = new Date(`${hoje}T${String(utcHora).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:00Z`);
-  return dataUTC;
+  // BRT = UTC - 3h. Se a hora BRT for 22h ou mais (ex: janela das 22h, fim = 24.0),
+  // a conversão cai no dia seguinte em UTC — normaliza para evitar "T27:00:00Z" (data inválida).
+  let utcHora = horaInteira + 3;
+  let dataUTC = new Date(`${hoje}T00:00:00Z`);
+  if (utcHora >= 24) {
+    utcHora -= 24;
+    dataUTC = new Date(dataUTC.getTime() + 24 * 60 * 60 * 1000);
+  }
+  const dataStr = dataUTC.toISOString().split("T")[0];
+  return new Date(`${dataStr}T${String(utcHora).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:00Z`);
 }
 
 async function verificarCardGerado(cardDesdeHoraBRT: number, fimVerificacaoBRT: number): Promise<boolean> {
@@ -106,8 +112,9 @@ async function verificarCardGerado(cardDesdeHoraBRT: number, fimVerificacaoBRT: 
   return rows.length > 0;
 }
 
-function gruposAfetados(tipo: GrupoTipo): string[] {
-  if (tipo === "todos") return ["vip", "elite"];
+// Desde a descontinuação dos planos Básico/Patriota, tanto as janelas "todos"
+// quanto "vip_elite" afetam os mesmos dois grupos pagos.
+function gruposAfetados(_tipo: GrupoTipo): string[] {
   return ["vip", "elite"];
 }
 

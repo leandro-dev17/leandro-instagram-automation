@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { gerarTexto } from "@/lib/ai";
 
@@ -72,6 +73,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, personalidade: p.nome });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Personagem da Semana", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('personagem-semana', 'enviar_perfil', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

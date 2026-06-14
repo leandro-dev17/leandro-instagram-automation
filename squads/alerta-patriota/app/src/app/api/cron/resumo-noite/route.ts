@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { gerarTexto } from "@/lib/ai";
 
@@ -56,6 +57,11 @@ NOTÍCIAS DO DIA:\n${titulos}\n\nResponda APENAS com o texto.` }],
     await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('resumo-noite', 'enviar_vip_elite', 'sucesso')`;
     return NextResponse.json({ ok: true });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Resumo da Noite", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('resumo-noite', 'enviar_vip_elite', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

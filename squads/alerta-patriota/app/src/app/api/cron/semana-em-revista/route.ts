@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
+import { alertarTelegram } from "@/lib/telegram";
 import { publicarPostFacebook } from "@/lib/facebook";
 import { gerarTexto } from "@/lib/ai";
 
@@ -73,6 +74,11 @@ Responda APENAS com o texto.` }],
 
     return NextResponse.json({ ok: true, postId: resultado.id });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Semana em Revista", String(err));
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('semana-em-revista', 'postar_facebook', 'erro', ${JSON.stringify({ erro: String(err) })})
+    `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }
