@@ -1,12 +1,6 @@
 {
-  "falhas": {
-    "fiscal-hooks-kling": {
-      "data": "2026-06-13",
-      "count": 4,
-      "ultimaFalha": "2026-06-13T23:37:01.170Z"
-    }
-  },
-  "ultimaVerificacao": "2026-06-13T23:37:01.200Z",
+  "falhas": {},
+  "ultimaVerificacao": "2026-06-14T16:01:32.408Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11"
 }
