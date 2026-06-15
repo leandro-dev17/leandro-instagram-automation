@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, PreApproval } from "mercadopago";
 import { getUsuarioLogado } from "@/lib/auth";
+import { sql } from "@/lib/db";
 import type { Plano } from "@/lib/db";
 
 const client = new MercadoPagoConfig({
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
     }
 
-    const { plano, ciclo = "mensal" } = await req.json() as { plano: Plano; ciclo?: "mensal" | "anual" };
+    const { plano, ciclo = "mensal", telefone } = await req.json() as { plano: Plano; ciclo?: "mensal" | "anual"; telefone?: string };
 
     const dadosPlano = PLANOS[plano];
     if (!dadosPlano) {
@@ -31,6 +32,14 @@ export async function POST(req: NextRequest) {
 
     const { valor, valorAnual, nome } = dadosPlano;
     const valorFinal = ciclo === "anual" ? valorAnual : valor;
+
+    // Salva telefone do usuário se ainda não tiver (necessário para o grupo WhatsApp)
+    if (telefone) {
+      const fone = telefone.replace(/\D/g, "");
+      if (fone.length >= 10) {
+        await sql`UPDATE usuarios SET telefone = ${fone} WHERE id = ${usuario.id} AND telefone IS NULL`.catch(() => {});
+      }
+    }
 
     // Cria a pré-aprovação (assinatura recorrente)
     const preApprovalClient = new PreApproval(client);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const PLANOS = [
@@ -40,27 +40,50 @@ const PLANOS = [
   },
 ];
 
+interface GateData {
+  nome: string;
+  telefone: string;
+}
+
 export default function AssinarPage() {
   const [ciclo, setCiclo] = useState<"mensal" | "anual">("mensal");
   const [loading, setLoading] = useState<string | null>(null);
   const [pix, setPix] = useState<{ qr_code: string; qr_code_base64: string; valor: number } | null>(null);
+  const [gate, setGate] = useState<{ planoId: string } | null>(null);
+  const [gateData, setGateData] = useState<GateData>({ nome: "", telefone: "" });
+  const [gateSaving, setGateSaving] = useState(false);
+  const [gateErro, setGateErro] = useState("");
+  const [cupom, setCupom] = useState<string | undefined>(undefined);
   const router = useRouter();
 
-  async function handleAssinar(planoId: string) {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const c = params.get("cupom");
+    const cicloUrl = params.get("ciclo");
+    if (c) setCupom(c.toUpperCase());
+    if (cicloUrl === "anual") setCiclo("anual");
+  }, []);
+
+  async function handleAssinarComDados(planoId: string, dados: GateData) {
     setLoading(planoId);
     const cicloFinal = ciclo;
 
     try {
-      // Pix: ciclo anual
       if (cicloFinal === "anual") {
-        const nome = prompt("Seu nome completo:") || "Patriota";
         const email = prompt("Seu e-mail:") || "";
         if (!email) { setLoading(null); return; }
 
         const res = await fetch("/api/assinaturas/criar-pix", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plano: planoId, ciclo: "anual", nome, email }),
+          body: JSON.stringify({
+            plano: planoId,
+            ciclo: "anual",
+            nome: dados.nome,
+            email,
+            telefone: dados.telefone,
+            cupom,
+          }),
         });
         const data = await res.json();
         if (data.qr_code) {
@@ -71,11 +94,10 @@ export default function AssinarPage() {
         return;
       }
 
-      // Cartão: ciclo mensal (fluxo original MP)
       const res = await fetch("/api/assinaturas/criar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plano: planoId, ciclo: cicloFinal }),
+        body: JSON.stringify({ plano: planoId, ciclo: cicloFinal, telefone: dados.telefone }),
       });
       const data = await res.json();
       if (data.checkout_url) {
@@ -90,6 +112,37 @@ export default function AssinarPage() {
     }
   }
 
+  async function handleGateSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setGateErro("");
+
+    const nome = gateData.nome.trim();
+    const fone = gateData.telefone.replace(/\D/g, "");
+
+    if (!nome) { setGateErro("Informe seu nome."); return; }
+    if (fone.length < 10) { setGateErro("WhatsApp inválido — informe com DDD."); return; }
+
+    setGateSaving(true);
+    try {
+      await fetch("/api/leads/registrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome,
+          telefone: fone,
+          plano: gate!.planoId,
+          origem: "assinar-gate",
+        }),
+      });
+    } catch { /* silencioso — não impede o checkout */ }
+
+    const planoId = gate!.planoId;
+    setGate(null);
+    setGateSaving(false);
+    handleAssinarComDados(planoId, { nome, telefone: fone });
+  }
+
+  // ── Tela de QR Code Pix ───────────────────────────────────────────────────
   if (pix) {
     return (
       <div style={{ minHeight:"100vh", background:"#0d0d1a", display:"flex", alignItems:"center", justifyContent:"center", padding:"24px" }}>
@@ -120,6 +173,113 @@ export default function AssinarPage() {
     );
   }
 
+  // ── Modal gate (captura nome + WhatsApp antes do checkout) ───────────────
+  if (gate) {
+    return (
+      <div style={{
+        position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex",
+        alignItems:"center", justifyContent:"center", zIndex:9999, padding:"24px",
+      }}>
+        <div style={{
+          background:"#0d0d1a", border:"2px solid #c0392b", borderRadius:"16px",
+          padding:"36px 32px", maxWidth:"460px", width:"100%",
+        }}>
+          {/* Cabeçalho */}
+          <div style={{ textAlign:"center", marginBottom:"20px" }}>
+            <span style={{ fontSize:"22px", fontWeight:"900", color:"#ffd700", letterSpacing:"1px" }}>
+              ⚡ ALERTA PATRIOTA
+            </span>
+          </div>
+
+          {/* Copy */}
+          <div style={{ background:"#1a1a2e", border:"1px solid #c0392b33", borderRadius:"10px", padding:"20px", marginBottom:"24px" }}>
+            <p style={{ color:"#c0392b", fontWeight:"900", fontSize:"13px", textTransform:"uppercase", letterSpacing:"1px", margin:"0 0 10px" }}>
+              🚨 A MÍDIA ESTÁ DO LADO DELES. E ESTÁ FUNCIONANDO.
+            </p>
+            <p style={{ color:"#ccc", fontSize:"14px", lineHeight:"1.6", margin:"0 0 10px" }}>
+              Enquanto você lê isso, a grande mídia decide o que o Brasil pode saber —
+              e o algoritmo censura quem pensa diferente.
+            </p>
+            <p style={{ color:"#ccc", fontSize:"14px", lineHeight:"1.6", margin:"0 0 10px" }}>
+              A esquerda está organizada. A direita só vence se estiver{" "}
+              <strong style={{ color:"#ffd700" }}>UNIDA E CONECTADA</strong> — sem depender
+              de rede social que pode te calar a qualquer momento.
+            </p>
+            <p style={{ color:"#ffd700", fontWeight:"900", fontSize:"14px", margin:"0" }}>
+              🇧🇷 Coloque seu WhatsApp para garantir acesso direto, mesmo se as redes censurarem.
+            </p>
+          </div>
+
+          {/* Formulário */}
+          <form onSubmit={handleGateSubmit}>
+            <div style={{ marginBottom:"14px" }}>
+              <input
+                type="text"
+                placeholder="Seu nome"
+                value={gateData.nome}
+                onChange={(e) => setGateData(d => ({ ...d, nome: e.target.value }))}
+                required
+                style={{
+                  width:"100%", background:"#1a1a2e", border:"1px solid #333",
+                  borderRadius:"8px", padding:"13px 16px", color:"#fff",
+                  fontSize:"15px", outline:"none", boxSizing:"border-box",
+                }}
+                onFocus={(e) => e.target.style.borderColor = "#ffd700"}
+                onBlur={(e) => e.target.style.borderColor = "#333"}
+              />
+            </div>
+            <div style={{ marginBottom:"8px" }}>
+              <input
+                type="tel"
+                placeholder="WhatsApp com DDD (ex: 47 99999-9999)"
+                value={gateData.telefone}
+                onChange={(e) => setGateData(d => ({ ...d, telefone: e.target.value }))}
+                required
+                style={{
+                  width:"100%", background:"#1a1a2e", border:"1px solid #333",
+                  borderRadius:"8px", padding:"13px 16px", color:"#fff",
+                  fontSize:"15px", outline:"none", boxSizing:"border-box",
+                }}
+                onFocus={(e) => e.target.style.borderColor = "#ffd700"}
+                onBlur={(e) => e.target.style.borderColor = "#333"}
+              />
+            </div>
+
+            {gateErro && (
+              <p style={{ color:"#c0392b", fontSize:"13px", margin:"6px 0 12px" }}>{gateErro}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={gateSaving}
+              style={{
+                width:"100%", background:"#c0392b", color:"#fff", fontWeight:"900",
+                fontSize:"15px", padding:"14px", borderRadius:"10px", border:"none",
+                cursor:"pointer", marginTop:"12px", letterSpacing:"0.5px",
+                opacity: gateSaving ? 0.7 : 1,
+              }}
+            >
+              {gateSaving ? "Aguarde..." : "🇧🇷 ENTRAR PARA A RESISTÊNCIA →"}
+            </button>
+
+            <p style={{ color:"#555", fontSize:"11px", textAlign:"center", marginTop:"12px", marginBottom:"0" }}>
+              🔒 Seus dados são só nossos. Nunca vendemos, nunca compartilhamos.<br/>
+              Servem só para te manter informado e conectado com quem pensa como você.
+            </p>
+          </form>
+
+          <button
+            onClick={() => setGate(null)}
+            style={{ background:"transparent", color:"#444", border:"none", cursor:"pointer", marginTop:"16px", fontSize:"12px", display:"block", textAlign:"center", width:"100%" }}
+          >
+            ← Voltar para os planos
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Página principal de planos ────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#1a1a2e] text-white">
       {/* Header */}
@@ -146,17 +306,34 @@ export default function AssinarPage() {
             Anual <span className="text-yellow-400 font-bold">2 meses grátis</span>
           </span>
         </div>
+
+        {/* Banner de cupom ativo */}
+        {cupom && CUPONS_VALIDOS[cupom.toUpperCase()] && (
+          <div className="mt-6 inline-block bg-green-900 border border-green-500 rounded-lg px-5 py-3">
+            <p className="text-green-400 font-bold text-sm">
+              🎁 Cupom <strong>{cupom.toUpperCase()}</strong> aplicado —{" "}
+              {Math.round(CUPONS_VALIDOS[cupom.toUpperCase()] * 100)}% de desconto no Elite Anual
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Cards de planos */}
       <div className="max-w-3xl mx-auto px-4 pb-16 grid grid-cols-1 md:grid-cols-2 gap-6">
         {PLANOS.map((plano) => {
-          const precoExibido = ciclo === "anual" ? `R$${plano.precoAnual}/ano` : `R$${plano.preco}/mês`;
+          const precoAnualBase = Number(plano.precoAnual);
+          const desconto = plano.id === "elite" && cupom && CUPONS_VALIDOS[cupom.toUpperCase()]
+            ? CUPONS_VALIDOS[cupom.toUpperCase()]
+            : 0;
+          const precoAnualFinal = Math.round(precoAnualBase * (1 - desconto) * 100) / 100;
+          const precoExibido = ciclo === "anual"
+            ? `R$${precoAnualFinal.toFixed(2).replace(".", ",")}/ano`
+            : `R$${plano.preco}/mês`;
 
           return (
             <div key={plano.id} className={`relative bg-gray-900 border-2 ${plano.cor} rounded-2xl p-6 flex flex-col`}>
               {plano.badge && (
-                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold ${plano.id === "elite" ? "bg-purple-600" : plano.id === "vip" ? "bg-red-600" : "bg-yellow-500 text-gray-900"}`}>
+                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold ${plano.id === "elite" ? "bg-purple-600" : "bg-red-600"}`}>
                   {plano.badge}
                 </div>
               )}
@@ -165,8 +342,11 @@ export default function AssinarPage() {
 
               <div className="mb-4">
                 <span className="text-3xl font-extrabold text-yellow-400">{precoExibido}</span>
+                {desconto > 0 && ciclo === "anual" && (
+                  <span className="ml-2 text-sm line-through text-gray-500">R${precoAnualBase}/ano</span>
+                )}
                 {ciclo === "mensal" && <p className="text-green-500 text-xs mt-0.5">▸ Experimente 7 dias pagando só R$1</p>}
-                {ciclo === "anual" && <p className="text-green-400 text-xs mt-0.5">equivale a R${(Number(plano.precoAnual) / 12).toFixed(2).replace(".", ",")}/mês</p>}
+                {ciclo === "anual" && <p className="text-green-400 text-xs mt-0.5">equivale a R${(precoAnualFinal / 12).toFixed(2).replace(".", ",")}/mês</p>}
               </div>
 
               <ul className="space-y-2 flex-1 mb-6">
@@ -179,7 +359,7 @@ export default function AssinarPage() {
               </ul>
 
               <button
-                onClick={() => handleAssinar(plano.id)}
+                onClick={() => setGate({ planoId: plano.id })}
                 disabled={loading === plano.id}
                 className={`w-full py-3 rounded-xl font-bold text-white transition-colors ${plano.corBtn} disabled:opacity-50`}
               >
@@ -218,3 +398,10 @@ export default function AssinarPage() {
     </div>
   );
 }
+
+// Mapa de cupons válidos (mesmos do servidor — para exibir desconto no front)
+const CUPONS_VALIDOS: Record<string, number> = {
+  VOLTA10: 0.10,
+  VOLTA15: 0.15,
+  VOLTA20: 0.20,
+};

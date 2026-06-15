@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { enviarMensagemPrivada } from "@/lib/whatsapp";
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY!;
 const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "Alerta Patriota";
@@ -12,15 +13,28 @@ async function ensureLeadsTable() {
   await sql`
     CREATE TABLE IF NOT EXISTS leads (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      email VARCHAR(255) NOT NULL UNIQUE,
+      email VARCHAR(255) UNIQUE,
+      telefone VARCHAR(20),
       nome VARCHAR(255),
       plano_interesse VARCHAR(20),
       origem VARCHAR(50),
       convertido BOOLEAN DEFAULT false,
       ultimo_email_enviado INT DEFAULT 0,
       email_enviado_at TIMESTAMP,
+      ultimo_whatsapp_enviado INT DEFAULT 0,
+      whatsapp_enviado_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW()
     )
+  `.catch(() => null);
+
+  // Garante colunas adicionadas em tabelas existentes
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS telefone VARCHAR(20)`.catch(() => null);
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ultimo_whatsapp_enviado INT DEFAULT 0`.catch(() => null);
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_enviado_at TIMESTAMP`.catch(() => null);
+  await sql`ALTER TABLE leads ALTER COLUMN email DROP NOT NULL`.catch(() => null);
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS leads_telefone_unique
+    ON leads(telefone) WHERE telefone IS NOT NULL
   `.catch(() => null);
 }
 
@@ -91,8 +105,8 @@ function htmlEmail2(nome: string, plano: string): string {
   <p style="color:#b0b0b0;font-size:15px;line-height:1.6">Nosso grupo ${plano || "Patriota"} tem limite de membros para manter a qualidade da curadoria. Neste momento, <strong style="color:#c0392b">s&#243; restam algumas vagas</strong>.</p>
   <div style="background:#1a1a2e;padding:20px;margin:24px 0;border-radius:4px">
     <p style="color:#ffd700;font-weight:bold;margin:0 0 16px">O QUE MEMBROS DIZEM:</p>
-    <p style="color:#e8e8e8;font-style:italic;margin:0 0 12px;font-size:14px">"Finalmente um grupo que fala a verdade sem rodeios. Em 3 dias aprendi mais do que 3 meses acompanhando o jornal." &#8212; <strong>Carlos M., RS</strong></p>
-    <p style="color:#e8e8e8;font-style:italic;margin:0;font-size:14px">"O Capit&#227;o Braga analisa as not&#237;cias de um jeito que nenhum jornalista tem coragem de fazer." &#8212; <strong>Ana P., SP</strong></p>
+    <p style="color:#e8e8e8;font-style:italic;margin:0 0 12px;font-size:14px">"Finalmente um grupo que fala a verdade sem rodeios." &#8212; <strong>Carlos M., RS</strong></p>
+    <p style="color:#e8e8e8;font-style:italic;margin:0;font-size:14px">"O Capit&#227;o Braga analisa as not&#237;cias de um jeito que nenhum jornalista tem coragem." &#8212; <strong>Ana P., SP</strong></p>
   </div>
   <div style="text-align:center;margin:32px 0">
     <a href="${APP_URL}/assinar?plano=${plano || "vip"}" style="background:#ffd700;color:#0d0d1a;padding:16px 36px;text-decoration:none;font-size:16px;font-weight:bold;border-radius:4px;display:inline-block">GARANTIR MINHA VAGA AGORA</a>
@@ -127,7 +141,6 @@ function htmlEmail3(nome: string, plano: string): string {
     <p style="color:#ffd700;font-size:36px;font-weight:bold;margin:0 0 8px">${preco}/mes</p>
     <p style="color:#b0b0b0;margin:0;font-size:13px">+ 7 dias gratis para testar</p>
   </div>
-  <p style="color:#b0b0b0;font-size:15px">Amanhã este preço sobe. Não tem exceção.</p>
   <div style="text-align:center;margin:32px 0">
     <a href="${APP_URL}/assinar?plano=${plano || "vip"}&utm_source=email3" style="background:#c0392b;color:#fff;padding:18px 40px;text-decoration:none;font-size:18px;font-weight:bold;border-radius:4px;display:inline-block">ENTRAR COM PRECO FUNDADOR</a>
   </div>
@@ -136,6 +149,23 @@ function htmlEmail3(nome: string, plano: string): string {
 </body>
 </html>
 `;
+}
+
+function msgWhatsApp1(nome: string, plano: string): string {
+  const firstName = nome ? nome.split(" ")[0] : "Patriota";
+  return `⚡ *${firstName}, você viu a notícia de hoje?*\n\nEnquanto a mídia esconde, o grupo já recebeu análises exclusivas do Capitão Braga hoje.\n\n🔴 A mídia está comprada. Quem pensa certo precisa se unir.\n\n👉 ${APP_URL}/assinar?plano=${plano || "vip"}\n\n_7 dias por R$1. Cancele quando quiser._`;
+}
+
+function msgWhatsApp2(nome: string, plano: string): string {
+  const firstName = nome ? nome.split(" ")[0] : "Patriota";
+  return `🔴 *${firstName}, o grupo pode fechar novas vagas*\n\nMantemos um número limitado de membros para garantir qualidade. Restam poucas vagas no grupo ${plano || "Patriota"}.\n\n👉 Garantir minha vaga: ${APP_URL}/assinar?plano=${plano || "vip"}`;
+}
+
+function msgWhatsApp3(nome: string, plano: string): string {
+  const firstName = nome ? nome.split(" ")[0] : "Patriota";
+  const precos: Record<string, string> = { vip: "R$9,90", elite: "R$19,90" };
+  const preco = precos[plano] || "R$9,90";
+  return `🏆 *${firstName}, é hoje — preço fundador acaba à meia-noite*\n\nDe R$49,90 por apenas ${preco}/mês + 7 dias grátis.\n\n👉 ${APP_URL}/assinar?plano=${plano || "vip"}&utm_source=whatsapp3`;
 }
 
 export async function GET(req: NextRequest) {
@@ -147,10 +177,11 @@ export async function GET(req: NextRequest) {
     await ensureLeadsTable();
 
     const leads = await sql`
-      SELECT id, email, nome, plano_interesse, ultimo_email_enviado, created_at
+      SELECT id, email, telefone, nome, plano_interesse,
+             ultimo_email_enviado, ultimo_whatsapp_enviado, created_at
       FROM leads
       WHERE convertido = false
-      AND created_at >= NOW() - INTERVAL '72 hours'
+        AND created_at >= NOW() - INTERVAL '72 hours'
     `;
 
     let enviados = 0;
@@ -158,60 +189,88 @@ export async function GET(req: NextRequest) {
 
     for (const lead of leads) {
       const horasDesde = (Date.now() - new Date(lead.created_at as string).getTime()) / 3600000;
-      const ultimo = lead.ultimo_email_enviado as number;
+      const ultimoEmail = (lead.ultimo_email_enviado as number) ?? 0;
+      const ultimoWpp = (lead.ultimo_whatsapp_enviado as number) ?? 0;
       const plano = (lead.plano_interesse as string) || "vip";
+      const nome = (lead.nome as string) || "Patriota";
 
-      let emailNum = 0;
-      let subject = "";
-      let html = "";
+      // ── e-mails (só se tiver e-mail cadastrado) ──────────────────────
+      if (lead.email) {
+        let emailNum = 0;
+        let subject = "";
+        let html = "";
 
-      // Janelas em dias completos (não horas exatas) — o cron não roda 24/7 em
-      // intervalos fixos, então uma janela estreita de poucas horas podia nunca
-      // ser alcançada para boa parte dos leads. O dedup por `ultimo_email_enviado`
-      // garante que cada e-mail só sai uma vez.
-      if (horasDesde < 24 && ultimo === 0) {
-        emailNum = 1;
-        subject = "Voce viu a noticia de hoje? [Alerta Patriota]";
-        html = htmlEmail1(lead.nome as string, plano);
-      } else if (horasDesde >= 24 && horasDesde < 48 && ultimo === 1) {
-        emailNum = 2;
-        subject = "O grupo pode fechar novas vagas [Alerta Patriota]";
-        html = htmlEmail2(lead.nome as string, plano);
-      } else if (horasDesde >= 48 && ultimo === 2) {
-        emailNum = 3;
-        subject = "Ultima chance — preco fundador acaba hoje [Alerta Patriota]";
-        html = htmlEmail3(lead.nome as string, plano);
+        if (horasDesde < 24 && ultimoEmail === 0) {
+          emailNum = 1;
+          subject = "Voce viu a noticia de hoje? [Alerta Patriota]";
+          html = htmlEmail1(nome, plano);
+        } else if (horasDesde >= 24 && horasDesde < 48 && ultimoEmail === 1) {
+          emailNum = 2;
+          subject = "O grupo pode fechar novas vagas [Alerta Patriota]";
+          html = htmlEmail2(nome, plano);
+        } else if (horasDesde >= 48 && ultimoEmail === 2) {
+          emailNum = 3;
+          subject = "Ultima chance — preco fundador acaba hoje [Alerta Patriota]";
+          html = htmlEmail3(nome, plano);
+        }
+
+        if (emailNum > 0) {
+          const ok = await enviarEmail(lead.email as string, subject, html);
+          if (ok) {
+            await sql`
+              UPDATE leads SET ultimo_email_enviado = ${emailNum}, email_enviado_at = NOW()
+              WHERE id = ${lead.id}
+            `;
+            await sql`
+              INSERT INTO agentes_log (agente, acao, status, detalhes)
+              VALUES ('esther-sequencia', 'email_enviado', 'sucesso',
+                ${JSON.stringify({ email: lead.email, emailNum, plano })})
+            `;
+            enviados++;
+          } else {
+            erros.push(`email:${lead.email}`);
+          }
+        }
       }
 
-      if (emailNum === 0) continue;
+      // ── WhatsApp (só se tiver telefone cadastrado) ────────────────────
+      if (lead.telefone) {
+        let wppNum = 0;
+        let msg = "";
 
-      const ok = await enviarEmail(lead.email as string, subject, html);
+        if (horasDesde < 24 && ultimoWpp === 0) {
+          wppNum = 1;
+          msg = msgWhatsApp1(nome, plano);
+        } else if (horasDesde >= 24 && horasDesde < 48 && ultimoWpp === 1) {
+          wppNum = 2;
+          msg = msgWhatsApp2(nome, plano);
+        } else if (horasDesde >= 48 && ultimoWpp === 2) {
+          wppNum = 3;
+          msg = msgWhatsApp3(nome, plano);
+        }
 
-      if (ok) {
-        await sql`
-          UPDATE leads
-          SET ultimo_email_enviado = ${emailNum}, email_enviado_at = NOW()
-          WHERE id = ${lead.id}
-        `;
-        enviados++;
-
-        await sql`
-          INSERT INTO agentes_log (agente, acao, status, detalhes)
-          VALUES ('esther-sequencia', 'email_enviado', 'sucesso',
-            ${JSON.stringify({ email: lead.email, emailNum, plano })})
-        `;
-      } else {
-        erros.push(lead.email as string);
-        await sql`
-          INSERT INTO agentes_log (agente, acao, status, detalhes)
-          VALUES ('esther-sequencia', 'email_enviado', 'erro',
-            ${JSON.stringify({ email: lead.email, emailNum })})
-        `;
+        if (wppNum > 0) {
+          const ok = await enviarMensagemPrivada(lead.telefone as string, msg);
+          if (ok) {
+            await sql`
+              UPDATE leads SET ultimo_whatsapp_enviado = ${wppNum}, whatsapp_enviado_at = NOW()
+              WHERE id = ${lead.id}
+            `;
+            await sql`
+              INSERT INTO agentes_log (agente, acao, status, detalhes)
+              VALUES ('esther-sequencia', 'whatsapp_enviado', 'sucesso',
+                ${JSON.stringify({ telefone: lead.telefone, wppNum, plano })})
+            `;
+            enviados++;
+          } else {
+            erros.push(`wpp:${lead.telefone}`);
+          }
+        }
       }
     }
 
     if (enviados > 0) {
-      await alertarTelegram("🟢", "Sequência Não-Conversão", `${enviados} e-mails enviados. Erros: ${erros.length}`);
+      await alertarTelegram("🟢", "Sequência Não-Conversão", `${enviados} mensagens enviadas (e-mail + WhatsApp). Erros: ${erros.length}`);
     }
 
     return NextResponse.json({ ok: true, leads_processados: leads.length, enviados, erros });

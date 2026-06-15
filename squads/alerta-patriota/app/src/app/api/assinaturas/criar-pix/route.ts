@@ -11,6 +11,13 @@ const VALORES_ANUAIS: Record<string, number> = {
   elite: 199,
 };
 
+// Cupons de reengajamento — válidos apenas para Elite Anual
+const CUPONS_DESCONTO: Record<string, number> = {
+  VOLTA10: 0.10,
+  VOLTA15: 0.15,
+  VOLTA20: 0.20,
+};
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
@@ -21,7 +28,7 @@ export async function POST(req: NextRequest) {
       ciclo: string;
     };
 
-    const { email, nome, telefone, plano, ciclo } = body;
+    const { email, nome, telefone, plano, ciclo, cupom } = body as typeof body & { cupom?: string };
 
     if (!email || !nome || !plano) {
       return NextResponse.json({ erro: "Campos obrigatórios: email, nome, plano" }, { status: 400 });
@@ -35,7 +42,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Esta rota aceita apenas ciclo anual" }, { status: 400 });
     }
 
-    const valor = VALORES_ANUAIS[plano];
+    const desconto = cupom && plano === "elite" ? (CUPONS_DESCONTO[cupom.toUpperCase()] ?? 0) : 0;
+    const valor = Math.round(VALORES_ANUAIS[plano] * (1 - desconto) * 100) / 100;
     const idempotencyKey = randomUUID();
 
     // Busca usuário existente ou cria um novo (necessário para ativar acesso após o pagamento)
