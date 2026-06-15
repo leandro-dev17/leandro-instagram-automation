@@ -14,7 +14,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // Mapeia modelos Claude → equivalente Groq para o fallback
 const MODELO_FALLBACK = {
-  'claude-haiku-4-5-20251001': 'llama-3.1-8b-instant',
+  'claude-haiku-4-5-20251001': 'llama-3.3-70b-versatile',
   'claude-sonnet-4-6': 'llama-3.3-70b-versatile',
 };
 
