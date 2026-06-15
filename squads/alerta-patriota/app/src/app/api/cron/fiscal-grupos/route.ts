@@ -18,9 +18,11 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Membros atuais por grupo
+    // Monitora apenas os grupos ativos VIP e Elite (grupos descontinuados ficam de fora)
     const grupos = await sql`
       SELECT id, nome, plano, membros_ativos, max_membros
       FROM grupos_whatsapp
+      WHERE ativo = true AND plano IN ('vip', 'elite')
       ORDER BY plano, nome
     `;
 
