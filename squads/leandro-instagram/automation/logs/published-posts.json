@@ -1876,5 +1876,37 @@
       ],
       "publishedAt": "2026-06-14T16:16:08.671Z"
     }
+  },
+  "2026-06-15": {
+    "kling-reel": {
+      "postId": "18584005195013279",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Seu Glúteo Não Cresce Porque Você Está Treinando Errado",
+      "videoId": "13-loira-curta-azul-angulo-baixo",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-06-15T18:59:47.497Z"
+    }
   }
 }
