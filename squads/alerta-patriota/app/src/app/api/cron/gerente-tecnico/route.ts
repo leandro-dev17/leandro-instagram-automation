@@ -11,10 +11,13 @@ import { enviarTelegram } from "@/lib/telegram";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON_SECRET = process.env.CRON_SECRET;
 
+// Nomes reais gravados em agentes_log (corrigido — "fiscal-api", "fiscal-login" etc.
+// eram nomes de rota, não os slugs de agente usados nos INSERTs; "fila-dlq" e
+// "carlos-disjuntor" não correspondem a nenhuma rota existente)
 const AGENTES_TECNICOS = [
-  "fiscal-login", "fiscal-api", "fiscal-whatsapp", "fiscal-banco",
-  "fiscal-facebook", "guardiao-seguranca", "backup", "agente-medico",
-  "fila-dlq", "carlos-disjuntor", "arturo-apis", "max-memoria", "wagner-workflow",
+  "lisa-login", "andre-api", "wanderley-whatsapp", "bruna-banco",
+  "fiscal-facebook", "gustavo-guarda", "bruno-backup", "agente-medico",
+  "arturo-apis", "max-memoria", "wagner-workflow",
 ];
 
 export async function GET(req: NextRequest) {
