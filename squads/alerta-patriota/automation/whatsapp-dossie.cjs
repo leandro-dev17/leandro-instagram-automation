@@ -6,10 +6,10 @@ const fs   = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '../app/.env.local') });
 
 const { neon }    = require('@neondatabase/serverless');
-const Anthropic   = require('@anthropic-ai/sdk');
 const puppeteer   = require('puppeteer');
 const cloudinary  = require('cloudinary').v2;
 const { sendTelegram, horaBRT, dataBRT } = require('./telegram-reporter.cjs');
+const { gerarTexto } = require('./ai-helper.cjs');
 
 const DB_URL   = process.env.DATABASE_URL;
 const EVO_URL  = process.env.EVOLUTION_API_URL;
@@ -23,7 +23,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const sql       = neon(DB_URL);
 
 const OUTPUT = path.join(__dirname, 'output');
@@ -51,7 +50,7 @@ async function gerarSintese(noticias) {
     .map((n, i) => `${i + 1}. ${n.titulo} (${n.fonte})`)
     .join('\n');
 
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 500,
     messages: [{
@@ -69,7 +68,7 @@ Responda APENAS com o texto da síntese.`,
     }],
   });
 
-  return msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+  return texto || '';
 }
 
 function gerarHTML(noticias, sintese, semana) {

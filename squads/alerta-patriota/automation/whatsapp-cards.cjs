@@ -13,10 +13,10 @@ const fs        = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '../app/.env.local') });
 
 const { neon }        = require('@neondatabase/serverless');
-const Anthropic       = require('@anthropic-ai/sdk');
 const puppeteer       = require('puppeteer');
 const cloudinary      = require('cloudinary').v2;
 const { sendTelegram, horaBRT, dataBRT } = require('./telegram-reporter.cjs');
+const { gerarTexto }  = require('./ai-helper.cjs');
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const DB_URL   = process.env.DATABASE_URL;
@@ -37,7 +37,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const sql       = neon(DB_URL);
 const OUTPUT    = path.join(__dirname, 'output');
 if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT, { recursive: true });
@@ -295,12 +294,12 @@ ${logo ? `.logo{position:absolute;top:36px;right:44px;
 }
 
 async function gerarHookeClaude(titulo, plano) {
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: 'claude-haiku-4-5-20251001', max_tokens: 60,
     messages: [{ role: 'user', content: `${HOOK_PROMPTS[plano]}\n\nNOTÍCIA: "${titulo}"` }],
   });
-  return msg.content[0].type === 'text'
-    ? msg.content[0].text.trim().replace(/["""]/g, '').replace(/^#+\s*/, '')
+  return texto
+    ? texto.replace(/["""]/g, '').replace(/^#+\s*/, '')
     : titulo;
 }
 
@@ -313,12 +312,12 @@ async function gerarLegendaClaude(titulo, plano, fonte) {
     elite: `Você é o Prof. Bernardo Cavalcanti. Escreva análise no formato:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🌍 *MAPA GLOBAL*\n[2-3 linhas conectando a Milei, Trump, Orbán ou cenário internacional]\n\n🎯 *O QUE VOCÊ PRECISA SABER*\n[2-3 linhas sobre implicação]\n\nSem cabeçalho antes. Termine com: O mundo muda para quem enxerga antes. Use *negrito*. Responda APENAS com o texto.`,
   };
 
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: 'claude-haiku-4-5-20251001', max_tokens: 500,
     messages: [{ role: 'user', content: `${legendaPrompts[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });
-  const corpo = msg.content[0].type === 'text'
-    ? msg.content[0].text.trim().replace(/^#+\s*/gm, '').replace(/\*\*/g, '*')
+  const corpo = texto
+    ? texto.replace(/^#+\s*/gm, '').replace(/\*\*/g, '*')
     : '';
 
   // Assinatura natural no final — sem caixa, sem data/hora

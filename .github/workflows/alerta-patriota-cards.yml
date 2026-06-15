@@ -45,6 +45,7 @@ jobs:
           WPP_GROUP_VIP:         120363425999377985@g.us
           WPP_GROUP_ELITE:       120363426153474301@g.us
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY:          ${{ secrets.GROQ_API_KEY }}
           CLOUDINARY_CLOUD_NAME: demazkgy2
           CLOUDINARY_API_KEY:    ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}

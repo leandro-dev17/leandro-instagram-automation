@@ -9,8 +9,8 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../app/.env.local') });
 
-const Anthropic = require('@anthropic-ai/sdk');
 const { sendTelegram, horaBRT, dataBRT } = require('./telegram-reporter.cjs');
+const { gerarTexto } = require('./ai-helper.cjs');
 
 const EVO_URL  = process.env.EVOLUTION_API_URL;
 const EVO_KEY  = process.env.EVOLUTION_API_KEY;
@@ -20,8 +20,6 @@ const GROUP_IDS = {
   vip:      process.env.WPP_GROUP_VIP,
   elite:    process.env.WPP_GROUP_ELITE,
 };
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // ── GERAÇÃO DO TERMÔMETRO ──────────────────────────────────────────────────
 async function gerarTermometro() {
@@ -62,13 +60,13 @@ alertapatriota.vercel.app
 
 Responda APENAS com o texto acima. Sem introduções, sem explicações extras.`;
 
-  const msg = await anthropic.messages.create({
+  const texto = await gerarTexto({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 900,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+  return texto || '';
 }
 
 // ── ENVIO WPP ─────────────────────────────────────────────────────────────
