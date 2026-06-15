@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       AND resumo_cavalcanti IS NULL
       AND created_at >= NOW() - INTERVAL '10 hours'
       ORDER BY created_at DESC
-      LIMIT 6
+      LIMIT 4
     `;
 
     for (const n of pendentes) {

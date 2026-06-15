@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
         AND (global IS NULL OR global = false)
         AND created_at >= NOW() - INTERVAL '8 hours'
       ORDER BY created_at DESC
-      LIMIT 10
+      LIMIT 4
     `;
 
     if (noticias.length === 0) {

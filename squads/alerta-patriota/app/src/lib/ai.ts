@@ -29,7 +29,9 @@ function ehErroDeLimite(err: unknown): boolean {
 
 export type MensagemIA = { model: string; max_tokens: number; messages: { role: "user"; content: string }[] };
 
-async function gerarComGroq(params: MensagemIA): Promise<string> {
+// Plano gratuito do Groq tem limite de tokens por minuto (TPM); ao bater no limite
+// o Groq retorna 429 com header retry-after — esperamos e tentamos de novo.
+async function gerarComGroq(params: MensagemIA, tentativa = 0): Promise<string> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
@@ -40,6 +42,11 @@ async function gerarComGroq(params: MensagemIA): Promise<string> {
     }),
     signal: AbortSignal.timeout(30000),
   });
+  if (res.status === 429 && tentativa < 2) {
+    const espera = Math.min(Math.ceil(Number(res.headers.get("retry-after")) || 10) * 1000, 30000);
+    await new Promise((r) => setTimeout(r, espera));
+    return gerarComGroq(params, tentativa + 1);
+  }
   if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
   const data = await res.json();
   return (data.choices?.[0]?.message?.content || "").trim();
