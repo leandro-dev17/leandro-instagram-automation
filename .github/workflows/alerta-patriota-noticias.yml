@@ -1,0 +1,108 @@
+name: Alerta Patriota — Pipeline de Notícias (3x/dia)
+
+# Workflow dedicado e isolado para o pipeline completo de notícias:
+# coletar → curar → resumir → publicar VIP → publicar Elite
+# Separado do crons.yml para evitar delay do GitHub Actions em repos de baixa
+# atividade e para garantir que os 3 jobs não rodem em todos os triggers.
+
+on:
+  schedule:
+    # 9h, 15h, 21h UTC = 6h, 12h, 18h BRT
+    - cron: '0 9,15,21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coletar:
+    name: Neto Notícias — Coletar RSS
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Coletar notícias dos sites de direita
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/coletar-noticias" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/coletar.json
+          echo "Resultado: $(cat /tmp/coletar.json)"
+
+  curar:
+    name: Curador Carlos — Selecionar melhores
+    runs-on: ubuntu-latest
+    needs: coletar
+    timeout-minutes: 5
+    steps:
+      - name: Aguardar processamento da coleta
+        run: sleep 30
+      - name: Curar notícias com Claude
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/curar-noticias" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/curar.json
+          echo "Resultado: $(cat /tmp/curar.json)"
+
+  resumir:
+    name: Bernardo Resumidor — Claude escreve como Capitão Braga
+    runs-on: ubuntu-latest
+    needs: curar
+    timeout-minutes: 8
+    steps:
+      - name: Aguardar curadoria
+        run: sleep 30
+      - name: Gerar resumos com Claude
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/resumir-noticias" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/resumir.json
+          echo "Resultado: $(cat /tmp/resumir.json)"
+
+  publicar-vip:
+    name: Paulo VIP — Publicar notícia no grupo VIP
+    runs-on: ubuntu-latest
+    needs: resumir
+    timeout-minutes: 5
+    steps:
+      - name: Aguardar resumos
+        run: sleep 30
+      - name: Publicar notícia VIP no WhatsApp
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=vip" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/publicar-vip.json
+          echo "Resultado VIP: $(cat /tmp/publicar-vip.json)"
+
+  publicar-elite:
+    name: Paulo Elite — Publicar notícia no grupo Elite
+    runs-on: ubuntu-latest
+    needs: resumir
+    timeout-minutes: 5
+    steps:
+      - name: Aguardar resumos
+        run: sleep 30
+      - name: Publicar notícia Elite no WhatsApp
+        run: |
+          curl -s -X GET \
+            "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=elite" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/publicar-elite.json
+          echo "Resultado Elite: $(cat /tmp/publicar-elite.json)"
+
+  notificar-falha:
+    name: Notificar falha no pipeline
+    runs-on: ubuntu-latest
+    needs: [coletar, curar, resumir, publicar-vip, publicar-elite]
+    if: failure()
+    steps:
+      - name: Alertar Telegram
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Pipeline de Notícias*
+          Um ou mais jobs do pipeline falharam.
+          🔗 Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -226,17 +226,26 @@ export async function POST(req: NextRequest) {
       }
 
     } else if (tipo === "payment") {
-      // Pagamento Pix anual (one-shot)
+      // Pagamento via Checkout Pro (Preference) ou PIX avulso
       const paymentClient = new Payment(client);
       const payment = await paymentClient.get({ id: dataId });
 
       if (payment.status === "approved") {
         const meta = payment.metadata as { usuario_id?: number; plano?: string; ciclo?: string } | undefined;
-        const usuarioId = meta?.usuario_id;
-        const plano = (meta?.plano || "elite") as Plano;
-        const ciclo = (meta?.ciclo === "anual" ? "anual" : "mensal") as "mensal" | "anual";
 
-        if (usuarioId && ["vip", "elite"].includes(plano)) {
+        // Tenta metadata primeiro; fallback para external_reference ("usuarioId|plano|ciclo")
+        let usuarioId: number | undefined = meta?.usuario_id ? Number(meta.usuario_id) : undefined;
+        let plano = (meta?.plano || "") as Plano;
+        let ciclo: "mensal" | "anual" = meta?.ciclo === "anual" ? "anual" : "mensal";
+
+        if (!usuarioId && payment.external_reference) {
+          const partes = (payment.external_reference as string).split("|");
+          usuarioId = parseInt(partes[0]);
+          plano = (partes[1] || "") as Plano;
+          ciclo = partes[2] === "anual" ? "anual" : "mensal";
+        }
+
+        if (usuarioId && !isNaN(usuarioId) && ["vip", "elite"].includes(plano)) {
           await ativarAcesso(usuarioId, plano, String(dataId), payment.transaction_amount || 0, ciclo);
         }
       }

@@ -1,0 +1,38 @@
+name: Alerta Patriota — Bom Dia Patriota (7h BRT)
+
+# Workflow isolado para o Bom Dia Patriota.
+# Separado do crons.yml para:
+# 1. Evitar colisão com o disparo dos cards (que rodam às 9h UTC = 6h BRT)
+# 2. Rodar no horário correto: 10h UTC = 7h BRT
+# 3. Não sofrer delay por concorrência com outros crons frequentes
+
+on:
+  schedule:
+    # 10h UTC = 7h BRT (todos os dias)
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bom-dia:
+    name: Bom Dia Patriota — Mensagem de abertura do dia
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enviar Bom Dia Patriota para grupos VIP e Elite
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/bom-dia" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/bom-dia.json
+          echo "Resultado: $(cat /tmp/bom-dia.json)"
+      - name: Notificar falha
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Bom Dia Patriota*
+          O Bom Dia não foi enviado hoje ($(date +%d/%m/%Y)).
+          🔗 Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

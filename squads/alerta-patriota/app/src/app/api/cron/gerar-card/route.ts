@@ -142,10 +142,16 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
 
   try {
-    // Busca notícia do dia não publicada
+    // Garante colunas separadas para cards (idempotente)
+    await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS postada_vip_card BOOLEAN DEFAULT false`.catch(() => {});
+    await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS postada_elite_card BOOLEAN DEFAULT false`.catch(() => {});
+    await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS postada_vip_card_at TIMESTAMPTZ`.catch(() => {});
+    await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS postada_elite_card_at TIMESTAMPTZ`.catch(() => {});
+
+    // Busca notícia não publicada como CARD (flag separada da publicação de texto)
     const rows = plano === "vip"
-      ? await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
-      : await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1`;
+      ? await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip_card = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
+      : await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite_card = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1`;
 
     if (!rows.length) return NextResponse.json({ ok: true, publicado: false, motivo: "sem notícia disponível" });
 
@@ -170,9 +176,9 @@ export async function GET(req: NextRequest) {
     const enviado = await renderizarEEnviar(html, groupJid, legenda);
 
     if (enviado) {
-      // Marca como publicada
-      if (plano === "vip")      await sql`UPDATE noticias SET postada_vip = true, postada_vip_at = NOW() WHERE id = ${n.id}`;
-      if (plano === "elite")    await sql`UPDATE noticias SET postada_elite = true, postada_elite_at = NOW() WHERE id = ${n.id}`;
+      // Marca como publicada como CARD (flag separada — não afeta publicar-noticias)
+      if (plano === "vip")      await sql`UPDATE noticias SET postada_vip_card = true, postada_vip_card_at = NOW() WHERE id = ${n.id}`;
+      if (plano === "elite")    await sql`UPDATE noticias SET postada_elite_card = true, postada_elite_card_at = NOW() WHERE id = ${n.id}`;
 
       // Log
       const grupoRow = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${plano} LIMIT 1`;

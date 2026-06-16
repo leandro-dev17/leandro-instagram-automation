@@ -36,9 +36,12 @@ permissions:
 
 jobs:
   # ── COLETA DE NOTÍCIAS ────────────────────────────────────────────────────
+  # MOVIDO para alerta-patriota-noticias.yml (pipeline dedicado 3x/dia).
+  # Mantido aqui com if para workflow_dispatch manual apenas.
   coletar:
     name: Neto Notícias — Coletar RSS
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 5
     steps:
       - name: Coletar notícias dos sites de direita
@@ -54,6 +57,7 @@ jobs:
     name: Curador Carlos — Selecionar melhores
     runs-on: ubuntu-latest
     needs: coletar
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 5
     steps:
       - name: Aguardar processamento da coleta
@@ -71,6 +75,7 @@ jobs:
     name: Bernardo Resumidor — Claude escreve como Capitão Braga
     runs-on: ubuntu-latest
     needs: curar
+    if: github.event_name == 'workflow_dispatch'
     timeout-minutes: 8
     steps:
       - name: Aguardar curadoria
@@ -118,12 +123,6 @@ jobs:
     if: github.event.schedule == '0 9,15,21 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 10
     steps:
-      - name: 🌅 Bom Dia Patriota (7h BRT = 10h UTC → roda no cron das 9h UTC)
-        if: github.event.schedule == '0 9,15,21 * * *'
-        run: |
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/bom-dia" \
-            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
-
       - name: 💹 Radar Econômico Elite (10h BRT)
         if: github.event.schedule == '0 9,15,21 * * *'
         run: |

@@ -5,13 +5,13 @@ const PLANOS = [
   {
     id: "vip", emoji: "🔥", nome: "VIP Premium", badge: "MAIS COMPLETO", badgeCls: "b-vip",
     precoMensal: "9,90", precoAnual: "99", mesesAnual: "8,25",
-    cls: "vip", btn: "btn-red", btnTxt: "Entrar por R$1",
+    cls: "vip", btn: "btn-red", btnTxt: "Começar 7 dias grátis",
     items: ["7 entregas por dia", "Alertas urgentes de deputados", "Enquete + Resumo da Noite", "Capitão Braga responde suas dúvidas", "Termômetro da Liberdade"],
   },
   {
     id: "elite", emoji: "🎖️", nome: "Elite Global", badge: "EXCLUSIVO", badgeCls: "b-elite",
     precoMensal: "19,90", precoAnual: "199", mesesAnual: "16,58",
-    cls: "elite", btn: "btn-purple", btnTxt: "Entrar por R$1",
+    cls: "elite", btn: "btn-purple", btnTxt: "Começar 7 dias grátis",
     items: ["8 análises/dia — Brasil e mundo", "Prof. Cavalcanti exclusivo", "Radar Econômico diário", "Prof. Cavalcanti responde suas perguntas", "Dossiê Semanal em PDF"],
   },
 ];
@@ -22,24 +22,25 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const heroRef = useRef<HTMLElement>(null);
 
-  // Gate modal
-  const [gateOpen, setGateOpen] = useState(false);
+  // Gate modal — inicia aberto; fecha se já visitou (evita delay por useEffect)
+  const [gateOpen, setGateOpen] = useState(true);
   const [gateNome, setGateNome] = useState("");
+  const [gateEmail, setGateEmail] = useState("");
   const [gateTelefone, setGateTelefone] = useState("");
   const [gateErro, setGateErro] = useState("");
   const [gateLoading, setGateLoading] = useState(false);
-  const [dadosUser, setDadosUser] = useState<{ nome: string; telefone: string } | null>(null);
+  const [dadosUser, setDadosUser] = useState<{ nome: string; email: string; telefone: string } | null>(null);
   const [pendingPlano, setPendingPlano] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const jaOk = localStorage.getItem("ap_gate_ok");
-    if (!jaOk) {
-      setGateOpen(true);
-    } else {
+    if (jaOk) {
       const n = localStorage.getItem("ap_nome") || "";
+      const e = localStorage.getItem("ap_email") || "";
       const t = localStorage.getItem("ap_tel") || "";
-      if (n && t) setDadosUser({ nome: n, telefone: t });
+      if (n && e && t) setDadosUser({ nome: n, email: e, telefone: t });
+      setGateOpen(false);
     }
   }, []);
 
@@ -81,25 +82,28 @@ export default function Home() {
     e.currentTarget.style.transform = "";
   }, []);
 
-  async function handleGateSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleGateSubmit(ev: React.FormEvent) {
+    ev.preventDefault();
     setGateErro("");
     const fone = gateTelefone.replace(/\D/g, "");
+    const emailVal = gateEmail.trim().toLowerCase();
     if (!gateNome.trim()) { setGateErro("Informe seu nome."); return; }
+    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) { setGateErro("Informe um e-mail válido."); return; }
     if (fone.length < 10) { setGateErro("WhatsApp inválido — informe com DDD."); return; }
     setGateLoading(true);
 
     fetch("/api/leads/registrar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome: gateNome.trim(), telefone: fone, origem: "gate-modal" }),
+      body: JSON.stringify({ nome: gateNome.trim(), email: emailVal, telefone: fone, origem: "gate-modal" }),
     }).catch(() => {});
 
     localStorage.setItem("ap_gate_ok", "1");
     localStorage.setItem("ap_nome", gateNome.trim());
+    localStorage.setItem("ap_email", emailVal);
     localStorage.setItem("ap_tel", fone);
 
-    const dados = { nome: gateNome.trim(), telefone: fone };
+    const dados = { nome: gateNome.trim(), email: emailVal, telefone: fone };
     setDadosUser(dados);
 
     if (pendingPlano) {
@@ -107,11 +111,12 @@ export default function Home() {
         const res = await fetch("/api/assinaturas/criar-direto", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nome: dados.nome, telefone: dados.telefone, plano: pendingPlano, ciclo }),
+          body: JSON.stringify({ nome: dados.nome, email: dados.email, telefone: dados.telefone, plano: pendingPlano, ciclo }),
         });
         const data = await res.json();
         if (data.checkout_url) { window.location.href = data.checkout_url; return; }
-      } catch { /* continua */ }
+        else { setGateLoading(false); alert("Erro ao gerar o link.\n\n" + (data.detalhe || data.erro || "Tente novamente.")); return; }
+      } catch (e) { setGateLoading(false); alert("Erro de conexão: " + String(e)); return; }
     }
 
     setGateOpen(false);
@@ -129,25 +134,24 @@ export default function Home() {
       const res = await fetch("/api/assinaturas/criar-direto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: dadosUser.nome, telefone: dadosUser.telefone, plano: planoId, ciclo }),
+        body: JSON.stringify({ nome: dadosUser.nome, email: dadosUser.email, telefone: dadosUser.telefone, plano: planoId, ciclo }),
       });
       const data = await res.json();
       if (data.checkout_url) { window.location.href = data.checkout_url; }
-      else { alert("Erro ao gerar o link. Tente novamente."); }
-    } catch { alert("Erro de conexão. Tente novamente."); }
+      else { alert("Erro ao gerar o link.\n\n" + (data.detalhe || data.erro || "Tente novamente.")); }
+    } catch (e) { alert("Erro de conexão: " + String(e)); }
     finally { setCheckoutLoading(null); }
   }
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap');
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
         html{scroll-behavior:smooth}
         ::-webkit-scrollbar{width:4px}
         ::-webkit-scrollbar-track{background:#0a0a14}
         ::-webkit-scrollbar-thumb{background:linear-gradient(to bottom,#ffd700,#ff8c00);border-radius:4px}
-        body{background:#0a0a14;color:#fff;font-family:'Inter',sans-serif;overflow-x:hidden}
+        body{background:#0a0a14;color:#fff;font-family:var(--font-inter),'Inter',sans-serif;overflow-x:hidden}
         body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/></svg>");opacity:.028}
 
         @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
@@ -229,7 +233,7 @@ export default function Home() {
         .gate-warn-line:nth-child(2){animation-delay:.25s}
         .gate-warn-line:nth-child(3){animation-delay:.4s}
         .gate-question{
-          font-family:'Bebas Neue',sans-serif;
+          font-family:var(--font-bebas),'Bebas Neue',sans-serif;
           font-size:clamp(23px,6vw,34px);
           color:#fff;text-align:center;letter-spacing:1.5px;
           margin:0 0 18px;line-height:1.15;
@@ -299,7 +303,7 @@ export default function Home() {
         .hero-content{position:relative;z-index:2;max-width:680px;width:100%}
         .logo-circle{width:100px;height:100px;border-radius:50%;border:3px solid #ffd700;box-shadow:0 0 40px rgba(255,215,0,.4),0 0 80px rgba(255,215,0,.15);margin:0 auto 20px;object-fit:cover;display:block;animation:float 4s ease-in-out infinite}
         .hero-badge{display:inline-block;background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.4);color:#ffd700;font-size:11px;font-weight:700;padding:6px 18px;border-radius:999px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:22px;backdrop-filter:blur(8px)}
-        .hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,82px);font-weight:400;line-height:1;margin-bottom:8px;letter-spacing:1px;text-shadow:0 4px 30px rgba(0,0,0,.7)}
+        .hero h1{font-family:var(--font-bebas),'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,82px);font-weight:400;line-height:1;margin-bottom:8px;letter-spacing:1px;text-shadow:0 4px 30px rgba(0,0,0,.7)}
         .hero h1 .gold-grad{background:linear-gradient(90deg,#ffd700,#ff8c00,#ffe066,#ffd700);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:goldShine 4s ease infinite}
         .hero-sub{font-size:clamp(14px,2.5vw,18px);color:#ccc;max-width:520px;margin:16px auto 28px;line-height:1.7;text-shadow:0 1px 10px rgba(0,0,0,.5)}
         .cta-main{display:inline-block;background:linear-gradient(90deg,#ffd700,#ff9500,#ffd700);background-size:200% 100%;color:#0a0a14;font-weight:900;font-size:clamp(15px,3.5vw,19px);padding:16px 48px;border-radius:14px;text-decoration:none;box-shadow:0 8px 32px rgba(255,215,0,.35);animation:goldShine 3s ease infinite,pulse 2.5s ease infinite;transition:transform .2s;border:none;cursor:pointer}
@@ -307,7 +311,7 @@ export default function Home() {
         .cta-note{color:#555;font-size:11px;margin-top:10px}
         .social-proof{display:flex;justify-content:center;gap:clamp(20px,6vw,52px);margin-top:38px;flex-wrap:wrap}
         .proof-item{text-align:center}
-        .proof-num{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,6vw,36px);font-weight:400;color:#ffd700;display:block;letter-spacing:1px}
+        .proof-num{font-family:var(--font-bebas),'Bebas Neue',sans-serif;font-size:clamp(26px,6vw,36px);font-weight:400;color:#ffd700;display:block;letter-spacing:1px}
         .proof-label{font-size:11px;color:#555;letter-spacing:.5px}
 
         .urgency{background:linear-gradient(90deg,#5c0000,#a91e1e,#5c0000);padding:14px 20px;text-align:center;position:relative;z-index:2}
@@ -319,7 +323,7 @@ export default function Home() {
 
         .benefits{background:#0c0c1a;padding:90px 20px;position:relative;z-index:1}
         .section-label{text-align:center;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#333;margin-bottom:10px}
-        .section-title{text-align:center;font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,6vw,52px);font-weight:400;line-height:1.1;margin-bottom:12px;letter-spacing:1px}
+        .section-title{text-align:center;font-family:var(--font-bebas),'Bebas Neue',sans-serif;font-size:clamp(28px,6vw,52px);font-weight:400;line-height:1.1;margin-bottom:12px;letter-spacing:1px}
         .section-title .red{color:#ef4444}.section-title .gold2{color:#ffd700}
         .section-sub{text-align:center;color:#666;font-size:clamp(13px,2vw,16px);max-width:560px;margin:0 auto 50px;line-height:1.75}
         .benefits-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;max-width:960px;margin:0 auto}
@@ -342,7 +346,7 @@ export default function Home() {
         .persona-glass img{width:100%;height:260px;object-fit:cover;object-position:top;display:block}
         .persona-body{padding:22px}
         .persona-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-        .persona-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:400;letter-spacing:.5px}
+        .persona-name{font-family:var(--font-bebas),'Bebas Neue',sans-serif;font-size:22px;font-weight:400;letter-spacing:.5px}
         .pn-gold{color:#ffd700}.pn-purple{color:#a855f7}
         .persona-role{font-size:11px;color:#444;margin-top:2px}
         .persona-bio{color:#888;font-size:13px;line-height:1.75;margin-bottom:14px}
@@ -353,7 +357,7 @@ export default function Home() {
 
         .plans-wrap{background:#080812;padding:90px 0 90px;position:relative;z-index:1}
         .plans-header{padding:0 20px;text-align:center;margin-bottom:32px}
-        .plans-header h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,6vw,52px);font-weight:400;margin-bottom:10px;letter-spacing:1px}
+        .plans-header h2{font-family:var(--font-bebas),'Bebas Neue',sans-serif;font-size:clamp(28px,6vw,52px);font-weight:400;margin-bottom:10px;letter-spacing:1px}
         .plans-header h2 span{color:#ffd700}
         .toggle-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:32px}
         .toggle-label{font-size:13px;font-weight:600}
@@ -371,7 +375,7 @@ export default function Home() {
         .plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:900;padding:4px 14px;border-radius:999px;white-space:nowrap;letter-spacing:1px}
         .b-vip{background:#dc2626;color:#fff}.b-elite{background:#7c3aed;color:#fff}
         .plan-emoji{font-size:28px;margin-bottom:10px}
-        .plan-name{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:400;margin-bottom:4px;letter-spacing:.5px}
+        .plan-name{font-family:var(--font-bebas),'Bebas Neue',sans-serif;font-size:22px;font-weight:400;margin-bottom:4px;letter-spacing:.5px}
         .plan-price{font-size:34px;font-weight:900;color:#ffd700;transition:all .4s ease}
         .plan-period{font-size:12px;color:#444}
         .plan-economy{font-size:11px;color:#22c55e;margin:4px 0 16px;min-height:16px}
@@ -449,6 +453,14 @@ export default function Home() {
               />
               <input
                 className="gate-input"
+                type="email"
+                placeholder="Seu melhor e-mail"
+                value={gateEmail}
+                onChange={e => setGateEmail(e.target.value)}
+                required
+              />
+              <input
+                className="gate-input"
                 type="tel"
                 placeholder="WhatsApp com DDD"
                 value={gateTelefone}
@@ -472,8 +484,8 @@ export default function Home() {
 
       {/* STICKY CTA */}
       <div className={`sticky-cta${stickyVisible ? " show" : ""}`}>
-        <a href="#planos">📲 Entrar por R$1</a>
-        <p>Experimente 7 dias pagando só R$1 · Cancele quando quiser</p>
+        <a href="#planos">📲 Começar 7 dias grátis</a>
+        <p>Experimente grátis por 7 dias · Cancele quando quiser</p>
       </div>
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
@@ -490,8 +502,8 @@ export default function Home() {
           <p className="hero-sub anim-4">
             Notícias, análises e alertas urgentes sobre política e economia — com comentário direto do Capitão Braga, todo dia, no seu WhatsApp.
           </p>
-          <a href="#planos" className="cta-main anim-5">📲 Entrar por R$1</a>
-          <p className="cta-note anim-5">Primeiros 7 dias por apenas R$1 — depois escolhe se quer continuar · Sem fidelidade</p>
+          <a href="#planos" className="cta-main anim-5">📲 Começar 7 dias grátis</a>
+          <p className="cta-note anim-5">Primeiros 7 dias completamente grátis — depois escolhe se quer continuar · Sem fidelidade</p>
           <div className="social-proof anim-5">
             {[{ num:"5.400+", label:"Patriotas ativos" }, { num:"3x/dia", label:"Notícias no WPP" }, { num:"2 grupos", label:"Exclusivos" }].map((p,i)=>(
               <div key={i} className="proof-item">
@@ -593,7 +605,7 @@ export default function Home() {
                 <span className="plan-period">{ciclo==="anual" ? "/ano" : "/mês"}</span>
               </div>
               <div className="plan-economy">
-                {ciclo==="anual" ? `▸ Equivale a R$${p.mesesAnual}/mês` : "▸ Experimente 7 dias pagando só R$1"}
+                {ciclo==="anual" ? `▸ Equivale a R$${p.mesesAnual}/mês` : "▸ 7 dias grátis antes de ser cobrado"}
               </div>
               <ul className="plan-items">
                 {p.items.map((item,i)=><li key={i}>{item}</li>)}
@@ -603,7 +615,7 @@ export default function Home() {
                 className={`plan-btn ${p.btn}`}
                 disabled={checkoutLoading === p.id}
               >
-                {checkoutLoading === p.id ? "Aguarde..." : p.btnTxt}
+                {checkoutLoading === p.id ? "Aguarde..." : ciclo === "anual" ? "Assinar plano anual" : p.btnTxt}
               </button>
             </div>
           ))}

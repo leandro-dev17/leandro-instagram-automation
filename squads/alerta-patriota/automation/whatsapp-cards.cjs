@@ -1,10 +1,10 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * whatsapp-cards.cjs — Alerta Patriota
+ * whatsapp-cards.cjs â€” Alerta Patriota
  * Gera cards visuais (imagem + texto) para os 4 grupos WhatsApp
- * Roda via GitHub Actions — usa Puppeteer com Chromium disponível no GA
+ * Roda via GitHub Actions â€” usa Puppeteer com Chromium disponÃ­vel no GA
  *
- * Fluxo: DB → HTML → PNG (Puppeteer) → Cloudinary → Evolution API
+ * Fluxo: DB â†’ HTML â†’ PNG (Puppeteer) â†’ Cloudinary â†’ Evolution API
  */
 'use strict';
 
@@ -18,7 +18,7 @@ const cloudinary      = require('cloudinary').v2;
 const { sendTelegram, horaBRT, dataBRT } = require('./telegram-reporter.cjs');
 const { gerarTexto }  = require('./ai-helper.cjs');
 
-// ── CONFIG ─────────────────────────────────────────────────────────────────
+// â”€â”€ CONFIG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const DB_URL   = process.env.DATABASE_URL;
 const EVO_URL  = process.env.EVOLUTION_API_URL;
 const EVO_KEY  = process.env.EVOLUTION_API_KEY;
@@ -41,84 +41,84 @@ const sql       = neon(DB_URL);
 const OUTPUT    = path.join(__dirname, 'output');
 if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT, { recursive: true });
 
-// ── PERSONAS ───────────────────────────────────────────────────────────────
+// â”€â”€ PERSONAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PERSONAS_DIR = path.join(__dirname, '../app/public/personas');
 
-// 9 imagens por persona — rotação 1 por dia (todas as publicações do dia usam a mesma)
+// 9 imagens por persona â€” rotaÃ§Ã£o 1 por dia (todas as publicaÃ§Ãµes do dia usam a mesma)
 const FOTOS_BRAGA = [
-  'braga-01.png', // sentado à mesa escritório
-  'braga-02.png', // comentando notícia
-  'braga-03.png', // ambiente profissional, olhando para câmera
-  'braga-04.png', // retrato patriótico
-  'braga-05.png', // em pé, apontando, indignado
-  'braga-06.png', // cenário rural, questionamento
-  'braga-07.png', // terno, estúdio de notícias
-  'braga-08.png', // praça, braços abertos
-  'braga-09.png', // frente a construção rústica
+  'braga-01.png', // sentado Ã  mesa escritÃ³rio
+  'braga-02.png', // comentando notÃ­cia
+  'braga-03.png', // ambiente profissional, olhando para cÃ¢mera
+  'braga-04.png', // retrato patriÃ³tico
+  'braga-05.png', // em pÃ©, apontando, indignado
+  'braga-06.png', // cenÃ¡rio rural, questionamento
+  'braga-07.png', // terno, estÃºdio de notÃ­cias
+  'braga-08.png', // praÃ§a, braÃ§os abertos
+  'braga-09.png', // frente a construÃ§Ã£o rÃºstica
 ];
 
 const FOTOS_CAVALCANTI = [
   'cavalcanti-01.png', // imagem redes sociais
   'cavalcanti-02.png', // comentando com microfone
-  'cavalcanti-03.png', // Capitólio
+  'cavalcanti-03.png', // CapitÃ³lio
   'cavalcanti-04.png', // Londres, beira do rio
   'cavalcanti-05.png', // Parlamento Europeu
-  'cavalcanti-06.png', // estúdio com mapa global
-  'cavalcanti-07.png', // análise financeira, ambiente moderno
-  'cavalcanti-08.png', // estúdio moderno
+  'cavalcanti-06.png', // estÃºdio com mapa global
+  'cavalcanti-07.png', // anÃ¡lise financeira, ambiente moderno
+  'cavalcanti-08.png', // estÃºdio moderno
   'cavalcanti-09.png', // terminal de aeroporto
 ];
 
 const PERSONAS = {
-  basico:   { nome:'Capitão Roberto Braga',        titulo:'ALERTA BÁSICO',   cor:'#ffd700', label:'ALERTA BÁSICO',   fotos: FOTOS_BRAGA,       assinatura:'Comentarista · Alerta Patriota'   },
-  patriota: { nome:'Capitão Roberto Braga',        titulo:'ALERTA PATRIOTA', cor:'#ffd700', label:'ALERTA PATRIOTA', fotos: FOTOS_BRAGA,       assinatura:'Comentarista · Alerta Patriota'   },
-  vip:      { nome:'Capitão Roberto Braga',        titulo:'VIP PREMIUM',     cor:'#ff4444', label:'VIP PREMIUM',     fotos: FOTOS_BRAGA,       assinatura:'Comentarista · Alerta Patriota'   },
-  elite:    { nome:'Prof. Dr. Bernardo Cavalcanti',titulo:'ELITE GLOBAL',    cor:'#a855f7', label:'ELITE GLOBAL',    fotos: FOTOS_CAVALCANTI,  assinatura:'Ex-USP · Consultor Internacional' },
+  basico:   { nome:'CapitÃ£o Roberto Braga',        titulo:'ALERTA BÃSICO',   cor:'#ffd700', label:'ALERTA BÃSICO',   fotos: FOTOS_BRAGA,       assinatura:'Comentarista Â· Alerta Patriota'   },
+  patriota: { nome:'CapitÃ£o Roberto Braga',        titulo:'ALERTA PATRIOTA', cor:'#ffd700', label:'ALERTA PATRIOTA', fotos: FOTOS_BRAGA,       assinatura:'Comentarista Â· Alerta Patriota'   },
+  vip:      { nome:'CapitÃ£o Roberto Braga',        titulo:'VIP PREMIUM',     cor:'#ff4444', label:'VIP PREMIUM',     fotos: FOTOS_BRAGA,       assinatura:'Comentarista Â· Alerta Patriota'   },
+  elite:    { nome:'Prof. Dr. Bernardo Cavalcanti',titulo:'ELITE GLOBAL',    cor:'#a855f7', label:'ELITE GLOBAL',    fotos: FOTOS_CAVALCANTI,  assinatura:'Ex-USP Â· Consultor Internacional' },
 };
 
 const HOOK_PROMPTS = {
-  basico:   'Crie UMA frase de impacto (máximo 12 palavras) sobre esta notícia no tom do Capitão Braga. Direto, patriótico. SEM aspas.',
-  patriota: 'Crie UMA frase de impacto (máximo 12 palavras) sobre esta notícia. Indignado e direto. SEM aspas.',
-  vip:      'Crie UMA frase bombástica que cause IMPACTO e CURIOSIDADE (máximo 12 palavras). Tom: "o que a mídia esconde". SEM aspas.',
-  elite:    'Crie UMA frase analítica e sofisticada do Prof. Cavalcanti (máximo 12 palavras). Tom intelectual e revelador. SEM aspas.',
+  basico:   'Crie UMA frase de impacto (mÃ¡ximo 12 palavras) sobre esta notÃ­cia no tom do CapitÃ£o Braga. Direto, patriÃ³tico. SEM aspas.',
+  patriota: 'Crie UMA frase de impacto (mÃ¡ximo 12 palavras) sobre esta notÃ­cia. Indignado e direto. SEM aspas.',
+  vip:      'Crie UMA frase bombÃ¡stica que cause IMPACTO e CURIOSIDADE (mÃ¡ximo 12 palavras). Tom: "o que a mÃ­dia esconde". SEM aspas.',
+  elite:    'Crie UMA frase analÃ­tica e sofisticada do Prof. Cavalcanti (mÃ¡ximo 12 palavras). Tom intelectual e revelador. SEM aspas.',
 };
 
 const LEGENDA_PROMPTS = {
-  basico: `Você é o Capitão Braga. Escreva um comentário curto (3-4 linhas) sobre esta notícia. Direto e patriótico. Sem cabeçalho. Termine com: Deus, Pátria e Família — sempre. Responda APENAS com o texto.`,
-  patriota: `Você é o Capitão Braga. Escreva 4-6 linhas: fato + comentário apaixonado. Sem cabeçalho. Termine com: Deus, Pátria e Família — sempre. Responda APENAS com o texto.`,
-  vip: `Você é o Capitão Braga. Use este formato EXATO:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🔍 *O QUE A MÍDIA ESCONDE*\n[2-3 linhas]\n\n🎯 *O QUE ISSO SIGNIFICA*\n[2-3 linhas]\n\nTermine com: Deus, Pátria e Família — sempre. Use apenas *negrito*. Responda APENAS com o texto.`,
-  elite: `Você é o Prof. Bernardo Cavalcanti. Use este formato EXATO:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🌍 *MAPA GLOBAL*\n[2-3 linhas conectando a Milei, Trump, Orbán]\n\n🎯 *O QUE VOCÊ PRECISA SABER*\n[2-3 linhas sobre implicação]\n\nTermine com: O mundo muda para quem enxerga antes. Use apenas *negrito*. Responda APENAS com o texto.`,
+  basico: `VocÃª Ã© o CapitÃ£o Braga. Escreva um comentÃ¡rio curto (3-4 linhas) sobre esta notÃ­cia. Direto e patriÃ³tico. Sem cabeÃ§alho. Termine com: Deus, PÃ¡tria e FamÃ­lia â€” sempre. Responda APENAS com o texto.`,
+  patriota: `VocÃª Ã© o CapitÃ£o Braga. Escreva 4-6 linhas: fato + comentÃ¡rio apaixonado. Sem cabeÃ§alho. Termine com: Deus, PÃ¡tria e FamÃ­lia â€” sempre. Responda APENAS com o texto.`,
+  vip: `VocÃª Ã© o CapitÃ£o Braga. Use este formato EXATO:\n\nðŸ§  *O QUE ESTÃ ACONTECENDO*\n[2-3 linhas]\n\nðŸ” *O QUE A MÃDIA ESCONDE*\n[2-3 linhas]\n\nðŸŽ¯ *O QUE ISSO SIGNIFICA*\n[2-3 linhas]\n\nTermine com: Deus, PÃ¡tria e FamÃ­lia â€” sempre. Use apenas *negrito*. Responda APENAS com o texto.`,
+  elite: `VocÃª Ã© o Prof. Bernardo Cavalcanti. Use este formato EXATO:\n\nðŸ§  *O QUE ESTÃ ACONTECENDO*\n[2-3 linhas]\n\nðŸŒ *MAPA GLOBAL*\n[2-3 linhas conectando a Milei, Trump, OrbÃ¡n]\n\nðŸŽ¯ *O QUE VOCÃŠ PRECISA SABER*\n[2-3 linhas sobre implicaÃ§Ã£o]\n\nTermine com: O mundo muda para quem enxerga antes. Use apenas *negrito*. Responda APENAS com o texto.`,
 };
 
-// ── FILTRO: exclui notícias irrelevantes (esporte, celebridade, acidente) ──
+// â”€â”€ FILTRO: exclui notÃ­cias irrelevantes (esporte, celebridade, acidente) â”€â”€
 const PALAVRAS_EXCLUIR = [
-  // Acidente / trânsito
-  'motociclista','acidente','marginal','tietê','atropel','batida','colisão',
-  'morte no trânsito','engavetamento',
-  // Saúde, medicina e nutrição
-  'nutricionista','nutricionist','dieta','emagrecimento','reeducação alimentar',
-  'alimentação saudável','alimento saudável','suplemento','vitamina',
-  'câncer de','tumor','oncologia','pressão alta','diabetes','colesterol',
-  'remédio caseiro','médico diz','estudo mostra','pesquisa revela',
-  'exercício físico','musculação','academia','bem-estar','saúde e bem',
-  // Mortes de artistas / músicos / entretenimento
-  'falecimento','faleceu','morreu','obituário','morre o','morre a',
-  'morte do cantor','morte da cantora','morte do músico','morte do artista',
-  'lendário frontman','banda argentina','banda de rock','rock argentino',
-  'músico argentino','cantor argentino','artista argentino',
+  // Acidente / trÃ¢nsito
+  'motociclista','acidente','marginal','tietÃª','atropel','batida','colisÃ£o',
+  'morte no trÃ¢nsito','engavetamento',
+  // SaÃºde, medicina e nutriÃ§Ã£o
+  'nutricionista','nutricionist','dieta','emagrecimento','reeducaÃ§Ã£o alimentar',
+  'alimentaÃ§Ã£o saudÃ¡vel','alimento saudÃ¡vel','suplemento','vitamina',
+  'cÃ¢ncer de','tumor','oncologia','pressÃ£o alta','diabetes','colesterol',
+  'remÃ©dio caseiro','mÃ©dico diz','estudo mostra','pesquisa revela',
+  'exercÃ­cio fÃ­sico','musculaÃ§Ã£o','academia','bem-estar','saÃºde e bem',
+  // Mortes de artistas / mÃºsicos / entretenimento
+  'falecimento','faleceu','morreu','obituÃ¡rio','morre o','morre a',
+  'morte do cantor','morte da cantora','morte do mÃºsico','morte do artista',
+  'lendÃ¡rio frontman','banda argentina','banda de rock','rock argentino',
+  'mÃºsico argentino','cantor argentino','artista argentino',
   'roqueiro','frontman','los redonditos','indio solari',
   'hospital','internado','internada',
   'celebridade','famoso','ator','atriz','cantor','cantora','show','novela',
-  'fontenelle','xuxa','faustão','gkay','virgínia','influencer',
+  'fontenelle','xuxa','faustÃ£o','gkay','virgÃ­nia','influencer',
   // Esporte
   'futebol','copa','campeonato','gol','jogador','atleta','esporte',
-  'olimpíada','nba','nfl','tênis','vôlei',
+  'olimpÃ­ada','nba','nfl','tÃªnis','vÃ´lei',
   // Entretenimento digital
-  'reality','bbb','masterchef','netflix','série','cinema','streaming',
+  'reality','bbb','masterchef','netflix','sÃ©rie','cinema','streaming',
   // Moda
-  'moda','estilo','beleza','biquíni','maquiagem',
-  // Prêmios de entretenimento
-  'grande otelo','grammy','oscar','emmy','indicados ao prêmio',
+  'moda','estilo','beleza','biquÃ­ni','maquiagem',
+  // PrÃªmios de entretenimento
+  'grande otelo','grammy','oscar','emmy','indicados ao prÃªmio',
 ];
 
 function ehConteudoIrrelevante(titulo) {
@@ -126,28 +126,28 @@ function ehConteudoIrrelevante(titulo) {
   return PALAVRAS_EXCLUIR.some(p => t.includes(p));
 }
 
-// ── HELPERS ────────────────────────────────────────────────────────────────
+// â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const VERCEL_URL     = process.env.NEXT_PUBLIC_APP_URL || 'https://alertapatriota.vercel.app';
 const PERSONAS_LOCAL = path.join(__dirname, '../app/public/personas');
 
 // Converte imagem local para base64 data URL
-// Embed direto no HTML — sem dependência de URL externa nem file://, funciona sempre
+// Embed direto no HTML â€” sem dependÃªncia de URL externa nem file://, funciona sempre
 function imgBase64(nome) {
   const localPath = path.join(PERSONAS_LOCAL, nome);
   if (fs.existsSync(localPath)) {
     const data = fs.readFileSync(localPath);
     return `data:image/png;base64,${data.toString('base64')}`;
   }
-  // Fallback para Vercel se arquivo local não existir
+  // Fallback para Vercel se arquivo local nÃ£o existir
   return `${VERCEL_URL}/personas/${nome}`;
 }
 
 function fotoUrl(nome) { return imgBase64(nome); }
 function logoUrl()     { return imgBase64('logo.png'); }
 
-// Escolhe foto sequencialmente pelo total de publicações já enviadas para o grupo
-// Garante que cada notícia publicada usa a PRÓXIMA imagem disponível, sem repetição
-// Só repetem após esgotar todas as 9 imagens (ciclo completo)
+// Escolhe foto sequencialmente pelo total de publicaÃ§Ãµes jÃ¡ enviadas para o grupo
+// Garante que cada notÃ­cia publicada usa a PRÃ“XIMA imagem disponÃ­vel, sem repetiÃ§Ã£o
+// SÃ³ repetem apÃ³s esgotar todas as 9 imagens (ciclo completo)
 async function escolherFoto(fotos, plano) {
   try {
     const rows = await sql`
@@ -171,7 +171,7 @@ async function gerarHTML(plano, hook, fonte, urgente) {
   const logo = logoUrl();
   const isElite = plano === 'elite';
 
-  // Tamanho da fonte do hook baseado no comprimento — legível no celular
+  // Tamanho da fonte do hook baseado no comprimento â€” legÃ­vel no celular
   const hl = hook.length;
   const hookSize = hl <= 30 ? '96px' : hl <= 45 ? '82px' : hl <= 60 ? '70px' : '58px';
 
@@ -179,7 +179,7 @@ async function gerarHTML(plano, hook, fonte, urgente) {
   const hookUpper = hook.toUpperCase();
 
   if (isElite) {
-    // ── PROF. CAVALCANTI: full-bleed com gradiente roxo ──
+    // â”€â”€ PROF. CAVALCANTI: full-bleed com gradiente roxo â”€â”€
     return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -220,7 +220,7 @@ ${logo ? `.logo{position:absolute;top:36px;right:44px;
 </style></head><body>
   <div class="foto"></div>
   <div class="grad"></div>
-  <div class="badge">${urgente ? '🚨 URGENTE' : 'ANÁLISE GLOBAL'}</div>
+  <div class="badge">${urgente ? 'ðŸš¨ URGENTE' : 'ANÃLISE GLOBAL'}</div>
   ${logo ? `<img src="${logo}" class="logo"/>` : ''}
   <div class="hook">${hookUpper}</div>
   <div class="footer">
@@ -233,13 +233,13 @@ ${logo ? `.logo{position:absolute;top:36px;right:44px;
 </body></html>`;
   }
 
-  // ── CAPITÃO BRAGA: full-bleed foto com texto grande e impactante ──
+  // â”€â”€ CAPITÃƒO BRAGA: full-bleed foto com texto grande e impactante â”€â”€
   const BADGE_LABEL = {
-    basico:   urgente ? '🚨 URGENTE'    : 'POLÍTICA',
-    patriota: urgente ? '🚨 URGENTE'    : 'ANÁLISE PATRIOTA',
-    vip:      urgente ? '🚨 URGENTE'    : '🔥 VIP EXCLUSIVO',
+    basico:   urgente ? 'ðŸš¨ URGENTE'    : 'POLÃTICA',
+    patriota: urgente ? 'ðŸš¨ URGENTE'    : 'ANÃLISE PATRIOTA',
+    vip:      urgente ? 'ðŸš¨ URGENTE'    : 'ðŸ”¥ VIP EXCLUSIVO',
   };
-  const badge = BADGE_LABEL[plano] || 'POLÍTICA';
+  const badge = BADGE_LABEL[plano] || 'POLÃTICA';
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
@@ -284,9 +284,9 @@ ${logo ? `.logo{position:absolute;top:36px;right:44px;
   ${logo ? `<img src="${logo}" class="logo"/>` : ''}
   <div class="hook">${hookUpper}</div>
   <div class="footer">
-    <div class="f-left">DEUS, PÁTRIA E FAMÍLIA</div>
+    <div class="f-left">DEUS, PÃTRIA E FAMÃLIA</div>
     <div class="f-right">
-      <div class="f-nome">CAPITÃO ROBERTO BRAGA</div>
+      <div class="f-nome">CAPITÃƒO ROBERTO BRAGA</div>
       <div class="f-cargo">ALERTA PATRIOTA</div>
     </div>
   </div>
@@ -296,7 +296,7 @@ ${logo ? `.logo{position:absolute;top:36px;right:44px;
 async function gerarHookeClaude(titulo, plano) {
   const texto = await gerarTexto({
     model: 'claude-haiku-4-5-20251001', max_tokens: 60,
-    messages: [{ role: 'user', content: `${HOOK_PROMPTS[plano]}\n\nNOTÍCIA: "${titulo}"` }],
+    messages: [{ role: 'user', content: `${HOOK_PROMPTS[plano]}\n\nNOTÃCIA: "${titulo}"` }],
   });
   return texto
     ? texto.replace(/["""]/g, '').replace(/^#+\s*/, '')
@@ -304,28 +304,28 @@ async function gerarHookeClaude(titulo, plano) {
 }
 
 async function gerarLegendaClaude(titulo, plano, fonte) {
-  // Prompts atualizados: sem cabeçalho artificial, texto direto como se a persona digitou
+  // Prompts atualizados: sem cabeÃ§alho artificial, texto direto como se a persona digitou
   const legendaPrompts = {
-    basico: `Você é o Capitão Roberto Braga. Escreva 3-4 linhas diretamente sobre esta notícia, como se estivesse digitando para seus seguidores agora. Sem cabeçalho, sem data, sem nome de seção. Comece direto com o conteúdo. Termine com: Deus, Pátria e Família — sempre. Responda APENAS com o texto.`,
-    patriota: `Você é o Capitão Roberto Braga. Escreva 4-5 linhas sobre esta notícia: fato + comentário apaixonado. Sem cabeçalho, sem data. Comece direto. Termine com: Deus, Pátria e Família — sempre. Responda APENAS com o texto.`,
-    vip: `Você é o Capitão Roberto Braga. Escreva análise no formato:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🔍 *O QUE A MÍDIA ESCONDE*\n[2-3 linhas]\n\n🎯 *O QUE ISSO SIGNIFICA*\n[2-3 linhas]\n\nSem cabeçalho de seção antes. Termine com: Deus, Pátria e Família — sempre. Use *negrito*. Responda APENAS com o texto.`,
-    elite: `Você é o Prof. Bernardo Cavalcanti. Escreva análise no formato:\n\n🧠 *O QUE ESTÁ ACONTECENDO*\n[2-3 linhas]\n\n🌍 *MAPA GLOBAL*\n[2-3 linhas conectando a Milei, Trump, Orbán ou cenário internacional]\n\n🎯 *O QUE VOCÊ PRECISA SABER*\n[2-3 linhas sobre implicação]\n\nSem cabeçalho antes. Termine com: O mundo muda para quem enxerga antes. Use *negrito*. Responda APENAS com o texto.`,
+    basico: `VocÃª Ã© o CapitÃ£o Roberto Braga. Escreva 3-4 linhas diretamente sobre esta notÃ­cia, como se estivesse digitando para seus seguidores agora. Sem cabeÃ§alho, sem data, sem nome de seÃ§Ã£o. Comece direto com o conteÃºdo. Termine com: Deus, PÃ¡tria e FamÃ­lia â€” sempre. Responda APENAS com o texto.`,
+    patriota: `VocÃª Ã© o CapitÃ£o Roberto Braga. Escreva 4-5 linhas sobre esta notÃ­cia: fato + comentÃ¡rio apaixonado. Sem cabeÃ§alho, sem data. Comece direto. Termine com: Deus, PÃ¡tria e FamÃ­lia â€” sempre. Responda APENAS com o texto.`,
+    vip: `VocÃª Ã© o CapitÃ£o Roberto Braga. Escreva anÃ¡lise no formato:\n\nðŸ§  *O QUE ESTÃ ACONTECENDO*\n[2-3 linhas]\n\nðŸ” *O QUE A MÃDIA ESCONDE*\n[2-3 linhas]\n\nðŸŽ¯ *O QUE ISSO SIGNIFICA*\n[2-3 linhas]\n\nSem cabeÃ§alho de seÃ§Ã£o antes. Termine com: Deus, PÃ¡tria e FamÃ­lia â€” sempre. Use *negrito*. Responda APENAS com o texto.`,
+    elite: `VocÃª Ã© o Prof. Bernardo Cavalcanti. Escreva anÃ¡lise no formato:\n\nðŸ§  *O QUE ESTÃ ACONTECENDO*\n[2-3 linhas]\n\nðŸŒ *MAPA GLOBAL*\n[2-3 linhas conectando a Milei, Trump, OrbÃ¡n ou cenÃ¡rio internacional]\n\nðŸŽ¯ *O QUE VOCÃŠ PRECISA SABER*\n[2-3 linhas sobre implicaÃ§Ã£o]\n\nSem cabeÃ§alho antes. Termine com: O mundo muda para quem enxerga antes. Use *negrito*. Responda APENAS com o texto.`,
   };
 
   const texto = await gerarTexto({
     model: 'claude-haiku-4-5-20251001', max_tokens: 500,
-    messages: [{ role: 'user', content: `${legendaPrompts[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
+    messages: [{ role: 'user', content: `${legendaPrompts[plano]}\n\nNOTÃCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });
   const corpo = texto
     ? texto.replace(/^#+\s*/gm, '').replace(/\*\*/g, '*')
     : '';
 
-  // Assinatura natural no final — sem caixa, sem data/hora
+  // Assinatura natural no final â€” sem caixa, sem data/hora
   const assinaturas = {
     basico:   `\n\n_Fonte: ${fonte}_`,
     patriota: `\n\n_Fonte: ${fonte}_`,
     vip:      `\n\n_Fonte: ${fonte}_`,
-    elite:    `\n\n_Prof. Bernardo Cavalcanti · Elite Global_\n_Fonte: ${fonte}_`,
+    elite:    `\n\n_Prof. Bernardo Cavalcanti Â· Elite Global_\n_Fonte: ${fonte}_`,
   };
 
   return `${corpo}${assinaturas[plano]}`;
@@ -347,12 +347,12 @@ async function enviarImagemWPP(imageUrl, groupJid, legenda) {
   });
   if (!res.ok) {
     const err = await res.text().catch(() => '');
-    console.log(`  ⚠️  Evolution API ${res.status}: ${err.substring(0, 150)}`);
+    console.log(`  âš ï¸  Evolution API ${res.status}: ${err.substring(0, 150)}`);
   }
   return res.ok;
 }
 
-// ── ENVIO DE TEXTO SIMPLES (para FOMO e avisos) ────────────────────────────
+// â”€â”€ ENVIO DE TEXTO SIMPLES (para FOMO e avisos) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function enviarTextoWPP(groupJid, texto) {
   const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
     method: 'POST',
@@ -361,12 +361,12 @@ async function enviarTextoWPP(groupJid, texto) {
   });
   if (!res.ok) {
     const err = await res.text().catch(() => '');
-    console.log(`  ⚠️  sendText ${res.status}: ${err.substring(0, 100)}`);
+    console.log(`  âš ï¸  sendText ${res.status}: ${err.substring(0, 100)}`);
   }
   return res.ok;
 }
 
-// ── FÁBIO FOMO — teaser para grupos inferiores (máx 2x/dia, espaçado 10h) ──
+// â”€â”€ FÃBIO FOMO â€” teaser para grupos inferiores (mÃ¡x 2x/dia, espaÃ§ado 10h) â”€â”€
 async function fomoEnviadoRecentemente() {
   try {
     const rows = await sql`
@@ -381,19 +381,19 @@ async function fomoEnviadoRecentemente() {
 }
 
 async function dispararFOMO(hook, planoExclusivo) {
-  // Rate limit: só envia se passaram pelo menos 10h desde o último FOMO
-  // Resultado: ~2 envios/dia (manhã e noite), sem spam
+  // Rate limit: sÃ³ envia se passaram pelo menos 10h desde o Ãºltimo FOMO
+  // Resultado: ~2 envios/dia (manhÃ£ e noite), sem spam
   if (await fomoEnviadoRecentemente()) {
-    console.log('  ⏭️  FOMO: já enviado nas últimas 10h — pulando');
+    console.log('  â­ï¸  FOMO: jÃ¡ enviado nas Ãºltimas 10h â€” pulando');
     return 0;
   }
 
   const label     = planoExclusivo === 'elite' ? 'Elite Global' : 'VIP Premium';
   const hookCurto = hook.length > 70 ? hook.substring(0, 67) + '...' : hook;
 
-  const mensagem = `🔥 *EXCLUSIVO ${label.toUpperCase()} — AGORA*\n\n"${hookCurto}"\n\n👆 Essa análise só os membros ${label} receberam hoje.\n\nFaça upgrade e nunca mais perca as análises mais profundas do Alerta Patriota:\n👉 alertapatriota.vercel.app`;
+  const mensagem = `ðŸ”¥ *EXCLUSIVO ${label.toUpperCase()} â€” AGORA*\n\n"${hookCurto}"\n\nðŸ‘† Essa anÃ¡lise sÃ³ os membros ${label} receberam hoje.\n\nFaÃ§a upgrade e nunca mais perca as anÃ¡lises mais profundas do Alerta Patriota:\nðŸ‘‰ alertapatriota.vercel.app`;
 
-  // Elite → Básico + Patriota + VIP | VIP → Básico + Patriota
+  // Elite â†’ BÃ¡sico + Patriota + VIP | VIP â†’ BÃ¡sico + Patriota
   const destinos = planoExclusivo === 'elite'
     ? [GROUP_IDS.basico, GROUP_IDS.patriota, GROUP_IDS.vip]
     : [GROUP_IDS.basico, GROUP_IDS.patriota];
@@ -414,25 +414,25 @@ async function dispararFOMO(hook, planoExclusivo) {
     `.catch(() => {});
   }
 
-  console.log(`  🔥 FOMO: ${enviados}/${destinos.length} grupos notificados`);
+  console.log(`  ðŸ”¥ FOMO: ${enviados}/${destinos.length} grupos notificados`);
   return enviados;
 }
 
-// ── MAIN ───────────────────────────────────────────────────────────────────
-// Fontes generalistas que não devem ser publicadas
-const FONTES_EXCLUIR = ['metrópoles', 'metropoles', 'uol', 'globo', 'folha', 'estadão'];
+// â”€â”€ MAIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Fontes generalistas que nÃ£o devem ser publicadas
+const FONTES_EXCLUIR = ['metrÃ³poles', 'metropoles', 'uol', 'globo', 'folha', 'estadÃ£o'];
 
 function ehFonteIrrelevante(fonte) {
   const f = (fonte || '').toLowerCase();
   return FONTES_EXCLUIR.some(s => f.includes(s));
 }
 
-// Limite diário de cards por grupo (evita publicar em excesso por testes/dispatches)
+// Limite diÃ¡rio de cards por grupo (evita publicar em excesso por testes/dispatches)
 const LIMITE_DIARIO = { basico: 3, patriota: 3, vip: 6, elite: 6 };
 
 async function jaAtingiuLimiteDiario(plano) {
   try {
-    // Conta cards enviados HOJE no fuso BRT (zera à meia-noite, não janela rolling)
+    // Conta cards enviados HOJE no fuso BRT (zera Ã  meia-noite, nÃ£o janela rolling)
     const rows = await sql`
       SELECT COUNT(*) as total FROM agentes_log
       WHERE agente = 'gerador-card'
@@ -443,7 +443,7 @@ async function jaAtingiuLimiteDiario(plano) {
     const total = parseInt(rows[0].total);
     const limite = LIMITE_DIARIO[plano] || 3;
     if (total >= limite) {
-      console.log(`  ⏭️  ${plano} já atingiu limite de ${limite} cards hoje (atual: ${total})`);
+      console.log(`  â­ï¸  ${plano} jÃ¡ atingiu limite de ${limite} cards hoje (atual: ${total})`);
       return true;
     }
     return false;
@@ -451,41 +451,41 @@ async function jaAtingiuLimiteDiario(plano) {
 }
 
 async function processarPlano(plano, browser) {
-  console.log(`\n  [${plano}] Buscando notícia...`);
+  console.log(`\n  [${plano}] Buscando notÃ­cia...`);
   const groupJid = GROUP_IDS[plano];
-  if (!groupJid) { console.log(`  ⚠️  Grupo ${plano} não configurado`); return; }
+  if (!groupJid) { console.log(`  âš ï¸  Grupo ${plano} nÃ£o configurado`); return; }
 
-  // Verifica limite diário — impede excesso por múltiplos workflow_dispatch
+  // Verifica limite diÃ¡rio â€” impede excesso por mÃºltiplos workflow_dispatch
   if (await jaAtingiuLimiteDiario(plano)) return null;
 
   let rows;
-  // Exclui Metrópoles e outras fontes generalistas diretamente no SQL
-  if (plano === 'basico')   rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_basico=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
-  if (plano === 'patriota') rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_patriota=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
-  if (plano === 'vip')      rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_vip=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
-  if (plano === 'elite')    rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_elite=false AND resumo_cavalcanti IS NOT NULL AND fonte NOT ILIKE '%metrópoles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,global DESC,created_at DESC LIMIT 5`;
+  // Exclui MetrÃ³poles e outras fontes generalistas diretamente no SQL
+  if (plano === 'basico')   rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_basico=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrÃ³poles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'patriota') rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_patriota=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrÃ³poles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'vip')      rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_vip_card=false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND fonte NOT ILIKE '%metrÃ³poles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,created_at DESC LIMIT 5`;
+  if (plano === 'elite')    rows = await sql`SELECT id,titulo,fonte,urgente FROM noticias WHERE postada_elite_card=false AND resumo_cavalcanti IS NOT NULL AND fonte NOT ILIKE '%metrÃ³poles%' AND fonte NOT ILIKE '%metropoles%' ORDER BY urgente DESC,global DESC,created_at DESC LIMIT 5`;
 
-  // Filtra título irrelevante E fonte generalista, pega a primeira válida
+  // Filtra tÃ­tulo irrelevante E fonte generalista, pega a primeira vÃ¡lida
   const rowsFiltradas = (rows || []).filter(r =>
     !ehConteudoIrrelevante(r.titulo) && !ehFonteIrrelevante(r.fonte)
   );
-  if (!rowsFiltradas.length) { console.log(`  ⚠️  Sem notícia política disponível para ${plano}`); return; }
+  if (!rowsFiltradas.length) { console.log(`  âš ï¸  Sem notÃ­cia polÃ­tica disponÃ­vel para ${plano}`); return; }
   const n = rowsFiltradas[0];
   const fonte = n.fonte || 'Alerta Patriota';
-  console.log(`  📰 Notícia: ${n.titulo.substring(0,60)}...`);
+  console.log(`  ðŸ“° NotÃ­cia: ${n.titulo.substring(0,60)}...`);
 
   // Gera hook e legenda em paralelo
   const [hook, legenda] = await Promise.all([
     gerarHookeClaude(n.titulo, plano),
     gerarLegendaClaude(n.titulo, plano, fonte),
   ]);
-  console.log(`  💡 Hook: "${hook}"`);
+  console.log(`  ðŸ’¡ Hook: "${hook}"`);
 
-  // Renderiza HTML → PNG
+  // Renderiza HTML â†’ PNG
   const html = await gerarHTML(plano, hook, fonte, n.urgente);
 
-  // Imagens já estão em base64 no HTML — sem requests externos, sem file://
-  // domcontentloaded é suficiente; aguardamos 1.5s para CSS pintar o background
+  // Imagens jÃ¡ estÃ£o em base64 no HTML â€” sem requests externos, sem file://
+  // domcontentloaded Ã© suficiente; aguardamos 1.5s para CSS pintar o background
   const page = await browser.newPage();
   await page.setViewport({ width:1080, height:1080 });
   await page.setContent(html, { waitUntil:'domcontentloaded', timeout:20000 });
@@ -493,13 +493,13 @@ async function processarPlano(plano, browser) {
   const pngPath = path.join(OUTPUT, `card-${plano}.png`);
   await page.screenshot({ path: pngPath, type:'png', clip:{x:0,y:0,width:1080,height:1080} });
   await page.close();
-  console.log(`  🖼️  PNG gerado: ${pngPath}`);
+  console.log(`  ðŸ–¼ï¸  PNG gerado: ${pngPath}`);
 
   // Upload Cloudinary
   const upload = await cloudinary.uploader.upload(pngPath, {
     resource_type: 'image', folder: 'alerta-patriota/cards', public_id: `card-${plano}-${Date.now()}`,
   });
-  console.log(`  ☁️  Cloudinary: ${upload.secure_url}`);
+  console.log(`  â˜ï¸  Cloudinary: ${upload.secure_url}`);
 
   // Envia via WhatsApp
   const ok = await enviarImagemWPP(upload.secure_url, groupJid, legenda);
@@ -507,13 +507,13 @@ async function processarPlano(plano, browser) {
     // Marca como publicada
     if (plano==='basico')   await sql`UPDATE noticias SET postada_basico=true,postada_basico_at=NOW() WHERE id=${n.id}`;
     if (plano==='patriota') await sql`UPDATE noticias SET postada_patriota=true,postada_patriota_at=NOW() WHERE id=${n.id}`;
-    if (plano==='vip')      await sql`UPDATE noticias SET postada_vip=true,postada_vip_at=NOW() WHERE id=${n.id}`;
-    if (plano==='elite')    await sql`UPDATE noticias SET postada_elite=true,postada_elite_at=NOW() WHERE id=${n.id}`;
+    if (plano==='vip')      await sql`UPDATE noticias SET postada_vip_card=true,postada_vip_card_at=NOW() WHERE id=${n.id}`;
+    if (plano==='elite')    await sql`UPDATE noticias SET postada_elite_card=true,postada_elite_card_at=NOW() WHERE id=${n.id}`;
     await sql`INSERT INTO agentes_log(agente,acao,status,detalhes) VALUES('gerador-card',${`card_${plano}`},'sucesso',${JSON.stringify({hook,noticiaId:n.id})})`;
-    console.log(`  ✅ Card enviado para o grupo ${plano}!`);
+    console.log(`  âœ… Card enviado para o grupo ${plano}!`);
   } else {
-    console.log(`  ❌ Falha ao enviar para Evolution API`);
-    await sendTelegram(`❌ *FALHA — Card WhatsApp*\nGrupo: ${plano}\nHook: "${hook.substring(0, 60)}"\n🕐 ${horaBRT()} BRT`);
+    console.log(`  âŒ Falha ao enviar para Evolution API`);
+    await sendTelegram(`âŒ *FALHA â€” Card WhatsApp*\nGrupo: ${plano}\nHook: "${hook.substring(0, 60)}"\nðŸ• ${horaBRT()} BRT`);
   }
 
   await new Promise(r => setTimeout(r, 3000));
@@ -521,7 +521,7 @@ async function processarPlano(plano, browser) {
 }
 
 async function main() {
-  console.log('🎨 Gerando cards visuais — Alerta Patriota');
+  console.log('ðŸŽ¨ Gerando cards visuais â€” Alerta Patriota');
   const planos = process.argv.slice(2).length ? process.argv.slice(2) : ['basico','patriota','vip','elite'];
 
   const browser = await puppeteer.launch({
@@ -536,19 +536,19 @@ async function main() {
 
   try {
     for (const plano of planos) {
-      if (!PERSONAS[plano]) { console.log(`Plano inválido: ${plano}`); continue; }
+      if (!PERSONAS[plano]) { console.log(`Plano invÃ¡lido: ${plano}`); continue; }
       try {
         const hook = await processarPlano(plano, browser);
-        // null = limite atingido ou sem notícia — NÃO é sucesso
+        // null = limite atingido ou sem notÃ­cia â€” NÃƒO Ã© sucesso
         if (hook !== null && hook !== undefined) {
           resultados.push({ plano, ok: true, enviado: true });
           if (plano === 'vip'   && !melhorHookVIP)   melhorHookVIP   = hook;
           if (plano === 'elite' && !melhorHookElite) melhorHookElite = hook;
         } else {
-          resultados.push({ plano, ok: false, enviado: false, erro: 'sem notícia ou limite diário atingido' });
+          resultados.push({ plano, ok: false, enviado: false, erro: 'sem notÃ­cia ou limite diÃ¡rio atingido' });
         }
       } catch (e) {
-        console.error(`  ❌ Erro no plano ${plano}:`, e.message);
+        console.error(`  âŒ Erro no plano ${plano}:`, e.message);
         resultados.push({ plano, ok: false, enviado: false, erro: e.message });
       }
     }
@@ -556,38 +556,39 @@ async function main() {
     await browser.close();
   }
 
-  // Fábio FOMO — dispara APENAS 1× por rodada, usando o melhor hook disponível
+  // FÃ¡bio FOMO â€” dispara APENAS 1Ã— por rodada, usando o melhor hook disponÃ­vel
   // Prioriza Elite (mais premium), depois VIP
   const hookFOMO  = melhorHookElite || melhorHookVIP;
   const planoFOMO = melhorHookElite ? 'elite' : melhorHookVIP ? 'vip' : null;
   if (hookFOMO && planoFOMO) {
-    console.log('\n🔥 Disparando FOMO único para Básico + Patriota...');
+    console.log('\nðŸ”¥ Disparando FOMO Ãºnico para BÃ¡sico + Patriota...');
     await dispararFOMO(hookFOMO, planoFOMO);
   }
 
-  // Resumo honesto no Telegram — só ✅ quando card foi realmente enviado
+  // Resumo honesto no Telegram â€” sÃ³ âœ… quando card foi realmente enviado
   const enviados = resultados.filter(r => r.enviado);
   const naoEnviados = resultados.filter(r => !r.enviado);
-  const fomoTxt = planoFOMO ? `\n🔥 FOMO enviado (${planoFOMO})` : '';
+  const fomoTxt = planoFOMO ? `\nðŸ”¥ FOMO enviado (${planoFOMO})` : '';
 
   if (enviados.length > 0) {
-    const okTxt = enviados.map(r => `✅ ${r.plano}`).join('\n');
+    const okTxt = enviados.map(r => `âœ… ${r.plano}`).join('\n');
     const errTxt = naoEnviados.length > 0
-      ? '\n' + naoEnviados.map(r => `⏭️ ${r.plano}: ${r.erro?.substring(0,50)}`).join('\n')
+      ? '\n' + naoEnviados.map(r => `â­ï¸ ${r.plano}: ${r.erro?.substring(0,50)}`).join('\n')
       : '';
     await sendTelegram(
-      `🎨 *Cards Visuais — Alerta Patriota*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n${okTxt}${errTxt}${fomoTxt}`
+      `ðŸŽ¨ *Cards Visuais â€” Alerta Patriota*\nðŸ“… ${dataBRT()} Â· ${horaBRT()} BRT\n\n${okTxt}${errTxt}${fomoTxt}`
     );
   } else {
-    // Nenhum card enviado — alerta real para investigar
+    // Nenhum card enviado â€” alerta real para investigar
     await sendTelegram(
-      `⚠️ *Cards Visuais — NENHUM CARD ENVIADO*\n📅 ${dataBRT()} · ${horaBRT()} BRT\n\n` +
-      naoEnviados.map(r => `⏭️ ${r.plano}: ${r.erro?.substring(0,60)}`).join('\n') +
-      '\n\nVerifique: limite diário, notícias disponíveis ou erro no script.'
+      `âš ï¸ *Cards Visuais â€” NENHUM CARD ENVIADO*\nðŸ“… ${dataBRT()} Â· ${horaBRT()} BRT\n\n` +
+      naoEnviados.map(r => `â­ï¸ ${r.plano}: ${r.erro?.substring(0,60)}`).join('\n') +
+      '\n\nVerifique: limite diÃ¡rio, notÃ­cias disponÃ­veis ou erro no script.'
     );
   }
 
-  console.log('\n✅ Cards concluídos!');
+  console.log('\nâœ… Cards concluÃ­dos!');
 }
 
-main().catch(err => { console.error('❌ Erro:', err.message); process.exit(1); });
+main().catch(err => { console.error('âŒ Erro:', err.message); process.exit(1); });
+
