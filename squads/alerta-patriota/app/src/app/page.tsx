@@ -167,19 +167,54 @@ export default function Home() {
         @keyframes redSlide{0%{background-position:0% 0}100%{background-position:200% 0}}
         @keyframes redPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.6)}50%{box-shadow:0 0 0 18px rgba(220,38,38,0)}}
         @keyframes lineIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+        @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+        @keyframes ticker{from{transform:translateX(100%)}to{transform:translateX(-200%)}}
+        @keyframes staticFlicker{
+          0%,88%,90%,95%,100%{opacity:1}
+          89%{opacity:.8}
+          94%{opacity:.88}
+        }
 
         .gate-overlay{
           position:fixed;inset:0;z-index:99999;
-          background:radial-gradient(ellipse at 50% 30%,#120000 0%,#030303 65%);
+          background:radial-gradient(ellipse at 50% 30%,#0d0000 0%,#020202 70%);
           display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-          padding:20px;animation:gateFadeIn .45s ease;overflow-y:auto;
+          padding:20px;animation:gateFadeIn .45s ease,staticFlicker 5s ease infinite;overflow-y:auto;
+        }
+        .gate-overlay::before{
+          content:'';position:fixed;inset:0;
+          background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 4px);
+          pointer-events:none;z-index:1;
         }
         .gate-bar{
           position:fixed;top:0;left:0;right:0;height:4px;
           background:linear-gradient(90deg,#6b0000,#dc2626,#ff3333,#dc2626,#6b0000);
-          background-size:200% 100%;animation:redSlide 1.4s linear infinite;
+          background-size:200% 100%;animation:redSlide 1.4s linear infinite;z-index:100001;
         }
-        .gate-inner{max-width:430px;width:100%;padding:28px 0 24px;margin:auto 0}
+        .gate-ticker{
+          position:fixed;bottom:0;left:0;right:0;
+          background:#dc2626;overflow:hidden;height:28px;
+          display:flex;align-items:center;z-index:100001;
+        }
+        .gate-ticker-label{
+          background:#7b0000;color:#fff;font-size:10px;font-weight:900;
+          padding:0 12px;height:100%;display:flex;align-items:center;
+          letter-spacing:1.5px;flex-shrink:0;white-space:nowrap;
+        }
+        .gate-ticker-text{
+          white-space:nowrap;animation:ticker 22s linear infinite;
+          font-size:11px;font-weight:700;color:#fff;letter-spacing:.8px;padding-left:20px;
+        }
+        .gate-inner{max-width:430px;width:100%;padding:28px 0 60px;margin:auto 0;position:relative;z-index:2}
+        .gate-live{
+          display:flex;align-items:center;gap:7px;margin-bottom:20px;
+          animation:lineIn .4s ease .05s both;
+        }
+        .gate-live-dot{
+          width:9px;height:9px;border-radius:50%;background:#dc2626;
+          animation:blink 1s steps(1) infinite;box-shadow:0 0 8px #dc2626;flex-shrink:0;
+        }
+        .gate-live-text{font-size:11px;font-weight:900;letter-spacing:2.5px;color:#dc2626;text-transform:uppercase}
         .gate-icon{font-size:56px;text-align:center;margin-bottom:16px;line-height:1}
         .gate-warnings{margin-bottom:18px;text-align:center}
         .gate-warn-line{
@@ -205,8 +240,15 @@ export default function Home() {
         .gate-bold{
           color:#e0e0e0;font-weight:800;
           font-size:clamp(14px,3vw,17px);
-          text-align:center;margin:14px 0 28px;line-height:1.7;
+          text-align:center;margin:14px 0 20px;line-height:1.7;
           animation:lineIn .5s ease .75s both;
+        }
+        .gate-urgency{
+          color:#dc2626;font-size:clamp(12px,2.8vw,14px);font-weight:700;
+          text-align:center;line-height:1.75;margin:0 0 22px;
+          border:1px solid rgba(220,38,38,.25);background:rgba(220,38,38,.07);
+          padding:12px 16px;border-radius:10px;
+          animation:lineIn .5s ease .82s both;
         }
         .gate-input{
           width:100%;background:#080808;
@@ -214,7 +256,7 @@ export default function Home() {
           padding:15px 16px;color:#fff;font-size:16px;
           outline:none;box-sizing:border-box;display:block;
           transition:border-color .25s,box-shadow .25s;
-          animation:lineIn .5s ease .85s both;
+          animation:lineIn .5s ease .9s both;
         }
         .gate-input:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
         .gate-input+.gate-input{margin-top:10px}
@@ -362,7 +404,17 @@ export default function Home() {
       {gateOpen && (
         <div className="gate-overlay">
           <div className="gate-bar" />
+          <div className="gate-ticker">
+            <div className="gate-ticker-label">⚠ URGENTE</div>
+            <div className="gate-ticker-text">
+              CANAL SOB AMEAÇA · JÁ TENTARAM NOS TIRAR DO AR 3 VEZES · ACESSO PODE SER BLOQUEADO A QUALQUER MOMENTO · ENTRE ENQUANTO AINDA DÁ · CANAL SOB AMEAÇA · JÁ TENTARAM NOS TIRAR DO AR 3 VEZES · ACESSO PODE SER BLOQUEADO A QUALQUER MOMENTO ·&nbsp;
+            </div>
+          </div>
           <div className="gate-inner">
+            <div className="gate-live">
+              <div className="gate-live-dot" />
+              <span className="gate-live-text">Transmissão ao vivo</span>
+            </div>
             <div className="gate-icon">⚠️</div>
             <div className="gate-warnings">
               <span className="gate-warn-line">Já derrubaram canal.</span>
@@ -377,6 +429,9 @@ export default function Home() {
             <p className="gate-bold">
               A maioria engoliu. Você não.<br />
               Seu lugar é aqui.
+            </p>
+            <p className="gate-urgency">
+              Já tentaram nos tirar do ar 3 vezes.<br />Não sabemos quando vão conseguir.
             </p>
             <form onSubmit={handleGateSubmit}>
               <input
