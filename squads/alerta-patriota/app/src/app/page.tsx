@@ -171,7 +171,7 @@ export default function Home() {
         .gate-overlay{
           position:fixed;inset:0;z-index:99999;
           background:radial-gradient(ellipse at 50% 30%,#120000 0%,#030303 65%);
-          display:flex;align-items:center;justify-content:center;
+          display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
           padding:20px;animation:gateFadeIn .45s ease;overflow-y:auto;
         }
         .gate-bar{
@@ -179,7 +179,7 @@ export default function Home() {
           background:linear-gradient(90deg,#6b0000,#dc2626,#ff3333,#dc2626,#6b0000);
           background-size:200% 100%;animation:redSlide 1.4s linear infinite;
         }
-        .gate-inner{max-width:430px;width:100%;padding:8px 0}
+        .gate-inner{max-width:430px;width:100%;padding:28px 0 24px;margin:auto 0}
         .gate-icon{font-size:56px;text-align:center;margin-bottom:16px;line-height:1}
         .gate-warnings{margin-bottom:18px;text-align:center}
         .gate-warn-line{
