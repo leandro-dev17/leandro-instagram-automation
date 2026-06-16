@@ -193,7 +193,7 @@ export default function Home() {
         }
         .gate-ticker{
           position:fixed;bottom:0;left:0;right:0;
-          background:#dc2626;overflow:hidden;height:28px;
+          background:#dc2626;height:28px;
           display:flex;align-items:center;z-index:100001;
         }
         .gate-ticker-label{
@@ -201,9 +201,12 @@ export default function Home() {
           padding:0 12px;height:100%;display:flex;align-items:center;
           letter-spacing:1.5px;flex-shrink:0;white-space:nowrap;
         }
+        .gate-ticker-track{
+          flex:1;overflow:hidden;height:100%;display:flex;align-items:center;
+        }
         .gate-ticker-text{
           white-space:nowrap;animation:ticker 22s linear infinite;
-          font-size:11px;font-weight:700;color:#fff;letter-spacing:.8px;padding-left:20px;
+          font-size:11px;font-weight:700;color:#fff;letter-spacing:.8px;
         }
         .gate-inner{max-width:430px;width:100%;padding:28px 0 60px;margin:auto 0;position:relative;z-index:2}
         .gate-live{
@@ -406,8 +409,10 @@ export default function Home() {
           <div className="gate-bar" />
           <div className="gate-ticker">
             <div className="gate-ticker-label">⚠ URGENTE</div>
-            <div className="gate-ticker-text">
-              CANAL SOB AMEAÇA · JÁ TENTARAM NOS TIRAR DO AR 3 VEZES · ACESSO PODE SER BLOQUEADO A QUALQUER MOMENTO · ENTRE ENQUANTO AINDA DÁ · CANAL SOB AMEAÇA · JÁ TENTARAM NOS TIRAR DO AR 3 VEZES · ACESSO PODE SER BLOQUEADO A QUALQUER MOMENTO ·&nbsp;
+            <div className="gate-ticker-track">
+              <div className="gate-ticker-text">
+                CANAL SOB AMEAÇA · JÁ TENTARAM NOS TIRAR DO AR 3 VEZES · ACESSO PODE SER BLOQUEADO A QUALQUER MOMENTO · ENTRE ENQUANTO AINDA DÁ · CANAL SOB AMEAÇA · JÁ TENTARAM NOS TIRAR DO AR 3 VEZES · ACESSO PODE SER BLOQUEADO A QUALQUER MOMENTO ·&nbsp;
+              </div>
             </div>
           </div>
           <div className="gate-inner">
@@ -441,7 +446,6 @@ export default function Home() {
                 value={gateNome}
                 onChange={e => setGateNome(e.target.value)}
                 required
-                autoFocus
               />
               <input
                 className="gate-input"
