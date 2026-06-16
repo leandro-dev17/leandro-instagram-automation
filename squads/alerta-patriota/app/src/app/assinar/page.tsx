@@ -1,407 +1,374 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+
+const CUPONS_VALIDOS: Record<string, number> = {
+  VOLTA10: 0.10,
+  VOLTA15: 0.15,
+  VOLTA20: 0.20,
+};
 
 const PLANOS = [
   {
     id: "vip",
     nome: "VIP Premium",
-    preco: "9,90",
-    precoAnual: "99",
-    badge: "MAIS COMPLETO",
-    cor: "border-red-500",
-    corBtn: "bg-red-600 hover:bg-red-500",
-    items: [
-      "7 entregas/dia (manhã, tarde, noite + extras)",
-      "Enquete diária + Resumo da Noite",
-      "Alertas urgentes de deputados",
-      "Capitão Braga responde suas perguntas",
-      "Termômetro da Liberdade semanal",
-    ],
+    preco: 9.90,
+    precoAnual: 99,
+    cor: "#c0392b",
+    destaque: false,
+    beneficios: ["7 alertas/dia direto no WhatsApp", "Capitão Braga analisa cada notícia", "Alertas urgentes de deputados"],
   },
   {
     id: "elite",
     nome: "Elite Global",
-    preco: "19,90",
-    precoAnual: "199",
-    badge: "ELITE",
-    cor: "border-purple-500",
-    corBtn: "bg-purple-700 hover:bg-purple-600",
-    items: [
-      "8 análises/dia (BR + Internacional)",
-      "Prof. Bernardo Cavalcanti exclusivo",
-      "Radar Econômico diário",
-      "Briefing Internacional matinal",
-      "Prof. Cavalcanti responde suas perguntas",
-      "Dossiê Semanal em PDF",
-      "Análise de Milei, Trump, Elon Musk",
-    ],
+    preco: 19.90,
+    precoAnual: 199,
+    cor: "#7c3aed",
+    destaque: true,
+    beneficios: ["8 análises/dia (Brasil + Internacional)", "Prof. Cavalcanti + Dossiê Semanal PDF", "Radar Econômico diário"],
   },
 ];
 
-interface GateData {
-  nome: string;
-  telefone: string;
-}
-
 export default function AssinarPage() {
   const [ciclo, setCiclo] = useState<"mensal" | "anual">("mensal");
-  const [loading, setLoading] = useState<string | null>(null);
+  const [cupom, setCupom] = useState<string | undefined>();
+  const [gate, setGate] = useState<string | null>(null); // planoId
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [erro, setErro] = useState("");
+  const [loading, setLoading] = useState(false);
   const [pix, setPix] = useState<{ qr_code: string; qr_code_base64: string; valor: number } | null>(null);
-  const [gate, setGate] = useState<{ planoId: string } | null>(null);
-  const [gateData, setGateData] = useState<GateData>({ nome: "", telefone: "" });
-  const [gateSaving, setGateSaving] = useState(false);
-  const [gateErro, setGateErro] = useState("");
-  const [cupom, setCupom] = useState<string | undefined>(undefined);
-  const router = useRouter();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const c = params.get("cupom");
-    const cicloUrl = params.get("ciclo");
+    const p = new URLSearchParams(window.location.search);
+    const c = p.get("cupom");
     if (c) setCupom(c.toUpperCase());
-    if (cicloUrl === "anual") setCiclo("anual");
+    if (p.get("ciclo") === "anual") setCiclo("anual");
   }, []);
 
-  async function handleAssinarComDados(planoId: string, dados: GateData) {
-    setLoading(planoId);
-    const cicloFinal = ciclo;
+  function precoFinal(plano: typeof PLANOS[0]) {
+    const base = ciclo === "anual" ? plano.precoAnual : plano.preco;
+    if (ciclo === "anual" && plano.id === "elite" && cupom && CUPONS_VALIDOS[cupom]) {
+      return Math.round(base * (1 - CUPONS_VALIDOS[cupom]) * 100) / 100;
+    }
+    return base;
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErro("");
+    const fone = telefone.replace(/\D/g, "");
+    if (!nome.trim()) { setErro("Informe seu nome."); return; }
+    if (fone.length < 10) { setErro("WhatsApp inválido — informe com DDD."); return; }
+    setLoading(true);
+
+    // Salva lead (silencioso)
+    fetch("/api/leads/registrar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: nome.trim(), telefone: fone, plano: gate, origem: "assinar-gate" }),
+    }).catch(() => {});
 
     try {
-      if (cicloFinal === "anual") {
-        const email = prompt("Seu e-mail:") || "";
-        if (!email) { setLoading(null); return; }
-
+      if (ciclo === "anual") {
+        const email = prompt("Seu e-mail para receber o acesso:") || "";
+        if (!email) { setLoading(false); return; }
         const res = await fetch("/api/assinaturas/criar-pix", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            plano: planoId,
-            ciclo: "anual",
-            nome: dados.nome,
-            email,
-            telefone: dados.telefone,
-            cupom,
-          }),
+          body: JSON.stringify({ plano: gate, ciclo: "anual", nome: nome.trim(), email, telefone: fone, cupom }),
         });
         const data = await res.json();
-        if (data.qr_code) {
-          setPix({ qr_code: data.qr_code, qr_code_base64: data.qr_code_base64, valor: data.valor });
-        } else {
-          alert("Erro ao gerar Pix. Tente novamente.");
-        }
-        return;
-      }
-
-      const res = await fetch("/api/assinaturas/criar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plano: planoId, ciclo: cicloFinal, telefone: dados.telefone }),
-      });
-      const data = await res.json();
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
+        if (data.qr_code) { setPix({ qr_code: data.qr_code, qr_code_base64: data.qr_code_base64, valor: data.valor }); setGate(null); }
+        else setErro("Erro ao gerar Pix. Tente novamente.");
       } else {
-        alert("Erro ao criar assinatura. Tente novamente.");
+        const res = await fetch("/api/assinaturas/criar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plano: gate, ciclo: "mensal", telefone: fone }),
+        });
+        const data = await res.json();
+        if (data.checkout_url) window.location.href = data.checkout_url;
+        else setErro("Erro ao criar assinatura. Tente novamente.");
       }
-    } catch {
-      alert("Erro ao processar. Tente novamente.");
-    } finally {
-      setLoading(null);
-    }
+    } catch { setErro("Erro de conexão. Tente novamente."); }
+    finally { setLoading(false); }
   }
 
-  async function handleGateSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setGateErro("");
-
-    const nome = gateData.nome.trim();
-    const fone = gateData.telefone.replace(/\D/g, "");
-
-    if (!nome) { setGateErro("Informe seu nome."); return; }
-    if (fone.length < 10) { setGateErro("WhatsApp inválido — informe com DDD."); return; }
-
-    setGateSaving(true);
-    try {
-      await fetch("/api/leads/registrar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome,
-          telefone: fone,
-          plano: gate!.planoId,
-          origem: "assinar-gate",
-        }),
-      });
-    } catch { /* silencioso — não impede o checkout */ }
-
-    const planoId = gate!.planoId;
-    setGate(null);
-    setGateSaving(false);
-    handleAssinarComDados(planoId, { nome, telefone: fone });
-  }
-
-  // ── Tela de QR Code Pix ───────────────────────────────────────────────────
+  // ── Pix ──────────────────────────────────────────────────────────────────────
   if (pix) {
     return (
-      <div style={{ minHeight:"100vh", background:"#0d0d1a", display:"flex", alignItems:"center", justifyContent:"center", padding:"24px" }}>
-        <div style={{ background:"#1a1a2e", border:"1px solid #ffd700", borderRadius:"16px", padding:"40px", maxWidth:"420px", width:"100%", textAlign:"center" }}>
-          <div style={{ fontSize:"40px", marginBottom:"12px" }}>🏦</div>
-          <h2 style={{ color:"#ffd700", fontSize:"22px", fontWeight:"900", marginBottom:"8px" }}>Pague via Pix</h2>
-          <p style={{ color:"#aaa", fontSize:"14px", marginBottom:"24px" }}>
-            Valor: <strong style={{ color:"#fff" }}>R$ {pix.valor.toFixed(2).replace(".", ",")}</strong> — acesso anual
+      <div style={S.page}>
+        <div style={{ ...S.card, maxWidth: 400, textAlign: "center" }}>
+          <p style={{ fontSize: 48 }}>🏦</p>
+          <h2 style={{ color: "#ffd700", fontSize: 22, fontWeight: 900, margin: "0 0 8px" }}>Pague via Pix</h2>
+          <p style={{ color: "#aaa", fontSize: 14, margin: "0 0 24px" }}>
+            R$ <strong style={{ color: "#fff" }}>{pix.valor.toFixed(2).replace(".", ",")}</strong> — acesso anual
           </p>
           {pix.qr_code_base64 && (
-            <img src={`data:image/png;base64,${pix.qr_code_base64}`} alt="QR Code Pix"
-              style={{ width:"220px", height:"220px", margin:"0 auto 20px", display:"block", borderRadius:"8px" }} />
+            <img src={`data:image/png;base64,${pix.qr_code_base64}`} alt="QR Pix"
+              style={{ width: 200, height: 200, margin: "0 auto 16px", display: "block", borderRadius: 8 }} />
           )}
-          <p style={{ color:"#888", fontSize:"12px", marginBottom:"16px" }}>Copie o código Pix:</p>
-          <div style={{ background:"#0d0d1a", border:"1px solid #333", borderRadius:"8px", padding:"12px", marginBottom:"20px" }}>
-            <code style={{ color:"#ffd700", fontSize:"11px", wordBreak:"break-all" }}>{pix.qr_code}</code>
+          <div style={{ background: "#0d0d1a", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+            <code style={{ color: "#ffd700", fontSize: 10, wordBreak: "break-all" }}>{pix.qr_code}</code>
           </div>
-          <button onClick={() => { navigator.clipboard.writeText(pix.qr_code); alert("Código copiado!"); }}
-            style={{ background:"#ffd700", color:"#000", fontWeight:"900", padding:"12px 32px", borderRadius:"8px", border:"none", cursor:"pointer", width:"100%", marginBottom:"12px", fontSize:"16px" }}>
+          <button onClick={() => { navigator.clipboard.writeText(pix.qr_code); alert("Copiado!"); }} style={S.btnPrimary}>
             Copiar Código Pix
           </button>
-          <p style={{ color:"#666", fontSize:"12px" }}>Após o pagamento, você receberá o acesso em até 5 minutos.</p>
-          <button onClick={() => setPix(null)} style={{ background:"transparent", color:"#666", border:"none", cursor:"pointer", marginTop:"16px", fontSize:"13px" }}>
-            ← Voltar
-          </button>
+          <p style={{ color: "#555", fontSize: 11, marginTop: 12 }}>Acesso liberado em até 5 minutos após o pagamento.</p>
         </div>
       </div>
     );
   }
 
-  // ── Modal gate (captura nome + WhatsApp antes do checkout) ───────────────
+  // ── Gate modal ────────────────────────────────────────────────────────────────
   if (gate) {
     return (
-      <div style={{
-        position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex",
-        alignItems:"center", justifyContent:"center", zIndex:9999, padding:"24px",
-      }}>
-        <div style={{
-          background:"#0d0d1a", border:"2px solid #c0392b", borderRadius:"16px",
-          padding:"36px 32px", maxWidth:"460px", width:"100%",
-        }}>
-          {/* Cabeçalho */}
-          <div style={{ textAlign:"center", marginBottom:"20px" }}>
-            <span style={{ fontSize:"22px", fontWeight:"900", color:"#ffd700", letterSpacing:"1px" }}>
-              ⚡ ALERTA PATRIOTA
-            </span>
-          </div>
+      <div style={S.page}>
+        <div style={{ ...S.card, maxWidth: 420 }}>
 
-          {/* Copy */}
-          <div style={{ background:"#1a1a2e", border:"1px solid #c0392b33", borderRadius:"10px", padding:"20px", marginBottom:"24px" }}>
-            <p style={{ color:"#c0392b", fontWeight:"900", fontSize:"13px", textTransform:"uppercase", letterSpacing:"1px", margin:"0 0 10px" }}>
-              🚨 A MÍDIA ESTÁ DO LADO DELES. E ESTÁ FUNCIONANDO.
-            </p>
-            <p style={{ color:"#ccc", fontSize:"14px", lineHeight:"1.6", margin:"0 0 10px" }}>
-              Enquanto você lê isso, a grande mídia decide o que o Brasil pode saber —
-              e o algoritmo censura quem pensa diferente.
-            </p>
-            <p style={{ color:"#ccc", fontSize:"14px", lineHeight:"1.6", margin:"0 0 10px" }}>
-              A esquerda está organizada. A direita só vence se estiver{" "}
-              <strong style={{ color:"#ffd700" }}>UNIDA E CONECTADA</strong> — sem depender
-              de rede social que pode te calar a qualquer momento.
-            </p>
-            <p style={{ color:"#ffd700", fontWeight:"900", fontSize:"14px", margin:"0" }}>
-              🇧🇷 Coloque seu WhatsApp para garantir acesso direto, mesmo se as redes censurarem.
-            </p>
-          </div>
+          <p style={{ color: "#c0392b", fontWeight: 900, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 16px" }}>
+            ⚡ Alerta Patriota
+          </p>
 
-          {/* Formulário */}
-          <form onSubmit={handleGateSubmit}>
-            <div style={{ marginBottom:"14px" }}>
-              <input
-                type="text"
-                placeholder="Seu nome"
-                value={gateData.nome}
-                onChange={(e) => setGateData(d => ({ ...d, nome: e.target.value }))}
-                required
-                style={{
-                  width:"100%", background:"#1a1a2e", border:"1px solid #333",
-                  borderRadius:"8px", padding:"13px 16px", color:"#fff",
-                  fontSize:"15px", outline:"none", boxSizing:"border-box",
-                }}
-                onFocus={(e) => e.target.style.borderColor = "#ffd700"}
-                onBlur={(e) => e.target.style.borderColor = "#333"}
-              />
-            </div>
-            <div style={{ marginBottom:"8px" }}>
-              <input
-                type="tel"
-                placeholder="WhatsApp com DDD (ex: 47 99999-9999)"
-                value={gateData.telefone}
-                onChange={(e) => setGateData(d => ({ ...d, telefone: e.target.value }))}
-                required
-                style={{
-                  width:"100%", background:"#1a1a2e", border:"1px solid #333",
-                  borderRadius:"8px", padding:"13px 16px", color:"#fff",
-                  fontSize:"15px", outline:"none", boxSizing:"border-box",
-                }}
-                onFocus={(e) => e.target.style.borderColor = "#ffd700"}
-                onBlur={(e) => e.target.style.borderColor = "#333"}
-              />
-            </div>
+          <h2 style={{ color: "#fff", fontSize: 22, fontWeight: 900, lineHeight: 1.3, margin: "0 0 12px" }}>
+            Garanta seu acesso direto<br />
+            <span style={{ color: "#ffd700" }}>sem depender de algoritmo</span>
+          </h2>
 
-            {gateErro && (
-              <p style={{ color:"#c0392b", fontSize:"13px", margin:"6px 0 12px" }}>{gateErro}</p>
-            )}
+          <p style={{ color: "#888", fontSize: 14, lineHeight: 1.6, margin: "0 0 24px" }}>
+            A esquerda está organizada. A direita só vence unida —
+            coloque seu WhatsApp e entre para a rede direta do Capitão Braga.
+          </p>
 
-            <button
-              type="submit"
-              disabled={gateSaving}
-              style={{
-                width:"100%", background:"#c0392b", color:"#fff", fontWeight:"900",
-                fontSize:"15px", padding:"14px", borderRadius:"10px", border:"none",
-                cursor:"pointer", marginTop:"12px", letterSpacing:"0.5px",
-                opacity: gateSaving ? 0.7 : 1,
-              }}
-            >
-              {gateSaving ? "Aguarde..." : "🇧🇷 ENTRAR PARA A RESISTÊNCIA →"}
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="Seu nome"
+              value={nome}
+              onChange={e => setNome(e.target.value)}
+              required
+              style={S.input}
+            />
+            <input
+              type="tel"
+              placeholder="WhatsApp com DDD"
+              value={telefone}
+              onChange={e => setTelefone(e.target.value)}
+              required
+              style={{ ...S.input, marginTop: 10 }}
+            />
+            {erro && <p style={{ color: "#c0392b", fontSize: 13, margin: "8px 0 0" }}>{erro}</p>}
+            <button type="submit" disabled={loading} style={{ ...S.btnPrimary, marginTop: 16, fontSize: 16 }}>
+              {loading ? "Aguarde..." : "🇧🇷 ENTRAR PARA A RESISTÊNCIA"}
             </button>
-
-            <p style={{ color:"#555", fontSize:"11px", textAlign:"center", marginTop:"12px", marginBottom:"0" }}>
-              🔒 Seus dados são só nossos. Nunca vendemos, nunca compartilhamos.<br/>
-              Servem só para te manter informado e conectado com quem pensa como você.
-            </p>
           </form>
 
-          <button
-            onClick={() => setGate(null)}
-            style={{ background:"transparent", color:"#444", border:"none", cursor:"pointer", marginTop:"16px", fontSize:"12px", display:"block", textAlign:"center", width:"100%" }}
-          >
-            ← Voltar para os planos
-          </button>
+          <p style={{ color: "#444", fontSize: 11, textAlign: "center", marginTop: 12 }}>
+            🔒 Seus dados são só nossos — sem spam, sem compartilhamento.
+          </p>
+
+          <button onClick={() => setGate(null)} style={S.btnLink}>← Voltar</button>
         </div>
       </div>
     );
   }
 
-  // ── Página principal de planos ────────────────────────────────────────────
+  // ── Página principal ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#1a1a2e] text-white">
-      {/* Header */}
-      <div className="text-center py-12 px-4">
-        <p className="text-yellow-400 text-sm font-bold tracking-widest uppercase mb-3">🇧🇷 Alerta Patriota</p>
-        <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">
-          O que a mídia esconde,<br />
-          <span className="text-yellow-400">o Capitão Braga revela</span>
-        </h1>
-        <p className="text-gray-300 text-lg max-w-xl mx-auto">
-          Curadoria diária das notícias mais importantes do Brasil — sem filtro, sem censura, direto no seu WhatsApp.
-        </p>
+    <div style={{ background: "#0d0d1a", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
 
-        {/* Toggle mensal/anual */}
-        <div className="flex items-center justify-center gap-4 mt-8">
-          <span className={`text-sm font-medium ${ciclo === "mensal" ? "text-white" : "text-gray-500"}`}>Mensal</span>
-          <button
-            onClick={() => setCiclo(c => c === "mensal" ? "anual" : "mensal")}
-            className={`relative w-14 h-7 rounded-full transition-colors ${ciclo === "anual" ? "bg-yellow-400" : "bg-gray-600"}`}
-          >
-            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${ciclo === "anual" ? "translate-x-7" : "translate-x-0.5"}`} />
-          </button>
-          <span className={`text-sm font-medium ${ciclo === "anual" ? "text-white" : "text-gray-500"}`}>
-            Anual <span className="text-yellow-400 font-bold">2 meses grátis</span>
-          </span>
+      {/* Hero */}
+      <div style={{ textAlign: "center", padding: "48px 20px 32px" }}>
+        <p style={{ color: "#c0392b", fontWeight: 900, fontSize: 11, letterSpacing: 3, textTransform: "uppercase", margin: "0 0 16px" }}>
+          🇧🇷 Alerta Patriota
+        </p>
+        <h1 style={{ color: "#fff", fontSize: 30, fontWeight: 900, lineHeight: 1.25, margin: "0 0 12px", maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
+          O que a mídia esconde,{" "}
+          <span style={{ color: "#ffd700" }}>o Capitão Braga revela</span>
+        </h1>
+        <p style={{ color: "#777", fontSize: 14, margin: "0 0 28px" }}>Direto no WhatsApp. Sem filtro. Sem censura.</p>
+
+        {/* Toggle */}
+        <div style={{ display: "inline-flex", background: "#1a1a2e", borderRadius: 999, padding: 4, gap: 4 }}>
+          {(["mensal", "anual"] as const).map(c => (
+            <button
+              key={c}
+              onClick={() => setCiclo(c)}
+              style={{
+                padding: "8px 20px", borderRadius: 999, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
+                background: ciclo === c ? "#ffd700" : "transparent",
+                color: ciclo === c ? "#0d0d1a" : "#666",
+                transition: "all .2s",
+              }}
+            >
+              {c === "mensal" ? "Mensal" : "Anual  🎁 −2 meses"}
+            </button>
+          ))}
         </div>
 
-        {/* Banner de cupom ativo */}
-        {cupom && CUPONS_VALIDOS[cupom.toUpperCase()] && (
-          <div className="mt-6 inline-block bg-green-900 border border-green-500 rounded-lg px-5 py-3">
-            <p className="text-green-400 font-bold text-sm">
-              🎁 Cupom <strong>{cupom.toUpperCase()}</strong> aplicado —{" "}
-              {Math.round(CUPONS_VALIDOS[cupom.toUpperCase()] * 100)}% de desconto no Elite Anual
+        {cupom && CUPONS_VALIDOS[cupom] && (
+          <div style={{ marginTop: 12, display: "inline-block", background: "#14532d", border: "1px solid #16a34a", borderRadius: 8, padding: "6px 16px" }}>
+            <p style={{ color: "#4ade80", fontSize: 12, fontWeight: 700, margin: 0 }}>
+              🎁 Cupom {cupom}: {Math.round(CUPONS_VALIDOS[cupom] * 100)}% off Elite Anual
             </p>
           </div>
         )}
       </div>
 
-      {/* Cards de planos */}
-      <div className="max-w-3xl mx-auto px-4 pb-16 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {PLANOS.map((plano) => {
-          const precoAnualBase = Number(plano.precoAnual);
-          const desconto = plano.id === "elite" && cupom && CUPONS_VALIDOS[cupom.toUpperCase()]
-            ? CUPONS_VALIDOS[cupom.toUpperCase()]
-            : 0;
-          const precoAnualFinal = Math.round(precoAnualBase * (1 - desconto) * 100) / 100;
-          const precoExibido = ciclo === "anual"
-            ? `R$${precoAnualFinal.toFixed(2).replace(".", ",")}/ano`
-            : `R$${plano.preco}/mês`;
-
+      {/* Cards */}
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 48px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {PLANOS.map(plano => {
+          const pFinal = precoFinal(plano);
+          const temDesconto = pFinal !== plano.precoAnual && ciclo === "anual";
           return (
-            <div key={plano.id} className={`relative bg-gray-900 border-2 ${plano.cor} rounded-2xl p-6 flex flex-col`}>
-              {plano.badge && (
-                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold ${plano.id === "elite" ? "bg-purple-600" : "bg-red-600"}`}>
-                  {plano.badge}
+            <div key={plano.id} style={{
+              background: "#111827",
+              border: `2px solid ${plano.destaque ? plano.cor : "#1f2937"}`,
+              borderRadius: 16,
+              padding: "24px 20px",
+              position: "relative",
+            }}>
+              {plano.destaque && (
+                <div style={{
+                  position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
+                  background: plano.cor, color: "#fff", fontSize: 10, fontWeight: 900,
+                  padding: "4px 14px", borderRadius: 999, letterSpacing: 1, textTransform: "uppercase",
+                }}>
+                  Mais completo
                 </div>
               )}
 
-              <h3 className="text-lg font-bold mt-2 mb-1">{plano.nome}</h3>
-
-              <div className="mb-4">
-                <span className="text-3xl font-extrabold text-yellow-400">{precoExibido}</span>
-                {desconto > 0 && ciclo === "anual" && (
-                  <span className="ml-2 text-sm line-through text-gray-500">R${precoAnualBase}/ano</span>
-                )}
-                {ciclo === "mensal" && <p className="text-green-500 text-xs mt-0.5">▸ Experimente 7 dias pagando só R$1</p>}
-                {ciclo === "anual" && <p className="text-green-400 text-xs mt-0.5">equivale a R${(precoAnualFinal / 12).toFixed(2).replace(".", ",")}/mês</p>}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                <div>
+                  <p style={{ color: "#aaa", fontSize: 12, margin: "0 0 2px", fontWeight: 700 }}>{plano.nome}</p>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                    <span style={{ color: "#ffd700", fontSize: 32, fontWeight: 900 }}>
+                      R${ciclo === "anual" ? pFinal.toFixed(2).replace(".", ",") : plano.preco.toFixed(2).replace(".", ",")}
+                    </span>
+                    <span style={{ color: "#555", fontSize: 13 }}>/{ciclo === "anual" ? "ano" : "mês"}</span>
+                  </div>
+                  {temDesconto && (
+                    <p style={{ color: "#555", fontSize: 11, margin: "2px 0 0", textDecoration: "line-through" }}>
+                      R${plano.precoAnual}/ano
+                    </p>
+                  )}
+                  {ciclo === "anual" && (
+                    <p style={{ color: "#4ade80", fontSize: 11, margin: "2px 0 0" }}>
+                      ≈ R${(pFinal / 12).toFixed(2).replace(".", ",")}/mês
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <ul className="space-y-2 flex-1 mb-6">
-                {plano.items.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                    <span className="text-yellow-400 mt-0.5 shrink-0">✓</span>
-                    {item}
+              <ul style={{ margin: "0 0 20px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                {plano.beneficios.map((b, i) => (
+                  <li key={i} style={{ color: "#ccc", fontSize: 13, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <span style={{ color: "#ffd700", flexShrink: 0 }}>✓</span>
+                    {b}
                   </li>
                 ))}
               </ul>
 
               <button
-                onClick={() => setGate({ planoId: plano.id })}
-                disabled={loading === plano.id}
-                className={`w-full py-3 rounded-xl font-bold text-white transition-colors ${plano.corBtn} disabled:opacity-50`}
+                onClick={() => setGate(plano.id)}
+                style={{
+                  width: "100%", background: plano.destaque ? plano.cor : "#1f2937",
+                  border: `2px solid ${plano.cor}`,
+                  color: "#fff", fontWeight: 900, fontSize: 15,
+                  padding: "14px 0", borderRadius: 12, cursor: "pointer",
+                  transition: "opacity .2s",
+                }}
+                onMouseOver={e => (e.currentTarget.style.opacity = "0.85")}
+                onMouseOut={e => (e.currentTarget.style.opacity = "1")}
               >
-                {loading === plano.id ? "Processando..." : "Entrar por R$1"}
+                {ciclo === "mensal" ? "Entrar por R$1 →" : "Garantir acesso →"}
               </button>
+
+              {ciclo === "mensal" && (
+                <p style={{ color: "#4ade80", fontSize: 11, textAlign: "center", margin: "8px 0 0" }}>
+                  7 dias por R$1 — cancele quando quiser
+                </p>
+              )}
             </div>
           );
         })}
-      </div>
 
-      {/* Prova social */}
-      <div className="bg-gray-900 py-12 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-gray-400 text-sm uppercase tracking-widest mb-8">Por que o Alerta Patriota?</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { emoji: "🚨", titulo: "Alertas em Minutos", desc: "Quando Nikolas ou Bolsonaro falam algo importante, você sabe antes de todo mundo" },
-              { emoji: "🧠", titulo: "Análise, não só notícia", desc: "O Capitão Braga explica o que está por trás — o que a mídia grande esconde" },
-              { emoji: "🇧🇷", titulo: "Comunidade Patriota", desc: "Debate com outros patriotas que pensam como você — sem censura de algoritmo" },
-            ].map((item, i) => (
-              <div key={i} className="text-center">
-                <div className="text-4xl mb-3">{item.emoji}</div>
-                <h4 className="font-bold text-white mb-2">{item.titulo}</h4>
-                <p className="text-gray-400 text-sm">{item.desc}</p>
-              </div>
-            ))}
-          </div>
+        {/* Prova social mínima */}
+        <div style={{ display: "flex", justifyContent: "space-around", padding: "8px 0" }}>
+          {[["🇧🇷", "100% patriota"], ["🔒", "Sem contrato"], ["📲", "Acesso imediato"]].map(([icon, txt], i) => (
+            <div key={i} style={{ textAlign: "center" }}>
+              <p style={{ fontSize: 20, margin: "0 0 4px" }}>{icon}</p>
+              <p style={{ color: "#555", fontSize: 11, margin: 0, fontWeight: 700 }}>{txt}</p>
+            </div>
+          ))}
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="text-center py-8 text-gray-600 text-xs px-4">
-        <p>Cancele quando quiser • Sem fidelidade • Sem surpresas</p>
-        <p className="mt-1 italic">Deus, Pátria e Família — sempre. — Capitão Braga</p>
+        <p style={{ color: "#333", fontSize: 11, textAlign: "center", margin: "4px 0 0", fontStyle: "italic" }}>
+          Deus, Pátria e Família — sempre. — Capitão Braga
+        </p>
       </div>
     </div>
   );
 }
 
-// Mapa de cupons válidos (mesmos do servidor — para exibir desconto no front)
-const CUPONS_VALIDOS: Record<string, number> = {
-  VOLTA10: 0.10,
-  VOLTA15: 0.15,
-  VOLTA20: 0.20,
+// ── Estilos reutilizáveis ───────────────────────────────────────────────────────
+const S = {
+  page: {
+    background: "#0d0d1a",
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    fontFamily: "Arial, sans-serif",
+  } as React.CSSProperties,
+
+  card: {
+    background: "#111827",
+    border: "1px solid #1f2937",
+    borderRadius: 16,
+    padding: "32px 24px",
+    width: "100%",
+  } as React.CSSProperties,
+
+  input: {
+    width: "100%",
+    background: "#0d0d1a",
+    border: "1px solid #374151",
+    borderRadius: 10,
+    padding: "13px 16px",
+    color: "#fff",
+    fontSize: 15,
+    outline: "none",
+    boxSizing: "border-box",
+    display: "block",
+  } as React.CSSProperties,
+
+  btnPrimary: {
+    width: "100%",
+    background: "#c0392b",
+    color: "#fff",
+    fontWeight: 900,
+    fontSize: 15,
+    padding: "15px 0",
+    borderRadius: 12,
+    border: "none",
+    cursor: "pointer",
+    display: "block",
+    textAlign: "center",
+    letterSpacing: 0.5,
+  } as React.CSSProperties,
+
+  btnLink: {
+    background: "transparent",
+    border: "none",
+    color: "#444",
+    fontSize: 12,
+    cursor: "pointer",
+    marginTop: 16,
+    display: "block",
+    textAlign: "center",
+    width: "100%",
+  } as React.CSSProperties,
 };
