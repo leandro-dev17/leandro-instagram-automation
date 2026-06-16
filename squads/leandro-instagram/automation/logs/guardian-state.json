@@ -1,17 +1,7 @@
 {
-  "falhas": {
-    "story-07h": {
-      "data": "2026-06-15",
-      "count": 1,
-      "ultimaFalha": "2026-06-15T15:32:25.712Z"
-    },
-    "fiscal-hooks-kling": {
-      "data": "2026-06-15",
-      "count": 3,
-      "ultimaFalha": "2026-06-15T23:59:59.147Z"
-    }
-  },
-  "ultimaVerificacao": "2026-06-15T23:59:59.828Z",
+  "falhas": {},
+  "ultimaVerificacao": "2026-06-16T04:00:40.010Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
-  "schedule_alerta_2026-06-14": "2026-06-11"
+  "schedule_alerta_2026-06-14": "2026-06-11",
+  "schedule_alerta_2026-06-19": "2026-06-16"
 }
