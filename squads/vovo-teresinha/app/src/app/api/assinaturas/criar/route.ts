@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Plano inválido. Use: mensal, trimestral ou anual" }, { status: 400 });
     }
 
-    const uRows = await queryWithRetry(() => sql`SELECT tipo_usuario FROM usuarios WHERE id = ${session.id} LIMIT 1`);
+    const uRows = await queryWithRetry(() => sql`SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`);
     console.log("assinaturas/criar: uRows.length=", uRows.length);
     if (uRows.length === 0) {
       console.error("assinaturas/criar: usuário não encontrado para id=", session.id);
@@ -49,6 +49,13 @@ export async function POST(req: NextRequest) {
     }
 
     const info = PLANOS[plano as keyof typeof PLANOS];
+
+    // Bloqueia segundo trial: se o plano tem período grátis e o usuário já usou trial antes
+    if (info.freeTrialDias > 0 && uRows[0].trial_fim !== null) {
+      return NextResponse.json({
+        erro: "Você já utilizou seu período de teste gratuito. Assine normalmente para continuar tendo acesso.",
+      }, { status: 400 });
+    }
     const preApprovalClient = new PreApproval(client);
 
     // external_reference codifica: userId|plano|codigoAfiliado

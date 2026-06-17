@@ -208,7 +208,7 @@ async function processarCancelamento(preapprovalId: string) {
 
   if (outraAtiva.length === 0) {
     await sql`
-      UPDATE usuarios SET tipo_usuario = 'free', plano = null
+      UPDATE usuarios SET tipo_usuario = 'free', plano = null, trial_fim = NULL
       WHERE id = ${usuario_id} AND tipo_usuario = 'premium'
     `;
     await enviarEmailCancelamento(email, nome).catch(() => {});
