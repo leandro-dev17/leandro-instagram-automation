@@ -1940,5 +1940,37 @@
       ],
       "publishedAt": "2026-06-16T18:51:32.714Z"
     }
+  },
+  "2026-06-17": {
+    "kling-reel": {
+      "postId": "17961129600123468",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Postura, glúteo e ciclo menstrual: por que sua postura piora na menstruação",
+      "videoId": "15-negra-vermelho-cintura-quadril",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-06-17T17:42:43.974Z"
+    }
   }
 }
