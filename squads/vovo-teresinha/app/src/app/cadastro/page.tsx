@@ -42,7 +42,7 @@ export default function CadastroPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="text-6xl mb-3">💕</div>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--vovo-marrom)" }}>Criar conta grátis</h1>
+          <h1 className="text-2xl font-bold" style={{ color: "var(--vovo-marrom)" }}>Criar conta</h1>
           <p className="text-sm mt-1" style={{ color: "var(--vovo-marrom-mid)" }}>Comece a cozinhar com a Vovó Teresinha!</p>
         </div>
 
@@ -96,7 +96,7 @@ export default function CadastroPage() {
             {erro && <p className="text-sm text-red-600 text-center">{erro}</p>}
 
             <button type="submit" disabled={carregando} className="btn-primary w-full">
-              {carregando ? "Criando conta..." : "Criar conta grátis 🎉"}
+              {carregando ? "Criando conta..." : "Criar conta 🎉"}
             </button>
           </form>
         </div>

@@ -102,7 +102,7 @@ function LoginForm() {
         <div className="mt-6 text-center">
           <p className="text-sm" style={{ color: "var(--vovo-marrom-mid)" }}>
             Ainda não tem conta?{" "}
-            <Link href="/cadastro" className="font-semibold" style={{ color: "var(--vovo-marrom)" }}>Cadastre-se grátis</Link>
+            <Link href="/cadastro" className="font-semibold" style={{ color: "var(--vovo-marrom)" }}>Cadastre-se</Link>
           </p>
         </div>
       </div>
