@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { MercadoPagoConfig, PreApproval } from "mercadopago";
 import { PLANOS } from "@/lib/planos";
+import type { PreApprovalRequest } from "mercadopago/dist/clients/preApproval/commonTypes";
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -57,22 +58,14 @@ export async function POST(req: NextRequest) {
 
     const result = await preApprovalClient.create({
       body: {
+        preapproval_plan_id: info.mpPlanId,
         reason: info.titulo,
-        auto_recurring: {
-          frequency: info.frequencia,
-          frequency_type: "months",
-          transaction_amount: info.valor,
-          currency_id: "BRL",
-          ...(info.freeTrialDias > 0
-            ? { free_trial: { frequency: info.freeTrialDias, frequency_type: "days" } }
-            : {}),
-        },
         payer_email: session.email,
         external_reference: extRef,
         back_url: `${appUrl}/pagamento/sucesso`,
         notification_url: `${appUrl}/api/webhook/mercadopago`,
         status: "pending",
-      } as unknown as Parameters<typeof preApprovalClient.create>[0]["body"],
+      } as PreApprovalRequest & { notification_url?: string },
     });
 
     if (!result.init_point) {
