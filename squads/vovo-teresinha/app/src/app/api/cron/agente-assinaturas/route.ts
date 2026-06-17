@@ -17,27 +17,23 @@ export async function GET(req: NextRequest) {
   const sql = neon(process.env.DATABASE_URL!);
 
   try {
-    // 1. Rebaixa usuarios com trial vencido para free
-    // Trial é controlado em usuarios.trial_fim — não em assinaturas.status
-    const trialsExpirados = await sql`
-      UPDATE usuarios
-      SET tipo_usuario = 'free'
-      WHERE tipo_usuario = 'trial'
-        AND trial_fim < NOW()
-      RETURNING id, email, trial_fim
-    `;
-
-    // 2. Expira assinaturas ativas sem renovação há mais de 30 dias
+    // 1. Expira assinaturas ativas sem renovação além do prazo esperado do plano (+15 dias de margem)
     // (PreApproval cancelado silenciosamente pelo MP sem webhook, por exemplo)
     const ativasExpiradas = await sql`
       UPDATE assinaturas
       SET status = 'expirada'
       WHERE status = 'ativo'
-        AND renovada_em < NOW() - INTERVAL '30 days'
+        AND renovada_em IS NOT NULL
+        AND (
+          (plano = 'mensal'     AND renovada_em < NOW() - INTERVAL '45 days')
+          OR (plano = 'trimestral' AND renovada_em < NOW() - INTERVAL '105 days')
+          OR (plano = 'anual'      AND renovada_em < NOW() - INTERVAL '380 days')
+          OR (plano IS NULL        AND renovada_em < NOW() - INTERVAL '45 days')
+        )
       RETURNING id, usuario_id, renovada_em
     `;
 
-    // 3. Rebaixa usuários premium cujas assinaturas acabaram de expirar (passo 2)
+    // 2. Rebaixa usuários premium cujas assinaturas acabaram de expirar (passo 1)
     //    sem ter outra assinatura ativa
     let premiumRebaixados = 0;
     if (ativasExpiradas.length > 0) {
@@ -57,14 +53,12 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(
-      `[agente-assinaturas] Trials expirados: ${trialsExpirados.length} | ` +
-      `Assinaturas expiradas: ${ativasExpiradas.length} | ` +
+      `[agente-assinaturas] Assinaturas expiradas: ${ativasExpiradas.length} | ` +
       `Premiums rebaixados: ${premiumRebaixados}`
     );
 
     return NextResponse.json({
       ok: true,
-      trials_expirados: trialsExpirados.length,
       assinaturas_expiradas: ativasExpiradas.length,
       premiums_rebaixados: premiumRebaixados,
     });

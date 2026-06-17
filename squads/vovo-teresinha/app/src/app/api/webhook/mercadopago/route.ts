@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { MercadoPagoConfig, Payment, PreApproval } from "mercadopago";
 import { enviarEmailPremiumAtivado, enviarEmailCancelamento } from "@/lib/brevo";
 import { enviarViaEvolution, buildMensagem } from "@/lib/whatsapp";
+import { PLANOS, PlanoId } from "@/lib/planos";
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -23,6 +24,7 @@ function calcularComissao(conversoes: number): number {
 
 async function registrarComissaoAfiliado(usuarioId: number, codigoAfiliado: string, plano: string) {
   if (!codigoAfiliado) return;
+  if (plano === "mensal") return;
 
   const afiRows = await sql`SELECT id FROM afiliados WHERE codigo = ${codigoAfiliado} LIMIT 1`;
   if (afiRows.length === 0) return;
@@ -91,17 +93,20 @@ async function processarAssinaturaAutorizada(preapprovalId: string) {
   const userRows = await sql`SELECT email, nome FROM usuarios WHERE id = ${usuarioId} LIMIT 1`;
   if (userRows.length === 0) return;
 
+  const freeTrialDias = PLANOS[plano as PlanoId]?.freeTrialDias ?? 0;
+  const trialFim = freeTrialDias > 0 ? new Date(Date.now() + freeTrialDias * 86400000).toISOString() : null;
+
   await sql`
     UPDATE usuarios
-    SET tipo_usuario = 'premium', plano = ${plano}, assinatura_id = ${preapprovalId}
+    SET tipo_usuario = 'premium', plano = ${plano}, assinatura_id = ${preapprovalId}, trial_fim = ${trialFim}
     WHERE id = ${usuarioId}
   `;
 
   const valor = (preapproval.auto_recurring as { transaction_amount?: number } | undefined)?.transaction_amount ?? 0;
 
   await sql`
-    INSERT INTO assinaturas (usuario_id, plano, status, mp_preapproval_id, valor)
-    VALUES (${usuarioId}, ${plano}, 'ativo', ${preapprovalId}, ${valor})
+    INSERT INTO assinaturas (usuario_id, plano, status, mp_preapproval_id, valor, renovada_em)
+    VALUES (${usuarioId}, ${plano}, 'ativo', ${preapprovalId}, ${valor}, NOW())
     ON CONFLICT (mp_preapproval_id) DO UPDATE SET status = 'ativo', renovada_em = NOW()
   `;
 

@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { MercadoPagoConfig, PreApproval } from "mercadopago";
+import { PLANOS } from "@/lib/planos";
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
 });
-
-const PLANOS = {
-  trimestral: { titulo: "Receitinhas Premium - Trimestral", valor: 29.9, frequencia: 3 },
-  anual: { titulo: "Receitinhas Premium - Anual", valor: 79.9, frequencia: 12 },
-};
 
 async function queryWithRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   for (let i = 0; i <= retries; i++) {
@@ -37,7 +33,7 @@ export async function POST(req: NextRequest) {
     const { plano, codigo_afiliado } = await req.json();
 
     if (!plano || !PLANOS[plano as keyof typeof PLANOS]) {
-      return NextResponse.json({ erro: "Plano inválido. Use: mensal ou anual" }, { status: 400 });
+      return NextResponse.json({ erro: "Plano inválido. Use: mensal, trimestral ou anual" }, { status: 400 });
     }
 
     const uRows = await queryWithRetry(() => sql`SELECT tipo_usuario FROM usuarios WHERE id = ${session.id} LIMIT 1`);
@@ -67,12 +63,16 @@ export async function POST(req: NextRequest) {
           frequency_type: "months",
           transaction_amount: info.valor,
           currency_id: "BRL",
+          ...(info.freeTrialDias > 0
+            ? { free_trial: { frequency: info.freeTrialDias, frequency_type: "days" } }
+            : {}),
         },
         payer_email: session.email,
         external_reference: extRef,
         back_url: `${appUrl}/pagamento/sucesso`,
+        notification_url: `${appUrl}/api/webhook/mercadopago`,
         status: "pending",
-      },
+      } as unknown as Parameters<typeof preApprovalClient.create>[0]["body"],
     });
 
     if (!result.init_point) {
