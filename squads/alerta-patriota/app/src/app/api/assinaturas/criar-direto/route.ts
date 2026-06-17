@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         },
         payer_email: emailNorm,
         external_reference: `${usuarioId}|${plano}|${ciclo}`,
-        back_url: `${APP_URL}/pagamento/sucesso`,
+        back_url: `${APP_URL}/pagamento/sucesso?plano=${plano}`,
         notification_url: `${APP_URL}/api/webhook/mercadopago`,
         payment_methods_allowed: {
           payment_types: [{ id: "credit_card" }],

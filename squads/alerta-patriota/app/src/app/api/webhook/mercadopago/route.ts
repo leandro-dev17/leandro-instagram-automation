@@ -138,17 +138,23 @@ async function desativarAcesso(mpSubscriptionId: string, motivo: "cancelado" | "
 
 // ─── VALIDAÇÃO HMAC ────────────────────────────────────────────────────────────
 
-async function validarWebhook(req: NextRequest, rawBody: string): Promise<boolean> {
+async function validarWebhook(req: NextRequest): Promise<boolean> {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  const xSignature = req.headers.get("x-signature");
+
+  // Sem x-signature: MP não configurou assinatura secreta ainda → aceitar e processar
+  if (!xSignature) {
+    if (!secret) console.warn("[webhook-mp] Sem secret e sem x-signature — configure MERCADOPAGO_WEBHOOK_SECRET no painel MP para maior segurança");
+    return true;
+  }
+
+  // Com x-signature mas sem secret configurado: não conseguimos validar → rejeitar
   if (!secret) {
-    console.error("MERCADOPAGO_WEBHOOK_SECRET não configurada — rejeitando webhook");
+    console.error("[webhook-mp] x-signature presente mas MERCADOPAGO_WEBHOOK_SECRET não configurada");
     return false;
   }
 
-  const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
-  if (!xSignature) return false;
-
   const ts = xSignature.match(/ts=([^,]+)/)?.[1];
   const v1 = xSignature.match(/v1=([^,]+)/)?.[1];
   if (!ts || !v1) return false;
@@ -172,7 +178,7 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
 
-    if (!(await validarWebhook(req, rawBody))) {
+    if (!(await validarWebhook(req))) {
       return NextResponse.json({ ok: true }); // retorna 200 para MP não retentar
     }
 

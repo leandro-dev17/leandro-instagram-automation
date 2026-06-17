@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
           ...(ciclo === "mensal" ? { free_trial: { frequency: 7, frequency_type: "days" as const } } : {}),
         },
         external_reference: `${usuario.id}|${plano}|${ciclo}`,
-        back_url: `${APP_URL}/pagamento/sucesso`,
+        back_url: `${APP_URL}/pagamento/sucesso?plano=${plano}`,
         notification_url: `${APP_URL}/api/webhook/mercadopago`,
         payment_methods_allowed: {
           payment_types: [{ id: "credit_card" }],

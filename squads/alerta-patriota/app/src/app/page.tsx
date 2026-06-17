@@ -114,7 +114,7 @@ export default function Home() {
           body: JSON.stringify({ nome: dados.nome, email: dados.email, telefone: dados.telefone, plano: pendingPlano, ciclo }),
         });
         const data = await res.json();
-        if (data.checkout_url) { window.location.href = data.checkout_url; return; }
+        if (data.checkout_url) { localStorage.setItem("ap_plano", pendingPlano); window.location.href = data.checkout_url; return; }
         else { setGateLoading(false); alert("Erro ao gerar o link.\n\n" + (data.detalhe || data.erro || "Tente novamente.")); return; }
       } catch (e) { setGateLoading(false); alert("Erro de conexão: " + String(e)); return; }
     }
@@ -137,7 +137,7 @@ export default function Home() {
         body: JSON.stringify({ nome: dadosUser.nome, email: dadosUser.email, telefone: dadosUser.telefone, plano: planoId, ciclo }),
       });
       const data = await res.json();
-      if (data.checkout_url) { window.location.href = data.checkout_url; }
+      if (data.checkout_url) { localStorage.setItem("ap_plano", planoId); window.location.href = data.checkout_url; }
       else { alert("Erro ao gerar o link.\n\n" + (data.detalhe || data.erro || "Tente novamente.")); }
     } catch (e) { alert("Erro de conexão: " + String(e)); }
     finally { setCheckoutLoading(null); }
