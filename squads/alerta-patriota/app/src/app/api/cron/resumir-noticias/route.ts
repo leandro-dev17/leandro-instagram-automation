@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
   let processadas = 0;
   let erros = 0;
+  let motivo = "";
 
   try {
     const noticias = await sql<Noticia[]>`
@@ -47,13 +48,14 @@ export async function GET(req: NextRequest) {
     `;
 
     if (noticias.length === 0) {
+      motivo = "sem noticias curadas pendentes";
       await sql`
         INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
         VALUES ('bernardo-resumidor', 'resumir_noticias', 'sucesso',
-          ${JSON.stringify({ processadas: 0, erros: 0, motivo: "sem noticias curadas pendentes" })},
+          ${JSON.stringify({ processadas: 0, erros: 0, motivo: motivo })},
           ${Date.now() - inicio})
       `;
-      return NextResponse.json({ ok: true, processadas: 0, erros: 0, motivo: "sem notícias curadas pendentes" });
+      return NextResponse.json({ ok: true, processadas: 0, erros: 0, motivo: motivo });
     }
 
     for (const noticia of noticias) {
@@ -99,9 +101,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, processadas, erros });
   } catch (err) {
     await alertarTelegram("Falha Agente Bernardo Resumidor", String(err));
+    const duracao = Date.now() - inicio;
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-      VALUES ('bernardo-resumidor', 'resumir_noticias', 'erro', ${JSON.stringify({ erro: String(err) })}, ${Date.now() - inicio})
+      VALUES ('bernardo-resumidor', 'resumir_noticias', 'erro', ${JSON.stringify({ erro: String(err) })}, ${duracao})
     `.catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
