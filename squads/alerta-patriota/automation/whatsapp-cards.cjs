@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * whatsapp-cards.cjs â€” Alerta Patriota
  * Gera cards visuais (imagem + texto) para os 4 grupos WhatsApp
