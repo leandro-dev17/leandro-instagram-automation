@@ -41,7 +41,9 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
 
   // Adiciona ao grupo WhatsApp
   if (telefone) {
-    await adicionarMembroGrupo(telefone, plano);
+    console.log("[ativar-acesso] Adicionando ao grupo WhatsApp — telefone:", telefone, "| plano:", plano);
+    const addOk = await adicionarMembroGrupo(telefone, plano);
+    console.log("[ativar-acesso] adicionarMembroGrupo resultado:", addOk);
 
     // Registra membro no grupo
     const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${plano} LIMIT 1`;
@@ -56,12 +58,16 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
 
     // Mensagem de boas-vindas privada
     const msgBoasVindas = buildBoasVindas(plano, nome);
-    await enviarMensagemPrivada(telefone, msgBoasVindas);
+    const msgOk = await enviarMensagemPrivada(telefone, msgBoasVindas);
+    console.log("[ativar-acesso] enviarMensagemPrivada resultado:", msgOk);
+  } else {
+    console.error("[ativar-acesso] Telefone não encontrado para usuarioId:", usuarioId, "— WhatsApp ignorado");
   }
 
   // E-mail de boas-vindas
   const linkGrupo = getLinkGrupo(plano);
-  await enviarEmailBoasVindas(email, nome, plano, linkGrupo).catch(() => {});
+  const emailOk = await enviarEmailBoasVindas(email, nome, plano, linkGrupo).catch((e) => { console.error("[ativar-acesso] erro email:", e); return false; });
+  console.log("[ativar-acesso] enviarEmailBoasVindas resultado:", emailOk, "→", email);
 
   // Log
   await sql`
@@ -138,38 +144,59 @@ async function desativarAcesso(mpSubscriptionId: string, motivo: "cancelado" | "
 
 // ─── VALIDAÇÃO HMAC ────────────────────────────────────────────────────────────
 
+async function hmacSha256(secret: string, data: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const buf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function validarWebhook(req: NextRequest): Promise<boolean> {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   const xSignature = req.headers.get("x-signature");
 
-  // Sem x-signature: MP não configurou assinatura secreta ainda → aceitar e processar
+  // Sem x-signature: MP ainda não configurou secret → aceitar
   if (!xSignature) {
-    if (!secret) console.warn("[webhook-mp] Sem secret e sem x-signature — configure MERCADOPAGO_WEBHOOK_SECRET no painel MP para maior segurança");
+    console.log("[webhook-mp] Sem x-signature — aceitando sem validação HMAC");
     return true;
   }
 
-  // Com x-signature mas sem secret configurado: não conseguimos validar → rejeitar
+  // Com x-signature mas sem secret → não conseguimos validar
   if (!secret) {
     console.error("[webhook-mp] x-signature presente mas MERCADOPAGO_WEBHOOK_SECRET não configurada");
     return false;
   }
 
-  const xRequestId = req.headers.get("x-request-id");
+  const xRequestId = req.headers.get("x-request-id") || "";
   const ts = xSignature.match(/ts=([^,]+)/)?.[1];
   const v1 = xSignature.match(/v1=([^,]+)/)?.[1];
-  if (!ts || !v1) return false;
+
+  if (!ts || !v1) {
+    console.error("[webhook-mp] x-signature malformado:", xSignature);
+    return false;
+  }
 
   const dataId = new URL(req.url).searchParams.get("data.id") || "";
-  const manifest = `id:${dataId};request-id:${xRequestId || ""};ts:${ts};`;
 
-  const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-  );
-  const buf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest));
-  const computed = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  // Tenta manifests alternativos (MP varia o formato dependendo da versão)
+  const manifests = [
+    `id:${dataId};request-id:${xRequestId};ts:${ts};`,   // formato completo
+    `id:${dataId};request-id:;ts:${ts};`,                 // sem request-id
+    `id:${dataId};ts:${ts};`,                             // minimalista
+  ];
 
-  return computed === v1;
+  for (const manifest of manifests) {
+    const computed = await hmacSha256(secret, manifest);
+    if (computed === v1) {
+      console.log("[webhook-mp] HMAC válido ✓ manifest:", manifest);
+      return true;
+    }
+  }
+
+  console.error("[webhook-mp] HMAC inválido. v1 esperado:", v1, "| dataId:", dataId, "| ts:", ts, "| x-request-id:", xRequestId);
+  return false;
 }
 
 // ─── HANDLER PRINCIPAL ─────────────────────────────────────────────────────────
@@ -177,14 +204,17 @@ async function validarWebhook(req: NextRequest): Promise<boolean> {
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
+    console.log("[webhook-mp] Recebido — url:", req.url, "| x-signature:", req.headers.get("x-signature")?.substring(0, 40) || "AUSENTE");
 
     if (!(await validarWebhook(req))) {
-      return NextResponse.json({ ok: true }); // retorna 200 para MP não retentar
+      console.error("[webhook-mp] Validação falhou — descartando evento");
+      return NextResponse.json({ ok: true }); // 200 para MP não retentar
     }
 
     const body = JSON.parse(rawBody);
     const tipo = body.type as string;
     const dataId = body.data?.id as string | undefined;
+    console.log("[webhook-mp] tipo:", tipo, "| dataId:", dataId);
     if (!dataId) return NextResponse.json({ ok: true });
 
     // Rate limiting: rejeita o mesmo dataId processado nos últimos 5 minutos
@@ -196,12 +226,14 @@ export async function POST(req: NextRequest) {
       LIMIT 1
     `.catch(() => []);
     if (jaProcessado.length > 0) {
+      console.log("[webhook-mp] Duplicata ignorada — dataId:", dataId);
       return NextResponse.json({ ok: true, motivo: "duplicata ignorada" });
     }
 
     if (tipo === "subscription_preapproval") {
       const preApprovalClient = new PreApproval(client);
       const pa = await preApprovalClient.get({ id: dataId });
+      console.log("[webhook-mp] preapproval status:", pa.status, "| external_reference:", pa.external_reference);
 
       if (pa.status === "authorized") {
         // external_reference: "usuarioId|plano|ciclo"
@@ -210,9 +242,13 @@ export async function POST(req: NextRequest) {
         const plano = (partes[1] || "vip") as Plano;
         const ciclo = (partes[2] || "mensal") as "mensal" | "anual";
         const valor = (pa.auto_recurring as { transaction_amount?: number })?.transaction_amount ?? 0;
+        console.log("[webhook-mp] Ativando acesso — usuarioId:", usuarioId, "| plano:", plano, "| ciclo:", ciclo, "| valor:", valor);
 
         if (usuarioId && !isNaN(usuarioId) && ["vip","elite"].includes(plano)) {
           await ativarAcesso(usuarioId, plano, dataId, valor, ciclo);
+          console.log("[webhook-mp] ativarAcesso concluído para usuarioId:", usuarioId);
+        } else {
+          console.error("[webhook-mp] Dados inválidos — usuarioId:", usuarioId, "| plano:", plano);
         }
       } else if (["cancelled"].includes(pa.status || "")) {
         await desativarAcesso(dataId, "cancelado");
