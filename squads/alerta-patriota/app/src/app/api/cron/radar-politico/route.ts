@@ -156,7 +156,9 @@ export async function GET(req: NextRequest) {
     // Rotaciona 3 políticos por rodada para evitar timeout
     // A cada 30min (48 rodadas/dia), todos os 9 são cobertos ~16x/dia
     const minuto = new Date().getMinutes();
-    const hora = new Date().getHours();
+    const hora = parseInt(
+      new Date().toLocaleString("pt-BR", { hour: "numeric", timeZone: "America/Sao_Paulo" })
+    );
     const indiceBase = (hora * 2 + Math.floor(minuto / 30)) % POLITICOS.length;
     const politicosRodada = [
       POLITICOS[indiceBase % POLITICOS.length],

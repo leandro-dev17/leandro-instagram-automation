@@ -136,11 +136,7 @@ jobs:
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/enquete-dia" \
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
-      - name: 🌙 Resumo da Noite (21h BRT = 0h UTC → cron das 21h UTC)
-        if: github.event.schedule == '0 9,15,21 * * *'
-        run: |
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/resumo-noite" \
-            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+      # resumo-noite movido para alerta-patriota-resumo-noite.yml (00:00 UTC = 21h BRT)
 
   # ── FASE 7 — FACEBOOK (3x/dia + sábado) ─────────────────────────────────
   facebook:

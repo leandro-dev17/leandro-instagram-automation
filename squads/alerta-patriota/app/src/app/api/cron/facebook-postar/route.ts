@@ -41,7 +41,10 @@ export async function GET(req: NextRequest) {
 
   try {
     // Verifica se já postou hoje neste período
-    const periodo = new Date().getHours() < 12 ? "manha" : new Date().getHours() < 18 ? "tarde" : "noite";
+    const horaBRT = parseInt(
+      new Date().toLocaleString("pt-BR", { hour: "numeric", timeZone: "America/Sao_Paulo" })
+    );
+    const periodo = horaBRT < 12 ? "manha" : horaBRT < 18 ? "tarde" : "noite";
     const jaPostou = await sql`
       SELECT id FROM agentes_log
       WHERE agente = 'facebook-poster' AND acao = ${`post_${periodo}`}

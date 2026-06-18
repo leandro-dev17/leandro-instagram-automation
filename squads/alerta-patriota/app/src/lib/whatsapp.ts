@@ -2,8 +2,13 @@ import type { Plano } from "@/lib/db";
 
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
-const EVO_INST = process.env.EVOLUTION_INSTANCIA || "alertapatriota";
+const EVO_INST_VIP   = process.env.EVOLUTION_INSTANCIA      || "alertapatriota";
+const EVO_INST_ELITE = process.env.EVOLUTION_INSTANCIA_ELITE || "alertapatriota";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
+
+function getInstancia(plano: Plano | string): string {
+  return plano === "elite" ? EVO_INST_ELITE : EVO_INST_VIP;
+}
 
 // IDs dos grupos por plano
 const GROUP_IDS: Record<Plano, string> = {
@@ -25,7 +30,7 @@ export async function enviarMensagemPrivada(telefone: string, texto: string): Pr
   if (!numero || numero.length < 10) return false;
 
   try {
-    const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
+    const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST_VIP}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
       body: JSON.stringify({
@@ -49,7 +54,7 @@ export async function enviarMensagemGrupo(plano: Plano, texto: string): Promise<
   if (!groupId) return false;
 
   try {
-    const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
+    const res = await fetch(`${EVO_URL}/message/sendText/${getInstancia(plano)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
       body: JSON.stringify({
@@ -72,7 +77,7 @@ export async function adicionarMembroGrupo(telefone: string, plano: Plano): Prom
   if (!numero) return false;
 
   try {
-    const res = await fetch(`${EVO_URL}/group/updateParticipant/${EVO_INST}`, {
+    const res = await fetch(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
       body: JSON.stringify({
@@ -96,7 +101,7 @@ export async function removerMembroGrupo(telefone: string, plano: Plano): Promis
   if (!numero) return false;
 
   try {
-    const res = await fetch(`${EVO_URL}/group/updateParticipant/${EVO_INST}`, {
+    const res = await fetch(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
       body: JSON.stringify({

@@ -1,0 +1,35 @@
+name: Alerta Patriota — Resumo da Noite (21h BRT)
+
+# Workflow isolado para o Resumo da Noite.
+# 21h BRT = 00h UTC (meia-noite). Separado do crons.yml porque lá
+# o resumo-noite estava sendo chamado às 6h, 12h e 18h BRT por engano.
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 00:00 UTC = 21h BRT
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  resumo-noite:
+    name: Resumo da Noite — Veredicto do dia nos grupos VIP e Elite
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enviar Resumo da Noite (Braga + Cavalcanti)
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/resumo-noite" \
+            -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
+            | tee /tmp/resumo-noite.json
+          echo "Resultado: $(cat /tmp/resumo-noite.json)"
+      - name: Notificar falha
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FALHA — Resumo da Noite*
+          O resumo da noite não foi enviado hoje ($(TZ='America/Sao_Paulo' date +%d/%m/%Y)).
+          🔗 Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

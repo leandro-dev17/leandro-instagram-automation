@@ -20,9 +20,14 @@ const { gerarTexto }  = require('./ai-helper.cjs');
 
 // â”€â”€ CONFIG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const DB_URL   = process.env.DATABASE_URL;
-const EVO_URL  = process.env.EVOLUTION_API_URL;
-const EVO_KEY  = process.env.EVOLUTION_API_KEY;
-const EVO_INST = process.env.EVOLUTION_INSTANCIA || 'alertapatriota';
+const EVO_URL        = process.env.EVOLUTION_API_URL;
+const EVO_KEY        = process.env.EVOLUTION_API_KEY;
+const EVO_INST_VIP   = process.env.EVOLUTION_INSTANCIA       || 'alertapatriota';
+const EVO_INST_ELITE = process.env.EVOLUTION_INSTANCIA_ELITE  || 'alertapatriota';
+
+function getInstancia(plano) {
+  return plano === 'elite' ? EVO_INST_ELITE : EVO_INST_VIP;
+}
 
 const GROUP_IDS = {
   basico:   process.env.WPP_GROUP_BASICO,
@@ -331,8 +336,8 @@ async function gerarLegendaClaude(titulo, plano, fonte) {
   return `${corpo}${assinaturas[plano]}`;
 }
 
-async function enviarImagemWPP(imageUrl, groupJid, legenda) {
-  const res = await fetch(`${EVO_URL}/message/sendMedia/${EVO_INST}`, {
+async function enviarImagemWPP(imageUrl, groupJid, legenda, plano) {
+  const res = await fetch(`${EVO_URL}/message/sendMedia/${getInstancia(plano)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
     body: JSON.stringify({
@@ -354,7 +359,7 @@ async function enviarImagemWPP(imageUrl, groupJid, legenda) {
 
 // â”€â”€ ENVIO DE TEXTO SIMPLES (para FOMO e avisos) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function enviarTextoWPP(groupJid, texto) {
-  const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
+  const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST_VIP}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
     body: JSON.stringify({ number: groupJid, textMessage: { text: texto } }),
@@ -502,7 +507,7 @@ async function processarPlano(plano, browser) {
   console.log(`  â˜ï¸  Cloudinary: ${upload.secure_url}`);
 
   // Envia via WhatsApp
-  const ok = await enviarImagemWPP(upload.secure_url, groupJid, legenda);
+  const ok = await enviarImagemWPP(upload.secure_url, groupJid, legenda, plano);
   if (ok) {
     // Marca como publicada
     if (plano==='basico')   await sql`UPDATE noticias SET postada_basico=true,postada_basico_at=NOW() WHERE id=${n.id}`;

@@ -47,9 +47,11 @@ function buildMensagemNoticia(plano: Plano, noticia: {
 }
 
 function getPeriodo(): string {
-  const hora = new Date().getHours();
-  if (hora < 12) return "Manhã";
-  if (hora < 18) return "Tarde";
+  const horaBRT = parseInt(
+    new Date().toLocaleString("pt-BR", { hour: "numeric", timeZone: "America/Sao_Paulo" })
+  );
+  if (horaBRT < 12) return "Manhã";
+  if (horaBRT < 18) return "Tarde";
   return "Noite";
 }
 

@@ -1,19 +1,25 @@
 /**
  * AGENTE GERADOR DE CARDS
- * Renderiza HTML → PNG via Puppeteer e envia como imagem no WhatsApp
+ * Renderiza JSX → PNG via @vercel/og (Satori) e envia como imagem no WhatsApp
  * com a análise completa na legenda (caption)
  * GET /api/cron/gerar-card?plano=vip|elite
  */
 import { NextRequest, NextResponse } from "next/server";
+import { ImageResponse } from "next/og";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
-import { gerarHTMLCard } from "@/lib/card-generator";
+import { gerarCardElement, getCardFonts } from "@/lib/card-generator";
 import { gerarTexto } from "@/lib/ai";
 
-const EVO_URL  = process.env.EVOLUTION_API_URL;
-const EVO_KEY  = process.env.EVOLUTION_API_KEY;
-const EVO_INST = process.env.EVOLUTION_INSTANCIA || "alertapatriota";
+const EVO_URL       = process.env.EVOLUTION_API_URL;
+const EVO_KEY       = process.env.EVOLUTION_API_KEY;
+const EVO_INST_VIP   = process.env.EVOLUTION_INSTANCIA       || "alertapatriota";
+const EVO_INST_ELITE = process.env.EVOLUTION_INSTANCIA_ELITE  || "alertapatriota";
+
+function getInstancia(plano: string): string {
+  return plano === "elite" ? EVO_INST_ELITE : EVO_INST_VIP;
+}
 
 const GROUP_IDS: Record<string, string> = {
   vip:      process.env.WPP_GROUP_VIP      || "",
@@ -85,33 +91,18 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
   return `${headers[plano]}\n${corpo}`;
 }
 
-async function renderizarEEnviar(html: string, groupJid: string, legenda: string): Promise<boolean> {
+async function renderizarEEnviar(plano: string, hook: string, corpo: string | undefined, fonte: string, urgente: boolean | undefined, groupJid: string, legenda: string): Promise<boolean> {
   if (!EVO_URL || !EVO_KEY) return false;
 
-  // Renderiza HTML → PNG base64 via Puppeteer
-  let puppeteer;
-  try { puppeteer = await import("puppeteer"); } catch { return false; }
-
-  const browser = await puppeteer.default.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
-  });
-
-  let pngBase64 = "";
-  try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1080, height: 1080 });
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 20000 });
-    const screenshot = await page.screenshot({ type: "png", clip: { x:0, y:0, width:1080, height:1080 } });
-    pngBase64 = Buffer.from(screenshot).toString("base64");
-  } finally {
-    await browser.close();
-  }
+  // Renderiza JSX → PNG via @vercel/og (Satori) — sem Chromium, funciona em serverless
+  const element = gerarCardElement({ plano: plano as "vip" | "elite", hook, corpo, fonte, urgente });
+  const imagem = new ImageResponse(element, { width: 1080, height: 1080, fonts: getCardFonts() });
+  const pngBase64 = Buffer.from(await imagem.arrayBuffer()).toString("base64");
 
   if (!pngBase64) return false;
 
   // Envia imagem com legenda via Evolution API
-  const res = await fetch(`${EVO_URL}/message/sendMedia/${EVO_INST}`, {
+  const res = await fetch(`${EVO_URL}/message/sendMedia/${getInstancia(plano)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: EVO_KEY },
     body: JSON.stringify({
@@ -164,16 +155,9 @@ export async function GET(req: NextRequest) {
       gerarLegenda(n.titulo, plano, fonte),
     ]);
 
-    // Gera o HTML do card
-    const html = gerarHTMLCard({
-      plano: plano as "vip" | "elite",
-      hook,
-      fonte,
-      urgente: n.urgente === true || n.urgente === "true",
-    });
-
     // Renderiza e envia
-    const enviado = await renderizarEEnviar(html, groupJid, legenda);
+    const urgente = n.urgente === true || n.urgente === "true";
+    const enviado = await renderizarEEnviar(plano, hook, undefined, fonte, urgente, groupJid, legenda);
 
     if (enviado) {
       // Marca como publicada como CARD (flag separada — não afeta publicar-noticias)

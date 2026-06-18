@@ -1,5 +1,9 @@
 node_modules/
+.next/
+.vercel/
 .env
+.env.local
+.env*.local
 *.log
 squads/*/output/
 _opensquad/_memory/company.md
