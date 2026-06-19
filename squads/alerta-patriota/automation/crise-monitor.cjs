@@ -1,21 +1,16 @@
 #!/usr/bin/env node
 // crise-monitor.cjs — Marcio Crise
 // Detecta crises (2+ noticias urgentes em 6h) e publica extra para VIP+Elite
-// FOMO de texto para Basico+Patriota
 // Roda via GitHub Actions a cada 2h
 'use strict';
 
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../app/.env.local') });
 
-const { spawnSync } = require('child_process');
 const { sendTelegram, horaBRT, dataBRT } = require('./telegram-reporter.cjs');
 
 const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || 'https://alertapatriota.vercel.app';
 const CRON_KEY   = process.env.CRON_SECRET;
-const EVO_URL    = process.env.EVOLUTION_API_URL;
-const EVO_KEY    = process.env.EVOLUTION_API_KEY;
-const EVO_INST   = process.env.EVOLUTION_INSTANCIA || 'alertapatriota';
 
 // ── VERIFICA CRISE VIA API VERCEL (sem dependência do Neon aqui) ───────────
 async function verificarCriseViaAPI() {
@@ -33,15 +28,18 @@ async function verificarCriseViaAPI() {
   }
 }
 
-// ── CARDS EXTRAS para VIP + Elite ─────────────────────────────────────────
-function gerarCardsVIPElite() {
-  const result = spawnSync('node', ['whatsapp-cards.cjs', 'vip', 'elite'], {
-    cwd: __dirname,
-    stdio: 'inherit',
-    env: Object.assign({}, process.env),
-    timeout: 300000,
-  });
-  return result.status === 0;
+// ── CARDS EXTRAS para VIP + Elite (via API, mesma usada pelo cron normal) ──
+async function gerarCardsVIPElite() {
+  const headers = { Authorization: `Bearer ${CRON_KEY}` };
+  const [vip, elite] = await Promise.all([
+    fetch(`${APP_URL}/api/cron/gerar-card?plano=vip`, { headers, signal: AbortSignal.timeout(60000) })
+      .then((r) => r.ok)
+      .catch((e) => { console.log(`  ⚠️  gerar-card vip falhou: ${e.message}`); return false; }),
+    fetch(`${APP_URL}/api/cron/gerar-card?plano=elite`, { headers, signal: AbortSignal.timeout(60000) })
+      .then((r) => r.ok)
+      .catch((e) => { console.log(`  ⚠️  gerar-card elite falhou: ${e.message}`); return false; }),
+  ]);
+  return vip || elite;
 }
 
 // ── MAIN ──────────────────────────────────────────────────────────────────
@@ -62,7 +60,7 @@ async function main() {
   );
 
   // VIP + Elite → cards visuais
-  const ok = gerarCardsVIPElite();
+  const ok = await gerarCardsVIPElite();
 
   if (ok) {
     await sendTelegram('Modo Crise concluido — cards enviados para VIP+Elite\n' + dataBRT() + ' ' + horaBRT() + ' BRT');

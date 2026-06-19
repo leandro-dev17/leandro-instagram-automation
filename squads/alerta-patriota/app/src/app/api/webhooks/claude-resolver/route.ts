@@ -41,8 +41,8 @@ const AUTO_FIX_ROTAS: Record<string, string[]> = {
 
 // ── MAPA DE PROBLEMAS → ARQUIVOS DE CÓDIGO ───────────────────────────────────
 const MAPA_ARQUIVOS: Record<string, string> = {
-  cards_sem_envio:       "squads/alerta-patriota/automation/whatsapp-cards.cjs",
-  cards_com_erro:        "squads/alerta-patriota/automation/whatsapp-cards.cjs",
+  cards_sem_envio:       "squads/alerta-patriota/app/src/app/api/cron/gerar-card/route.ts",
+  cards_com_erro:        "squads/alerta-patriota/app/src/app/api/cron/gerar-card/route.ts",
   pipeline_incompleta:   "squads/alerta-patriota/app/src/app/api/cron/resumir-noticias/route.ts",
   conteudo_irrelevante:  "squads/alerta-patriota/app/src/app/api/cron/curar-noticias/route.ts",
   workflow_falhando:     ".github/workflows/alerta-patriota-crons.yml",

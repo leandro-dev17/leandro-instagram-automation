@@ -10,9 +10,9 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.verce
 const CRON_SECRET = process.env.CRON_SECRET;
 
 const MAPA_ARQUIVOS: Record<string, string> = {
-  cards_sem_envio: "squads/alerta-patriota/automation/whatsapp-cards.cjs",
-  cards_com_erro: "squads/alerta-patriota/automation/whatsapp-cards.cjs",
-  cards_sem_imagem: "squads/alerta-patriota/automation/whatsapp-cards.cjs",
+  cards_sem_envio: "squads/alerta-patriota/app/src/app/api/cron/gerar-card/route.ts",
+  cards_com_erro: "squads/alerta-patriota/app/src/app/api/cron/gerar-card/route.ts",
+  cards_sem_imagem: "squads/alerta-patriota/app/src/app/api/cron/gerar-card/route.ts",
   conteudo_irrelevante: "api/cron/curar-noticias/route.ts",
   workflow_falhando: "api/cron/fiscal-workflow/route.ts",
   workflow_erro_api: "api/cron/fiscal-workflow/route.ts",

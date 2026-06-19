@@ -113,6 +113,37 @@ node --use-system-ca "C:\Users\lelus\AppData\Roaming\npm\node_modules\vercel\dis
 
 ---
 
+## FASE 6 — Aposentadoria do Script Legado e Saída dos Grupos Descontinuados
+**Status: ✅ CONCLUÍDA**
+
+**Problema relatado pelo usuário (19/06/2026):** notícias e uma mensagem de upgrade (com mojibake — letras/símbolos corrompidos) continuavam sendo publicadas nos grupos **Básico** e **Patriota**, mesmo esses grupos estando marcados `ativo = false` desde a auditoria de 15/06. Além disso, o grupo **Elite** recebeu uma matéria em texto sem o card visual do Prof. Cavalcanti.
+
+**Causa raiz identificada:** a auditoria de 15/06 corrigiu `lib/whatsapp.ts` e o banco, mas **não considerou** `automation/whatsapp-cards.cjs` — um script legado em Puppeteer, nunca desativado após a migração da Fase 4 para `@vercel/og`. Esse script:
+- Lia os JIDs dos 4 grupos direto de variáveis de ambiente, sem checar `ativo` no banco
+- Era disparado por **dois workflows GitHub Actions** ainda ativos: `alerta-patriota-cards.yml` (3x/dia, todos os planos) e `alerta-patriota-cards-premium.yml` (3x/dia, vip+elite)
+- Sua função `dispararFOMO()` enviava o texto de upgrade ("EXCLUSIVO VIP PREMIUM...") para Básico/Patriota sempre que processava VIP/Elite com sucesso — inclusive no workflow "premium", pois os JIDs de Básico/Patriota continuavam disponíveis via env var independentemente do plano processado
+- O mojibake no texto vinha de uma corrupção Windows-1252-como-UTF-8 no próprio arquivo-fonte do script
+
+**Correção aplicada (19/06/2026) — aposentadoria completa, não patch:**
+1. ✅ Bot removido dos grupos Básico e Patriota via Evolution API (`DELETE /group/leaveGroup`) — únicos administradores são os membros que restaram, mas o número da automação não posta mais nada ali
+2. ✅ `automation/whatsapp-cards.cjs` apagado
+3. ✅ `.github/workflows/alerta-patriota-cards.yml` apagado
+4. ✅ `.github/workflows/alerta-patriota-cards-premium.yml` apagado
+5. ✅ `automation/crise-monitor.cjs` (Márcio Crise, roda a cada 2h) tinha uma dependência real do script apagado — sua função `gerarCardsVIPElite()` chamava `spawnSync('node', ['whatsapp-cards.cjs', 'vip', 'elite'])`. Reescrita para chamar `/api/cron/gerar-card?plano=vip` e `?plano=elite` via `fetch`, mesma API usada pelo cron normal de cards. Constantes `EVO_URL`/`EVO_KEY`/`EVO_INST` (declaradas mas nunca usadas) e o import de `child_process` também removidos
+6. ✅ `MAPA_ARQUIVOS` em `escalar-claude/route.ts` e `webhooks/claude-resolver/route.ts` (sistema de auto-fix do Claude Revisor) redirecionado do script apagado para `gerar-card/route.ts`
+7. ✅ Comentários desatualizados em `fiscal-cards/route.ts` (citavam Puppeteer/GitHub Actions) corrigidos para refletir o pipeline atual via `@vercel/og`
+
+**Investigação do card faltando no Elite — causa identificada, fix não implementado:**
+- `gerar-card/route.ts` (imagem, flag `postada_elite_card`) e `publicar-noticias/route.ts` (texto, flag `postada_elite`) são pipelines **totalmente desacoplados**, sem qualquer sincronização entre si
+- O envio de imagem via Evolution API (`sendMedia`) está falhando silenciosamente em ~70-80% das execuções (confirmado via `agentes_log`, mesmo padrão em VIP). A instância WhatsApp está conectada (`state: open`) — não é desconexão
+- O código **não captura o corpo do erro HTTP** quando `res.ok` é `false` — só grava `hook/plano/noticiaId` no log, sem a causa real. Isso torna o diagnóstico exato impossível retroativamente
+- Como a query sempre busca a notícia mais recente (`ORDER BY urgente DESC, created_at DESC`), uma notícia que falha repetidamente é abandonada para sempre se uma notícia mais nova chegar antes do card finalmente ser enviado — texto já publicado, card nunca entregue
+- **Recomendação (não implementada — depende de decisão do usuário):** capturar `await res.text()` no log de erro para diagnosticar a causa real da falha do Evolution API; e/ou alterar a prioridade da fila para não abandonar notícias antigas com card pendente
+
+**Código morto identificado, sem impacto (não corrigido):** `app/src/app/api/cron/cards-elite-global/route.ts` tem um comentário de cabeçalho dizendo ser "consultado pelo script whatsapp-cards.cjs", mas nunca é chamado por nenhum cron/workflow — confirmado via busca exaustiva no repositório. Rota órfã desde antes desta sessão.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -145,3 +176,4 @@ node --use-system-ca "C:\Users\lelus\AppData\Roaming\npm\node_modules\vercel\dis
 | 18/06/2026 | Fase 3 | Estratégia revisada: sem 2º número, não há 2ª instância. Nome de perfil do WhatsApp trocado para "Alerta Patriota" (neutro); diferenciação Braga/Cavalcanti mantida via assinatura no texto das mensagens. `EVOLUTION_INSTANCIA_ELITE` apontando para a mesma instância `alertapatriota` |
 | 18/06/2026 | Fase 4 | Puppeteer removido do app Vercel; `card-generator.tsx` reescrito com JSX/Satori (`next/og`); fontes baixadas e embutidas em `public/fonts/`; testado localmente — cards renderizam corretamente; lista de fotos de persona expandida para usar todas as imagens disponíveis |
 | 18/06/2026 | Fase 5 | Commit + push (com correção de token exposto detectado pelo GitHub Push Protection antes de qualquer leak público) + deploy via Vercel CLI; produção em `https://alertapatriota.vercel.app`; build limpo |
+| 19/06/2026 | Fase 6 | Bot saiu dos grupos Básico/Patriota via Evolution API; `whatsapp-cards.cjs` + 2 workflows legados apagados; `crise-monitor.cjs` migrado para chamar `gerar-card` via fetch; `MAPA_ARQUIVOS` do Claude Revisor redirecionado; causa do card faltando no Elite identificada (pipelines de texto/imagem desacoplados + falha silenciosa do Evolution API sem log de erro) |

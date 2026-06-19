@@ -1,7 +1,7 @@
 /**
  * FISCAL FLORA FOTO — Verifica geração e envio de cards visuais
  * Detecta quando os grupos ficam sem card visual por tempo excessivo.
- * NÃO faz auto-fix com texto puro — cards precisam de Puppeteer (GitHub Actions).
+ * Cards são gerados via @vercel/og (Satori) em /api/cron/gerar-card, sem Puppeteer/Chromium.
  * Alerta o Telegram com contexto claro para que o próximo cron corrija.
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
       const corpo = alertas.join("\n\n");
       await enviarTelegram(
         `🔍 *FLORA FOTO — ALERTA DE CARDS*\n📅 ${dataBRT()} · ${horaBrt}h BRT\n\n${corpo}\n\n` +
-        `ℹ️ Cards visuais precisam do GitHub Actions (Puppeteer).\n` +
+        `ℹ️ Cards visuais são gerados via /api/cron/gerar-card (@vercel/og).\n` +
         `O próximo cron agendado irá publicar automaticamente.\n` +
         `Se o problema persistir por mais de 10h, acione o Claude.`
       );
