@@ -1,3 +1,4 @@
+```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
@@ -13,16 +14,21 @@ interface Noticia {
 }
 
 async function gerarResumo(titulo: string, conteudo: string, url: string, prompt: string): Promise<string> {
-  return gerarTexto({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 450,
-    messages: [
-      {
-        role: "user",
-        content: `${prompt}\n\nNOTÍCIA: "${titulo}"\n${conteudo ? `CONTEÚDO: ${conteudo}\n` : ""}FONTE: ${url}`,
-      },
-    ],
-  });
+  try {
+    return await gerarTexto({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 450,
+      messages: [
+        {
+          role: "user",
+          content: `${prompt}\n\nNOTÍCIA: "${titulo}"\n${conteudo ? `CONTEÚDO: ${conteudo}\n` : ""}FONTE: ${url}`,
+        },
+      ],
+    });
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -82,8 +88,7 @@ export async function GET(req: NextRequest) {
         }
 
         if (!resumoBraga || !resumoCavalcanti) {
-          erros++;
-          continue;
+          throw new Error('Resumo não gerado');
         }
 
         await sql`
@@ -122,3 +127,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }
+```
