@@ -43,7 +43,6 @@ export async function GET(req: NextRequest) {
       FROM noticias
       WHERE categoria = 'curada'
         AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
-        AND (global IS NULL OR global = false)
         AND created_at >= NOW() - INTERVAL '6 hours'
       ORDER BY created_at DESC
       LIMIT 100
@@ -103,10 +102,6 @@ export async function GET(req: NextRequest) {
 
     if (noticiasDuplicadas > 0) {
       await alertarTelegram("Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas nas últimas 6 horas.`);
-    }
-
-    if (Date.now() - inicio > 1000 * 60 * 5) {
-      await alertarTelegram("Agente gerador-card não rodou hoje", "O agente gerador-card não rodou hoje.");
     }
 
     const duracao = Date.now() - inicio;
