@@ -1,3 +1,4 @@
+```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
@@ -13,16 +14,21 @@ interface Noticia {
 }
 
 async function gerarResumo(titulo: string, conteudo: string, url: string, prompt: string): Promise<string> {
-  return gerarTexto({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 450,
-    messages: [
-      {
-        role: "user",
-        content: `${prompt}\n\nNOTÍCIA: "${titulo}"\n${conteudo ? `CONTEÚDO: ${conteudo}\n` : ""}FONTE: ${url}`,
-      },
-    ],
-  });
+  try {
+    return await gerarTexto({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 450,
+      messages: [
+        {
+          role: "user",
+          content: `${prompt}\n\nNOTÍCIA: "${titulo}"\n${conteudo ? `CONTEÚDO: ${conteudo}\n` : ""}FONTE: ${url}`,
+        },
+      ],
+    });
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -34,6 +40,7 @@ export async function GET(req: NextRequest) {
   let processadas = 0;
   let erros = 0;
   let motivo = "";
+  let noticiasDuplicadas = 0;
 
   try {
     const noticias = await sql<Noticia[]>`
@@ -41,8 +48,7 @@ export async function GET(req: NextRequest) {
       FROM noticias
       WHERE categoria = 'curada'
         AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
-        AND (global IS NULL OR global = false)
-        AND created_at >= NOW() - INTERVAL '8 hours'
+        AND created_at >= NOW() - INTERVAL '6 hours'
       ORDER BY created_at DESC
       LIMIT 100
     `;
@@ -58,7 +64,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, processadas: 0, erros: 0, motivo: motivo });
     }
 
+    const noticiasJaProcessadas: { [id: number]: boolean } = {};
+
     for (const noticia of noticias) {
+      if (noticiasJaProcessadas[noticia.id]) {
+        noticiasDuplicadas++;
+        continue;
+      }
+
+      noticiasJaProcessadas[noticia.id] = true;
+
       try {
         const conteudo = noticia.conteudo_original || "";
         let resumoBraga: string | null = noticia.resumo_braga;
@@ -73,13 +88,12 @@ export async function GET(req: NextRequest) {
         }
 
         if (!resumoBraga || !resumoCavalcanti) {
-          erros++;
-          continue;
+          throw new Error('Resumo não gerado');
         }
 
         await sql`
           UPDATE noticias
-          SET resumo_braga = ${resumoBraga}, resumo_cavalcanti = ${resumoCavalcanti}
+          SET resumo_braga = ${sql.sql`${resumoBraga}`}, resumo_cavalcanti = ${sql.sql`${resumoCavalcanti}`}
           WHERE id = ${noticia.id}
         `;
 
@@ -90,15 +104,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    if (noticiasDuplicadas > 0) {
+      await alertarTelegram("Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas nas últimas 6 horas.`);
+    }
+
     const duracao = Date.now() - inicio;
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
       VALUES ('bernardo-resumidor', 'resumir_noticias', ${erros === 0 ? "sucesso" : "aviso"},
-        ${JSON.stringify({ processadas, erros })}, ${duracao})
+        ${JSON.stringify({ processadas, erros, noticiasDuplicadas })}, ${duracao})
     `;
 
-    return NextResponse.json({ ok: true, processadas, erros });
+    return NextResponse.json({ ok: true, processadas, erros, noticiasDuplicadas });
   } catch (err) {
     await alertarTelegram("Falha Agente Bernardo Resumidor", String(err));
     const duracao = Date.now() - inicio;
@@ -109,3 +127,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }
+```
