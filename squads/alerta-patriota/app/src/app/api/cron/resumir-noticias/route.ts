@@ -1,4 +1,3 @@
-```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
@@ -89,7 +88,7 @@ export async function GET(req: NextRequest) {
 
         await sql`
           UPDATE noticias
-          SET resumo_braga = ${resumoBraga}, resumo_cavalcanti = ${resumoCavalcanti}
+          SET resumo_braga = ${sql.sql`${resumoBraga}`}, resumo_cavalcanti = ${sql.sql`${resumoCavalcanti}`}
           WHERE id = ${noticia.id}
         `;
 
@@ -123,4 +122,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }
-```
