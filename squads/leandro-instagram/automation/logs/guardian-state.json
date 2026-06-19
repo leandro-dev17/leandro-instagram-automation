@@ -2,16 +2,16 @@
   "falhas": {
     "daily-generator": {
       "data": "2026-06-19",
-      "count": 1,
-      "ultimaFalha": "2026-06-19T14:29:19.143Z"
+      "count": 2,
+      "ultimaFalha": "2026-06-19T16:57:51.488Z"
     },
     "story-07h": {
       "data": "2026-06-19",
-      "count": 1,
-      "ultimaFalha": "2026-06-19T14:29:20.348Z"
+      "count": 2,
+      "ultimaFalha": "2026-06-19T16:57:52.555Z"
     }
   },
-  "ultimaVerificacao": "2026-06-19T14:29:21.595Z",
+  "ultimaVerificacao": "2026-06-19T16:57:53.527Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
