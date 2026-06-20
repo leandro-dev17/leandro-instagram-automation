@@ -15,7 +15,7 @@ interface Noticia {
 
 async function gerarResumo(titulo: string, conteudo: string, url: string, prompt: string): Promise<string> {
   try {
-    return await gerarTexto({
+    const response = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 450,
       messages: [
@@ -25,6 +25,7 @@ async function gerarResumo(titulo: string, conteudo: string, url: string, prompt
         },
       ],
     });
+    return response.trim();
   } catch (err) {
     console.error(err);
     throw err;
@@ -48,7 +49,6 @@ export async function GET(req: NextRequest) {
       FROM noticias
       WHERE categoria = 'curada'
         AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
-        AND created_at >= NOW() - INTERVAL '6 hours'
       ORDER BY created_at DESC
       LIMIT 100
     `;
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (noticiasDuplicadas > 0) {
-      await alertarTelegram("Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas nas últimas 6 horas.`);
+      await alertarTelegram("Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas.`);
     }
 
     const duracao = Date.now() - inicio;
