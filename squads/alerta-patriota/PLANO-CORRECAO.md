@@ -211,9 +211,23 @@ Enquanto a correção desta fase estava sendo preparada localmente (commit ainda
 - [ ] Avaliar com o usuário se vale upgrade do plano Anthropic/Groq antes de 01/07, dado que o cap atual da Anthropic só libera nessa data.
 - [ ] Confirmar que, quando algum provedor estiver sem quota, os agentes falham de forma visível (Telegram) em vez de silenciosamente — já é o comportamento atual (`alertarTelegram` em cada catch), manter assim.
 
-**Fase 8.3 — Triagem dos 17 alertas abertos**
-- [ ] Consultar `SELECT tipo, severidade, mensagem FROM alertas WHERE resolvido = false ORDER BY created_at DESC` e classificar quantos são consequência direta do esgotamento de IA (item 2) vs. problemas reais não relacionados.
-- [ ] Resolver ou descartar os que forem ruído do esgotamento de IA depois que a quota voltar e o pipeline rodar normalmente de novo.
+**Fase 8.3 — Triagem dos alertas abertos**
+**Status: ✅ CONCLUÍDA (20/06/2026)**
+
+A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartbeat usa outro filtro/janela), de `16/06` a `20/06`. Classificação por tipo:
+
+| Tipo | Qtde aprox. | Causa raiz | Ação |
+|------|------------|------------|------|
+| `cards_sem_envio` (vip/elite, "Xh sem card") | ~60 | **Confirmado no banco**: `posts_whatsapp` não tem **nenhum** registro `tipo='card_visual'` em todo o histórico — cards nunca chegaram a ser enviados. Causa: esgotamento de IA (achado #2) é o motivo atual; antes disso (06-16 a 06-18) a causa era o pipeline texto/imagem desacoplado já documentado na Fase 6. | Não resolver agora — são sintoma legítimo e contínuo do achado #2. Resolver em massa só depois que `gerar-card` voltar a enviar com sucesso. |
+| `publicacao_atrasada` ("Card das Xh não publicado") | ~5 | Mesma causa do item acima | Mesma ação |
+| `codigo_logica` (id 748, a mais recente) | 1 | Resumo direto do achado #2: "94% das notícias sem resumo, gerador-card não rodou hoje, 21 publicações duplicadas" — confirma a auditoria desta sessão com dados do próprio sistema | Nenhuma ação adicional — já documentado |
+| `publicacao_especial_ausente` ("Análise Semanal VIP não enviada") | 2 | Cron está correto (`0 10 * * 1` UTC = 7h BRT, confirmado em `alerta-patriota-crons.yml:21-22`) — o job dispara na hora certa, mas falha ao gerar texto pelo mesmo motivo do achado #2 | Nenhuma ação adicional — sintoma do achado #2 |
+| `duplicata_detectada` ("20 duplicata(s)...") | ~10 | **Bug cosmético encontrado**: a query em `fiscal-duplicatas/route.ts:35` tinha `LIMIT 20` — quando havia mais de 20 pares duplicados num burst, o alerta sempre mostrava exatamente "20", subestimando o total real. Os bursts reais de duplicata coincidiram com os períodos de retry storm da IA (mesmo achado #2), não com tráfego normal — confirmado: zero duplicatas no `posts_whatsapp` das últimas 6h. | ✅ Corrigido — `LIMIT` elevado para 500 (teto de segurança, não afeta operação normal numa janela de 2h) |
+| `conteudo_irrelevante` ("X itens não-político") | ~8 | Ruído normal de curadoria (Carlos descarta esses itens) — não é uma falha, é o fiscal confirmando que a curadoria está filtrando corretamente | Nenhuma ação — comportamento esperado |
+| `vitor-validador` ("X resumos inválidos... marcados para regeneração") | ~6 | Auto-cura normal: o fiscal detecta resumo malformado e marca para regenerar — também depende da IA estar disponível para de fato regenerar | Nenhuma ação — comportamento esperado, mas regeneração só funciona com IA disponível (achado #2) |
+| `api_externa_down` ("Mercado Pago não respondeu") | 3 | Falhas intermitentes de rede/timeout na API do Mercado Pago (tentativa 1) — não relacionado a IA, é a integração de assinaturas do próprio Alerta Patriota (não Vovó Teresinha) | Monitorar; sem padrão de falha recorrente que indique bug de código |
+
+**Conclusão da triagem:** nenhum alerta revelou causa raiz nova — todos (exceto o bug cosmético do `LIMIT 20`) são sintomas diretos e já explicados do esgotamento de IA (achado #2) ou comportamento esperado dos fiscais de qualidade. Não fiz resolução em massa no banco porque o problema de fundo (sem IA) ainda está ativo — resolver os alertas agora mascararia recorrências reais enquanto a causa raiz não for sanada.
 
 **Fase 8.4 — Monitoramento contínuo do `claude-revisor`**
 - [ ] Nos próximos dias, checar periodicamente `git log` do repositório por novos commits `fix(auto): claude-revisor corrige ...` e revisar manualmente cada um (compilação + diff de tamanho) antes de considerar resolvido — exatamente o que o comentário adicionado no código (item 7) está lembrando de fazer.

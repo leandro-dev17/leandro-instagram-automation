@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         AND a.enviado_at > NOW() - INTERVAL '2 hours'
       JOIN grupos_whatsapp g ON g.id = a.grupo_id
       ORDER BY a.enviado_at DESC
-      LIMIT 20
+      LIMIT 500
     `;
 
     for (const dup of duplicatasTipo) {
