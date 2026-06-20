@@ -145,19 +145,40 @@ node --use-system-ca "C:\Users\lelus\AppData\Roaming\npm\node_modules\vercel\dis
 ---
 
 ## FASE 7 — Vistoria Geral de Bugs (TypeScript + Auto-fix + Cards)
-**Status: 🔄 EM ANDAMENTO**
+**Status: ✅ CONCLUÍDA (20/06/2026)**
 
-**Lista de problemas encontrados na vistoria de 19/06/2026, a corrigir nesta fase:**
+**Lista de problemas encontrados na vistoria de 19/06/2026, corrigidos nesta fase:**
 
-| # | Problema | Arquivo | Gravidade |
-|---|----------|---------|-----------|
-| 1 | `claude-revisor/route.ts` commita o fix do Claude **sem remover cercas de markdown** (` ```typescript ` / ` ``` `) — diferente do `claude-resolver`, que já faz esse strip. Resultado real: corrompeu `resumir-noticias/route.ts` no GitHub hoje, quebrando a sintaxe do arquivo inteiro | `api/cron/claude-revisor/route.ts` | 🔴 Crítico — corrompe código em produção |
-| 2 | `resumir-noticias/route.ts` está com o arquivo inteiro envolto em ` ```typescript ` / ` ``` ` literais (consequência do bug #1) — ~58 erros de sintaxe, rota quebrada | `api/cron/resumir-noticias/route.ts` | 🔴 Crítico |
-| 3 | `alertarTelegram()` chamado com 2 argumentos em vez de 3 (falta o emoji `nivel`) em pelo menos 2 pontos do mesmo arquivo — gera alertas malformados no Telegram | `api/cron/resumir-noticias/route.ts` | 🟠 Alto |
-| 4 | Typo `<\b>` em vez de `</b>` no fechamento da tag HTML do Telegram | `lib/telegram.ts` | 🟡 Médio |
-| 5 | `gerar-card`: falha do envio via Evolution API (~70-80% das execuções) não captura o corpo do erro no log — impossível diagnosticar a causa real. Fila prioriza sempre a notícia mais recente, abandonando para sempre notícias mais antigas que falharam repetidamente (texto publicado, card nunca entregue) — causa raiz do card faltando no Elite | `api/cron/gerar-card/route.ts` | 🟠 Alto |
-| 6 | ~20 erros de TypeScript pré-existentes: `Record<string,any>` perdendo tipo em callbacks de `.filter()/.map()` após `sql\`...\`` sem tipo genérico (afeta `curar-noticias`, `dossie-elite`, `fix-encoding`, `publicar-noticias`, `resumo-noite`, `semana-em-revista`, `termometro`); 2 chamadas de `alertarTelegram` com emoji fora do union type (`"🤖"`, `"🔐"`); flag de regex `u`/`s` incompatível com o target do tsconfig em `radar-economico`; `.unsafe` inexistente em `revisor-schema` | vários `api/cron/*` | 🟡 Médio (não bloqueia build do Next, mas indica bugs de tipagem) |
-| 7 | Código morto: `cards-elite-global/route.ts` nunca é chamado por nenhum cron/workflow | `api/cron/cards-elite-global/route.ts` | 🟢 Baixo (limpeza) |
+| # | Problema | Arquivo | Gravidade | Status |
+|---|----------|---------|-----------|--------|
+| 1 | `claude-revisor/route.ts` commita o fix do Claude **sem remover cercas de markdown** (` ```typescript ` / ` ``` `) — diferente do `claude-resolver`, que já faz esse strip. Resultado real: corrompeu `resumir-noticias/route.ts` no GitHub | `api/cron/claude-revisor/route.ts` | 🔴 Crítico | ✅ Corrigido — strip de cercas + guarda de sanidade (rejeita resultado se ainda tiver ` ``` ` ou < 50 chars) antes de commitar |
+| 2 | `resumir-noticias/route.ts` com o arquivo inteiro envolto em cercas de markdown (consequência do bug #1) — rota quebrada | `api/cron/resumir-noticias/route.ts` | 🔴 Crítico | ✅ Corrigido (restaurado **duas vezes** — ver incidente abaixo) |
+| 3 | `alertarTelegram()` chamado com 2 argumentos em vez de 3 (falta o emoji `nivel`) | `api/cron/resumir-noticias/route.ts` | 🟠 Alto | ✅ Corrigido |
+| 4 | Typo `<\b>` em vez de `</b>` no fechamento da tag HTML do Telegram | `lib/telegram.ts` | 🟡 Médio | ✅ Corrigido (também corrigido o union type do parâmetro `nivel`, que não incluía todos os emojis usados no código) |
+| 5 | `gerar-card`: falha do envio via Evolution API não captura o corpo do erro no log; fila abandona notícias antigas que falharam repetidamente | `api/cron/gerar-card/route.ts` | 🟠 Alto | ✅ Corrigido — agora busca até 5 candidatas (`LIMIT 5`) e tenta cada uma até uma funcionar; captura `await res.text()` do Evolution API em caso de falha; só alerta no Telegram se todas as tentativas falharem, com a lista de erros de cada uma |
+| 6 | ~20 erros de TypeScript pré-existentes (perda de tipo em callbacks após `sql\`...\``, regex incompatível com target, `.unsafe` inexistente, etc.) | vários `api/cron/*` | 🟡 Médio | ✅ Corrigido — `tsc --noEmit` zerado (ver detalhamento abaixo) |
+| 7 | Código morto: `cards-elite-global/route.ts` nunca é chamado por nenhum cron/workflow | `api/cron/cards-elite-global/route.ts` | 🟢 Baixo | ✅ Removido (confirmado via busca exaustiva antes de apagar) |
+
+### Detalhamento do item 6 — limpeza de TypeScript
+
+Ao rodar `tsc --noEmit` no projeto inteiro, apareceram **mais erros do que os originalmente catalogados** na vistoria de 19/06. Todos foram corrigidos nesta fase, não só os 14 itens da lista original:
+
+- **Padrão geral (afetou ~9 arquivos):** `sql\`...\`` do driver Neon retorna `Record<string, any>[]`, não aceita generic de tipo de linha (`sql<Tipo[]>`). Quando os callbacks de `.filter()/.map()` eram tipados manualmente com um tipo estreito, o TypeScript rejeitava (`TS2345 parâmetros incompatíveis`). Fix aplicado uniformemente: `(await sql\`...\`) as unknown as { ... }[]` logo após a query, removendo as anotações manuais dos callbacks (inferência cuida do resto). Arquivos: `resumir-noticias`, `publicar-noticias`, `dossie-elite`, `fix-encoding`, `resumo-noite`, `semana-em-revista`, `termometro`, `bom-dia`, `curar-noticias`.
+- **`revisor-schema/route.ts`:** `sql.unsafe(sqlCmd)` não existe no driver Neon — corrigido para `sql(sqlCmd)` (uso do `sql` como função comum, que o driver aceita para string SQL crua).
+- **`radar-economico/route.ts` e `coletar-noticias-global/route.ts`:** flag `s` (dotAll) do regex exige ES2018+, mas o `tsconfig.json` tem `target: ES2017` — corrigido substituindo `.` por `[\s\S]` e removendo a flag `s`, sem alterar o target do projeto (menor raio de impacto).
+- **`agente-heartbeat/route.ts`:** 3 casts diretos de `NeonQueryPromise<...>` para tipo customizado sem overlap suficiente (`TS2352`) — corrigido inserindo `unknown` como intermediário (`as unknown as Promise<...>`).
+- **`assinaturas/criar/route.ts` e `criar-direto/route.ts`:** SDK do Mercado Pago não declara `notification_url` no tipo `PreApprovalRequest`, mesmo sendo um campo real e funcional da API (gap de tipagem do SDK, não bug nosso) — corrigido com cast `as Parameters<typeof X.create>[0]["body"]` no objeto inteiro, em vez de remover o campo (removê-lo quebraria a entrega do webhook).
+- **`fix-encoding/route.ts`:** mesmo padrão de cast em 3 queries diferentes na mesma rota.
+
+**Resultado:** `npx tsc --noEmit` retorna **0 erros** (confirmado após a correção e novamente após o merge com o remoto).
+
+### Incidente durante a correção — bot `claude-revisor` recorrompeu o arquivo 2x antes do próprio fix ir ao ar
+
+Enquanto a correção desta fase estava sendo preparada localmente (commit ainda não enviado), o bot de auto-fix `claude-revisor` rodou no remoto (ele commita direto via API do GitHub, de forma assíncrona, independente da sessão) e corrompeu `resumir-noticias/route.ts` **mais duas vezes** (commits `44d585b` e `3f1858d`, ambos "fix(auto): claude-revisor corrige codigo_logica") — porque o fix do bug #1 ainda não estava deployado quando ele rodou. A corrupção reintroduziu as cercas de markdown, o `sql.sql` inexistente, as chamadas de `alertarTelegram` com 2 argumentos, e **um bug novo**: todo o corpo da rota foi envolvido em `if (agenteRodouHoje.length > 0)`, checando um agente errado/inexistente (`'bernardo-gerador-card'`), o que fazia o resumidor pular o trabalho real quase sempre.
+
+**Resolução:** commit local das correções desta fase (`3495909`) → `git merge origin/main` (conflito **apenas** neste arquivo, confirmado via diff) → `git checkout --ours` para descartar a versão corrompida do remoto e manter a versão local corrigida → merge finalizado (`780ecc5`) → push para `origin/main` (`b504165..780ecc5`).
+
+**Lição confirmada:** o fix do bug #1 (`claude-revisor/route.ts`) elimina a causa raiz, mas só protege execuções **futuras** do bot — qualquer execução que já estava em andamento (ou rodou antes do deploy do fix) ainda corrompe o arquivo. Recomenda-se observar `agentes_log`/commits do bot nos próximos dias para confirmar que a corrupção não se repete.
 
 ---
 
@@ -194,3 +215,4 @@ node --use-system-ca "C:\Users\lelus\AppData\Roaming\npm\node_modules\vercel\dis
 | 18/06/2026 | Fase 4 | Puppeteer removido do app Vercel; `card-generator.tsx` reescrito com JSX/Satori (`next/og`); fontes baixadas e embutidas em `public/fonts/`; testado localmente — cards renderizam corretamente; lista de fotos de persona expandida para usar todas as imagens disponíveis |
 | 18/06/2026 | Fase 5 | Commit + push (com correção de token exposto detectado pelo GitHub Push Protection antes de qualquer leak público) + deploy via Vercel CLI; produção em `https://alertapatriota.vercel.app`; build limpo |
 | 19/06/2026 | Fase 6 | Bot saiu dos grupos Básico/Patriota via Evolution API; `whatsapp-cards.cjs` + 2 workflows legados apagados; `crise-monitor.cjs` migrado para chamar `gerar-card` via fetch; `MAPA_ARQUIVOS` do Claude Revisor redirecionado; causa do card faltando no Elite identificada (pipelines de texto/imagem desacoplados + falha silenciosa do Evolution API sem log de erro) |
+| 20/06/2026 | Fase 7 | `claude-revisor` corrigido na raiz (strip de cercas + guarda de sanidade); `resumir-noticias` restaurado (2x — bot recorrompeu durante a correção, resolvido via merge); `gerar-card` agora tenta até 5 notícias e loga erro real do Evolution API; `telegram.ts` com tipo `nivel` corrigido; `cards-elite-global` removido; `tsc --noEmit` zerado (incluindo ~10 erros não catalogados originalmente); commits `3495909` + merge `780ecc5`, push `b504165..780ecc5` |
