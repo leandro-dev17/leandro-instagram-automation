@@ -182,6 +182,44 @@ Enquanto a correção desta fase estava sendo preparada localmente (commit ainda
 
 ---
 
+## FASE 8 — Auditoria 20/06/2026: mensagens VIP/Elite sem aparecer
+
+**Status: 🔄 EM ANDAMENTO**
+**Gatilho:** usuário reportou que mensagens nos grupos VIP e Elite "ficam carregando mas não aparecem faz horas".
+
+### Achados (em ordem de impacto)
+
+| # | Achado | Evidência | Status |
+|---|--------|-----------|--------|
+| 1 | **Deploy nunca aconteceu após o push da Fase 7** — produção rodava build de `2026-06-20T08:11 BRT`, anterior aos commits de fix (`3495909`/`e29b104`). `gerador-card` ficava preso retentando a mesma notícia (`id 5117`) por horas — exatamente o "queue orphaning" que a Fase 7 deveria ter eliminado. | Logs de `gerador-card` em produção sem os campos `tentativas`/`erros` que só existem no código corrigido; timestamp do deployment Vercel vs. timestamp dos commits | ✅ Corrigido — `vercel --prod` executado, deployment `dpl_G9xSv5b6oMKgJaASQZJ2GTb8E3ZT`, alias `alertapatriota.vercel.app` |
+| 2 | **Esgotamento simultâneo dos dois provedores de IA — causa raiz real do "carregando sem aparecer".** Anthropic: limite de uso da chave atingido, só libera em `2026-07-01 00:00 UTC` (erro `invalid_request_error`, não é rate-limit transitório). Groq (fallback): quota diária de tokens praticamente zerada (`99.701/100.000 TPD`). Toda função que depende de `gerarTexto()` — `resumir-noticias`, `gerar-card` (hook/legenda), `bom-dia`, `bot-responder`, o próprio `claude-revisor` — fica bloqueada. Não há mensagem nova porque **nenhum texto novo está sendo gerado**, não porque o WhatsApp está com problema de entrega. | Chamada direta a `/api/cron/gerar-card?plano=vip` em produção retornou `"Anthropic e Groq falharam — Anthropic: ...usage limits...2026-07-01 | Groq: ...tokens per day (TPD): Limit 100000, Used 99701..."` | ⚠️ Bloqueio externo — código não resolve sozinho; ver Fase 8.2 abaixo para mitigação |
+| 3 | Evolution API (instância `alertapatriota`) confirmada conectada (`state: open`) — não é problema de sessão/login do WhatsApp. | `GET /instance/connectionState/alertapatriota` | ✅ Descartado como causa |
+| 4 | Investigada hipótese de cron duplicado disparando `coletar-noticias`/`resumir-noticias` a cada ~5min em vez de 3x/dia. **Hipótese refutada**: os jobs `coletar`/`curar`/`resumir` dentro de `alerta-patriota-crons.yml` são gateados `if: github.event_name == 'workflow_dispatch'` (só manual) — o pipeline de notícias real é só o `alerta-patriota-noticias.yml`, 3x/dia. As dezenas de execuções de `bernardo-resumidor` em sequência de segundos vistas em `agentes_log` hoje foram geradas pelos próprios testes diretos via `curl` desta sessão de diagnóstico, não por um bug de agendamento em produção. | `gh run list` nos dois workflows não mostra runs de `resumir-noticias` fora do padrão 3x/dia; `coletar`/`resumir` em `crons.yml` confirmados `if: workflow_dispatch` apenas | ✅ Descartado — não é bug, é ruído da própria investigação |
+| 5 | `bot-responder` (a cada 5min) chama `gerarTexto()` sempre que há pergunta pendente em `whatsapp_fila` — é um consumidor legítimo de quota de IA, mas soma-se ao volume total e antecipa o esgotamento diário do Groq. Não é um bug, mas é relevante para a Fase 8.2 (priorizar consumo de IA). | `src/app/api/cron/bot-responder/route.ts:17-46` | 📝 Registrado — ver Fase 8.2 |
+| 6 | `claude-revisor` não recorrompeu nenhum arquivo desde o fix da Fase 7 (`3f1858d`, 20/06 15:42 UTC) — confirmado via `git log`, sem novos commits `fix(auto): claude-revisor corrige ...` depois desse. | `git log --oneline` no remoto, sem novas entradas do bot após `3f1858d` | ✅ Sem recorrência até agora — monitorar continuamente (ver item 7) |
+| 7 | Adicionado aviso permanente no código do `claude-revisor` lembrando de sempre revisar manualmente cada commit automático dele no GitHub (autor "Claude Revisor"), confirmando que compila e que o tamanho do arquivo não encolheu de forma suspeita — para nunca mais deixar uma recorrupção passar desapercebida como aconteceu nos commits `44d585b`/`3f1858d`. | `src/app/api/cron/claude-revisor/route.ts:1-12` | ✅ Comentário adicionado |
+| 8 | `alertas_abertos: 17` no heartbeat — ainda não triados individualmente (provavelmente majoritariamente decorrentes do próprio esgotamento de IA, item 2). | `GET /api/cron/agente-heartbeat` | 🔜 Pendente — Fase 8.3 |
+
+### Plano de fases para a correção
+
+**Fase 8.1 — Deploy e correção imediata (✅ concluída nesta auditoria)**
+- Redeploy de produção para sincronizar com os fixes da Fase 7.
+- Comentário de alerta permanente adicionado em `claude-revisor/route.ts`.
+
+**Fase 8.2 — Mitigar o esgotamento de IA (bloqueio externo, parcialmente fora do nosso controle)**
+- [ ] Quando o Groq resetar a quota diária (00:00 UTC), revisar se `bot-responder` (5min) + `bom-dia` + `resumir-noticias` 3x/dia cabem dentro de 100k tokens/dia sem reesgotar em poucas horas — se não, considerar throttling (ex.: `bot-responder` só roda se houver fila real, já é o caso, ou aumentar `max_tokens` mínimo necessário).
+- [ ] Avaliar com o usuário se vale upgrade do plano Anthropic/Groq antes de 01/07, dado que o cap atual da Anthropic só libera nessa data.
+- [ ] Confirmar que, quando algum provedor estiver sem quota, os agentes falham de forma visível (Telegram) em vez de silenciosamente — já é o comportamento atual (`alertarTelegram` em cada catch), manter assim.
+
+**Fase 8.3 — Triagem dos 17 alertas abertos**
+- [ ] Consultar `SELECT tipo, severidade, mensagem FROM alertas WHERE resolvido = false ORDER BY created_at DESC` e classificar quantos são consequência direta do esgotamento de IA (item 2) vs. problemas reais não relacionados.
+- [ ] Resolver ou descartar os que forem ruído do esgotamento de IA depois que a quota voltar e o pipeline rodar normalmente de novo.
+
+**Fase 8.4 — Monitoramento contínuo do `claude-revisor`**
+- [ ] Nos próximos dias, checar periodicamente `git log` do repositório por novos commits `fix(auto): claude-revisor corrige ...` e revisar manualmente cada um (compilação + diff de tamanho) antes de considerar resolvido — exatamente o que o comentário adicionado no código (item 7) está lembrando de fazer.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |

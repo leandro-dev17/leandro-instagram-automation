@@ -3,6 +3,13 @@
  * Usa a API da Anthropic para analisar e corrigir problemas de código automaticamente.
  * Fluxo: Recebe alertas → lê arquivo no GitHub → Claude gera fix → commita → redeploy Vercel.
  * Se falhar 2x → escala para Claude Resolver existente → notifica Leandro.
+ *
+ * ⚠️ ATENÇÃO — INCIDENTE 19-20/06/2026: este agente já recorrompeu resumir-noticias/route.ts
+ * 2x (commits 44d585b e 3f1858d) sobrescrevendo o arquivo com código truncado/inválido antes
+ * do fix de strip de markdown (linhas 199-204) existir. SEMPRE revisar manualmente todo commit
+ * "fix(auto): claude-revisor corrige ..." no GitHub (autor Claude Revisor) antes de confiar nele:
+ * confirmar que o arquivo resultante compila (tsc --noEmit) e que o tamanho não encolheu de forma
+ * suspeita. Ver squads/alerta-patriota/PLANO-CORRECAO.md (Fase 7) para o histórico completo.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
