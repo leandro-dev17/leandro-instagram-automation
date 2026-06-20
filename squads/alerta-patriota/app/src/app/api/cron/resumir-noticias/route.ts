@@ -42,89 +42,101 @@ export async function GET(req: NextRequest) {
   let erros = 0;
   let motivo = "";
   let noticiasDuplicadas = 0;
+  let agenteRodouHoje = await sql`SELECT * FROM agentes_log WHERE agente = 'bernardo-gerador-card' AND DATE(created_at) = DATE(NOW())`;
 
-  try {
-    const noticias = await sql<Noticia[]>`
-      SELECT id, titulo, conteudo_original, url
-      FROM noticias
-      WHERE categoria = 'curada'
-        AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
-      ORDER BY created_at DESC
-      LIMIT 100
-    `;
+  if (agenteRodouHoje.length > 0) {
+    try {
+      const noticias = await sql<Noticia[]>`
+        SELECT id, titulo, conteudo_original, url
+        FROM noticias
+        WHERE categoria = 'curada'
+          AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
+        ORDER BY created_at DESC
+        LIMIT 100
+      `;
 
-    if (noticias.length === 0) {
-      motivo = "sem noticias curadas pendentes";
+      if (noticias.length === 0) {
+        motivo = "sem noticias curadas pendentes";
+        await sql`
+          INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
+          VALUES ('bernardo-resumidor', 'resumir_noticias', 'sucesso',
+            ${JSON.stringify({ processadas: 0, erros: 0, motivo: motivo })},
+            ${Date.now() - inicio})
+        `;
+        return NextResponse.json({ ok: true, processadas: 0, erros: 0, motivo: motivo });
+      }
+
+      const noticiasJaProcessadas: { [id: number]: boolean } = {};
+
+      for (const noticia of noticias) {
+        if (noticiasJaProcessadas[noticia.id]) {
+          noticiasDuplicadas++;
+          continue;
+        }
+
+        noticiasJaProcessadas[noticia.id] = true;
+
+        try {
+          const conteudo = noticia.conteudo_original || "";
+          let resumoBraga: string | null = noticia.resumo_braga;
+          let resumoCavalcanti: string | null = noticia.resumo_cavalcanti;
+
+          if (!resumoBraga) {
+            resumoBraga = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_BRAGA);
+          }
+
+          if (!resumoCavalcanti) {
+            resumoCavalcanti = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_CAVALCANTI);
+          }
+
+          if (!resumoBraga || !resumoCavalcanti) {
+            throw new Error('Resumo não gerado');
+          }
+
+          await sql`
+            UPDATE noticias
+            SET resumo_braga = ${sql.sql`${resumoBraga}`}, resumo_cavalcanti = ${sql.sql`${resumoCavalcanti}`}
+            WHERE id = ${noticia.id}
+          `;
+
+          processadas++;
+        } catch (err) {
+          console.error(err);
+          erros++;
+        }
+      }
+
+      if (noticiasDuplicadas > 0) {
+        await alertarTelegram("Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas.`);
+      }
+
+      const duracao = Date.now() - inicio;
+
       await sql`
         INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-        VALUES ('bernardo-resumidor', 'resumir_noticias', 'sucesso',
-          ${JSON.stringify({ processadas: 0, erros: 0, motivo: motivo })},
-          ${Date.now() - inicio})
+        VALUES ('bernardo-resumidor', 'resumir_noticias', ${erros === 0 ? "sucesso" : "aviso"},
+          ${JSON.stringify({ processadas, erros, noticiasDuplicadas })}, ${duracao})
       `;
-      return NextResponse.json({ ok: true, processadas: 0, erros: 0, motivo: motivo });
+
+      return NextResponse.json({ ok: true, processadas, erros, noticiasDuplicadas });
+    } catch (err) {
+      await alertarTelegram("Falha Agente Bernardo Resumidor", String(err));
+      const duracao = Date.now() - inicio;
+      await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
+        VALUES ('bernardo-resumidor', 'resumir_noticias', 'erro', ${JSON.stringify({ erro: String(err) })}, ${duracao})
+      `.catch(() => {});
+      return NextResponse.json({ erro: String(err) }, { status: 500 });
     }
-
-    const noticiasJaProcessadas: { [id: number]: boolean } = {};
-
-    for (const noticia of noticias) {
-      if (noticiasJaProcessadas[noticia.id]) {
-        noticiasDuplicadas++;
-        continue;
-      }
-
-      noticiasJaProcessadas[noticia.id] = true;
-
-      try {
-        const conteudo = noticia.conteudo_original || "";
-        let resumoBraga: string | null = noticia.resumo_braga;
-        let resumoCavalcanti: string | null = noticia.resumo_cavalcanti;
-
-        if (!resumoBraga) {
-          resumoBraga = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_BRAGA);
-        }
-
-        if (!resumoCavalcanti) {
-          resumoCavalcanti = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_CAVALCANTI);
-        }
-
-        if (!resumoBraga || !resumoCavalcanti) {
-          throw new Error('Resumo não gerado');
-        }
-
-        await sql`
-          UPDATE noticias
-          SET resumo_braga = ${sql.sql`${resumoBraga}`}, resumo_cavalcanti = ${sql.sql`${resumoCavalcanti}`}
-          WHERE id = ${noticia.id}
-        `;
-
-        processadas++;
-      } catch (err) {
-        console.error(err);
-        erros++;
-      }
-    }
-
-    if (noticiasDuplicadas > 0) {
-      await alertarTelegram("Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas.`);
-    }
-
-    const duracao = Date.now() - inicio;
-
+  } else {
+    motivo = "Agente gerador-card não rodou hoje";
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-      VALUES ('bernardo-resumidor', 'resumir_noticias', ${erros === 0 ? "sucesso" : "aviso"},
-        ${JSON.stringify({ processadas, erros, noticiasDuplicadas })}, ${duracao})
+      VALUES ('bernardo-resumidor', 'resumir_noticias', 'info',
+        ${JSON.stringify({ motivo: motivo })},
+        ${Date.now() - inicio})
     `;
-
-    return NextResponse.json({ ok: true, processadas, erros, noticiasDuplicadas });
-  } catch (err) {
-    await alertarTelegram("Falha Agente Bernardo Resumidor", String(err));
-    const duracao = Date.now() - inicio;
-    await sql`
-      INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-      VALUES ('bernardo-resumidor', 'resumir_noticias', 'erro', ${JSON.stringify({ erro: String(err) })}, ${duracao})
-    `.catch(() => {});
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ ok: true, motivo: motivo });
   }
 }
 ```
