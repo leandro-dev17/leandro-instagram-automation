@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       SELECT status, created_at FROM agentes_log
       WHERE agente = ${agente}
       ORDER BY created_at DESC LIMIT 1
-    ` as Promise<{ status: string; created_at: string }[]>;
+    ` as unknown as Promise<{ status: string; created_at: string }[]>;
 
     const [
       rowsNeto, rowsCarlos, rowsBernardo, rowsCard,
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
         SELECT status, created_at FROM agentes_log
         WHERE agente = 'gerador-card' AND status = 'sucesso'
         ORDER BY created_at DESC LIMIT 1
-      ` as Promise<{ status: string; created_at: string }[]>,
+      ` as unknown as Promise<{ status: string; created_at: string }[]>,
       buscarUltimo("lisa-login"),
       buscarUltimo("andre-api"),        // corrigido: era "fiscal-api" (nome errado)
       buscarUltimo("wanderley-whatsapp"),
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
         JOIN grupos_whatsapp g ON g.id = pw.grupo_id
         WHERE pw.enviado_at >= ${hoje.toISOString()}
         GROUP BY g.plano
-      ` as Promise<{ plano: string; total: string | number }[]>,
+      ` as unknown as Promise<{ plano: string; total: string | number }[]>,
     ]);
 
     const sNeto = avaliarAgente(rowsNeto);

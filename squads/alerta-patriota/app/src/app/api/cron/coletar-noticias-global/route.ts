@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
         let count = 0;
 
         while ((match = regex.exec(xml)) !== null && count < 3) {
-          const titulo = match[1].match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/s)?.[1]?.trim() || "";
+          const titulo = match[1].match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1]?.trim() || "";
           const url = match[1].match(/<link[^>]+href="([^"]+)"/)?.[1]?.trim() || "";
 
           if (!titulo || !url) continue;

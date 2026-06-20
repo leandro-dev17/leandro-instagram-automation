@@ -53,12 +53,12 @@ export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
   try {
-    const noticias = await sql`
+    const noticias = (await sql`
       SELECT titulo FROM noticias
       WHERE created_at >= NOW() - INTERVAL '20 hours'
       ORDER BY urgente DESC, created_at DESC LIMIT 8
-    `;
-    const titulos = noticias.map((n: { titulo: string }) => n.titulo);
+    `) as unknown as { titulo: string }[];
+    const titulos = noticias.map((n) => n.titulo);
 
     if (titulos.length === 0) return NextResponse.json({ ok: true, motivo: "sem notícias" });
 

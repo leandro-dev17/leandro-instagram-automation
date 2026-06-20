@@ -27,17 +27,17 @@ export async function GET(req: NextRequest) {
     if (jaPostou.length > 0) return NextResponse.json({ ok: true, motivo: "já postou esta semana" });
 
     // Busca top 3 notícias da semana
-    const noticias = await sql`
+    const noticias = (await sql`
       SELECT titulo, resumo_braga FROM noticias
       WHERE resumo_braga IS NOT NULL AND (global IS NULL OR global = false)
       AND created_at >= NOW() - INTERVAL '7 days'
       ORDER BY urgente DESC, created_at DESC
       LIMIT 3
-    `;
+    `) as unknown as { titulo: string; resumo_braga: string | null }[];
 
     if (!noticias.length) return NextResponse.json({ ok: false, motivo: "sem notícias" });
 
-    const lista = noticias.map((n: {titulo: string}, i: number) => `${i+1}️⃣ ${n.titulo}`).join("\n");
+    const lista = noticias.map((n, i: number) => `${i+1}️⃣ ${n.titulo}`).join("\n");
 
     const texto = await gerarTexto({
       model: "claude-haiku-4-5-20251001",

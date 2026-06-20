@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Busca notícias coletadas nas últimas 8h sem resumo ainda
-    const novas = await sql`
+    const novas = (await sql`
       SELECT id, titulo, url
       FROM noticias
       WHERE resumo_braga IS NULL
@@ -133,14 +133,14 @@ export async function GET(req: NextRequest) {
         AND created_at >= NOW() - INTERVAL '8 hours'
       ORDER BY created_at DESC
       LIMIT 20
-    `;
+    `) as unknown as { id: number; titulo: string; url: string }[];
 
     if (novas.length === 0) {
       return NextResponse.json({ ok: true, curadas: 0, motivo: "sem notícias novas" });
     }
 
     // FIX 3: Remove esporte e entretenimento primeiro
-    const semEsporte = novas.filter((n: { titulo: string }) => !ehEsporteOuEntretenimento(n.titulo));
+    const semEsporte = novas.filter((n) => !ehEsporteOuEntretenimento(n.titulo));
 
     // Anti-duplicata: remove títulos muito similares (mesmo tema)
     const unicas: typeof novas = [];

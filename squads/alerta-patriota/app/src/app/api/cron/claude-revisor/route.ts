@@ -195,9 +195,17 @@ O código deve ser válido e compilar sem erros.`,
       throw new Error("Claude retornou código vazio ou muito curto");
     }
 
+    // Remove cercas de markdown que o modelo às vezes adiciona mesmo quando instruído a não usar
+    const codigoLimpo = codigoCorrigido.replace(/^```[a-zA-Z]*\n?/, "").replace(/\n?```\s*$/, "").trim();
+
+    // Sanidade: se ainda sobrou alguma cerca no meio do conteúdo, o resultado não é código puro — não commita
+    if (codigoLimpo.includes("```") || codigoLimpo.length < 50) {
+      throw new Error("Claude retornou código com markdown residual — commit abortado por segurança");
+    }
+
     // Commita o fix
     const commitMsg = `fix(auto): claude-revisor corrige ${tipoAlerta}\n\nProblemas: ${problema.substring(0, 100)}\n\nCo-Authored-By: Claude Revisor <noreply@anthropic.com>`;
-    const commitOk = await commitarFix(arquivo, codigoCorrigido, commitMsg);
+    const commitOk = await commitarFix(arquivo, codigoLimpo, commitMsg);
 
     // Redeploy
     const deployOk = commitOk ? await redeploy() : false;

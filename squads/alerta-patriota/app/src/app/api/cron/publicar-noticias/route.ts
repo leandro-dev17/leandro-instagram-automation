@@ -71,10 +71,18 @@ export async function GET(req: NextRequest) {
 
   try {
     // Busca notícia não postada ainda, com resumo disponível
-    const rows = grupo === "vip"
-      ? await sql`SELECT id, titulo, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
+    const rows = (grupo === "vip"
+      ? await sql`SELECT id, titulo, fonte, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
       // Elite: aceita notícias BR e globais, desde que tenha resumo_cavalcanti
-      : await sql`SELECT id, titulo, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1`;
+      : await sql`SELECT id, titulo, fonte, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1`) as unknown as {
+      id: number;
+      titulo: string;
+      fonte: string | null;
+      url: string | null;
+      urgente: boolean;
+      resumo_braga: string | null;
+      resumo_cavalcanti: string | null;
+    }[];
 
     if (rows.length === 0) {
       await sql`

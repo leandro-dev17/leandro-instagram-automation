@@ -91,15 +91,15 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
   return `${headers[plano]}\n${corpo}`;
 }
 
-async function renderizarEEnviar(plano: string, hook: string, corpo: string | undefined, fonte: string, urgente: boolean | undefined, groupJid: string, legenda: string): Promise<boolean> {
-  if (!EVO_URL || !EVO_KEY) return false;
+async function renderizarEEnviar(plano: string, hook: string, corpo: string | undefined, fonte: string, urgente: boolean | undefined, groupJid: string, legenda: string): Promise<{ ok: boolean; erro?: string }> {
+  if (!EVO_URL || !EVO_KEY) return { ok: false, erro: "Evolution API não configurada (EVOLUTION_API_URL/EVOLUTION_API_KEY ausentes)" };
 
   // Renderiza JSX → PNG via @vercel/og (Satori) — sem Chromium, funciona em serverless
   const element = gerarCardElement({ plano: plano as "vip" | "elite", hook, corpo, fonte, urgente });
   const imagem = new ImageResponse(element, { width: 1080, height: 1080, fonts: getCardFonts() });
   const pngBase64 = Buffer.from(await imagem.arrayBuffer()).toString("base64");
 
-  if (!pngBase64) return false;
+  if (!pngBase64) return { ok: false, erro: "Falha ao renderizar PNG do card (@vercel/og retornou vazio)" };
 
   // Envia imagem com legenda via Evolution API
   const res = await fetch(`${EVO_URL}/message/sendMedia/${getInstancia(plano)}`, {
@@ -114,7 +114,12 @@ async function renderizarEEnviar(plano: string, hook: string, corpo: string | un
     }),
   });
 
-  return res.ok;
+  if (!res.ok) {
+    const corpoErro = await res.text().catch(() => "");
+    return { ok: false, erro: `Evolution API ${res.status}: ${corpoErro.substring(0, 300)}` };
+  }
+
+  return { ok: true };
 }
 
 export async function GET(req: NextRequest) {
@@ -139,41 +144,62 @@ export async function GET(req: NextRequest) {
     await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS postada_vip_card_at TIMESTAMPTZ`.catch(() => {});
     await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS postada_elite_card_at TIMESTAMPTZ`.catch(() => {});
 
-    // Busca notícia não publicada como CARD (flag separada da publicação de texto)
-    const rows = plano === "vip"
-      ? await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip_card = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
-      : await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite_card = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1`;
+    // Busca notícias não publicadas como CARD (flag separada da publicação de texto).
+    // Pega várias candidatas (não só LIMIT 1): se a mais nova falhar no envio, tenta as
+    // seguintes na mesma execução em vez de travar a fila inteira nela indefinidamente.
+    const rows = (plano === "vip"
+      ? await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip_card = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 5`
+      : await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite_card = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 5`) as unknown as {
+      id: number; titulo: string; url: string | null; fonte: string | null; urgente: boolean | string; resumo_braga: string | null; resumo_cavalcanti: string | null;
+    }[];
 
     if (!rows.length) return NextResponse.json({ ok: true, publicado: false, motivo: "sem notícia disponível" });
 
-    const n = rows[0];
-    const fonte = n.fonte || "Alerta Patriota";
+    let enviado = false;
+    let hookFinal = "";
+    let noticiaEnviada: typeof rows[number] | null = null;
+    const erros: string[] = [];
 
-    // Gera hook e legenda em paralelo
-    const [hook, legenda] = await Promise.all([
-      gerarHook(n.titulo, plano),
-      gerarLegenda(n.titulo, plano, fonte),
-    ]);
+    for (const n of rows) {
+      const fonte = n.fonte || "Alerta Patriota";
 
-    // Renderiza e envia
-    const urgente = n.urgente === true || n.urgente === "true";
-    const enviado = await renderizarEEnviar(plano, hook, undefined, fonte, urgente, groupJid, legenda);
+      // Gera hook e legenda em paralelo
+      const [hook, legenda] = await Promise.all([
+        gerarHook(n.titulo, plano),
+        gerarLegenda(n.titulo, plano, fonte),
+      ]);
 
-    if (enviado) {
-      // Marca como publicada como CARD (flag separada — não afeta publicar-noticias)
-      if (plano === "vip")      await sql`UPDATE noticias SET postada_vip_card = true, postada_vip_card_at = NOW() WHERE id = ${n.id}`;
-      if (plano === "elite")    await sql`UPDATE noticias SET postada_elite_card = true, postada_elite_card_at = NOW() WHERE id = ${n.id}`;
+      // Renderiza e envia
+      const urgente = n.urgente === true || n.urgente === "true";
+      const resultado = await renderizarEEnviar(plano, hook, undefined, fonte, urgente, groupJid, legenda);
 
-      // Log
-      const grupoRow = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${plano} LIMIT 1`;
-      if (grupoRow.length > 0) {
-        await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoRow[0].id}, ${n.id}, ${legenda}, 'card_visual', 'enviado')`;
+      if (resultado.ok) {
+        enviado = true;
+        hookFinal = hook;
+        noticiaEnviada = n;
+
+        // Marca como publicada como CARD (flag separada — não afeta publicar-noticias)
+        if (plano === "vip")      await sql`UPDATE noticias SET postada_vip_card = true, postada_vip_card_at = NOW() WHERE id = ${n.id}`;
+        if (plano === "elite")    await sql`UPDATE noticias SET postada_elite_card = true, postada_elite_card_at = NOW() WHERE id = ${n.id}`;
+
+        // Log
+        const grupoRow = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${plano} LIMIT 1`;
+        if (grupoRow.length > 0) {
+          await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoRow[0].id}, ${n.id}, ${legenda}, 'card_visual', 'enviado')`;
+        }
+        break;
       }
+
+      erros.push(`#${n.id} ${n.titulo.substring(0, 40)}: ${resultado.erro}`);
     }
 
-    await sql`INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms) VALUES ('gerador-card', ${`card_${plano}`}, ${enviado ? "sucesso" : "erro"}, ${JSON.stringify({ plano, noticiaId: n.id, hook })}, ${Date.now() - inicio})`;
+    await sql`INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms) VALUES ('gerador-card', ${`card_${plano}`}, ${enviado ? "sucesso" : "erro"}, ${JSON.stringify({ plano, noticiaId: noticiaEnviada?.id, hook: hookFinal, tentativas: rows.length, erros })}, ${Date.now() - inicio})`;
 
-    return NextResponse.json({ ok: true, publicado: enviado, plano, hook, noticia: n.titulo });
+    if (!enviado) {
+      await alertarTelegram("🔴", `Falha Gerador Card (${plano})`, `Todas as ${rows.length} tentativas falharam:\n${erros.join("\n")}`);
+    }
+
+    return NextResponse.json({ ok: true, publicado: enviado, plano, hook: hookFinal, noticia: noticiaEnviada?.titulo, erros: enviado ? undefined : erros });
   } catch (err) {
     await alertarTelegram("🔴", `Falha Gerador Card (${plano})`, String(err));
     return NextResponse.json({ erro: String(err) }, { status: 500 });

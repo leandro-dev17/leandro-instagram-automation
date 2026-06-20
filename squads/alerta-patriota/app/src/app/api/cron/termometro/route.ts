@@ -80,13 +80,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Busca títulos da semana para contexto
-    const noticias = await sql`
+    const noticias = (await sql`
       SELECT titulo FROM noticias
       WHERE created_at >= NOW() - INTERVAL '7 days'
       ORDER BY urgente DESC, created_at DESC
       LIMIT 15
-    `;
-    const titulos = noticias.map((n: { titulo: string }) => n.titulo);
+    `) as unknown as { titulo: string }[];
+    const titulos = noticias.map((n) => n.titulo);
 
     // Gera termômetro com Claude
     const t = await gerarTermometro(titulos);

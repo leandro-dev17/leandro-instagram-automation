@@ -96,11 +96,12 @@ export async function POST(req: NextRequest) {
         payer_email: emailNorm,
         external_reference: `${usuarioId}|${plano}|${ciclo}`,
         back_url: `${APP_URL}/pagamento/sucesso?plano=${plano}`,
-        notification_url: `${APP_URL}/api/webhook/mercadopago`,
         payment_methods_allowed: {
           payment_types: [{ id: "credit_card" }],
         },
-      },
+        // notification_url existe na API real do Mercado Pago, mas falta no tipo do SDK
+        notification_url: `${APP_URL}/api/webhook/mercadopago`,
+      } as Parameters<typeof pa.create>[0]["body"],
     });
 
     return NextResponse.json({ ok: true, checkout_url: preApproval.init_point });

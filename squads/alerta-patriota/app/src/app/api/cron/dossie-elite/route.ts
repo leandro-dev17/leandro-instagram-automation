@@ -30,19 +30,19 @@ export async function GET(req: NextRequest) {
     if (jaEnviou.length > 0) return NextResponse.json({ ok: true, motivo: "já enviado esta semana" });
 
     // Busca as análises da semana — globais e urgentes priorizadas
-    const noticias = await sql`
+    const noticias = (await sql`
       SELECT titulo, resumo_cavalcanti, fonte, global, urgente
       FROM noticias
       WHERE resumo_cavalcanti IS NOT NULL
       AND created_at >= NOW() - INTERVAL '7 days'
       ORDER BY urgente DESC, global DESC, created_at DESC
       LIMIT 5
-    `;
+    `) as unknown as { titulo: string; resumo_cavalcanti: string; fonte: string; global: boolean; urgente: boolean }[];
 
     if (noticias.length === 0) return NextResponse.json({ ok: false, motivo: "sem análises esta semana" });
 
     // Gera síntese da semana com Claude
-    const titulosParaContexto = noticias.map((n: {titulo: string}) => n.titulo).join("\n");
+    const titulosParaContexto = noticias.map((n) => n.titulo).join("\n");
     const textoSintese = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 300,
@@ -60,7 +60,7 @@ Responda APENAS com o texto.` }],
     dossie += `*SÍNTESE DA SEMANA:*\n${textoSintese}\n\n`;
     dossie += `━━━━━━━━━━━━━━━━\n*TOP 5 ANÁLISES:*\n\n`;
 
-    noticias.forEach((n: {titulo: string; resumo_cavalcanti: string; fonte: string; global: boolean; urgente: boolean}, i: number) => {
+    noticias.forEach((n, i: number) => {
       const icone = n.urgente ? "🚨" : n.global ? "🌍" : "🇧🇷";
       dossie += `${icone} *${i + 1}. ${n.titulo.replace(/^\[(EN|ES|PT)\]\s*/i, "")}*\n`;
       dossie += `_${n.fonte}_\n`;

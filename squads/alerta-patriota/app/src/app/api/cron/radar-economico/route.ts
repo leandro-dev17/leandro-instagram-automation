@@ -33,7 +33,7 @@ async function coletarDadosEconomicos(): Promise<string[]> {
       let count = 0;
 
       while ((match = regex.exec(xml)) !== null && count < 4) {
-        const titulo = match[1].match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/s)?.[1]?.trim() || "";
+        const titulo = match[1].match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1]?.trim() || "";
         if (titulo && titulo.length > 10) { dados.push(titulo); count++; }
       }
     } catch { continue; }

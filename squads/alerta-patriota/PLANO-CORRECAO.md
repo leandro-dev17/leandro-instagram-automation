@@ -144,6 +144,23 @@ node --use-system-ca "C:\Users\lelus\AppData\Roaming\npm\node_modules\vercel\dis
 
 ---
 
+## FASE 7 — Vistoria Geral de Bugs (TypeScript + Auto-fix + Cards)
+**Status: 🔄 EM ANDAMENTO**
+
+**Lista de problemas encontrados na vistoria de 19/06/2026, a corrigir nesta fase:**
+
+| # | Problema | Arquivo | Gravidade |
+|---|----------|---------|-----------|
+| 1 | `claude-revisor/route.ts` commita o fix do Claude **sem remover cercas de markdown** (` ```typescript ` / ` ``` `) — diferente do `claude-resolver`, que já faz esse strip. Resultado real: corrompeu `resumir-noticias/route.ts` no GitHub hoje, quebrando a sintaxe do arquivo inteiro | `api/cron/claude-revisor/route.ts` | 🔴 Crítico — corrompe código em produção |
+| 2 | `resumir-noticias/route.ts` está com o arquivo inteiro envolto em ` ```typescript ` / ` ``` ` literais (consequência do bug #1) — ~58 erros de sintaxe, rota quebrada | `api/cron/resumir-noticias/route.ts` | 🔴 Crítico |
+| 3 | `alertarTelegram()` chamado com 2 argumentos em vez de 3 (falta o emoji `nivel`) em pelo menos 2 pontos do mesmo arquivo — gera alertas malformados no Telegram | `api/cron/resumir-noticias/route.ts` | 🟠 Alto |
+| 4 | Typo `<\b>` em vez de `</b>` no fechamento da tag HTML do Telegram | `lib/telegram.ts` | 🟡 Médio |
+| 5 | `gerar-card`: falha do envio via Evolution API (~70-80% das execuções) não captura o corpo do erro no log — impossível diagnosticar a causa real. Fila prioriza sempre a notícia mais recente, abandonando para sempre notícias mais antigas que falharam repetidamente (texto publicado, card nunca entregue) — causa raiz do card faltando no Elite | `api/cron/gerar-card/route.ts` | 🟠 Alto |
+| 6 | ~20 erros de TypeScript pré-existentes: `Record<string,any>` perdendo tipo em callbacks de `.filter()/.map()` após `sql\`...\`` sem tipo genérico (afeta `curar-noticias`, `dossie-elite`, `fix-encoding`, `publicar-noticias`, `resumo-noite`, `semana-em-revista`, `termometro`); 2 chamadas de `alertarTelegram` com emoji fora do union type (`"🤖"`, `"🔐"`); flag de regex `u`/`s` incompatível com o target do tsconfig em `radar-economico`; `.unsafe` inexistente em `revisor-schema` | vários `api/cron/*` | 🟡 Médio (não bloqueia build do Next, mas indica bugs de tipagem) |
+| 7 | Código morto: `cards-elite-global/route.ts` nunca é chamado por nenhum cron/workflow | `api/cron/cards-elite-global/route.ts` | 🟢 Baixo (limpeza) |
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |

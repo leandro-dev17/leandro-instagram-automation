@@ -1,4 +1,3 @@
-```typescript
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
@@ -11,6 +10,8 @@ interface Noticia {
   titulo: string;
   conteudo_original: string | null;
   url: string;
+  resumo_braga: string | null;
+  resumo_cavalcanti: string | null;
 }
 
 async function gerarResumo(titulo: string, conteudo: string, url: string, prompt: string): Promise<string> {
@@ -43,15 +44,15 @@ export async function GET(req: NextRequest) {
   let noticiasDuplicadas = 0;
 
   try {
-    const noticias = await sql<Noticia[]>`
-      SELECT id, titulo, conteudo_original, url
+    const noticias = (await sql`
+      SELECT id, titulo, conteudo_original, url, resumo_braga, resumo_cavalcanti
       FROM noticias
       WHERE categoria = 'curada'
         AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
         AND created_at >= NOW() - INTERVAL '6 hours'
       ORDER BY created_at DESC
       LIMIT 100
-    `;
+    `) as unknown as Noticia[];
 
     if (noticias.length === 0) {
       motivo = "sem noticias curadas pendentes";
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
 
         await sql`
           UPDATE noticias
-          SET resumo_braga = ${sql.sql`${resumoBraga}`}, resumo_cavalcanti = ${sql.sql`${resumoCavalcanti}`}
+          SET resumo_braga = ${resumoBraga}, resumo_cavalcanti = ${resumoCavalcanti}
           WHERE id = ${noticia.id}
         `;
 
@@ -105,7 +106,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (noticiasDuplicadas > 0) {
-      await alertarTelegram("Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas nas últimas 6 horas.`);
+      await alertarTelegram("🟡", "Notícias duplicadas detectadas", `Foram detectadas ${noticiasDuplicadas} notícias duplicadas nas últimas 6 horas.`);
     }
 
     const duracao = Date.now() - inicio;
@@ -118,7 +119,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, processadas, erros, noticiasDuplicadas });
   } catch (err) {
-    await alertarTelegram("Falha Agente Bernardo Resumidor", String(err));
+    await alertarTelegram("🔴", "Falha Agente Bernardo Resumidor", String(err));
     const duracao = Date.now() - inicio;
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
@@ -127,4 +128,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }
-```
