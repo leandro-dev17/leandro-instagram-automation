@@ -17,6 +17,7 @@ const EVO_INST = process.env.EVOLUTION_INSTANCIA;
 async function gerarRespostaBraga(pergunta: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "bot-responder",
     max_tokens: 250,
     messages: [{ role: "user", content: `Você é o Capitão Braga, ex-militar evangélico e patriota.
 Um membro do grupo VIP te fez esta pergunta/comentário: "${pergunta}"
@@ -33,6 +34,7 @@ Responda APENAS com o texto.` }],
 async function gerarRespostaCavalcanti(pergunta: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "bot-responder",
     max_tokens: 300,
     messages: [{ role: "user", content: `Você é o Prof. Bernardo Cavalcanti, analista político global.
 Um membro do Elite Global te fez esta pergunta/comentário: "${pergunta}"

@@ -17,6 +17,7 @@ async function gerarBomDia(noticias: string[], persona: "braga" | "cavalcanti"):
   if (persona === "braga") {
     const texto = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
+      agente: "bom-dia",
       max_tokens: 350,
       messages: [{ role: "user", content: `Você é o Capitão Braga. É ${hora}.
 Com base nestas manchetes de hoje, escreva um "Bom Dia Patriota" em 4-5 linhas:
@@ -34,6 +35,7 @@ Responda APENAS com o texto.` }],
 
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "bom-dia",
     max_tokens: 400,
     messages: [{ role: "user", content: `Você é o Prof. Bernardo Cavalcanti. É ${hora}.
 Com base nestas manchetes, escreva um "Briefing Matinal Elite" em 5-6 linhas:

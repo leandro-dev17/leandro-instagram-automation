@@ -90,6 +90,7 @@ async function classificarComClaude(noticias: Array<{ id: number; titulo: string
 
     const resposta = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
+      agente: "curador-carlos",
       max_tokens: 200,
       messages: [{
         role: "user",

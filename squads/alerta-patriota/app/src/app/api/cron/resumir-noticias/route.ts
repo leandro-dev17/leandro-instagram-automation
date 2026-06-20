@@ -18,6 +18,7 @@ async function gerarResumo(titulo: string, conteudo: string, url: string, prompt
   try {
     return await gerarTexto({
       model: "claude-haiku-4-5-20251001",
+      agente: "bernardo-resumidor",
       max_tokens: 450,
       messages: [
         {

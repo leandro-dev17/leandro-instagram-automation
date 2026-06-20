@@ -25,6 +25,7 @@ const PERSONALIDADES = [
 async function gerarPerfil(p: typeof PERSONALIDADES[0], semana: number): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "personagem-semana",
     max_tokens: 500,
     messages: [{ role: "user", content: `Você é o Prof. Bernardo Cavalcanti.
 Apresente ${p.nome} (${p.cargo}, ${p.pais}) em 6-8 linhas para brasileiros conservadores.

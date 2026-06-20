@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     const problemas = alertasSeguranca.map(a => a.mensagem).join("\n");
     const texto = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
+      agente: "revisor-seguranca",
       max_tokens: 1000,
       messages: [{
         role: "user",

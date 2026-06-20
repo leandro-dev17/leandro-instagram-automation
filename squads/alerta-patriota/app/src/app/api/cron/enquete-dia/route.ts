@@ -16,6 +16,7 @@ const GROUP_VIP = process.env.WPP_GROUP_VIP;
 async function gerarEnquete(noticia: string): Promise<{ pergunta: string; opcoes: string[] } | null> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "enquete-dia",
     max_tokens: 200,
     messages: [{ role: "user", content: `Com base nesta notícia, crie uma enquete rápida e provocadora para patriotas brasileiros.
 NOTÍCIA: "${noticia}"

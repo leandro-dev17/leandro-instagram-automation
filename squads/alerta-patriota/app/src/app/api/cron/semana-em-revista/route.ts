@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
 
     const texto = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
+      agente: "semana-em-revista",
       max_tokens: 400,
       messages: [{ role: "user", content: `Você é o Capitão Braga. Crie o post "SEMANA EM REVISTA" para o Facebook.
 É um post público semanal mostrando o que aconteceu de importante.

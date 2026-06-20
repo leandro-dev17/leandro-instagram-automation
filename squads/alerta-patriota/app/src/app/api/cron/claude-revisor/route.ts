@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
-import { gerarTexto } from "@/lib/ai";
+import { gerarCodigoComClaude } from "@/lib/ai";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
@@ -178,8 +178,9 @@ export async function POST(req: NextRequest) {
 
     // Claude analisa e gera o fix
     const problema = alertas.map(a => a.mensagem).join("\n");
-    const codigoCorrigido = await gerarTexto({
+    const codigoCorrigido = await gerarCodigoComClaude({
       model: "claude-haiku-4-5-20251001",
+      agente: "claude-revisor",
       max_tokens: 8000,
       messages: [{
         role: "user",

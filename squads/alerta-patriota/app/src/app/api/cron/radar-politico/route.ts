@@ -109,6 +109,7 @@ async function buscarMencoesRSS(politico: string): Promise<Array<{ titulo: strin
 async function gerarAlertaBraga(politico: string, titulo: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "raquel-radar",
     max_tokens: 300,
     messages: [{
       role: "user",
@@ -127,6 +128,7 @@ Responda APENAS com o texto.`,
 async function gerarAlertaCavalcanti(politico: string, titulo: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "raquel-radar",
     max_tokens: 350,
     messages: [{
       role: "user",

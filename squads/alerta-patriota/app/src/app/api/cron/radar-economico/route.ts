@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
 
     const texto = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
+      agente: "radar-economico",
       max_tokens: 400,
       messages: [{ role: "user", content: `Você é o Prof. Bernardo Cavalcanti, analista econômico e político.
 Com base nestes dados econômicos, escreva o "Radar Econômico" em 5-6 linhas:

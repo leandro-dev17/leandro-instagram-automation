@@ -14,6 +14,7 @@ import { gerarTexto } from "@/lib/ai";
 async function gerarResumoGlobal(titulo: string, url: string): Promise<string> {
   return gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "cavalcanti-resumidor",
     max_tokens: 450,
     messages: [{ role: "user", content: `${PROMPT_CAVALCANTI_GLOBAL}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${url}` }],
   });

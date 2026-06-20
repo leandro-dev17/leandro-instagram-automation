@@ -31,6 +31,7 @@ async function gerarAnalise(noticias: { titulo: string; fonte: string }[]): Prom
 
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "analise-semanal-vip",
     max_tokens: 400,
     messages: [{
       role: "user",

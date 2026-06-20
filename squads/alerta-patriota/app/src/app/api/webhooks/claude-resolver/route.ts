@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram } from "@/lib/telegram";
-import { gerarTexto } from "@/lib/ai";
+import { gerarCodigoComClaude } from "@/lib/ai";
 
 // ── CREDENCIAIS DISPONÍVEIS ───────────────────────────────────────────────────
 const APP_URL         = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
@@ -123,8 +123,9 @@ async function escreverArquivoGitHub(caminho: string, novoConteudo: string, sha:
 // ── STEP 4: Chamar Claude para analisar e gerar fix ──────────────────────────
 async function analisarComClaude(problema: string, erro: string, codigoAtual: string, arquivo: string): Promise<string | null> {
   try {
-    const texto = await gerarTexto({
+    const texto = await gerarCodigoComClaude({
       model: "claude-sonnet-4-6",
+      agente: "claude-resolver",
       max_tokens: 8000,
       messages: [{
         role: "user",

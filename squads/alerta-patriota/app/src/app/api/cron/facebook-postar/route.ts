@@ -16,6 +16,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.verce
 async function gerarTeaser(titulo: string, resumoBraga: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "facebook-poster",
     max_tokens: 300,
     messages: [{ role: "user", content: `Você é o Capitão Braga. Crie um post curto para o Facebook (3-4 linhas) baseado nesta notícia que vai DESPERTAR CURIOSIDADE e fazer a pessoa querer saber mais:
 

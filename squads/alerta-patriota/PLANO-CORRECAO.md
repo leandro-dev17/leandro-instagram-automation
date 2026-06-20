@@ -234,6 +234,43 @@ A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartb
 
 ---
 
+## FASE 9 — Reordenação da corrente de IA (Groq → Cerebras → Anthropic) e disjuntor de consumo
+
+**Status: ✅ CONCLUÍDA (20/06/2026)** — falta apenas commit/push/deploy para produção e a chave `CEREBRAS_API_KEY` (pendência do usuário).
+**Gatilho:** usuário decidiu reduzir custo com Anthropic depois de descobrir, na investigação da Fase 8, que o esgotamento da cota Anthropic foi causado por um agente em loop fazendo chamadas repetidas — quer Groq/Cerebras como provedores primários e Anthropic só como rede de segurança paga, além de um sistema de monitoramento de consumo que avise e bloqueie automaticamente esse tipo de loop antes de esgotar crédito.
+
+### Fase 9.1 — Reordenar `gerarTexto()` e isolar o `claude-revisor` no Anthropic
+**Status: ✅ CONCLUÍDA (20/06/2026)**
+
+**Arquivos modificados:**
+- `src/lib/ai.ts` — reescrito. Antes: Anthropic primário → Groq fallback. Agora: **Groq → Cerebras → Anthropic** (Anthropic só é chamado se os dois gratuitos falharem/esgotarem). Adicionada função `gerarComOpenAICompativel()` genérica (Groq e Cerebras são ambos APIs compatíveis com o formato `chat/completions` da OpenAI, então compartilham a mesma lógica de retry em 429). Criada nova função exportada `gerarCodigoComClaude()`, que chama **somente** Anthropic, sem fallback para Llama.
+- `src/app/api/cron/claude-revisor/route.ts` — trocado import de `gerarTexto` para `gerarCodigoComClaude`.
+
+**Por quê:** Llama 3.3 70B (Groq/Cerebras) entrega qualidade suficiente para texto curto de rotina (resumo de notícia, resposta de bot, hook de card), mas é menos confiável gerando código TypeScript válido — e o `claude-revisor` já corrompeu arquivos de produção mesmo usando Claude (Fase 7). Por isso esse agente específico continua exclusivo no Anthropic, mesmo com o resto da automação priorizando os provedores grátis.
+
+**Risco identificado e documentado:** depender só de Groq + Cerebras (ambos tiers gratuitos com teto diário fixo) recria o mesmo tipo de falha do incidente atual (dois provedores esgotando juntos) se o volume da automação crescer — por isso o Anthropic foi mantido como 3º elo pago, não removido.
+
+**Pendência:** `CEREBRAS_API_KEY` ainda não existe em `.env.local` nem na Vercel — usuário precisa criar conta grátis em cerebras.ai e fornecer a chave. Até lá, o código pula esse elo automaticamente (sem erro) e cai direto pro Anthropic, ou seja, o comportamento atual já é mais seguro (3 elos com 2 funcionando) mesmo antes da chave existir.
+
+**Extensão de escopo descoberta durante a implementação:** `src/app/api/webhooks/claude-resolver/route.ts` (agente de escalonamento de nível mais alto, que corrige código e comita via GitHub API — mesmo tipo de tarefa do `claude-revisor`) também chamava `gerarTexto` com Claude Sonnet para gerar código. Pelo mesmo motivo do `claude-revisor` (Llama não é confiável para gerar TypeScript válido), trocado para `gerarCodigoComClaude` também. Não foi pedido explicitamente pelo usuário neste arquivo específico, mas é a aplicação direta do princípio já aprovado.
+
+### Fase 9.2 — Monitoramento de consumo de IA com disjuntor automático
+**Status: ✅ CONCLUÍDA (20/06/2026)**
+
+**Decisão tomada com o usuário:**
+- Canal de alerta: **DM direto no WhatsApp do usuário** (via `enviarMensagemPrivada`, já existe em `src/lib/whatsapp.ts`) — não foi criado grupo dedicado.
+- Comportamento: **alertar E bloquear automaticamente** — se o agente `claude-revisor`/`claude-resolver`/etc. passar de 20 chamadas ao Anthropic em 10 minutos, o sistema bloqueia novas chamadas Anthropic daquele agente e avisa o usuário via WhatsApp, em vez de só monitorar passivamente.
+
+**Implementado:**
+- [x] Tabela `consumo_ia_log` (id, agente, provedor, status, created_at) criada via `CREATE TABLE IF NOT EXISTS` em `src/app/api/admin/setup/route.ts` e materializada em produção.
+- [x] Campo `agente: string` tornado **obrigatório** no tipo `MensagemIA` (`src/lib/ai.ts`) — isso forçou erro de compilação em todos os 21 call sites de `gerarTexto`/`gerarCodigoComClaude` no projeto, usado deliberadamente como checklist para garantir que nenhum caller fosse esquecido. Todos os 21 arquivos corrigidos com o nome de agente correspondente (mesmo identificador já usado em `agentes_log`): `analise-semanal-vip`, `bom-dia`, `bot-responder`, `claude-revisor`, `claude-resolver`, `curador-carlos`, `davi-dossie`, `enquete-dia`, `facebook-comentarios`, `facebook-poster`, `gerador-card`, `personagem-semana`, `radar-economico`, `raquel-radar`, `bernardo-resumidor`, `cavalcanti-resumidor`, `resumo-noite`, `revisor-seguranca`, `semana-em-revista`, `tereza-termometro`.
+- [x] Lógica de disjuntor em `src/lib/ai.ts`: `disjuntorAcionado()` conta chamadas Anthropic (status ≠ `bloqueado`) por agente nos últimos 10 min; se ≥ 20, bloqueia (lança erro) em vez de chamar a API. Alvo é especificamente o Anthropic (não Groq/Cerebras) porque, com a reordenação da Fase 9.1, qualquer volume alto de chamadas Anthropic por um único agente já é anômalo — esse foi exatamente o padrão do incidente original (agente em loop estourando o crédito).
+- [x] Alerta via `enviarMensagemPrivada` para `ADMIN_WHATSAPP_NUMERO` quando o disjuntor é acionado, com deduplicação (não reenvia se já alertou nos últimos 10 min para o mesmo agente).
+- [x] `ADMIN_WHATSAPP_NUMERO=5547992211783` adicionado em `.env.local` e na Vercel (produção).
+- [ ] Cron de auditoria periódica somando consumo por provedor/dia — **não implementado nesta fase**, pode ser adicionado depois se o usuário quiser visão agregada além dos alertas do disjuntor.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -268,3 +305,4 @@ A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartb
 | 18/06/2026 | Fase 5 | Commit + push (com correção de token exposto detectado pelo GitHub Push Protection antes de qualquer leak público) + deploy via Vercel CLI; produção em `https://alertapatriota.vercel.app`; build limpo |
 | 19/06/2026 | Fase 6 | Bot saiu dos grupos Básico/Patriota via Evolution API; `whatsapp-cards.cjs` + 2 workflows legados apagados; `crise-monitor.cjs` migrado para chamar `gerar-card` via fetch; `MAPA_ARQUIVOS` do Claude Revisor redirecionado; causa do card faltando no Elite identificada (pipelines de texto/imagem desacoplados + falha silenciosa do Evolution API sem log de erro) |
 | 20/06/2026 | Fase 7 | `claude-revisor` corrigido na raiz (strip de cercas + guarda de sanidade); `resumir-noticias` restaurado (2x — bot recorrompeu durante a correção, resolvido via merge); `gerar-card` agora tenta até 5 notícias e loga erro real do Evolution API; `telegram.ts` com tipo `nivel` corrigido; `cards-elite-global` removido; `tsc --noEmit` zerado (incluindo ~10 erros não catalogados originalmente); commits `3495909` + merge `780ecc5`, push `b504165..780ecc5` |
+| 20/06/2026 | Fase 9 | `gerarTexto()` reordenado para Groq → Cerebras → Anthropic; `gerarCodigoComClaude()` criada para isolar geração de código no Anthropic (`claude-revisor` + `claude-resolver`); disjuntor automático criado (tabela `consumo_ia_log`, bloqueio em 20 chamadas Anthropic/10min por agente, alerta via WhatsApp DM); campo `agente` obrigatório retrofitado em 21 call sites; `ADMIN_WHATSAPP_NUMERO` adicionado em `.env.local` e Vercel; `tsc --noEmit` zerado |

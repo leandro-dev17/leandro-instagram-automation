@@ -25,6 +25,7 @@ async function gerarTermometro(noticias: string[]): Promise<{
 
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "tereza-termometro",
     max_tokens: 500,
     messages: [{
       role: "user",

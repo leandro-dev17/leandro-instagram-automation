@@ -66,6 +66,7 @@ Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
 async function gerarHook(titulo: string, plano: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "gerador-card",
     max_tokens: 60,
     messages: [{ role: "user", content: `${PROMPTS_HOOK[plano]}\n\nNOTÍCIA: "${titulo}"` }],
   });
@@ -78,6 +79,7 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
 
   const corpo = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "gerador-card",
     max_tokens: 500,
     messages: [{ role: "user", content: `${PROMPTS_LEGENDA[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });

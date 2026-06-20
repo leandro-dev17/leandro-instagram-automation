@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     const [textoBraga, textoCavalcanti] = await Promise.all([
       gerarTexto({
         model: "claude-haiku-4-5-20251001",
+        agente: "resumo-noite",
         max_tokens: 350,
         messages: [{ role: "user", content: `Você é o Capitão Braga. Fim de dia.
 Com base nas notícias de hoje, escreva o "Resumo da Noite" em 4-5 linhas:
@@ -37,6 +38,7 @@ NOTÍCIAS DO DIA:\n${titulos}\n\nResponda APENAS com o texto.` }],
       }),
       gerarTexto({
         model: "claude-haiku-4-5-20251001",
+        agente: "resumo-noite",
         max_tokens: 400,
         messages: [{ role: "user", content: `Você é o Prof. Bernardo Cavalcanti. Fim de dia.
 Escreva a "Análise do Fim do Dia" em 5-6 linhas:

@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
     const titulosParaContexto = noticias.map((n) => n.titulo).join("\n");
     const textoSintese = await gerarTexto({
       model: "claude-haiku-4-5-20251001",
+      agente: "davi-dossie",
       max_tokens: 300,
       messages: [{ role: "user", content: `Você é o Prof. Bernardo Cavalcanti.
 Em 3-4 linhas, faça uma síntese do que foi a semana para o conservadorismo global e brasileiro.

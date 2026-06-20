@@ -25,6 +25,7 @@ async function gerarRespostaComentario(autor: string, comentario: string): Promi
   // Resposta com Claude para comentários complexos
   const resposta = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
+    agente: "facebook-comentarios",
     max_tokens: 150,
     messages: [{ role: "user", content: `Você é o Capitão Braga em uma página do Facebook. Responda este comentário de forma breve (2-3 linhas), no tom patriótico e conservador:
 
