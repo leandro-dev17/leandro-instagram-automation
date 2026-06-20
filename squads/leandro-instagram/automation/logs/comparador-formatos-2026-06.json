@@ -1,0 +1,30 @@
+{
+  "anoMes": "2026-06",
+  "geradoEm": "2026-06-20T02:49:46.644Z",
+  "mediaGeral": 0,
+  "medias": {
+    "carousel": {
+      "quantidade": 16,
+      "mediaLikes": 0,
+      "mediaComentarios": 0,
+      "mediaAlcance": 72,
+      "mediaSalvamentos": 0,
+      "mediaEngaj": 0
+    },
+    "kling": {
+      "quantidade": 13,
+      "mediaLikes": 0,
+      "mediaComentarios": 0,
+      "mediaAlcance": 125,
+      "mediaSalvamentos": 0,
+      "mediaEngaj": 0
+    },
+    "reel-receita": null,
+    "story": null
+  },
+  "ranking": [
+    "carousel",
+    "kling"
+  ],
+  "alertas": []
+}
