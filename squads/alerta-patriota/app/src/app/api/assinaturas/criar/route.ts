@@ -22,6 +22,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
     }
 
+    // FASE 17: nenhuma rota de criação de assinatura checava se o usuário já
+    // tinha uma assinatura ativa, permitindo criar uma 2ª cobrança recorrente
+    // em cima da 1ª (duplicidade de cobrança).
+    if (usuario.status === "ativo") {
+      return NextResponse.json({ erro: "Você já tem uma assinatura ativa. Para alterar seu plano, contate o suporte." }, { status: 409 });
+    }
+
     const { plano, ciclo = "mensal", telefone } = await req.json() as { plano: Plano; ciclo?: "mensal" | "anual"; telefone?: string };
 
     const dadosPlano = PLANOS[plano];

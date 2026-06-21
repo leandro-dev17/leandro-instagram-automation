@@ -96,6 +96,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Erro ao processar cadastro", detalhe: dbErro || "usuarioId indefinido" }, { status: 500 });
     }
 
+    // FASE 17: nenhuma rota de criação de assinatura checava se o usuário já
+    // tinha uma assinatura ativa, permitindo criar uma 2ª cobrança recorrente
+    // em cima da 1ª (duplicidade de cobrança).
+    const statusAtual = await sql`SELECT status FROM usuarios WHERE id = ${usuarioId} LIMIT 1`;
+    if (statusAtual[0]?.status === "ativo") {
+      return NextResponse.json({ erro: "Você já tem uma assinatura ativa nesse telefone/e-mail. Para alterar seu plano, contate o suporte." }, { status: 409 });
+    }
+
     // start_date alguns minutos no futuro
     const startDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 

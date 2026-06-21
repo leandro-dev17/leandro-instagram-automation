@@ -74,8 +74,13 @@ export async function POST(req: NextRequest) {
 
     // Busca usuário existente ou cria um novo (necessário para ativar acesso após o pagamento)
     let usuarioId: number;
-    const usuarios = await sql`SELECT id FROM usuarios WHERE email = ${email.toLowerCase()} LIMIT 1`;
+    const usuarios = await sql`SELECT id, status FROM usuarios WHERE email = ${email.toLowerCase()} LIMIT 1`;
     if (usuarios.length > 0) {
+      // FASE 17: nenhuma rota de criação de assinatura checava se o usuário já
+      // tinha uma assinatura ativa, permitindo criar uma 2ª cobrança em cima da 1ª.
+      if (usuarios[0].status === "ativo") {
+        return NextResponse.json({ erro: "Você já tem uma assinatura ativa nesse e-mail. Para alterar seu plano, contate o suporte." }, { status: 409 });
+      }
       usuarioId = usuarios[0].id;
     } else {
       const senhaAleatoria = await bcrypt.hash(randomUUID(), 10);

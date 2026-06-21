@@ -23,8 +23,12 @@ export async function GET(req: NextRequest) {
     // Só roda aos sábados
     if (new Date().getDay() !== 6) return NextResponse.json({ ok: true, motivo: "só roda aos sábados" });
 
+    // FASE 17: conta status 'enviando' (reservado abaixo, antes de publicar) como
+    // já em curso, para não duplicar o post se a função cair entre a publicação
+    // e o INSERT original (mesma classe da causa raiz da Fase 14).
     const jaPostou = await sql`
       SELECT id FROM agentes_log WHERE agente = 'semana-em-revista'
+      AND status IN ('sucesso', 'enviando')
       AND created_at >= NOW() - INTERVAL '6 days' LIMIT 1
     `;
     if (jaPostou.length > 0) return NextResponse.json({ ok: true, motivo: "já postou esta semana" });
@@ -66,15 +70,25 @@ Responda APENAS com o texto.` }],
 
     const post = `📰 SEMANA EM REVISTA — Alerta Patriota\n\n${texto}\n\n👉 Receba análises assim todo dia no grupo:\n${APP_URL}/assinar\n\n#AlertaPatriota #SemanEmRevista #Brasil #SemFiltro`;
 
+    // Reserva o slot ANTES de publicar — se a função cair entre a publicação e
+    // o fechamento do log, essa linha já basta para bloquear post duplicado.
+    const claim = await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('semana-em-revista', 'postar_facebook', 'enviando', ${JSON.stringify({ noticias: noticias.length })})
+      RETURNING id
+    `;
+    const logId = claim[0]?.id as number | undefined;
+
     const resultado = await publicarPostFacebook(post);
 
-    if (resultado.erro) return NextResponse.json({ ok: false, erro: resultado.erro });
+    if (resultado.erro) {
+      if (logId) await sql`UPDATE agentes_log SET status = 'erro' WHERE id = ${logId}`.catch(() => {});
+      return NextResponse.json({ ok: false, erro: resultado.erro });
+    }
 
-    await sql`
-      INSERT INTO agentes_log (agente, acao, status, detalhes)
-      VALUES ('semana-em-revista', 'postar_facebook', 'sucesso',
-        ${JSON.stringify({ postId: resultado.id, noticias: noticias.length })})
-    `;
+    if (logId) {
+      await sql`UPDATE agentes_log SET status = 'sucesso', detalhes = ${JSON.stringify({ postId: resultado.id, noticias: noticias.length })} WHERE id = ${logId}`;
+    }
 
     return NextResponse.json({ ok: true, postId: resultado.id });
   } catch (err) {

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const FB_API        = "https://graph.facebook.com/v21.0";
 const FB_PAGE_TOKEN = process.env.FB_PAGE_TOKEN || "";
@@ -15,8 +16,6 @@ const FB_APP_SECRET = process.env.FB_APP_SECRET || "";
 const VERCEL_TOKEN  = process.env.VERCEL_TOKEN || "";
 const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID || "prj_ZYN6c2dhVL3oYGh00URkGot0bMO3";
 const VERCEL_TEAM_ID    = process.env.VERCEL_TEAM_ID    || "team_JnDwQYGSI9RBjHyIygKLR56b";
-const GITHUB_TOKEN  = process.env.ALERTA_GITHUB_TOKEN || "";
-const GITHUB_REPO   = "leandro-dev17/leandro-instagram-automation";
 
 // ── Verifica token via debug_token ────────────────────────────────────────────
 async function verificarToken(token: string): Promise<{ valido: boolean; diasRestantes: number; expira: string }> {
@@ -85,17 +84,6 @@ async function atualizarVercel(key: string, value: string): Promise<boolean> {
   } catch { return false; }
 }
 
-// ── Atualiza secret no GitHub ─────────────────────────────────────────────────
-async function atualizarGitHubSecret(name: string, value: string): Promise<boolean> {
-  if (!GITHUB_TOKEN) return false;
-  try {
-    // GitHub Secrets requer criptografia com libsodium — simplificamos usando a API de variáveis de ambiente
-    // Para segredos reais, usaríamos a GitHub Secrets API com sodium
-    // Por ora, apenas registramos que o Vercel foi atualizado
-    return true;
-  } catch { return false; }
-}
-
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   const inicio = Date.now();
@@ -109,12 +97,16 @@ export async function GET(req: NextRequest) {
 
     // ── TOKEN INVÁLIDO ──────────────────────────────────────────────────────
     if (!status.valido) {
-      await alertarTelegram("🔴", "FACEBOOK FISCAL — TOKEN INVÁLIDO",
-        "O token da página Facebook/Instagram expirou.\n" +
-        "Não foi possível renovar automaticamente.\n" +
-        "Ação: gere novo token em developers.facebook.com e atualize ALERTA_FB_PAGE_TOKEN."
-      );
-      await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_facebook', 'critico', 'Token Facebook inválido — renovação manual necessária')`;
+      // FASE 17: sem dedup, cada execução deste cron com token inválido reenviava
+      // o mesmo alerta Telegram e inserção em `alertas` até alguém trocar o token.
+      const { criado } = await criarAlertaDedup("fiscal_facebook", "critico", "Token Facebook inválido — renovação manual necessária");
+      if (criado) {
+        await alertarTelegram("🔴", "FACEBOOK FISCAL — TOKEN INVÁLIDO",
+          "O token da página Facebook/Instagram expirou.\n" +
+          "Não foi possível renovar automaticamente.\n" +
+          "Ação: gere novo token em developers.facebook.com e atualize ALERTA_FB_PAGE_TOKEN."
+        );
+      }
       return NextResponse.json({ ok: false, diasRestantes: 0, renovado: false });
     }
 
@@ -125,8 +117,6 @@ export async function GET(req: NextRequest) {
       if (novoToken) {
         // Atualiza Vercel automaticamente
         const vercelOk = await atualizarVercel("FB_PAGE_TOKEN", novoToken);
-        // Tenta atualizar GitHub Secret também
-        await atualizarGitHubSecret("ALERTA_FB_TOKEN", novoToken);
 
         await sql`
           INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
@@ -148,12 +138,14 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ ok: true, renovado: true, diasRestantes: status.diasRestantes, vercelOk });
       } else {
         // Tentativa de renovação falhou
-        await alertarTelegram("🟡", "FACEBOOK FISCAL — Renovação Falhou",
-          `Token vence em ${status.diasRestantes} dias.\n` +
-          "Renovação automática falhou (faltam FB_APP_ID e FB_APP_SECRET?).\n" +
-          "Renove manualmente em developers.facebook.com."
-        );
-        await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_facebook', 'alto', ${`Token Facebook vence em ${status.diasRestantes} dias — renovação automática falhou`})`;
+        const { criado } = await criarAlertaDedup("fiscal_facebook", "alto", `Token Facebook vence em ${status.diasRestantes} dias — renovação automática falhou`);
+        if (criado) {
+          await alertarTelegram("🟡", "FACEBOOK FISCAL — Renovação Falhou",
+            `Token vence em ${status.diasRestantes} dias.\n` +
+            "Renovação automática falhou (faltam FB_APP_ID e FB_APP_SECRET?).\n" +
+            "Renove manualmente em developers.facebook.com."
+          );
+        }
         return NextResponse.json({ ok: true, renovado: false, diasRestantes: status.diasRestantes });
       }
     }

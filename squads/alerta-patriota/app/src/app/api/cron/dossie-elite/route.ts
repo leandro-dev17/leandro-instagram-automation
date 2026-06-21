@@ -26,9 +26,13 @@ export async function GET(req: NextRequest) {
     if (new Date().getDay() !== 6) return NextResponse.json({ ok: true, motivo: "só roda aos sábados" });
 
     const semana = getSemana();
+    // FASE 17: conta status 'enviando' (reservado abaixo, antes do envio) como
+    // já em curso, para não duplicar o dossiê se a função cair entre o envio e
+    // o INSERT original (mesma classe da causa raiz da Fase 14).
     const jaEnviou = await sql`
       SELECT id FROM agentes_log
-      WHERE agente = 'davi-dossie' AND created_at >= NOW() - INTERVAL '6 days' LIMIT 1
+      WHERE agente = 'davi-dossie' AND status IN ('sucesso', 'enviando')
+      AND created_at >= NOW() - INTERVAL '6 days' LIMIT 1
     `;
     if (jaEnviou.length > 0) return NextResponse.json({ ok: true, motivo: "já enviado esta semana" });
 
@@ -75,13 +79,25 @@ Responda APENAS com o texto.` }],
 
     dossie += `━━━━━━━━━━━━━━━━\n_O mundo muda para quem enxerga antes._`;
 
-    await enviarMensagemGrupo("elite", dossie);
-
-    await sql`
+    // Reserva o slot ANTES de enviar — se a função cair entre o envio e o
+    // fechamento do log, essa linha já basta para bloquear reenvio duplicado.
+    const claim = await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes)
-      VALUES ('davi-dossie', 'enviar_dossie', 'sucesso',
-        ${JSON.stringify({ semana, totalNoticias: noticias.length })})
+      VALUES ('davi-dossie', 'enviar_dossie', 'enviando', ${JSON.stringify({ semana, totalNoticias: noticias.length })})
+      RETURNING id
     `;
+    const logId = claim[0]?.id as number | undefined;
+
+    // FASE 17: antes não checava o retorno do envio — registrava 'sucesso' no
+    // log mesmo se a Evolution API tivesse recusado a mensagem.
+    const enviado = await enviarMensagemGrupo("elite", dossie);
+    if (!enviado) {
+      if (logId) await sql`UPDATE agentes_log SET status = 'erro' WHERE id = ${logId}`.catch(() => {});
+      await alertarTelegram("🔴", "Falha Agente Davi Dossiê", "Evolution API recusou o envio para o grupo Elite.");
+      return NextResponse.json({ ok: false, motivo: "falha no envio WhatsApp" });
+    }
+
+    if (logId) await sql`UPDATE agentes_log SET status = 'sucesso' WHERE id = ${logId}`;
 
     return NextResponse.json({ ok: true, semana, totalNoticias: noticias.length });
   } catch (err) {

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const VALOR_PLANO: Record<string, number> = {
   vip: 9.9,
@@ -114,20 +115,21 @@ export async function GET(req: NextRequest) {
         .map(([p, v]) => `• ${p.charAt(0).toUpperCase() + p.slice(1)}: ${v.assinantes} assinantes → R$ ${formatBRL(v.mrr)}`)
         .join("\n");
 
-      await alertarTelegram(
-        nivel,
-        `MARCOS MRR — Queda ${severidade.toUpperCase()} detectada`,
-        `📉 MRR atual: R$ ${formatBRL(mrrAtual)}\nMRR semana passada: R$ ${formatBRL(mrrAnterior!)}\nQueda: -${abs.toFixed(1)}% ⚠️\n\nPor plano:\n${linhasPlanos}\n\nCancelamentos 24h: ${qtdCancelamentos}`
+      // FASE 17: este cron roda a cada 30min — sem dedup, enquanto a queda persistia
+      // gerava um alerta novo (e um Telegram novo) a cada execução, várias vezes por hora.
+      const { criado } = await criarAlertaDedup(
+        "mrr_queda",
+        abs > 20 ? "critico" : "alto",
+        `MRR caiu ${abs.toFixed(1)}% em relação à semana passada (R$ ${formatBRL(mrrAnterior!)} → R$ ${formatBRL(mrrAtual)})`
       );
 
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES (
-          'mrr_queda',
-          ${abs > 20 ? "critico" : "alto"},
-          ${`MRR caiu ${abs.toFixed(1)}% em relação à semana passada (R$ ${formatBRL(mrrAnterior!)} → R$ ${formatBRL(mrrAtual)})`}
-        )
-      `;
+      if (criado) {
+        await alertarTelegram(
+          nivel,
+          `MARCOS MRR — Queda ${severidade.toUpperCase()} detectada`,
+          `📉 MRR atual: R$ ${formatBRL(mrrAtual)}\nMRR semana passada: R$ ${formatBRL(mrrAnterior!)}\nQueda: -${abs.toFixed(1)}% ⚠️\n\nPor plano:\n${linhasPlanos}\n\nCancelamentos 24h: ${qtdCancelamentos}`
+        );
+      }
     }
 
     // 6. Salva snapshot atual

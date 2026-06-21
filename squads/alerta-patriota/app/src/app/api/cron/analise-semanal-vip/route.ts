@@ -65,9 +65,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, motivo: "só roda às segundas-feiras" });
     }
 
+    // FASE 17: a checagem olhava qualquer linha em agentes_log, mas a linha de
+    // sucesso só era gravada DEPOIS do envio — se a função travasse/caísse entre
+    // o envio e o INSERT (mesma classe da causa raiz da Fase 14), o próximo
+    // disparo não veria nada e reenviaria a mesma análise. Agora também conta
+    // status 'enviando' (reservado abaixo, antes do envio) como já em curso.
     const jaEnviou = await sql`
       SELECT id FROM agentes_log
       WHERE agente = 'analise-semanal-vip'
+        AND status IN ('sucesso', 'enviando')
         AND created_at >= NOW() - INTERVAL '6 days'
       LIMIT 1
     `;
@@ -104,23 +110,26 @@ export async function GET(req: NextRequest) {
       `*Deus, Pátria e Família — sempre.*\n` +
       `*— Capitão Roberto Braga*`;
 
+    // Reserva o slot ANTES de enviar — se a função cair entre o envio e o
+    // fechamento do log, essa linha já basta para bloquear reenvio duplicado.
+    const claim = await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('analise-semanal-vip', 'enviar_analise', 'enviando', ${JSON.stringify({ data, totalNoticias: noticias.length })})
+      RETURNING id
+    `;
+    const logId = claim[0]?.id as number | undefined;
+
     const enviado = await enviarMensagemGrupo("vip", mensagem);
     if (!enviado) {
+      if (logId) await sql`UPDATE agentes_log SET status = 'erro' WHERE id = ${logId}`.catch(() => {});
       await alertarTelegram("🔴", "Análise Semanal VIP", "Evolution API recusou o envio para o grupo VIP.");
       return NextResponse.json({ ok: false, motivo: "falha no envio WhatsApp" });
     }
 
     const duracao = Date.now() - inicio;
-    await sql`
-      INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-      VALUES (
-        'analise-semanal-vip',
-        'enviar_analise',
-        'sucesso',
-        ${JSON.stringify({ data, totalNoticias: noticias.length })},
-        ${duracao}
-      )
-    `;
+    if (logId) {
+      await sql`UPDATE agentes_log SET status = 'sucesso', duracao_ms = ${duracao} WHERE id = ${logId}`;
+    }
 
     await alertarTelegram("🟢", "Análise Semanal VIP", `"Semana em Perspectiva" enviada para o grupo VIP.\n${noticias.length} notícias analisadas · ${duracao}ms`);
 

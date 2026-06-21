@@ -93,16 +93,30 @@ export async function GET(req: NextRequest) {
 
   try {
     // ── 1. Trial expirando em 6 dias ─────────────────────────────────────
+    // FASE 17: essa rota roda 3x/dia e a janela de elegibilidade (trial_fim
+    // entre 5 e 7 dias) dura ~2 dias — sem deduplicação, o mesmo trial recebia
+    // o lembrete várias vezes ao dia, todos os dias na janela. Agora segue o
+    // mesmo padrão de dedup das ondas de reengajamento abaixo.
     const trialsD6 = await sql`
       SELECT id, nome, telefone FROM usuarios
       WHERE status = 'trial'
         AND trial_fim BETWEEN NOW() + INTERVAL '5 days' AND NOW() + INTERVAL '7 days'
         AND telefone IS NOT NULL
+        AND id NOT IN (
+          SELECT (detalhes->>'usuarioId')::int FROM agentes_log
+          WHERE agente = 'enzo-engajamento' AND acao = 'trial_d6'
+            AND created_at >= NOW() - INTERVAL '7 days'
+            AND detalhes->>'usuarioId' IS NOT NULL
+        )
     `;
 
     for (const u of trialsD6) {
       const msg = `⏰ *${u.nome}, seus 7 dias estão acabando!*\n\nVocê ainda tem acesso ao Alerta Patriota por poucos dias. Não fique sem as notícias que a mídia esconde.\n\nManter minha assinatura: ${APP_URL}/assinar\n\n_Capitão Braga — Deus, Pátria e Família._`;
-      await enviarMensagemPrivada(u.telefone, msg);
+      const enviado = await enviarMensagemPrivada(u.telefone, msg);
+      await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes)
+        VALUES ('enzo-engajamento', 'trial_d6', ${enviado ? "sucesso" : "erro"}, ${JSON.stringify({ usuarioId: u.id })})
+      `;
       acoes++;
     }
 

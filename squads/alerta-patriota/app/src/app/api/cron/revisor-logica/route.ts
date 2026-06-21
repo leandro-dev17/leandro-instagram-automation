@@ -33,17 +33,11 @@ export async function GET(req: NextRequest) {
     for (const alerta of alertasLogica) {
       const msg = (alerta.mensagem as string).toLowerCase();
 
-      // Autocorreção 1: alertas críticos acumulados → resolve os antigos
-      if (msg.includes("alertas críticos sem resolução")) {
-        const resolvidos = await sql`
-          UPDATE alertas SET resolvido = true, resolvido_at = NOW()
-          WHERE resolvido = false AND severidade = 'critico'
-          AND created_at <= NOW() - INTERVAL '2 hours'
-          RETURNING id
-        `;
-        acoes.push(`✅ ${resolvidos.length} alertas críticos antigos resolvidos automaticamente`);
-        await sql`UPDATE alertas SET resolvido = true, resolvido_at = NOW() WHERE id = ${alerta.id}`;
-      }
+      // FASE 17: removida a "Autocorreção 1" que marcava alertas críticos como
+      // resolvido=true apenas por terem passado de 2h, sem checar se a causa real
+      // foi corrigida — isso escondia o sintoma (o próprio alerta existe para
+      // sinalizar que algo ficou sem resolução) em vez de corrigi-lo. Esse tipo de
+      // alerta agora apenas segue para a escalação ao gerente-codigo no fim da rota.
 
       // Autocorreção 2: pipeline parado → dispara coletor manualmente
       if (msg.includes("nenhuma notícia coletada") || msg.includes("coletor pode estar parado")) {

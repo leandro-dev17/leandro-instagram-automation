@@ -32,7 +32,23 @@ export async function GET(req: NextRequest) {
 
     for (const u of cancelados) {
       if (!u.plano) continue;
-      await removerMembroGrupo(u.telefone, u.plano as Plano);
+      // FASE 17: antes não checava o retorno da remoção — o banco marcava
+      // 'removido' e decrementava membros_ativos mesmo quando a chamada real
+      // à Evolution API falhava, deixando o usuário cancelado/inadimplente
+      // com acesso ao grupo pago enquanto o sistema achava que já tinha sido
+      // removido (sem retry futuro, já que o status deixava de bater com a
+      // condição EXISTS acima).
+      const removido = await removerMembroGrupo(u.telefone, u.plano as Plano);
+
+      if (!removido) {
+        await sql`
+          INSERT INTO agentes_log (agente, acao, status, detalhes)
+          VALUES ('miguel-moderacao', 'remover_cancelado', 'erro',
+            ${JSON.stringify({ usuarioId: u.id, plano: u.plano, motivo: u.status, erro: "Evolution API recusou a remoção" })})
+        `;
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
 
       await sql`
         UPDATE membros_grupos SET status = 'removido', data_saida = NOW()

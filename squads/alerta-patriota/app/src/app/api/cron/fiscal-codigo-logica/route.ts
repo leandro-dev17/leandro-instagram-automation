@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
@@ -56,18 +57,23 @@ export async function GET(req: NextRequest) {
     }
 
     // 4. Limite diário de cards: VIP/Elite não devem exceder 6
+    // FASE 17: antes fazia JOIN com grupos_whatsapp sem correlação real (produto
+    // cartesiano), multiplicando a contagem pelo número de linhas em grupos_whatsapp.
+    // O plano já está registrado em agentes_log.acao (formato 'card_<plano>'),
+    // então a contagem correta não precisa de JOIN nenhum.
     const cardsHoje = await sql`
-      SELECT g.plano, COUNT(*) as total
-      FROM agentes_log al
-      JOIN grupos_whatsapp g ON g.plano IN ('vip', 'elite')
-      WHERE al.agente = 'gerador-card' AND al.status = 'sucesso'
-      AND al.created_at >= ${hoje.toISOString()}
-      GROUP BY g.plano
+      SELECT acao, COUNT(*) as total
+      FROM agentes_log
+      WHERE agente = 'gerador-card' AND status = 'sucesso'
+      AND acao IN ('card_vip', 'card_elite')
+      AND created_at >= ${hoje.toISOString()}
+      GROUP BY acao
     `;
     for (const row of cardsHoje) {
+      const plano = String(row.acao).replace(/^card_/, "");
       const limite = 6;
       if (Number(row.total) > limite) {
-        problemas.push({ desc: `Grupo ${row.plano} excedeu limite: ${row.total}/${limite} cards hoje`, severidade: "medio" });
+        problemas.push({ desc: `Grupo ${plano} excedeu limite: ${row.total}/${limite} cards hoje`, severidade: "medio" });
       }
     }
 
@@ -102,16 +108,20 @@ export async function GET(req: NextRequest) {
 
     if (problemas.length > 0) {
       const criticos = problemas.filter(p => p.severidade === "critico");
-      await alertarTelegram(
-        criticos.length > 0 ? "🚨" : "🔴",
-        `FISCAL CÓDIGO — PROBLEMAS DE LÓGICA (${problemas.length})`,
-        problemas.map(p => `• [${p.severidade.toUpperCase()}] ${p.desc}`).join("\n") + "\n\n⚠️ Escalando para Revisor de Lógica..."
+      // FASE 17: sem dedup, os mesmos problemas não resolvidos geravam um novo alerta
+      // e um novo Telegram a cada execução (a cada 6h) até alguém resolver manualmente.
+      const { criado } = await criarAlertaDedup(
+        "codigo_logica",
+        criticos.length > 0 ? "critico" : "alto",
+        `Problemas de lógica: ${problemas.map(p => p.desc).join("; ")}`
       );
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES ('codigo_logica', ${criticos.length > 0 ? "critico" : "alto"},
-          ${`Problemas de lógica: ${problemas.map(p => p.desc).join("; ")}`})
-      `;
+      if (criado) {
+        await alertarTelegram(
+          criticos.length > 0 ? "🚨" : "🔴",
+          `FISCAL CÓDIGO — PROBLEMAS DE LÓGICA (${problemas.length})`,
+          problemas.map(p => `• [${p.severidade.toUpperCase()}] ${p.desc}`).join("\n") + "\n\n⚠️ Escalando para Revisor de Lógica..."
+        );
+      }
       await fetch(`${APP}/api/cron/revisor-logica`, {
         headers: { Authorization: `Bearer ${CRON}` }, signal: AbortSignal.timeout(5000),
       }).catch(() => {});

@@ -72,16 +72,33 @@ export async function GET(req: NextRequest) {
       gerarBomDia(titulos, "cavalcanti"),
     ]);
 
-    const bomDiaVIP = `🌅 *BOM DIA, PATRIOTA!*\n\n${msgBraga}`;
-    const bomDiaElite = `🌅 *BRIEFING MATINAL — ELITE GLOBAL*\n\n${msgCavalcanti}`;
+    // FASE 17: antes enviava direto, mesmo se a IA tivesse retornado texto
+    // vazio (mensagem chegava ao grupo só com o cabeçalho, e ainda era
+    // registrada como 'sucesso'). Agora só envia o que de fato foi gerado, e
+    // o retorno do envio também é checado antes de logar sucesso.
+    const enviosVip = msgBraga
+      ? await enviarMensagemGrupo("vip", `🌅 *BOM DIA, PATRIOTA!*\n\n${msgBraga}`)
+      : false;
+    const enviosElite = msgCavalcanti
+      ? await enviarMensagemGrupo("elite", `🌅 *BRIEFING MATINAL — ELITE GLOBAL*\n\n${msgCavalcanti}`)
+      : false;
 
-    await Promise.all([
-      enviarMensagemGrupo("vip", bomDiaVIP),
-      enviarMensagemGrupo("elite", bomDiaElite),
-    ]);
+    if (!msgBraga || !msgCavalcanti) {
+      await alertarTelegram("🟡", "Bom Dia Patriota — texto vazio da IA",
+        `VIP: ${msgBraga ? "ok" : "texto vazio, não enviado"}\nElite: ${msgCavalcanti ? "ok" : "texto vazio, não enviado"}`);
+    }
+    if ((msgBraga && !enviosVip) || (msgCavalcanti && !enviosElite)) {
+      await alertarTelegram("🔴", "Bom Dia Patriota — falha no envio WhatsApp",
+        `VIP enviado: ${enviosVip}\nElite enviado: ${enviosElite}`);
+    }
 
-    await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('bom-dia', 'enviar_vip_elite', 'sucesso')`;
-    return NextResponse.json({ ok: true });
+    const status = enviosVip && enviosElite ? "sucesso" : (enviosVip || enviosElite) ? "aviso" : "erro";
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('bom-dia', 'enviar_vip_elite', ${status},
+        ${JSON.stringify({ vipEnviado: enviosVip, eliteEnviado: enviosElite, textoVipVazio: !msgBraga, textoEliteVazio: !msgCavalcanti })})
+    `;
+    return NextResponse.json({ ok: !!(enviosVip || enviosElite), vipEnviado: enviosVip, eliteEnviado: enviosElite });
   } catch (err) {
     await alertarTelegram("🔴", "Falha Agente Bom Dia Patriota", String(err));
     await sql`

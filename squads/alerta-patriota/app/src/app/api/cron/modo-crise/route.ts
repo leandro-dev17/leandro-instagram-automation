@@ -1,9 +1,12 @@
 /**
  * AGENTE MÁRCIO CRISE
- * Ativa/desativa modo de crise. Em modo crise, grupos VIP e Elite
- * recebem atualizações a cada 2h.
- * GET /api/cron/modo-crise?acao=ativar|desativar|status
- * POST /api/cron/modo-crise — ativa automaticamente quando há 3+ notícias urgentes em 2h
+ * Ativa/desativa modo de crise (flag de estado em `alertas.tipo = 'modo_crise'`).
+ * GET /api/cron/modo-crise?acao=ativar|desativar|status|verificar
+ * `verificar` ativa automaticamente quando há 3+ notícias urgentes em 2h, e
+ * desativa automaticamente quando a frequência de urgentes volta ao normal.
+ * NOTA: hoje isso é só um flag + aviso no Telegram/admin — nenhuma rota de
+ * envio (dossie-elite, analise-semanal-vip etc.) ainda lê esse flag para
+ * de fato aumentar a cadência de envio aos grupos VIP/Elite.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -43,7 +46,7 @@ export async function GET(req: NextRequest) {
         VALUES ('modo_crise', 'alto', 'Modo crise ativado manualmente')
       `;
 
-      await alertarTelegram("🚨", "MODO CRISE ATIVADO", "Agente Márcio Crise ativou o modo de emergência. VIP receberá updates a cada 2h.");
+      await alertarTelegram("🚨", "MODO CRISE ATIVADO", "Agente Márcio Crise ativou o modo de emergência (fluxo de notícias urgentes acima do normal).");
 
       return NextResponse.json({ ok: true, acao: "ativado" });
     }
@@ -81,6 +84,16 @@ export async function GET(req: NextRequest) {
           }
         }
         return NextResponse.json({ ok: true, urgentes: total, modoAtivo: true });
+      }
+
+      // FASE 17: antes o modo crise nunca se autodesativava — uma vez ativado,
+      // só saía manualmente pelo painel admin. Agora, se a frequência de
+      // urgentes voltou ao normal (<3 em 2h) e o modo está ativo, desativa.
+      const jaAtivo = await sql`SELECT id FROM alertas WHERE tipo = 'modo_crise' AND resolvido = false LIMIT 1`;
+      if (jaAtivo.length > 0) {
+        await sql`UPDATE alertas SET resolvido = true, resolvido_at = NOW() WHERE tipo = 'modo_crise' AND resolvido = false`;
+        await alertarTelegram("🟢", "Modo Crise Desativado Automaticamente", `Frequência de notícias urgentes normalizada (${total} nas últimas 2h).`);
+        return NextResponse.json({ ok: true, urgentes: total, modoAtivo: false, desativadoAutomaticamente: true });
       }
 
       return NextResponse.json({ ok: true, urgentes: total, modoAtivo: false });

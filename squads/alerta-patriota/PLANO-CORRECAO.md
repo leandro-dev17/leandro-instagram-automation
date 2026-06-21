@@ -514,6 +514,73 @@ Implementação dos 5 itens 🔴 CRÍTICO listados na Fase 15, na ordem aprovada
 
 ---
 
+## FASE 17 — Correção dos 15 Bugs de Alta Severidade da Fase 15 (21/06/2026)
+**Status: ✅ CONCLUÍDA**
+
+Implementação dos itens 🟠 ALTO listados na Fase 15, um por um, com `tsc --noEmit` limpo após cada item.
+
+### 1. Termômetro duplicado todo domingo
+- **Correção:** removido o gatilho duplicado em `vercel.json` (17h BRT); mantido apenas o disparo correto via GitHub Actions (20h BRT) com a guarda de banco já existente em `route.ts`.
+
+### 2. Chave Evolution API em texto puro no workflow
+- **Correção:** as 3 ocorrências restantes em `.github/workflows/alerta-patriota-crons.yml` (jobs distintos) trocadas por `${{ secrets.ALERTA_EVOLUTION_KEY }}`, igualando o padrão já usado no resto do arquivo.
+
+### 3. `fiscal-codigo-logica` com JOIN produto cartesiano
+- **Causa:** contagem de cards do dia fazia `JOIN` com `grupos_whatsapp` sem correlação real, multiplicando a contagem pelo número de linhas da tabela.
+- **Correção:** contagem agora lê direto de `agentes_log.acao` (`card_vip`/`card_elite`), sem JOIN nenhum.
+
+### 4. `atualizarGitHubSecret()` sempre retorna sucesso
+- **Decisão:** em vez de implementar a integração real com a API de Secrets do GitHub (alto risco para um estoque pequeno de tempo — exigiria chave de admin do repositório e criptografia libsodium), o stub foi removido e a rotação automática de secret reportada como `pendente`/manual no log, em vez de fingir sucesso.
+
+### 5. `escalar-claude` código morto
+- **Reavaliação:** a premissa da Fase 15 não se confirmou — `escalar-claude` é chamado de fato em 3 caminhos reais (`claude-revisor`, 2 tentativas falhas + arquivo protegido + arquivo grande) e por um cron agendado. O código realmente morto era `lib/hierarquia.ts` (confirmado via busca por todos os imports possíveis — zero usos). **Correção:** `lib/hierarquia.ts` removido; `escalar-claude` mantido intacto.
+
+### 6. `revisor-logica` resolve alertas críticos só por idade
+- **Causa:** bloco de "autocorreção" marcava alertas críticos como resolvidos só porque tinham mais de 2h, sem checar se a causa raiz foi corrigida — podia mascarar o próprio problema que deveria acionar correção.
+- **Correção:** bloco removido; a escalação para `gerente-codigo` (já existente, incondicional) passa a ser o único tratamento desse tipo de alerta.
+
+### 7. `modo-crise` sem efeito real e sem autodesativação
+- **Decisão de escopo:** a Fase 15 sugeria uma cadência de updates VIP/Elite a cada 2h durante a crise — não implementado (exigiria infraestrutura de agendamento de conteúdo nova, risco desproporcional ao achado). Em vez disso, corrigido o que estava genuinamente quebrado: a rota `?acao=verificar` nunca era chamada por nada (nem cron, nem outra rota), então o modo de crise nunca ativava nem desativava de forma automática.
+- **Correção:** adicionado step no job `fiscais-b` (a cada 30min) chamando `/api/cron/modo-crise?acao=verificar`; lógica de autodesativação implementada (resolve o alerta `modo_crise` quando a frequência de notícias urgentes normaliza); texto do Telegram e docstring do arquivo corrigidos para não prometer a cadência de 2h que não existe.
+
+### 8. Condição de corrida em `publicar-noticias`
+- **Causa:** padrão "SELECT depois UPDATE" permitia que o cron agendado e o botão "publicar agora" do painel admin (`admin/publicar-agora`, que chama a mesma rota) publicassem a mesma notícia 2x se rodassem ao mesmo tempo.
+- **Correção:** trocado por `WITH ... FOR UPDATE SKIP LOCKED` + `UPDATE ... RETURNING` atômico (claim e marcação em uma única instrução). Adicionado reversão do claim (`postada_vip/elite = false`) nos casos de resumo vazio ou falha de envio, para não perder a notícia silenciosamente.
+
+### 9. Idempotência grava log depois do envio (`dossie-elite`, `analise-semanal-vip`, `semana-em-revista`)
+- **Causa:** mesmo risco da Fase 14 — se a função for matada entre o envio real e o `INSERT` do log de sucesso, o próximo ciclo reenvia.
+- **Correção:** padrão "claim antes de agir" — insere o log com `status = 'enviando'` antes do envio, atualiza para `'sucesso'`/`'erro'` depois; checagem de "já enviado" passou a considerar `status IN ('sucesso', 'enviando')`. Também corrigido bug adicional em `dossie-elite`: o retorno de `enviarMensagemGrupo()` não era verificado, então sempre logava sucesso mesmo com falha real de envio.
+
+### 10. Texto vazio da IA tratado como sucesso (`bom-dia`, `resumo-noite`)
+- **Correção:** envio agora só ocorre por grupo (VIP/Elite) se o texto gerado pela IA for não-vazio; status do log passou a refletir `sucesso`/`aviso`/`erro` de forma granular por grupo, com alerta Telegram separado para "texto vazio" vs. "falha de envio".
+
+### 11. Lembrete de trial D6 sem deduplicação
+- **Correção:** adicionado filtro `NOT IN (SELECT ... FROM agentes_log WHERE agente = 'enzo-engajamento' AND acao = 'trial_d6' AND created_at >= NOW() - INTERVAL '7 days')`, no mesmo padrão já usado pelas "ondas" de reengajamento D5-D30 no mesmo arquivo.
+
+### 12. `moderacao-grupo` não verifica retorno de `removerMembroGrupo()`
+- **Causa:** banco marcava o membro como removido (e decrementava contador) mesmo quando a chamada real à Evolution API falhava — usuário cancelado/inadimplente continuava no grupo pago, e o sistema não tentava de novo (status já não batia com a condição de busca).
+- **Correção:** retorno booleano de `removerMembroGrupo()` agora é checado; só atualiza `membros_grupos`/`grupos_whatsapp` e loga sucesso se a remoção real foi confirmada, senão loga erro e segue para o próximo (mantém o usuário elegível para retry no próximo ciclo).
+- **Nota:** a docstring do arquivo menciona remoção de "inativos há +60 dias sem atividade", mas esse bloco não existe no código — fora do escopo deste item (que é sobre o retorno não verificado, não sobre implementar uma feature ausente); registrado aqui para referência futura.
+
+### 13. Rotas de assinatura não checam assinatura ativa antes de criar nova
+- **Causa:** `criar`, `criar-direto` e `criar-pix` permitiam abrir uma 2ª cobrança (recorrente ou PIX) em cima de uma assinatura já ativa.
+- **Correção:** guarda `status === "ativo"` → `409 Conflict` adicionada nos 3 fluxos, cada um no ponto em que o usuário já está resolvido (sessão logada em `criar`; busca por telefone/e-mail em `criar-direto`/`criar-pix`).
+
+### 14. Falta de deduplicação de alertas sistêmica em `fiscal-*`
+- **Causa:** quase todas as ~24 rotas `fiscal-*` que inserem em `alertas` reinserem o mesmo alerta + reenviam Telegram a cada execução enquanto a condição persistir (algumas rodam a cada 30min), gerando spam de alertas idênticos.
+- **Correção aplicada (escopo parcial, deliberado):** criado helper reutilizável `lib/alertas.ts` (`criarAlertaDedup`) que só insere um novo alerta se não houver um do mesmo `tipo` ainda não resolvido dentro de uma janela (padrão 6h). Aplicado em 3 rotas já revisadas nesta fase: `fiscal-mrr` (roda a cada 30min — era o caso mais grave de spam), `fiscal-facebook` (2 pontos de alerta) e `fiscal-codigo-logica`.
+- **Deferido (decisão deliberada, não esquecimento):** as demais ~20 rotas `fiscal-*` (`fiscal-duplicatas`, `fiscal-cards`, `fiscal-grupos`, `fiscal-apis-externas`, `fiscal-whatsapp`, `fiscal-fontes`, `fiscal-agendamento`, `fiscal-workflow`, `fiscal-noticias`, `fiscal-inadimplentes`, `fiscal-conteudo`, `fiscal-codigo-seguranca`, `fiscal-codigo-schema`, `fiscal-pipeline`, `fiscal-qualidade-resumo`, `fiscal-especiais`, `fiscal-login`, `fiscal-banco`, `fiscal-api`, `admin/prompts`) continuam inserindo direto em `alertas` sem dedup. Migrar mecanicamente as 24 de uma vez, sem revisar o contexto específico de cada uma, era um risco desproporcional ao tempo disponível numa rodada autônoma. O helper já existe e pronto para ser aplicado rota a rota numa fase futura dedicada a isso.
+
+### 15. Rotas admin usando `verificarCronSecret` em vez de `requireAdmin`
+- **Investigação:** das 3 rotas apontadas pela Fase 15 (`setup`, `fix-encoding`, `limpar-fontes`), nenhuma é chamada pelo painel admin (nenhuma referência em código de frontend) — são scripts de manutenção/bootstrap acionados manualmente via `curl` com `CRON_SECRET`, igual a um cron. Não há sessão de admin sendo contornada de fato.
+- **Correção real encontrada:** `admin/agentes/route.ts` (que usa `requireAdmin()` corretamente nas duas rotas) tinha um import morto de `verificarCronSecret`, nunca usado — removido.
+- **Decisão:** não renomear/mover `setup`/`fix-encoding`/`limpar-fontes` para fora de `/api/admin/`, para não quebrar scripts manuais salvos pelo usuário; risco da inconsistência de nomenclatura é cosmético, não de segurança (CRON_SECRET ainda é exigido).
+
+**Verificação final:** `tsc --noEmit` limpo em todos os arquivos tocados desta fase (rodado item a item e novamente no conjunto completo).
+**Pendente:** migração completa do item 14 (~20 arquivos restantes) e os itens 🟡 MÉDIO / 🟢 BAIXO da Fase 15 continuam fora do escopo desta rodada.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -553,6 +620,7 @@ Implementação dos 5 itens 🔴 CRÍTICO listados na Fase 15, na ordem aprovada
 | 20/06/2026 | Fase 10 | Auditoria geral (auth/MP/segurança/agentes) — 4 sub-auditorias paralelas, achados verificados manualmente (boa parte dos achados automáticos descartados como falso-positivo). Confirmados e corrigidos: webhook do WhatsApp nunca registrado na Evolution API (registrado agora, com secret na URL); `EVOLUTION_WEBHOOK_SECRET` ausente (gerada e configurada); rate-limit adicionado em `auth/login`, `auth/cadastro`, `assinaturas/criar-pix` e `assinaturas/criar-direto`; preço desatualizado corrigido em `lista-de-espera`. `tsc --noEmit` zerado; commit `f578a21`, push `cb5a9af..f578a21`; deploy `dpl_2V4dbR4rNfnSDxE3kEpcTKRRkdyC` |
 | 21/06/2026 | Fase 15 | Auditoria exaustiva única de TODA a automação (pedido explícito do usuário, substituindo auditorias fragmentadas anteriores): 8 sub-auditorias paralelas cobrindo ~101 rotas + 8 libs, somente leitura. 5 achados críticos (job "Fiscais 24/7" cancelado de fato em produção sem alerta — confirmado com `gh run list` real, não hipótese; MRR mal calculado; `revisor-schema` roda DDL sem proteção; `claude-resolver` comita sem validação; CPF vazio no PIX) + ~14 de alta severidade + dezenas de médio/baixo. Nenhum fix aplicado ainda — pendente de priorização com o usuário. |
 | 21/06/2026 | Fase 16 | Correção dos 5 críticos da Fase 15 (usuário escolheu "os 5 críticos primeiro"): job `fiscais` dividido em 3 jobs paralelos + `--max-time 20` + alerta de falha em `alerta-patriota-crons.yml`; MRR normalizado por `ciclo` em `fiscal-mrr`; `SAFE_DDL_PATTERN` (allowlist regex) bloqueando DDL fora do padrão `ADD COLUMN IF NOT EXISTS` em `revisor-schema`; `validarAntesDeCommitar()` (cerca markdown + truncamento + sintaxe TS via `ts.transpileModule`) em `claude-resolver`; CPF validado (11 dígitos) e enviado ao MP em `criar-pix` (nenhum chamador frontend encontrado neste repositório — ressalva registrada). `tsc --noEmit` zerado em todos os arquivos tocados. Ainda sem commit/push — aguardando autorização do usuário. ~14 itens ALTO e MÉDIO/BAIXO da Fase 15 continuam pendentes. |
+| 21/06/2026 | Fase 17 | Correção dos 15 itens 🟠 ALTO da Fase 15, item a item: termômetro duplicado removido de `vercel.json`; chave Evolution API movida para secret nos 3 jobs restantes; JOIN cartesiano corrigido em `fiscal-codigo-logica`; stub `atualizarGitHubSecret()` removido (reportado como pendente em vez de fingir sucesso); `lib/hierarquia.ts` (código morto real) removido — `escalar-claude` confirmado como vivo e mantido; autocorreção por idade removida de `revisor-logica`; `modo-crise` ganhou chamada real (`fiscais-b`, a cada 30min) + autodesativação; `publicar-noticias` com claim atômico `FOR UPDATE SKIP LOCKED` + reversão em falha; padrão "claim antes de agir" (`status='enviando'`) em `dossie-elite`/`analise-semanal-vip`/`semana-em-revista` + retorno de envio verificado em `dossie-elite`; texto vazio da IA tratado como aviso/erro (não sucesso) em `bom-dia`/`resumo-noite`; dedup adicionada ao lembrete de trial D6; retorno de `removerMembroGrupo()` verificado em `moderacao-grupo`; guarda de assinatura ativa (409) em `criar`/`criar-direto`/`criar-pix`; helper `lib/alertas.ts` (`criarAlertaDedup`) criado e aplicado em 3 rotas de amostra (`fiscal-mrr`, `fiscal-facebook`, `fiscal-codigo-logica`) — migração das ~20 rotas `fiscal-*` restantes deferida deliberadamente; import morto de `verificarCronSecret` removido em `admin/agentes`, demais rotas confirmadas como scripts de manutenção manual (não bug de segurança real). `tsc --noEmit` zerado. Commit + push autorizados pelo usuário. |
 | 21/06/2026 | Fase 14 | CAUSA RAIZ REAL do card travado: plano Hobby da Vercel mata função em 10s sem `maxDuration`; consulta direta a `agentes_log` provou que o teste de `?plano=elite` pós-Fase 13 nunca gerou log (nem sucesso nem erro) — função morta a meio caminho, provavelmente durante o upload pro Evolution API, deixando mídia incompleta. Fix: `export const maxDuration = 60` em `gerar-card` + outras 19 rotas com a mesma cadeia de fallback de IA. Reteste pós-deploy: chamada que antes nunca terminava completou em 9,95s; mensagem JPEG no grupo Elite com integridade criptográfica 100% confirmada (MAC + fileEncSha256 + fileSha256 + abertura visual). |
 | 21/06/2026 | Fase 13 | Auditoria profunda pós-Fase 12 (card ainda travava). Verificação criptográfica byte-a-byte provou que a mídia entregue ao CDN do WhatsApp é 100% íntegra (descarta corrupção). Grupos VIP/Elite têm 1 e 2 participantes — descarta falha de sync entre dispositivos do bot. Causa corrigida: PNG RGBA grande (~1,6MB) trocado por JPEG (~180KB, -88%) via `sharp`. Causa estrutural sem fix de código: possível throttling de mídia anti-abuso da Meta para contas automatizadas novas — monitorar se persistir. |
 | 21/06/2026 | Fase 12 | URGENTE — card publicava (Fase 11 ok) mas ficava "carregando" no grupo. Causa: legenda real medida em 1503/1066/1151 caracteres, acima do limite de ~1024 do WhatsApp para caption de mídia. Fix: max_tokens 500→350 + truncarLegenda() com corte seguro em LEGENDA_MAX=990. |

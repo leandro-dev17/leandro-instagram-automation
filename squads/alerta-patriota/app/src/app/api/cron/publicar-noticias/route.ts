@@ -70,11 +70,36 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
 
   try {
-    // Busca notícia não postada ainda, com resumo disponível
+    // FASE 17: antes era um SELECT seguido de UPDATE separado — duas chamadas
+    // concorrentes (ex.: cron agendado + "publicar agora" do admin) podiam
+    // selecionar a mesma notícia antes que a primeira marcasse postada_x=true,
+    // publicando-a duas vezes. Agora a seleção e a marcação são uma única
+    // operação atômica (CTE + FOR UPDATE SKIP LOCKED), que já reserva a
+    // notícia antes de qualquer envio.
     const rows = (grupo === "vip"
-      ? await sql`SELECT id, titulo, fonte, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 1`
+      ? await sql`
+          WITH proxima AS (
+            SELECT id FROM noticias
+            WHERE postada_vip = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false)
+            ORDER BY urgente DESC, created_at DESC LIMIT 1
+            FOR UPDATE SKIP LOCKED
+          )
+          UPDATE noticias SET postada_vip = true, postada_vip_at = NOW()
+          WHERE id IN (SELECT id FROM proxima)
+          RETURNING id, titulo, fonte, url, urgente, resumo_braga, resumo_cavalcanti
+        `
       // Elite: aceita notícias BR e globais, desde que tenha resumo_cavalcanti
-      : await sql`SELECT id, titulo, fonte, url, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1`) as unknown as {
+      : await sql`
+          WITH proxima AS (
+            SELECT id FROM noticias
+            WHERE postada_elite = false AND resumo_cavalcanti IS NOT NULL
+            ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1
+            FOR UPDATE SKIP LOCKED
+          )
+          UPDATE noticias SET postada_elite = true, postada_elite_at = NOW()
+          WHERE id IN (SELECT id FROM proxima)
+          RETURNING id, titulo, fonte, url, urgente, resumo_braga, resumo_cavalcanti
+        `) as unknown as {
       id: number;
       titulo: string;
       fonte: string | null;
@@ -97,20 +122,22 @@ export async function GET(req: NextRequest) {
     const mensagem = buildMensagemNoticia(grupo, noticia);
 
     if (!mensagem) {
+      // Notícia já foi reservada pelo UPDATE atômico acima, mas não há resumo
+      // utilizável — libera para não perder a notícia permanentemente.
+      if (grupo === "vip") {
+        await sql`UPDATE noticias SET postada_vip = false, postada_vip_at = NULL WHERE id = ${noticia.id}`;
+      } else {
+        await sql`UPDATE noticias SET postada_elite = false, postada_elite_at = NULL WHERE id = ${noticia.id}`;
+      }
       return NextResponse.json({ ok: true, publicado: false, motivo: "resumo vazio" });
     }
 
-    // Envia para o grupo
+    // Envia para o grupo (a notícia já foi marcada como postada de forma
+    // atômica na consulta acima, evitando que outra chamada concorrente a
+    // selecione novamente)
     const enviado = await enviarMensagemGrupo(grupo, mensagem);
 
     if (enviado) {
-      // Marca como postada
-      if (grupo === "vip") {
-        await sql`UPDATE noticias SET postada_vip = true, postada_vip_at = NOW() WHERE id = ${noticia.id}`;
-      } else {
-        await sql`UPDATE noticias SET postada_elite = true, postada_elite_at = NOW() WHERE id = ${noticia.id}`;
-      }
-
       // Registra post
       const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${grupo} LIMIT 1`;
       if (grupoRows.length > 0) {
@@ -118,6 +145,13 @@ export async function GET(req: NextRequest) {
           INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status)
           VALUES (${grupoRows[0].id}, ${noticia.id}, ${mensagem}, 'noticia', 'enviado')
         `;
+      }
+    } else {
+      // Envio falhou — libera a notícia para tentar de novo na próxima execução
+      if (grupo === "vip") {
+        await sql`UPDATE noticias SET postada_vip = false, postada_vip_at = NULL WHERE id = ${noticia.id}`;
+      } else {
+        await sql`UPDATE noticias SET postada_elite = false, postada_elite_at = NULL WHERE id = ${noticia.id}`;
       }
     }
 

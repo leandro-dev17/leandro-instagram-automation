@@ -54,13 +54,33 @@ NOTÍCIAS DO DIA:\n${titulos}\n\nResponda APENAS com o texto.` }],
       }),
     ]);
 
-    await Promise.all([
-      enviarMensagemGrupo("vip", `🌙 *RESUMO DA NOITE*\n\n${textoBraga}`),
-      enviarMensagemGrupo("elite", `🌙 *ANÁLISE DO FIM DO DIA — PROF. CAVALCANTI*\n\n${textoCavalcanti}`),
-    ]);
+    // FASE 17: antes enviava direto, mesmo se a IA tivesse retornado texto
+    // vazio (mensagem chegava ao grupo só com o cabeçalho, e ainda era
+    // registrada como 'sucesso'). Agora só envia o que de fato foi gerado, e
+    // o retorno do envio também é checado antes de logar sucesso.
+    const enviosVip = textoBraga
+      ? await enviarMensagemGrupo("vip", `🌙 *RESUMO DA NOITE*\n\n${textoBraga}`)
+      : false;
+    const enviosElite = textoCavalcanti
+      ? await enviarMensagemGrupo("elite", `🌙 *ANÁLISE DO FIM DO DIA — PROF. CAVALCANTI*\n\n${textoCavalcanti}`)
+      : false;
 
-    await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('resumo-noite', 'enviar_vip_elite', 'sucesso')`;
-    return NextResponse.json({ ok: true });
+    if (!textoBraga || !textoCavalcanti) {
+      await alertarTelegram("🟡", "Resumo da Noite — texto vazio da IA",
+        `VIP: ${textoBraga ? "ok" : "texto vazio, não enviado"}\nElite: ${textoCavalcanti ? "ok" : "texto vazio, não enviado"}`);
+    }
+    if ((textoBraga && !enviosVip) || (textoCavalcanti && !enviosElite)) {
+      await alertarTelegram("🔴", "Resumo da Noite — falha no envio WhatsApp",
+        `VIP enviado: ${enviosVip}\nElite enviado: ${enviosElite}`);
+    }
+
+    const status = enviosVip && enviosElite ? "sucesso" : (enviosVip || enviosElite) ? "aviso" : "erro";
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('resumo-noite', 'enviar_vip_elite', ${status},
+        ${JSON.stringify({ vipEnviado: enviosVip, eliteEnviado: enviosElite, textoVipVazio: !textoBraga, textoEliteVazio: !textoCavalcanti })})
+    `;
+    return NextResponse.json({ ok: !!(enviosVip || enviosElite), vipEnviado: enviosVip, eliteEnviado: enviosElite });
   } catch (err) {
     await alertarTelegram("🔴", "Falha Agente Resumo da Noite", String(err));
     await sql`

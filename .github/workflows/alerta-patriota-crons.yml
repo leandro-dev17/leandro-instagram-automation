@@ -435,6 +435,14 @@ jobs:
           sleep 5
           curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-agendamento" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
+      # FASE 17: antes a rota /api/cron/modo-crise?acao=verificar nunca era chamada
+      # por nada (nem cron, nem outra rota) — modo crise nunca ativava nem
+      # desativava automaticamente. Agora roda junto com os fiscais B (a cada 30min).
+      - name: Márcio Crise — Verifica modo de emergência
+        run: |
+          sleep 5
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/modo-crise?acao=verificar" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
       - name: Notificar falha dos fiscais (B)
         if: failure()
         run: |
@@ -610,7 +618,7 @@ jobs:
         env:
           DATABASE_URL:          ${{ secrets.ALERTA_DB_URL }}
           EVOLUTION_API_URL:     https://evolution-api-production-8be2.up.railway.app
-          EVOLUTION_API_KEY:     alertapatriota-token-2026
+          EVOLUTION_API_KEY:     ${{ secrets.ALERTA_EVOLUTION_KEY }}
           EVOLUTION_INSTANCIA:   alertapatriota
           WPP_GROUP_VIP:         120363425999377985@g.us
           WPP_GROUP_ELITE:       120363426153474301@g.us
@@ -640,25 +648,14 @@ jobs:
     if: github.event.schedule == '0 23 * * 0' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm', cache-dependency-path: 'squads/alerta-patriota/automation/package.json' }
-      - name: Instalar dependências
-        run: npm install
-        working-directory: squads/alerta-patriota/automation
-      - name: Gerar e enviar Termômetro da Liberdade
-        working-directory: squads/alerta-patriota/automation
-        env:
-          EVOLUTION_API_URL:   https://evolution-api-production-8be2.up.railway.app
-          EVOLUTION_API_KEY:   alertapatriota-token-2026
-          EVOLUTION_INSTANCIA: alertapatriota
-          WPP_GROUP_VIP:       120363425999377985@g.us
-          WPP_GROUP_ELITE:     120363426153474301@g.us
-          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
-          GROQ_API_KEY:        ${{ secrets.GROQ_API_KEY }}
-          TELEGRAM_BOT_TOKEN:  ${{ secrets.ALERTA_TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID:    ${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}
-        run: node whatsapp-termometro.cjs
+      # FASE 17: antes chamava o script legado whatsapp-termometro.cjs (sem guarda de
+      # banco) ao mesmo tempo que vercel.json disparava /api/cron/termometro (com guarda
+      # semana/ano, porém às 17h BRT em vez de 20h) — resultado: termômetro duplicado todo
+      # domingo, em formatos diferentes. Unificado em um único disparo, na rota com
+      # idempotência real, no horário correto.
+      - name: Tereza Termômetro — Gerar e enviar Termômetro da Liberdade
+        run: |
+          curl -s --max-time 50 "${{ secrets.ALERTA_APP_URL }}/api/cron/termometro" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
       - name: Notificar Telegram — falha
         if: failure()
         run: |
@@ -692,7 +689,7 @@ jobs:
         env:
           DATABASE_URL:          ${{ secrets.ALERTA_DB_URL }}
           EVOLUTION_API_URL:     https://evolution-api-production-8be2.up.railway.app
-          EVOLUTION_API_KEY:     alertapatriota-token-2026
+          EVOLUTION_API_KEY:     ${{ secrets.ALERTA_EVOLUTION_KEY }}
           EVOLUTION_INSTANCIA:   alertapatriota
           WPP_GROUP_ELITE:       120363426153474301@g.us
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
