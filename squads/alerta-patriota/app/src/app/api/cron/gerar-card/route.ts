@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
@@ -110,9 +111,16 @@ async function renderizarEEnviar(plano: string, hook: string, corpo: string | un
   // Renderiza JSX → PNG via @vercel/og (Satori) — sem Chromium, funciona em serverless
   const element = gerarCardElement({ plano: plano as "vip" | "elite", hook, corpo, fonte, urgente });
   const imagem = new ImageResponse(element, { width: 1080, height: 1080, fonts: getCardFonts() });
-  const pngBase64 = Buffer.from(await imagem.arrayBuffer()).toString("base64");
+  const pngBuffer = Buffer.from(await imagem.arrayBuffer());
 
-  if (!pngBase64) return { ok: false, erro: "Falha ao renderizar PNG do card (@vercel/og retornou vazio)" };
+  if (!pngBuffer.length) return { ok: false, erro: "Falha ao renderizar PNG do card (@vercel/og retornou vazio)" };
+
+  // Converte PNG (RGBA, ~1.5-1.7MB) para JPEG (sem canal alpha, muito mais leve) —
+  // fotos reais enviadas no WhatsApp são quase sempre JPEG; PNG grande com alpha em
+  // mensagens automatizadas é um padrão atípico que o pipeline de mídia trata com menos
+  // confiabilidade, mesmo quando o upload é aceito (fica "carregando" para quem recebe).
+  const jpegBuffer = await sharp(pngBuffer).flatten({ background: "#000000" }).jpeg({ quality: 90 }).toBuffer();
+  const jpegBase64 = jpegBuffer.toString("base64");
 
   // Envia imagem com legenda via Evolution API
   const res = await fetch(`${EVO_URL}/message/sendMedia/${getInstancia(plano)}`, {
@@ -122,9 +130,9 @@ async function renderizarEEnviar(plano: string, hook: string, corpo: string | un
       number: groupJid,
       mediaMessage: {
         mediatype: "image",
-        media: pngBase64,
+        media: jpegBase64,
         caption: legenda,
-        fileName: "alerta-patriota.png",
+        fileName: "alerta-patriota.jpg",
       },
     }),
   });

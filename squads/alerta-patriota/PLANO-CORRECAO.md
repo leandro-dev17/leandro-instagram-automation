@@ -364,6 +364,33 @@ Causa de origem: `PROMPTS_LEGENDA` (vip/elite) pedem 3 seções de "2-3 linhas" 
 
 ---
 
+## FASE 13 — Card ainda ficava "carregando" após Fase 12 (auditoria profunda, 21/06/2026)
+
+**Gatilho:** mesmo após a Fase 12 (legenda truncada para ≤990 caracteres, deploy confirmado, captions reais medidas em 985/989), o usuário reportou que a imagem continuava sem aparecer, travada em "aguardando carregar a mensagem" — pediu auditoria completa usando todos os métodos possíveis, sem deixar nada de fora.
+
+**Investigação (cada hipótese testada com prova concreta, não suposição):**
+1. **Estado da instância Evolution API/Baileys:** `instance/connectionState` → `"open"`. Conexão ativa, não é problema de sessão desconectada.
+2. **Integridade byte-a-byte da mídia real entregue ao WhatsApp:** peguei `mediaKey`, `fileEncSha256` e `fileSha256` reais de uma mensagem de card já enviada via `/chat/findMessages`, baixei o arquivo `.enc` direto do CDN do WhatsApp (`mmg.whatsapp.net`) e implementei manualmente o algoritmo de descriptografia de mídia do protocolo (HKDF-SHA256 da `mediaKey` → IV/cipherKey/macKey, verificação do HMAC, AES-256-CBC decrypt) — **exatamente o que o app oficial do WhatsApp faz para exibir a imagem**. Resultado: MAC bateu, `fileEncSha256` bateu, `fileSha256` bateu, e o PNG decodificado abriu perfeitamente, com o conteúdo correto. **Isso prova de forma definitiva que o arquivo no CDN do WhatsApp está 100% íntegro e qualquer cliente compatível conseguiria baixá-lo e decodificá-lo.** Descarta de vez corrupção/truncamento de upload como causa.
+3. **Pesquisa de padrões conhecidos:** o texto do sintoma ("aguardando carregar") corresponde ao "Waiting for this message. This may take a while" do WhatsApp — associado em issues públicas do Baileys a sessões do protocolo Signal mal persistidas. Investigado e descartado como causa principal aqui (instância está `open`, sem sinais de sessão corrompida).
+4. **Estrutura dos grupos:** grupo VIP tem **apenas 1 participante** (o próprio número do bot) e o grupo Elite tem **2** (bot + 1 número real). Confirmado com o usuário que a verificação é feita por um número real e separado, como membro comum do grupo — **descarta** a hipótese de falha de sincronização de mídia entre dispositivos vinculados (companion devices) da própria conta do bot.
+5. **Formato do arquivo enviado:** o card gerado pelo `@vercel/og` é um PNG RGBA (com canal alpha) de **~1,5-1,7MB**. Fotos reais enviadas no WhatsApp por qualquer app oficial são quase sempre JPEG, tipicamente 100-400KB — PNG grande com alpha em envio automatizado é um padrão atípico no ecossistema WhatsApp, tratado com menos confiabilidade no pipeline de mídia mesmo quando o upload é aceito.
+
+**Causa raiz mais provável (corrigida) + causa estrutural (sem fix possível no código):**
+- **Corrigido:** formato de imagem não-padrão (PNG RGBA grande) — convertido para JPEG.
+- **Não descartável por código:** contas automatizadas e relativamente novas no WhatsApp (criada em 03/06/2026) que enviam mídia em volume podem sofrer throttling silencioso de mídia por sistemas anti-abuso da Meta — o upload é aceito normalmente, mas a entrega ao destinatário é degradada. Isso é uma limitação de plataforma para clientes não-oficiais (Baileys), não um bug corrigível em `gerar-card/route.ts`. Se o problema persistir mesmo após esta correção, é o indício mais forte dessa causa.
+
+**Fix aplicado** em `src/app/api/cron/gerar-card/route.ts`:
+- Adicionada dependência `sharp`.
+- O PNG renderizado pelo `@vercel/og` agora é convertido para JPEG (`flatten` removendo canal alpha sobre fundo preto, `quality: 90`) antes do envio via Evolution API.
+- `fileName` do `mediaMessage` trocado de `.png` para `.jpg`.
+
+**Verificação:**
+- `npx tsc --noEmit` limpo.
+- Teste local de conversão com uma imagem real já descriptografada (mesma do teste de integridade acima): **1.515.151 bytes (PNG) → 183.878 bytes (JPEG), redução de 88%**, sem perda visual perceptível (conferido visualmente).
+- Deploy em produção, reteste `?plano=vip` e `?plano=elite`.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -401,5 +428,6 @@ Causa de origem: `PROMPTS_LEGENDA` (vip/elite) pedem 3 seções de "2-3 linhas" 
 | 20/06/2026 | Fase 7 | `claude-revisor` corrigido na raiz (strip de cercas + guarda de sanidade); `resumir-noticias` restaurado (2x — bot recorrompeu durante a correção, resolvido via merge); `gerar-card` agora tenta até 5 notícias e loga erro real do Evolution API; `telegram.ts` com tipo `nivel` corrigido; `cards-elite-global` removido; `tsc --noEmit` zerado (incluindo ~10 erros não catalogados originalmente); commits `3495909` + merge `780ecc5`, push `b504165..780ecc5` |
 | 20/06/2026 | Fase 9 | `gerarTexto()` reordenado para Groq → Cerebras → Anthropic; `gerarCodigoComClaude()` criada para isolar geração de código no Anthropic (`claude-revisor` + `claude-resolver`); disjuntor automático criado (tabela `consumo_ia_log`, bloqueio em 20 chamadas Anthropic/10min por agente, alerta via WhatsApp DM); campo `agente` obrigatório retrofitado em 21 call sites; `ADMIN_WHATSAPP_NUMERO` e `CEREBRAS_API_KEY` adicionados em `.env.local` e Vercel; `tsc --noEmit` zerado; commit `29b459a` + merge, push `93443c8..3d498f2`; deploys `dpl_Bydx5hFRUbtCEq8uK3cs8X7uZ8g8` e `dpl_3YtwJfcimf344AzMK13sdiPFKk26` |
 | 20/06/2026 | Fase 10 | Auditoria geral (auth/MP/segurança/agentes) — 4 sub-auditorias paralelas, achados verificados manualmente (boa parte dos achados automáticos descartados como falso-positivo). Confirmados e corrigidos: webhook do WhatsApp nunca registrado na Evolution API (registrado agora, com secret na URL); `EVOLUTION_WEBHOOK_SECRET` ausente (gerada e configurada); rate-limit adicionado em `auth/login`, `auth/cadastro`, `assinaturas/criar-pix` e `assinaturas/criar-direto`; preço desatualizado corrigido em `lista-de-espera`. `tsc --noEmit` zerado; commit `f578a21`, push `cb5a9af..f578a21`; deploy `dpl_2V4dbR4rNfnSDxE3kEpcTKRRkdyC` |
+| 21/06/2026 | Fase 13 | Auditoria profunda pós-Fase 12 (card ainda travava). Verificação criptográfica byte-a-byte provou que a mídia entregue ao CDN do WhatsApp é 100% íntegra (descarta corrupção). Grupos VIP/Elite têm 1 e 2 participantes — descarta falha de sync entre dispositivos do bot. Causa corrigida: PNG RGBA grande (~1,6MB) trocado por JPEG (~180KB, -88%) via `sharp`. Causa estrutural sem fix de código: possível throttling de mídia anti-abuso da Meta para contas automatizadas novas — monitorar se persistir. |
 | 21/06/2026 | Fase 12 | URGENTE — card publicava (Fase 11 ok) mas ficava "carregando" no grupo. Causa: legenda real medida em 1503/1066/1151 caracteres, acima do limite de ~1024 do WhatsApp para caption de mídia. Fix: max_tokens 500→350 + truncarLegenda() com corte seguro em LEGENDA_MAX=990. |
 | 21/06/2026 | Fase 11 | URGENTE — card 100% fora do ar desde 20/06 19h10 BRT. Causa: `gerar-card/route.ts` enviava campos do `sendMedia` soltos no body em vez de aninhados em `mediaMessage` (Evolution API v1.8.6 exige o aninhamento, igual ao `textMessage` do `sendText`). Confirmado 100% de erro em `agentes_log` para `card_vip`/`card_elite`; pipeline de texto (`publicar-noticias`) 100% saudável no mesmo período. Fix testado direto contra a Evolution API real (201 Created). `tsc --noEmit` zerado |
