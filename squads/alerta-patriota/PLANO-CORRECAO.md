@@ -341,6 +341,29 @@ body: JSON.stringify({
 
 ---
 
+## FASE 12 — Card publicava mas ficava "carregando" no grupo (urgente, 21/06/2026)
+
+**Gatilho:** mesmo após a Fase 11 (sendMedia 100% funcional, retornando `{"ok":true,"publicado":true}`), o usuário reportou que a mensagem com o card continuava aparecendo travada em "carregando" para quem recebia no grupo do WhatsApp — exatamente como antes do fix anterior. Ou seja, a API aceitava e processava o envio (`201`/`ok:true`), mas o destinatário nunca via a imagem carregar.
+
+**Investigação:** descartei corrupção de imagem antes de seguir para a hipótese de legenda:
+- Extraí o `jpegThumbnail` (gerado pelo próprio Baileys a partir dos bytes reais da imagem) de uma mensagem real via `/chat/findMessages/alertapatriota` e visualizei — thumbnail decodificou normalmente, mostrando o card correto. Isso prova que o upload da imagem em si chega válido ao WhatsApp.
+- Inspecionei manualmente a estrutura do PNG gerado pelo `@vercel/og` (magic bytes, chunk `IHDR`: 1080x1080, bitDepth 8, colorType 6 RGBA, sem chunks exóticos de ICC/gamma) — PNG padrão, sem nada que explicasse incompatibilidade.
+
+**Causa raiz confirmada:** consultei `/chat/findMessages/alertapatriota` e medi o tamanho real das legendas (`caption`) das últimas mensagens de card enviadas: **1503, 1066 e 1151 caracteres**. O WhatsApp tem um limite de legenda de mídia em torno de **1024 caracteres** — mensagens de imagem com caption acima disso ficam presas em "carregando" para quem recebe, mesmo que o upload da mídia tenha sido aceito normalmente pela API (o limite é aplicado no processamento/exibição do cliente, não na ingestão do servidor — por isso os metadados do lado do Evolution API/Baileys pareciam 100% válidos).
+
+Causa de origem: `PROMPTS_LEGENDA` (vip/elite) pedem 3 seções de "2-3 linhas" sem limite explícito de caracteres, e a chamada de IA em `gerarLegenda()` tinha `max_tokens: 500` — produzindo regularmente legendas acima do limite real do WhatsApp.
+
+**Fix aplicado** em `src/app/api/cron/gerar-card/route.ts`:
+1. `max_tokens` da geração da legenda reduzido de `500` para `350` (reduz a frequência de textos longos na origem).
+2. Nova constante `LEGENDA_MAX = 990` e função `truncarLegenda()` que corta a legenda final (header + corpo gerado pela IA) no último espaço/quebra de linha antes do limite — nunca corta no meio de uma palavra — e acrescenta `…`. Aplicada como rede de segurança final em `gerarLegenda()`, independente do que a IA gerar.
+
+**Verificação:**
+- `npx tsc --noEmit` limpo.
+- Baseline capturado em produção (código antigo, antes do deploy do fix): nova legenda real medida em **1503 caracteres** — confirma que o problema persistia até este teste.
+- Após deploy do fix: reexecutado `gerar-card?plano=vip` e `?plano=elite`; nova consulta a `/chat/findMessages` confirmando legenda final ≤ 990 caracteres em ambos os grupos.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -378,4 +401,5 @@ body: JSON.stringify({
 | 20/06/2026 | Fase 7 | `claude-revisor` corrigido na raiz (strip de cercas + guarda de sanidade); `resumir-noticias` restaurado (2x — bot recorrompeu durante a correção, resolvido via merge); `gerar-card` agora tenta até 5 notícias e loga erro real do Evolution API; `telegram.ts` com tipo `nivel` corrigido; `cards-elite-global` removido; `tsc --noEmit` zerado (incluindo ~10 erros não catalogados originalmente); commits `3495909` + merge `780ecc5`, push `b504165..780ecc5` |
 | 20/06/2026 | Fase 9 | `gerarTexto()` reordenado para Groq → Cerebras → Anthropic; `gerarCodigoComClaude()` criada para isolar geração de código no Anthropic (`claude-revisor` + `claude-resolver`); disjuntor automático criado (tabela `consumo_ia_log`, bloqueio em 20 chamadas Anthropic/10min por agente, alerta via WhatsApp DM); campo `agente` obrigatório retrofitado em 21 call sites; `ADMIN_WHATSAPP_NUMERO` e `CEREBRAS_API_KEY` adicionados em `.env.local` e Vercel; `tsc --noEmit` zerado; commit `29b459a` + merge, push `93443c8..3d498f2`; deploys `dpl_Bydx5hFRUbtCEq8uK3cs8X7uZ8g8` e `dpl_3YtwJfcimf344AzMK13sdiPFKk26` |
 | 20/06/2026 | Fase 10 | Auditoria geral (auth/MP/segurança/agentes) — 4 sub-auditorias paralelas, achados verificados manualmente (boa parte dos achados automáticos descartados como falso-positivo). Confirmados e corrigidos: webhook do WhatsApp nunca registrado na Evolution API (registrado agora, com secret na URL); `EVOLUTION_WEBHOOK_SECRET` ausente (gerada e configurada); rate-limit adicionado em `auth/login`, `auth/cadastro`, `assinaturas/criar-pix` e `assinaturas/criar-direto`; preço desatualizado corrigido em `lista-de-espera`. `tsc --noEmit` zerado; commit `f578a21`, push `cb5a9af..f578a21`; deploy `dpl_2V4dbR4rNfnSDxE3kEpcTKRRkdyC` |
+| 21/06/2026 | Fase 12 | URGENTE — card publicava (Fase 11 ok) mas ficava "carregando" no grupo. Causa: legenda real medida em 1503/1066/1151 caracteres, acima do limite de ~1024 do WhatsApp para caption de mídia. Fix: max_tokens 500→350 + truncarLegenda() com corte seguro em LEGENDA_MAX=990. |
 | 21/06/2026 | Fase 11 | URGENTE — card 100% fora do ar desde 20/06 19h10 BRT. Causa: `gerar-card/route.ts` enviava campos do `sendMedia` soltos no body em vez de aninhados em `mediaMessage` (Evolution API v1.8.6 exige o aninhamento, igual ao `textMessage` do `sendText`). Confirmado 100% de erro em `agentes_log` para `card_vip`/`card_elite`; pipeline de texto (`publicar-noticias`) 100% saudável no mesmo período. Fix testado direto contra a Evolution API real (201 Created). `tsc --noEmit` zerado |

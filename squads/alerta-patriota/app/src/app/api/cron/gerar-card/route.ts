@@ -73,6 +73,17 @@ async function gerarHook(titulo: string, plano: string): Promise<string> {
   return texto ? texto.replace(/["""]/g, "") : titulo;
 }
 
+// WhatsApp trava/não entrega caption de mídia acima de ~1024 caracteres — a mensagem
+// fica presa em "carregando" para quem recebe mesmo com o upload da imagem OK.
+// Corta no último espaço/quebra de linha antes do limite para não truncar no meio de uma palavra.
+const LEGENDA_MAX = 990;
+function truncarLegenda(texto: string): string {
+  if (texto.length <= LEGENDA_MAX) return texto;
+  const cortado = texto.slice(0, LEGENDA_MAX);
+  const ultimaQuebra = Math.max(cortado.lastIndexOf("\n"), cortado.lastIndexOf(" "));
+  return `${cortado.slice(0, ultimaQuebra > 0 ? ultimaQuebra : LEGENDA_MAX)}…`;
+}
+
 async function gerarLegenda(titulo: string, plano: string, fonte: string): Promise<string> {
   const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", timeZone:"America/Sao_Paulo" });
   const data = new Date().toLocaleDateString("pt-BR", { day:"numeric", month:"short", timeZone:"America/Sao_Paulo" });
@@ -80,7 +91,7 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
   const corpo = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
     agente: "gerador-card",
-    max_tokens: 500,
+    max_tokens: 350,
     messages: [{ role: "user", content: `${PROMPTS_LEGENDA[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });
 
@@ -90,7 +101,7 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
     elite:    `╔══════════════════╗\n║  🎖️  ELITE GLOBAL  ║\n╚══════════════════╝\n*Prof. Dr. Bernardo Cavalcanti*\n_${data} · ${hora} · ${fonte}_\n`,
   };
 
-  return `${headers[plano]}\n${corpo}`;
+  return truncarLegenda(`${headers[plano]}\n${corpo}`);
 }
 
 async function renderizarEEnviar(plano: string, hook: string, corpo: string | undefined, fonte: string, urgente: boolean | undefined, groupJid: string, legenda: string): Promise<{ ok: boolean; erro?: string }> {
