@@ -14,8 +14,26 @@ const PLANOS: Partial<Record<Plano, { nome: string; valor: number; valorAnual: n
   elite: { nome: "Elite Global", valor: 19.90, valorAnual: 199.00 },
 };
 
+// Rate limit simples por IP — rota pública, sem login
+const LIMITE_POR_JANELA = 5;
+const JANELA_MS = 10 * 60_000;
+const requisicoesPorIp = new Map<string, number[]>();
+
+function excedeuLimite(ip: string): boolean {
+  const agora = Date.now();
+  const historico = (requisicoesPorIp.get(ip) || []).filter((t) => agora - t < JANELA_MS);
+  historico.push(agora);
+  requisicoesPorIp.set(ip, historico);
+  return historico.length > LIMITE_POR_JANELA;
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
+    if (excedeuLimite(ip)) {
+      return NextResponse.json({ erro: "Muitas tentativas. Tente novamente em alguns minutos." }, { status: 429 });
+    }
+
     const body = await req.json() as {
       nome?: string;
       email?: string;

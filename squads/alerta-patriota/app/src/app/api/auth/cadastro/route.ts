@@ -3,8 +3,26 @@ import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 import { gerarToken, setCookieToken } from "@/lib/auth";
 
+// Rate limit simples por IP — evita spam de contas trial
+const LIMITE_POR_JANELA = 5;
+const JANELA_MS = 10 * 60_000;
+const cadastrosPorIp = new Map<string, number[]>();
+
+function excedeuLimite(ip: string): boolean {
+  const agora = Date.now();
+  const historico = (cadastrosPorIp.get(ip) || []).filter((t) => agora - t < JANELA_MS);
+  historico.push(agora);
+  cadastrosPorIp.set(ip, historico);
+  return historico.length > LIMITE_POR_JANELA;
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
+    if (excedeuLimite(ip)) {
+      return NextResponse.json({ erro: "Muitas tentativas. Tente novamente em alguns minutos." }, { status: 429 });
+    }
+
     const { nome, email, senha, telefone } = await req.json();
 
     if (!nome || !email || !senha) {

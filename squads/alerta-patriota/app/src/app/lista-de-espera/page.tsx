@@ -256,8 +256,8 @@ export default function ListaDeEsperaPage() {
             value={form.plano}
             onChange={(e) => setForm({ ...form, plano: e.target.value })}
           >
-            <option value="vip">VIP Premium — R$59,90/mês</option>
-            <option value="elite">Elite Global — R$499/ano</option>
+            <option value="vip">VIP Premium — R$9,90/mês</option>
+            <option value="elite">Elite Global — R$19,90/mês</option>
           </select>
 
           <button

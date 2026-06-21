@@ -271,6 +271,49 @@ A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartb
 
 ---
 
+## FASE 10 — Auditoria Geral (Autenticação, Mercado Pago, Segurança, Agentes/Crons)
+**Status: ✅ CONCLUÍDA (20/06/2026)**
+**Gatilho:** usuário pediu auditoria completa de toda a automação — autenticação, MP, segurança, agentes — para confirmar que está tudo funcionando perfeitamente, com correção de qualquer problema encontrado.
+
+**Metodologia:** 4 sub-auditorias paralelas (agentes de exploração, somente leitura) cobrindo Autenticação, Mercado Pago, Segurança Geral e Agentes/Crons. Antes de aceitar qualquer achado como fato, cada um foi **verificado manualmente linha-a-linha no código real** — vários achados automáticos não se confirmaram.
+
+### Achados DESCARTADOS após verificação manual (falsos positivos)
+- ❌ **"30+ rotas cron sem `verificarCronSecret()`"** — verificadas manualmente +20 rotas cron (incluindo as citadas como exemplo: `agente-heartbeat`/paulo-ping, `agente-limpeza`/max-memoria, `agente-medico`, `termometro`, `radar-economico`, `radar-politico`, `resumir-noticias`, `resumo-noite`, `revisor-seguranca`, `semana-em-revista`, `claude-resolver`, etc.). **100% têm `verificarCronSecret(req)` como guarda na primeira linha do handler.** Achado não confirmado.
+- ❌ **"Webhook MP aceita pagamentos sem validar assinatura/valor — risco de fraude"** — confirmado que é um padrão **intencional e já aprovado** (ver memória `feedback_webhook_mp_signature.md`): aceita sem `x-signature` (o MP nem sempre envia), mas valida HMAC contra 3 formatos de manifest quando o header está presente. Mais importante: o valor e o `external_reference` usados para liberar acesso **nunca vêm do corpo do webhook recebido** — são buscados direto na API do Mercado Pago (`paymentClient.get()` / `preApprovalClient.get()`) usando só o `data.id`, então um atacante não controla esses dados mesmo forjando uma chamada sem assinatura. Há também deduplicação por `dataId` numa janela de 5 minutos. Não é uma falha nova, não precisa de fix.
+- ❌ **"`agentes_log` com falha silenciosa mascara erros reais"** — todo erro real já dispara `alertarTelegram()` no catch externo de cada rota; o `.catch(() => {})` existe só no INSERT secundário de log, não na lógica principal — uma falha ao salvar o log não impede o alerta chegar.
+
+### Achados CONFIRMADOS e CORRIGIDOS
+
+| # | Severidade | Achado | Status |
+|---|---|---|---|
+| 1 | 🔴 CRÍTICO | Webhook do WhatsApp (Evolution API) **nunca tinha sido registrado** — `GET /webhook/find/alertapatriota` retornava `{}` vazio. Resultado: boas-vindas automáticas no grupo (Regina Recepção) e a fila do bot-responder a partir de mensagens reais **nunca funcionaram**, silenciosamente, desde sempre. | ✅ Corrigido |
+| 2 | 🟠 ALTO | `EVOLUTION_WEBHOOK_SECRET` nunca tinha sido definida — mesmo com o webhook registrado, `validarOrigemEvolution()` rejeitaria 100% dos eventos (fail-closed: não era brecha de segurança, mas mantinha a função morta) | ✅ Corrigido |
+| 3 | 🟠 ALTO | `/api/auth/login` sem rate-limit — permitia força bruta de senha sem limite de tentativas | ✅ Corrigido |
+| 4 | 🟡 MÉDIO | `/api/auth/cadastro`, `/api/assinaturas/criar-pix`, `/api/assinaturas/criar-direto` são rotas públicas (sem login) e sem rate-limit — abuso possível (spam de contas trial, custo de chamadas à API do MP) | ✅ Corrigido |
+| 5 | 🟡 MÉDIO | Página `/lista-de-espera` exibia preços desatualizados (VIP R$59,90/mês, Elite R$499/ano) — preço real cobrado hoje no checkout principal (`/`, `assinaturas/criar`, `criar-direto`) é VIP R$9,90/mês (R$99/ano) e Elite R$19,90/mês (R$199/ano). Página estava órfã de uma versão anterior do funil de preços. | ✅ Corrigido |
+| 6 | 🟢 BAIXO | Senha mínima de 6 caracteres no cadastro — aceitável para o perfil de risco do produto, mas vale considerar 8+ no futuro | Aceito como está (baixo risco, não corrigido nesta fase) |
+
+### O que foi feito (20/06/2026)
+
+**Achado #1 e #2 — Webhook WhatsApp morto:**
+- Gerado `EVOLUTION_WEBHOOK_SECRET` novo (64 hex chars) e adicionado em `.env.local` e na Vercel (produção).
+- `src/app/api/webhook/whatsapp/route.ts` — `validarOrigemEvolution()` agora valida o secret via **query string da própria URL** (`?secret=...`) em vez de depender só de um header customizado (a Evolution API v1.8.6 não garante suporte confiável a headers customizados no webhook; a URL é sempre confiável). Mantido fallback para o header `x-webhook-secret`, caso seja enviado também.
+- Webhook **registrado de fato** na Evolution API via `POST /webhook/set/alertapatriota` (eventos `MESSAGES_UPSERT` e `GROUP_PARTICIPANTS_UPDATE`, URL com o secret embutido). Confirmado via `GET /webhook/find/alertapatriota` que ficou salvo e ativo (`"enabled": true`).
+
+**Achado #3 — Rate-limit no login:**
+- `src/app/api/auth/login/route.ts` — adicionado rate-limit por IP (máx. 8 tentativas / 15 min), seguindo o mesmo padrão já usado em `src/app/api/leads/registrar/route.ts` (`Map<string, number[]>` em memória, sem nova tabela/abstração).
+
+**Achado #4 — Rate-limit em rotas públicas de cadastro/checkout:**
+- `src/app/api/auth/cadastro/route.ts` — rate-limit por IP (máx. 5 / 10 min).
+- `src/app/api/assinaturas/criar-pix/route.ts` e `src/app/api/assinaturas/criar-direto/route.ts` — rate-limit por IP (máx. 5 / 10 min cada), mesmo padrão.
+
+**Achado #5 — Preço desatualizado na lista de espera:**
+- `src/app/lista-de-espera/page.tsx` — preços do `<select>` corrigidos de "R$59,90/mês" / "R$499/ano" para "R$9,90/mês" / "R$19,90/mês", iguais ao que é realmente cobrado hoje na página principal (`src/app/page.tsx`).
+
+**Verificação:** `npx tsc --noEmit` limpo após todas as alterações.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -290,6 +333,7 @@ A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartb
 | Vercel Token | ver `.env.local` ou memory `reference_api_credentials.md` |
 | Vercel Scope | `lelusblu-gmailcoms-projects` |
 | CRON_SECRET | ver `.env.local` do projeto |
+| EVOLUTION_WEBHOOK_SECRET | ver `.env.local` do projeto e env Vercel — embutida na URL do webhook registrado na Evolution API (`?secret=`) |
 
 ---
 
@@ -306,3 +350,4 @@ A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartb
 | 19/06/2026 | Fase 6 | Bot saiu dos grupos Básico/Patriota via Evolution API; `whatsapp-cards.cjs` + 2 workflows legados apagados; `crise-monitor.cjs` migrado para chamar `gerar-card` via fetch; `MAPA_ARQUIVOS` do Claude Revisor redirecionado; causa do card faltando no Elite identificada (pipelines de texto/imagem desacoplados + falha silenciosa do Evolution API sem log de erro) |
 | 20/06/2026 | Fase 7 | `claude-revisor` corrigido na raiz (strip de cercas + guarda de sanidade); `resumir-noticias` restaurado (2x — bot recorrompeu durante a correção, resolvido via merge); `gerar-card` agora tenta até 5 notícias e loga erro real do Evolution API; `telegram.ts` com tipo `nivel` corrigido; `cards-elite-global` removido; `tsc --noEmit` zerado (incluindo ~10 erros não catalogados originalmente); commits `3495909` + merge `780ecc5`, push `b504165..780ecc5` |
 | 20/06/2026 | Fase 9 | `gerarTexto()` reordenado para Groq → Cerebras → Anthropic; `gerarCodigoComClaude()` criada para isolar geração de código no Anthropic (`claude-revisor` + `claude-resolver`); disjuntor automático criado (tabela `consumo_ia_log`, bloqueio em 20 chamadas Anthropic/10min por agente, alerta via WhatsApp DM); campo `agente` obrigatório retrofitado em 21 call sites; `ADMIN_WHATSAPP_NUMERO` e `CEREBRAS_API_KEY` adicionados em `.env.local` e Vercel; `tsc --noEmit` zerado; commit `29b459a` + merge, push `93443c8..3d498f2`; deploys `dpl_Bydx5hFRUbtCEq8uK3cs8X7uZ8g8` e `dpl_3YtwJfcimf344AzMK13sdiPFKk26` |
+| 20/06/2026 | Fase 10 | Auditoria geral (auth/MP/segurança/agentes) — 4 sub-auditorias paralelas, achados verificados manualmente (boa parte dos achados automáticos descartados como falso-positivo). Confirmados e corrigidos: webhook do WhatsApp nunca registrado na Evolution API (registrado agora, com secret na URL); `EVOLUTION_WEBHOOK_SECRET` ausente (gerada e configurada); rate-limit adicionado em `auth/login`, `auth/cadastro`, `assinaturas/criar-pix` e `assinaturas/criar-direto`; preço desatualizado corrigido em `lista-de-espera`. `tsc --noEmit` zerado |

@@ -11,6 +11,19 @@ const VALORES_ANUAIS: Record<string, number> = {
   elite: 199,
 };
 
+// Rate limit simples por IP — rota pública, sem login
+const LIMITE_POR_JANELA = 5;
+const JANELA_MS = 10 * 60_000;
+const requisicoesPorIp = new Map<string, number[]>();
+
+function excedeuLimite(ip: string): boolean {
+  const agora = Date.now();
+  const historico = (requisicoesPorIp.get(ip) || []).filter((t) => agora - t < JANELA_MS);
+  historico.push(agora);
+  requisicoesPorIp.set(ip, historico);
+  return historico.length > LIMITE_POR_JANELA;
+}
+
 // Cupons de reengajamento — válidos apenas para Elite Anual
 const CUPONS_DESCONTO: Record<string, number> = {
   VOLTA10: 0.10,
@@ -20,6 +33,11 @@ const CUPONS_DESCONTO: Record<string, number> = {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
+    if (excedeuLimite(ip)) {
+      return NextResponse.json({ erro: "Muitas tentativas. Tente novamente em alguns minutos." }, { status: 429 });
+    }
+
     const body = await req.json() as {
       email: string;
       nome: string;
