@@ -109,10 +109,12 @@ async function renderizarEEnviar(plano: string, hook: string, corpo: string | un
     headers: { "Content-Type": "application/json", apikey: EVO_KEY },
     body: JSON.stringify({
       number: groupJid,
-      mediatype: "image",
-      media: pngBase64,
-      caption: legenda,
-      fileName: "alerta-patriota.png",
+      mediaMessage: {
+        mediatype: "image",
+        media: pngBase64,
+        caption: legenda,
+        fileName: "alerta-patriota.png",
+      },
     }),
   });
 

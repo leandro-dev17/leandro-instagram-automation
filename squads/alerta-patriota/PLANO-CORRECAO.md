@@ -314,6 +314,33 @@ A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartb
 
 ---
 
+## FASE 11 — Card 100% fora do ar (urgente, 21/06/2026)
+
+**Gatilho:** dois alertas reais no Telegram (08:40 BRT) — "Falha Gerador Card (vip)" com 5/5 tentativas falhando, todas com o mesmo erro: `Evolution API 400: {"response":{"message":["instance requires property \"mediaMessage\""]}}` em notícias diferentes (#5599, #5596, #5594, #5592...), confirmando que era um bug sistêmico de schema, não um problema pontual de dado.
+
+**Causa raiz:** em `src/app/api/cron/gerar-card/route.ts`, função `renderizarEEnviar()`, o `POST /message/sendMedia/{instancia}` enviava `mediatype`, `media`, `caption` e `fileName` soltos no nível raiz do body, junto de `number`. A Evolution API v1.8.6 exige que esses campos venham aninhados dentro de um objeto `mediaMessage`, exatamente como o `sendText` já aninha os campos em `textMessage` (`src/lib/whatsapp.ts`) — o erro retornado pela própria API confirmava isso literalmente.
+
+**Confirmado via banco (`agentes_log`):** 100% das tentativas de `card_vip`/`card_elite` falharam desde pelo menos 20/06/2026 às 19h10 BRT (todas com `status = 'erro'`). A pipeline de texto (`publicar-noticias`, agente `paulo-vip`/`paulo-elite`) estava 100% saudável no mesmo período — confirma que o problema era exclusivo da geração de cards/imagem, não da publicação de notícias em geral.
+
+**Fix aplicado:**
+```ts
+body: JSON.stringify({
+  number: groupJid,
+  mediaMessage: {
+    mediatype: "image",
+    media: pngBase64,
+    caption: legenda,
+    fileName: "alerta-patriota.png",
+  },
+}),
+```
+
+**Verificação:** testado direto contra a Evolution API real em produção (`evolution-api-production-8be2.up.railway.app`) com uma imagem de teste — resposta `201 Created`, mensagem enviada com sucesso. `npx tsc --noEmit` limpo.
+
+**Achado paralelo (não corrigido, comportamento esperado):** o primeiro alerta do Telegram (esgotamento de quota Anthropic até 01/07/2026) é o disjuntor da Fase 9 funcionando como projetado — `claude-revisor`/`claude-resolver` são exclusivos Anthropic sem fallback (decisão deliberada, pois Llama não gera TypeScript confiável). Isso significa que `claude-revisor` vai continuar alertando no Telegram a cada execução até 01/07, quando a quota normalizar. Não é um bug novo, é uma consequência aceita do design da Fase 9 — nenhuma alteração foi feita aqui.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -351,3 +378,4 @@ A consulta real trouxe **~100 alertas abertos** (não 17 — o número do heartb
 | 20/06/2026 | Fase 7 | `claude-revisor` corrigido na raiz (strip de cercas + guarda de sanidade); `resumir-noticias` restaurado (2x — bot recorrompeu durante a correção, resolvido via merge); `gerar-card` agora tenta até 5 notícias e loga erro real do Evolution API; `telegram.ts` com tipo `nivel` corrigido; `cards-elite-global` removido; `tsc --noEmit` zerado (incluindo ~10 erros não catalogados originalmente); commits `3495909` + merge `780ecc5`, push `b504165..780ecc5` |
 | 20/06/2026 | Fase 9 | `gerarTexto()` reordenado para Groq → Cerebras → Anthropic; `gerarCodigoComClaude()` criada para isolar geração de código no Anthropic (`claude-revisor` + `claude-resolver`); disjuntor automático criado (tabela `consumo_ia_log`, bloqueio em 20 chamadas Anthropic/10min por agente, alerta via WhatsApp DM); campo `agente` obrigatório retrofitado em 21 call sites; `ADMIN_WHATSAPP_NUMERO` e `CEREBRAS_API_KEY` adicionados em `.env.local` e Vercel; `tsc --noEmit` zerado; commit `29b459a` + merge, push `93443c8..3d498f2`; deploys `dpl_Bydx5hFRUbtCEq8uK3cs8X7uZ8g8` e `dpl_3YtwJfcimf344AzMK13sdiPFKk26` |
 | 20/06/2026 | Fase 10 | Auditoria geral (auth/MP/segurança/agentes) — 4 sub-auditorias paralelas, achados verificados manualmente (boa parte dos achados automáticos descartados como falso-positivo). Confirmados e corrigidos: webhook do WhatsApp nunca registrado na Evolution API (registrado agora, com secret na URL); `EVOLUTION_WEBHOOK_SECRET` ausente (gerada e configurada); rate-limit adicionado em `auth/login`, `auth/cadastro`, `assinaturas/criar-pix` e `assinaturas/criar-direto`; preço desatualizado corrigido em `lista-de-espera`. `tsc --noEmit` zerado; commit `f578a21`, push `cb5a9af..f578a21`; deploy `dpl_2V4dbR4rNfnSDxE3kEpcTKRRkdyC` |
+| 21/06/2026 | Fase 11 | URGENTE — card 100% fora do ar desde 20/06 19h10 BRT. Causa: `gerar-card/route.ts` enviava campos do `sendMedia` soltos no body em vez de aninhados em `mediaMessage` (Evolution API v1.8.6 exige o aninhamento, igual ao `textMessage` do `sendText`). Confirmado 100% de erro em `agentes_log` para `card_vip`/`card_elite`; pipeline de texto (`publicar-noticias`) 100% saudável no mesmo período. Fix testado direto contra a Evolution API real (201 Created). `tsc --noEmit` zerado |
