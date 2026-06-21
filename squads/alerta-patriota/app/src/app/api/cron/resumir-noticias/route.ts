@@ -5,6 +5,9 @@ import { alertarTelegram } from "@/lib/telegram";
 import { PROMPT_BRAGA, PROMPT_CAVALCANTI } from "@/lib/personas";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 interface Noticia {
   id: number;
   titulo: string;

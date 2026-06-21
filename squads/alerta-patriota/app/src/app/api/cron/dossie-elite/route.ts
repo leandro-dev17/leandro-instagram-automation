@@ -11,6 +11,9 @@ import { alertarTelegram } from "@/lib/telegram";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 function getSemana(): number {
   return Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
 }

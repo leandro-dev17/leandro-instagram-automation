@@ -11,6 +11,9 @@ import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 // FIX 3: Temas que ressoam com o público conservador
 const TEMAS_RELEVANTES = [
   "STF", "Supremo", "Lula", "governo federal", "imposto", "tribut",

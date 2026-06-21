@@ -10,6 +10,9 @@ import { alertarTelegram } from "@/lib/telegram";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 async function gerarBomDia(noticias: string[], persona: "braga" | "cavalcanti"): Promise<string> {
   const lista = noticias.slice(0, 5).join("\n");
   const hora = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Sao_Paulo" });

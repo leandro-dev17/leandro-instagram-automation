@@ -10,6 +10,10 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { gerarTexto } from "@/lib/ai";
 import { alertarTelegram } from "@/lib/telegram";
+
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
 const EVO_INST = process.env.EVOLUTION_INSTANCIA;

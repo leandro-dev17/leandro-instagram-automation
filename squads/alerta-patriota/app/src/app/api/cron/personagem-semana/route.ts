@@ -10,6 +10,9 @@ import { alertarTelegram } from "@/lib/telegram";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 // Rodízio de personalidades conservadoras globais
 const PERSONALIDADES = [
   { nome: "Javier Milei",     pais: "Argentina", cargo: "Presidente da Argentina",            tema: "libertarismo e corte de gastos públicos" },

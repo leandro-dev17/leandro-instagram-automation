@@ -11,6 +11,9 @@ import { publicarPostFacebook } from "@/lib/facebook";
 import { alertarTelegram } from "@/lib/telegram";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
 async function gerarTeaser(titulo: string, resumoBraga: string): Promise<string> {

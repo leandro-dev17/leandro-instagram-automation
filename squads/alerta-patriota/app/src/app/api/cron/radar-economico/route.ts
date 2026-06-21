@@ -9,6 +9,9 @@ import { verificarCronSecret } from "@/lib/auth";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 const FONTES_ECONOMICAS = [
   "https://agencia.bcb.gov.br/rss/notas",
   "https://www.infomoney.com.br/feed/",

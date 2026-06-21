@@ -11,6 +11,9 @@ import { alertarTelegram } from "@/lib/telegram";
 import { PROMPT_CAVALCANTI_GLOBAL } from "@/lib/personas";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+export const maxDuration = 60;
+
 async function gerarResumoGlobal(titulo: string, url: string): Promise<string> {
   return gerarTexto({
     model: "claude-haiku-4-5-20251001",

@@ -13,6 +13,13 @@ import { alertarTelegram } from "@/lib/telegram";
 import { gerarCardElement, getCardFonts } from "@/lib/card-generator";
 import { gerarTexto } from "@/lib/ai";
 
+// Plano Hobby da Vercel mata funções sem aviso em 10s por padrão — este endpoint faz 2 chamadas
+// de IA em paralelo (cadeia de fallback Groq→Cerebras→Anthropic, cada uma pode levar 30s+ em
+// retry de rate-limit) + render de imagem + conversão JPEG + upload pro Evolution API, então
+// ultrapassa 10s com frequência. Sem isso a Vercel mata o processo no meio do upload da imagem,
+// deixando a mídia incompleta no WhatsApp — é a causa raiz do card ficar "aguardando carregar".
+export const maxDuration = 60;
+
 const EVO_URL       = process.env.EVOLUTION_API_URL;
 const EVO_KEY       = process.env.EVOLUTION_API_KEY;
 const EVO_INST_VIP   = process.env.EVOLUTION_INSTANCIA       || "alertapatriota";
