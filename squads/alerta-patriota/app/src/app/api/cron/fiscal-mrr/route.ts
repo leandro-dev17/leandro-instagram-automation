@@ -22,8 +22,12 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. MRR atual por plano (status ativo ou trial)
+    // IMPORTANTE: assinaturas anuais guardam o valor cheio do ano em `valor` (ex: R$99,
+    // R$199) — sem normalizar por `ciclo`, SUM(valor) trata isso como receita MENSAL e
+    // superestima o MRR em até 12x. Normaliza dividindo por 12 quando ciclo = 'anual'.
     const assinaturasAtivas = await sql`
-      SELECT plano, COUNT(*) as total, SUM(valor) as soma
+      SELECT plano, COUNT(*) as total,
+             SUM(CASE WHEN ciclo = 'anual' THEN valor / 12.0 ELSE valor END) as soma
       FROM assinaturas
       WHERE status = 'ativa'
       GROUP BY plano

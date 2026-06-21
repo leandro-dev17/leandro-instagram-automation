@@ -328,149 +328,209 @@ jobs:
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/upgrade-comportamental" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── FASE 4 — FISCAIS 24/7 (a cada 30min) ─────────────────────────────────
-  fiscais:
-    name: Fiscais 24/7 — Saúde do sistema
+  # FASE 15/16: dividido em 3 jobs paralelos (era 1 job com 23 steps sequenciais
+  # que estourava o timeout-minutes:5 e era CANCELADO sem nenhum alerta — confirmado
+  # em produção via `gh run list`). Cada curl agora tem --max-time para que uma
+  # falha de rede vire falha do step (curl -e/-eo pipefail) em vez de travar o job
+  # inteiro até o timeout. Pior caso por job: 8 steps × 20s + 7×5s sleep ≈ 195s,
+  # bem dentro dos 5min mesmo se todas as chamadas travarem no limite.
+  fiscais-a:
+    name: Fiscais 24/7 (A) — Login, API, WhatsApp, Banco, Pagamentos, Segurança, Cards, Duplicatas
     runs-on: ubuntu-latest
     if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 5
     steps:
       - name: Lisa Login — Testa autenticação
         run: |
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-login" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-login" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: André API — Testa rotas críticas
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-api" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-api" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Wanderley WhatsApp — Testa Evolution API
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-whatsapp" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-whatsapp" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Bruna Banco — Testa conexão Neon (a cada 10min — executa em todas as rodadas)
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-banco" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-banco" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Felipe Fiscal — Verifica pagamentos pendentes
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-pagamentos" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-pagamentos" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Gustavo Guarda — Varredura de segurança
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/guardiao-seguranca" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/guardiao-seguranca" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Flora Foto — Fiscal de Cards
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-cards" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-cards" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Diana Duplicata — Fiscal de Duplicatas
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-duplicatas" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-duplicatas" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
+      - name: Notificar falha dos fiscais (A)
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FISCAIS 24/7 (A) — FALHA/TIMEOUT*
+          Um ou mais fiscais do grupo A falharam ou travaram. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  fiscais-b:
+    name: Fiscais 24/7 (B) — Conteúdo, Workflow, Escalonamento, Não-Conversão, Pipeline, Notícias, Fontes, Agendamento
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
       - name: Clara Conteúdo — Fiscal de Conteúdo
         run: |
-          sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-conteudo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-conteudo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Wagner Workflow — Fiscal do GitHub Actions
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-workflow" \
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-workflow" \
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" \
             -H "X-Github-Token: ${{ secrets.ALERTA_GITHUB_TOKEN }}"
 
       - name: Escalonamento Claude — Alertas críticos sem resolução
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/escalar-claude" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/escalar-claude" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Sequência Não-Conversão — E-mails automáticos para leads
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/sequencia-nao-conversao" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/sequencia-nao-conversao" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
-      # ── NOVOS FISCAIS (13 agentes) ─────────────────────────────────────────
       - name: Mateus Manchete — Fiscal de Pipeline
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-pipeline" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-pipeline" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Sofia Stoque — Fiscal de Estoque de Notícias
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-noticias" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Roberto RSS — Fiscal de Fontes RSS
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-fontes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-fontes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Pedro Pontual — Fiscal de Agendamento
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-agendamento" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-agendamento" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
+      - name: Notificar falha dos fiscais (B)
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FISCAIS 24/7 (B) — FALHA/TIMEOUT*
+          Um ou mais fiscais do grupo B falharam ou travaram. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  fiscais-c:
+    name: Fiscais 24/7 (C) — Especiais, MRR, Trials, Grupos, Inadimplência, APIs Externas, Qualidade
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
       - name: Vera Verificação — Fiscal de Publicações Especiais
         run: |
-          sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-especiais" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-especiais" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Marcos MRR — Fiscal de Receita
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-mrr" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-mrr" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Tereza Trial — Fiscal de Trials
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-trials" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-trials" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Carlos Cargo — Fiscal de Membros nos Grupos
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-grupos" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-grupos" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Inaê Inadimplência — Fiscal Financeiro
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-inadimplentes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-inadimplentes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Arturo Apis — Fiscal de APIs Externas
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-apis-externas" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-apis-externas" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Vitor Validador — Fiscal de Qualidade dos Resumos
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-qualidade-resumo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-qualidade-resumo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
-      # ── GERENTES (consolidação hierárquica, rodam por último) ──────────────
+      - name: Notificar falha dos fiscais (C)
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *FISCAIS 24/7 (C) — FALHA/TIMEOUT*
+          Um ou mais fiscais do grupo C falharam ou travaram. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  # ── GERENTES (consolidação hierárquica) — roda depois dos 3 grupos de fiscais
+  # via `needs`, preservando a ordem original ("rodam por último"). `if: always()`
+  # garante que a consolidação roda mesmo se um dos grupos travou (modo degradado),
+  # desde que o schedule seja o correto.
+  gerentes-consolidacao:
+    name: Gerentes — Consolidação hierárquica (pós-fiscais)
+    runs-on: ubuntu-latest
+    needs: [fiscais-a, fiscais-b, fiscais-c]
+    if: always() && (github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch')
+    timeout-minutes: 5
+    steps:
       - name: Coronel Técnico — Gerente de Infraestrutura
         run: |
-          sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-tecnico" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-tecnico" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Sargento Conteúdo — Gerente de Conteúdo
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-conteudo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-conteudo" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Major Financeiro — Gerente Financeiro
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-financeiro" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-financeiro" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
       - name: Capitã Clientes — Gerente de Clientes
         run: |
           sleep 5
-          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-clientes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/gerente-clientes" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Notificar falha dos gerentes
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.ALERTA_TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.ALERTA_TELEGRAM_CHAT_ID }}" \
+            -d "parse_mode=Markdown" \
+            --data-urlencode "text=❌ *GERENTES — FALHA/TIMEOUT*
+          Um ou mais gerentes de consolidação falharam ou travaram. Ver logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   # ── FLORA FOTO — GERADOR DE CARDS (envio para WhatsApp) ───────────────────
   # Endpoint /api/cron/gerar-card nunca era chamado por nenhum cron — causa

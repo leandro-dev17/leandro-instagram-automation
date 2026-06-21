@@ -44,12 +44,20 @@ export async function POST(req: NextRequest) {
       telefone?: string;
       plano: string;
       ciclo: string;
+      cpf?: string;
     };
 
-    const { email, nome, telefone, plano, ciclo, cupom } = body as typeof body & { cupom?: string };
+    const { email, nome, telefone, plano, ciclo, cupom, cpf } = body as typeof body & { cupom?: string };
 
     if (!email || !nome || !plano) {
       return NextResponse.json({ erro: "Campos obrigatórios: email, nome, plano" }, { status: 400 });
+    }
+
+    // CPF é exigido pelo Mercado Pago para identificar o pagador de PIX no Brasil —
+    // enviar vazio fazia o pagamento ir sem identificação real do pagador.
+    const cpfLimpo = (cpf || "").replace(/\D/g, "");
+    if (cpfLimpo.length !== 11) {
+      return NextResponse.json({ erro: "CPF inválido. Informe um CPF com 11 dígitos." }, { status: 400 });
     }
 
     if (!VALORES_ANUAIS[plano]) {
@@ -93,7 +101,7 @@ export async function POST(req: NextRequest) {
           email,
           first_name: nome.split(" ")[0],
           last_name: nome.split(" ").slice(1).join(" ") || "",
-          identification: { type: "CPF", number: "" },
+          identification: { type: "CPF", number: cpfLimpo },
         },
         description: `Alerta Patriota - Plano ${plano.charAt(0).toUpperCase() + plano.slice(1)} Anual`,
         notification_url: `${APP_URL}/api/webhook/mercadopago`,

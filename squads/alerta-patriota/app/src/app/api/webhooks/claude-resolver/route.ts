@@ -15,6 +15,7 @@
  * Leandro só é incomodado quando Claude Resolver esgota todas as opções.
  */
 import { NextRequest, NextResponse } from "next/server";
+import * as ts from "typescript";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram } from "@/lib/telegram";
@@ -148,6 +149,34 @@ async function analisarComClaude(problema: string, erro: string, codigoAtual: st
   } catch { return null; }
 }
 
+// ── VALIDAÇÃO PRÉ-COMMIT: bloqueia código quebrado antes de ir para produção ──
+// Único filtro anterior era "Claude retornou algo diferente do original" — nenhuma
+// checagem real de sintaxe ou de truncamento antes do PUT direto na branch principal.
+function validarAntesDeCommitar(caminho: string, codigoNovo: string, codigoAntigo: string): { ok: boolean; motivo?: string } {
+  if (codigoNovo.includes("```")) {
+    return { ok: false, motivo: "markdown residual no código (cerca não removida)" };
+  }
+  if (codigoNovo.trim().length < codigoAntigo.trim().length * 0.5) {
+    return { ok: false, motivo: "conteúdo novo tem menos da metade do tamanho original (risco de truncamento)" };
+  }
+  if (caminho.endsWith(".ts") || caminho.endsWith(".tsx")) {
+    const resultado = ts.transpileModule(codigoNovo, {
+      compilerOptions: {
+        jsx: ts.JsxEmit.ReactJSX,
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2020,
+      },
+      reportDiagnostics: true,
+    });
+    const erros = (resultado.diagnostics || []).filter(d => d.category === ts.DiagnosticCategory.Error);
+    if (erros.length > 0) {
+      const msg = erros.map(e => ts.flattenDiagnosticMessageText(e.messageText, " ")).join("; ");
+      return { ok: false, motivo: `erro de sintaxe TypeScript: ${msg.substring(0, 200)}` };
+    }
+  }
+  return { ok: true };
+}
+
 // ── STEP 5: Disparar redeploy no Vercel ──────────────────────────────────────
 async function dispararRedeploy(): Promise<boolean> {
   if (!VERCEL_TOKEN) return false;
@@ -237,25 +266,31 @@ export async function POST(req: NextRequest) {
         );
 
         if (novoConteudo && novoConteudo !== fileData.conteudo) {
-          const timestamp = new Date().toISOString().replace("T", " ").substring(0, 16) + " UTC";
-          const commitMsg = `fix(auto): guardião corrigiu falha detectada ${timestamp}\n\nAgente: ${agente}\nTipo: ${tipo}\nErro: ${erro.substring(0, 100)}`;
+          const validacao = validarAntesDeCommitar(arquivo, novoConteudo, fileData.conteudo);
 
-          const commitOk = await escreverArquivoGitHub(arquivo, novoConteudo, fileData.sha, commitMsg);
-          etapas.push(commitOk ? `✅ Fix commitado: ${arquivo}` : `❌ Commit falhou: ${arquivo}`);
+          if (!validacao.ok) {
+            etapas.push(`🚫 Fix BLOQUEADO antes do commit (${validacao.motivo}): ${arquivo}`);
+          } else {
+            const timestamp = new Date().toISOString().replace("T", " ").substring(0, 16) + " UTC";
+            const commitMsg = `fix(auto): guardião corrigiu falha detectada ${timestamp}\n\nAgente: ${agente}\nTipo: ${tipo}\nErro: ${erro.substring(0, 100)}`;
 
-          if (commitOk) {
-            // Redeploy Vercel se for arquivo do app
-            if (arquivo.includes("/app/")) {
-              await dispararRedeploy();
-              etapas.push("🔄 Redeploy Vercel disparado");
+            const commitOk = await escreverArquivoGitHub(arquivo, novoConteudo, fileData.sha, commitMsg);
+            etapas.push(commitOk ? `✅ Fix commitado: ${arquivo}` : `❌ Commit falhou: ${arquivo}`);
+
+            if (commitOk) {
+              // Redeploy Vercel se for arquivo do app
+              if (arquivo.includes("/app/")) {
+                await dispararRedeploy();
+                etapas.push("🔄 Redeploy Vercel disparado");
+              }
+              // Re-run workflow se for arquivo de automação
+              if (arquivo.includes("/automation/") || arquivo.includes(".yml")) {
+                await new Promise(r => setTimeout(r, 30000)); // aguarda deploy
+                await dispararWorkflow();
+                etapas.push("🔄 GitHub Actions workflow re-disparado");
+              }
+              resolvido = true;
             }
-            // Re-run workflow se for arquivo de automação
-            if (arquivo.includes("/automation/") || arquivo.includes(".yml")) {
-              await new Promise(r => setTimeout(r, 30000)); // aguarda deploy
-              await dispararWorkflow();
-              etapas.push("🔄 GitHub Actions workflow re-disparado");
-            }
-            resolvido = true;
           }
         } else {
           etapas.push("⚠️ Claude não encontrou fix específico para este código");

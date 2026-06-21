@@ -417,6 +417,103 @@ Isso só é possível se o processo for **encerrado pela própria plataforma (SI
 
 ---
 
+## FASE 15 — Auditoria Exaustiva Completa de Toda a Automação (21/06/2026)
+**Status: 🔍 AUDITORIA CONCLUÍDA — fixes ainda NÃO aplicados (pendente de priorização com o usuário)**
+
+**Gatilho:** pedido explícito do usuário para parar de fazer auditorias fragmentadas (cada rodada achando bugs diferentes) e fazer **uma única varredura exaustiva** de toda a automação — todas as libs, todas as ~101 rotas de cron/API, toda a lógica de negócio, todos os processos — numa passada só.
+
+**Método:** 8 sub-auditorias paralelas (somente leitura, nada foi alterado), cobrindo 100% do código:
+1. `src/lib/*.ts` (8 arquivos: auth, brevo, db, facebook, hierarquia, instagram, personas, telegram)
+2. Rotas `fiscal-*` parte A (13 arquivos) e parte B (12 arquivos) — 25 fiscais no total
+3. Rotas de governança: `gerente-*`, `revisor-*`, `escalar-claude` e correlatos (16 arquivos)
+4. Pipeline de conteúdo parte A (11 arquivos) e parte B/engajamento (10 arquivos)
+5. Rotas financeiras/auth/growth/webhooks (17 arquivos)
+6. Rotas de admin (18 arquivos)
+7. Verificação direta no histórico real do GitHub Actions (`gh run list`/`gh run view`) para confirmar ou descartar hipóteses de timeout — **não foi só leitura de código, foi confirmado com dados de execução reais**
+
+Total: ~101 rotas + 8 libs auditadas. Nenhum arquivo de `squads/vovo-teresinha/` foi tocado ou lido.
+
+### 🔴 CRÍTICO
+
+| # | Achado | Local | Detalhe |
+|---|--------|-------|---------|
+| 1 | **Job "Fiscais 24/7" sendo cancelado de fato em produção, silenciosamente** | `.github/workflows/alerta-patriota-crons.yml:331-473` | Confirmado com dados reais (`gh run list`): **4 das últimas 30 execuções foram canceladas**, sempre no corte exato de 5min. O job tem 26 steps sequenciais (`sleep 5` + `curl`, sem `--max-time`) chamando 26 endpoints fiscais/gerentes diferentes, dentro de um orçamento de `timeout-minutes: 5`. Diferente do job "Fiscais de Código" (linha 706), este job **não tem nenhum step de notificação de falha** — e mesmo se tivesse, `if: failure()` não dispara em cancelamento por timeout de job (é um estado distinto). Resultado: quando o job estoura o tempo, um número desconhecido dos 26 fiscais/gerentes finais simplesmente nunca roda naquele ciclo, e **ninguém é avisado** — nem Telegram, nem log. |
+| 2 | **MRR calculado errado** | `fiscal-mrr/route.ts:25-30` (aprox.) | Soma `valor` bruto de assinaturas sem normalizar ciclo (mensal vs. anual) — uma assinatura anual de R$600 entra como R$600/mês em vez de R$50/mês. Superestima MRR real. Também conta trials como receita "assumindo conversão". |
+| 3 | **`revisor-schema` executa DDL (`ALTER TABLE`) direto em produção sem proteção** | `revisor-schema/route.ts:16-22, 47-58` | Decide se altera o schema do banco via `string.includes()` num texto de alerta (correspondência frágil), e executa o `ALTER TABLE` sem transação, sem dry-run, sem rollback. Um alerta com texto parecido mas causa raiz diferente pode disparar uma alteração de schema indevida em produção. |
+| 4 | **`webhooks/claude-resolver` comita código gerado por IA direto na branch principal sem validação** | `webhooks/claude-resolver/route.ts:228-264` | A única validação antes do commit é "o código é diferente do anterior" — não há checagem sintática (parse/lint), nem teste, nem revisão antes de ir para produção via push direto. |
+| 5 | **CPF vazio enviado ao Mercado Pago no PIX** | `assinaturas/criar-pix/route.ts:96` (aprox.) | Campo de CPF do pagador enviado vazio para a API de pagamento PIX do MP — risco de rejeição do pagamento ou de dados fiscais incorretos no MP. |
+
+### 🟠 ALTO
+
+| Achado | Local |
+|--------|-------|
+| Termômetro duplicado todo domingo (2 gatilhos descoordenados) | `vercel.json` (17h BRT) vs `automation/whatsapp-termometro.cjs` via GitHub Actions (20h BRT, correto) — o script `.cjs` **não tem nenhuma guarda de banco**, só checa o dia da semana; a rota `route.ts` tem guarda por semana/ano mas está pendurada no cron errado |
+| Chave da Evolution API em texto puro (plaintext) no workflow | `.github/workflows/alerta-patriota-crons.yml` — repetido em **3 jobs distintos** (linhas ~552-556, ~592-596, ~634-637), deveria usar `${{ secrets.* }}` como o resto do arquivo já faz em outros jobs |
+| `fiscal-codigo-logica` faz JOIN sem correlação correta (produto cartesiano) | pode gerar falso "limite excedido" e disparar correção automática indevida via `gerente-codigo` |
+| `atualizarGitHubSecret()` é um stub que sempre retorna sucesso | `fiscal-facebook` (ou correlato) — qualquer rotação de secret "funciona" no log mesmo que não tenha feito nada de fato |
+| `escalar-claude` parece código morto — nunca é de fato chamado na cadeia real de escalonamento (duplica função do `claude-resolver`) | `escalar-claude/route.ts` + `lib/hierarquia.ts` (confirmado dead code) |
+| `revisor-logica` marca alertas críticos como "resolvidos" só por idade, sem verificar se a causa raiz foi corrigida | pode mascarar o próprio gatilho que deveria acionar correção |
+| `modo-crise` (Márcio Crise) não tem efeito real no sistema — só grava alerta + Telegram, e não se autodesativa | risco de o "modo de crise" ficar ligado para sempre sem ação concreta |
+| Condição de corrida em `publicar-noticias` pode publicar a mesma notícia 2x | select-then-act sem `SELECT...FOR UPDATE`/`SKIP LOCKED` |
+| Guarda de idempotência em `dossie-elite`/`analise-semanal-vip`/`semana-em-revista` grava o log **depois** do envio | se a função for matada entre o envio e o `INSERT` do log (mesmo risco da Fase 14), duplica o envio no próximo ciclo |
+| Texto vazio da IA tratado como sucesso em `bom-dia`/`resumo-noite` | pode enviar mensagem "casca vazia" para os grupos |
+| Lembrete de trial D6 sem deduplicação | nos agentes de engajamento — pode enviar a mesma mensagem várias vezes ao mesmo lead |
+| `moderacao-grupo`: retorno de `removerMembroGrupo()` nunca verificado | banco marca remoção como bem-sucedida mesmo que a chamada real à Evolution API tenha falhado — divergência permanente entre banco e WhatsApp real |
+| Nenhuma das rotas de assinatura (`criar`, `criar-direto`, `criar-pix`) verifica se já existe assinatura ativa antes de criar uma nova | risco de cobrança duplicada para o mesmo cliente |
+| Falta de deduplicação de alertas é um padrão sistêmico em quase todas as rotas `fiscal-*` | cada rota reinsere o mesmo alerta em `alertas` + reenvia Telegram a cada execução enquanto a condição persistir, mesmo sem mudança nenhuma desde o último alerta |
+| 3 rotas de admin (`setup`, `fix-encoding`, `limpar-fontes`) usam `verificarCronSecret` (padrão de cron) em vez de `requireAdmin()` (padrão de sessão de admin) | inconsistência de modelo de autenticação dentro do próprio painel admin |
+
+### 🟡 MÉDIO / 🟢 BAIXO (resumo agregado — não esgotado aqui)
+
+- **Rate limiting em memória (`Map`)** em várias rotas públicas — não funciona em ambiente serverless multi-instância (cada instância tem seu próprio `Map`), padrão repetido em vários endpoints expostos.
+- **Telegram com `parse_mode: "HTML"` sem escapar texto não confiável** — pode causar falha silenciosa de entrega de alertas críticos se o texto contiver caracteres especiais.
+- **Hierarquia documentada (fiscal → revisor → gerente → claude-revisor/claude-resolver → escalar-claude → Leandro) não corresponde ao código real** — `lib/hierarquia.ts` é código morto, `gerente-codigo` delega "para baixo" para `claude-revisor` apesar de `revisor-*` supostamente ser nível superior.
+- **`fiscal-trials`**: janela de 48h relativa a "agora" pode gerar falso positivo de risco de churn.
+- **`fiscal-inadimplentes`**: usa `updated_at` como proxy de "dias inadimplente", que pode ser resetado por qualquer outra atualização da linha.
+- **`fiscal-grupos`**: janela de snapshot de 6h dependente da frequência real do cron, pode perder ou duplicar contagem dependendo de quando o cron de fato rodou.
+- **`fiscal-workflow`**: busca de runs do GitHub Actions não filtra por workflow específico, pode mascarar falhas reais de outros workflows não relacionados.
+- Diversos truncamentos de texto/caption não replicados de forma consistente entre rotas (o padrão de 990 caracteres do `gerar-card`, ver Fase 12, não está em outras rotas de texto puro).
+- Workflow roda com frequência muito maior do que o nome sugere ("Crons 3x/dia" no título, mas histórico real mostra execuções a cada ~10-40 min) — nome do workflow desatualizado em relação ao schedule real, pode confundir leitura de logs.
+
+**Decisão do usuário:** ao ser perguntado por onde começar, o usuário escolheu corrigir os 5 itens 🔴 CRÍTICO primeiro. Os ~14 itens 🟠 ALTO e os itens 🟡/🟢 MÉDIO/BAIXO **continuam pendentes**, não fazem parte desta rodada.
+
+---
+
+## FASE 16 — Correção dos 5 Bugs Críticos da Fase 15 (21/06/2026)
+**Status: ✅ CONCLUÍDA**
+
+Implementação dos 5 itens 🔴 CRÍTICO listados na Fase 15, na ordem aprovada pelo usuário ("os 5 críticos primeiro").
+
+### 1. Job "Fiscais 24/7" cancelado em produção sem alerta
+- **Confirmado com dados reais:** `gh run list`/`gh run view` mostrou o job sendo cancelado em ~13% das execuções recentes (4 de 30), sempre no limite do timeout de 5 min, sem nenhum alerta.
+- **Causa:** job único e sequencial com 27 steps (`sleep 5` + `curl -s` sem `--max-time`) e `timeout-minutes: 5` — quando o timeout do job é atingido, o job inteiro é cancelado e steps `if: failure()` não rodam de forma confiável.
+- **Correção em `.github/workflows/alerta-patriota-crons.yml`:** job `fiscais` dividido em 3 jobs paralelos (`fiscais-a`, `fiscais-b`, `fiscais-c`, ~8 steps cada) + `gerentes-consolidacao` (`needs: [fiscais-a, fiscais-b, fiscais-c]`, `if: always()`). Todo `curl` agora usa `--max-time 20` (uma chamada travada falha o step, em vez de travar o job inteiro). Cada job novo tem step de notificação Telegram (`if: failure()`).
+- **Verificação:** YAML validado via `yaml.safe_load` (28 jobs, contagem de steps por job confirmada); `grep` confirmou que nenhum outro arquivo referencia o job antigo `fiscais`.
+
+### 2. MRR calculado errado (mistura ciclo mensal/anual)
+- **Causa:** `fiscal-mrr/route.ts` somava `valor` bruto de `assinaturas` sem normalizar pelo `ciclo` — uma assinatura anual de R$199 entrava como R$199/mês em vez de ~R$16,58/mês, superestimando o MRR real em até 12x.
+- **Correção:** `SUM(CASE WHEN ciclo = 'anual' THEN valor / 12.0 ELSE valor END) as soma` em vez de `SUM(valor)`.
+- **Verificação:** cruzado com `assinaturas/criar/route.ts` e `webhook/mercadopago/route.ts` para confirmar que a coluna `ciclo` existe e reflete corretamente mensal/anual; `tsc --noEmit` limpo.
+
+### 3. `revisor-schema` executa DDL automático sem proteção
+- **Reavaliação:** o achado original da Fase 15 ("correspondência frágil via `string.includes()`") se mostrou menos arriscado do que parecia, depois de rastrear o formato exato das mensagens de alerta em `fiscal-codigo-schema/route.ts`. O risco real é estrutural, não o matching atual.
+- **Correção:** adicionada trava de segurança `SAFE_DDL_PATTERN` (regex allowlist) que só permite executar automaticamente comandos no formato `ALTER TABLE <tabela> ADD COLUMN IF NOT EXISTS <coluna> ...`. Qualquer comando fora desse formato (ex: `DROP TABLE`, `ALTER ... DROP COLUMN`) é bloqueado e reportado como pendente em vez de executado.
+- **Verificação:** `tsc --noEmit` limpo; teste isolado em Node confirmou que as 5 entradas atuais do dicionário `AUTOCORRECT` passam pela trava e que comandos destrutivos são bloqueados.
+
+### 4. `claude-resolver` comita código gerado por IA sem validação
+- **Correção:** adicionada função `validarAntesDeCommitar()` com 3 camadas antes de qualquer commit direto na branch principal: (a) resíduo de cerca de markdown (` ``` `), (b) truncamento (novo conteúdo com menos de 50% do tamanho do original), (c) checagem de sintaxe TypeScript via `ts.transpileModule(..., { reportDiagnostics: true })`. Código que falha qualquer checagem não é commitado.
+- **Verificação:** `tsc --noEmit` limpo; teste isolado em Node confirmou que a camada de sintaxe TS pega código quebrado (chave não fechada) mesmo quando o tamanho do texto não dispara a checagem de truncamento — confirmando que as camadas funcionam de forma independente, não só a mais simples.
+
+### 5. CPF vazio enviado ao Mercado Pago no PIX
+- **Causa:** `assinaturas/criar-pix/route.ts` enviava `identification: { type: "CPF", number: "" }` fixo — o tipo do corpo da requisição nem aceitava um campo `cpf`.
+- **Correção:** corpo da requisição passou a aceitar `cpf?: string`; CPF é limpo (`replace(/\D/g, "")`) e validado (exatamente 11 dígitos) antes de seguir — requisição sem CPF válido retorna 400 em vez de seguir para o Mercado Pago sem identificação do pagador.
+- **Ressalva (não resolvida automaticamente):** uma busca em todo o repositório por `criar-pix` não encontrou nenhuma página/frontend dentro deste projeto Next.js que chame essa rota enviando um corpo de requisição — apenas a própria rota, um artefato de build (`tsconfig.tsbuildinfo`) e os documentos de auditoria. Se existir algum chamador real (página externa, outro serviço) que hoje chama essa rota sem enviar `cpf`, ele vai começar a receber 400 até ser atualizado para coletar e enviar o CPF do pagador. Isso é o comportamento correto (o MP exige CPF para PIX no Brasil), mas precisa de atenção se houver um chamador fora deste repositório.
+- **Verificação:** `tsc --noEmit` limpo.
+
+**Pendente:** os ~14 itens 🟠 ALTO e os itens 🟡/🟢 MÉDIO/BAIXO da Fase 15 continuam não corrigidos, fora do escopo desta rodada.
+
+---
+
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
 
 | Bug | Arquivo | Impacto | Quando corrigir |
@@ -454,6 +551,8 @@ Isso só é possível se o processo for **encerrado pela própria plataforma (SI
 | 20/06/2026 | Fase 7 | `claude-revisor` corrigido na raiz (strip de cercas + guarda de sanidade); `resumir-noticias` restaurado (2x — bot recorrompeu durante a correção, resolvido via merge); `gerar-card` agora tenta até 5 notícias e loga erro real do Evolution API; `telegram.ts` com tipo `nivel` corrigido; `cards-elite-global` removido; `tsc --noEmit` zerado (incluindo ~10 erros não catalogados originalmente); commits `3495909` + merge `780ecc5`, push `b504165..780ecc5` |
 | 20/06/2026 | Fase 9 | `gerarTexto()` reordenado para Groq → Cerebras → Anthropic; `gerarCodigoComClaude()` criada para isolar geração de código no Anthropic (`claude-revisor` + `claude-resolver`); disjuntor automático criado (tabela `consumo_ia_log`, bloqueio em 20 chamadas Anthropic/10min por agente, alerta via WhatsApp DM); campo `agente` obrigatório retrofitado em 21 call sites; `ADMIN_WHATSAPP_NUMERO` e `CEREBRAS_API_KEY` adicionados em `.env.local` e Vercel; `tsc --noEmit` zerado; commit `29b459a` + merge, push `93443c8..3d498f2`; deploys `dpl_Bydx5hFRUbtCEq8uK3cs8X7uZ8g8` e `dpl_3YtwJfcimf344AzMK13sdiPFKk26` |
 | 20/06/2026 | Fase 10 | Auditoria geral (auth/MP/segurança/agentes) — 4 sub-auditorias paralelas, achados verificados manualmente (boa parte dos achados automáticos descartados como falso-positivo). Confirmados e corrigidos: webhook do WhatsApp nunca registrado na Evolution API (registrado agora, com secret na URL); `EVOLUTION_WEBHOOK_SECRET` ausente (gerada e configurada); rate-limit adicionado em `auth/login`, `auth/cadastro`, `assinaturas/criar-pix` e `assinaturas/criar-direto`; preço desatualizado corrigido em `lista-de-espera`. `tsc --noEmit` zerado; commit `f578a21`, push `cb5a9af..f578a21`; deploy `dpl_2V4dbR4rNfnSDxE3kEpcTKRRkdyC` |
+| 21/06/2026 | Fase 15 | Auditoria exaustiva única de TODA a automação (pedido explícito do usuário, substituindo auditorias fragmentadas anteriores): 8 sub-auditorias paralelas cobrindo ~101 rotas + 8 libs, somente leitura. 5 achados críticos (job "Fiscais 24/7" cancelado de fato em produção sem alerta — confirmado com `gh run list` real, não hipótese; MRR mal calculado; `revisor-schema` roda DDL sem proteção; `claude-resolver` comita sem validação; CPF vazio no PIX) + ~14 de alta severidade + dezenas de médio/baixo. Nenhum fix aplicado ainda — pendente de priorização com o usuário. |
+| 21/06/2026 | Fase 16 | Correção dos 5 críticos da Fase 15 (usuário escolheu "os 5 críticos primeiro"): job `fiscais` dividido em 3 jobs paralelos + `--max-time 20` + alerta de falha em `alerta-patriota-crons.yml`; MRR normalizado por `ciclo` em `fiscal-mrr`; `SAFE_DDL_PATTERN` (allowlist regex) bloqueando DDL fora do padrão `ADD COLUMN IF NOT EXISTS` em `revisor-schema`; `validarAntesDeCommitar()` (cerca markdown + truncamento + sintaxe TS via `ts.transpileModule`) em `claude-resolver`; CPF validado (11 dígitos) e enviado ao MP em `criar-pix` (nenhum chamador frontend encontrado neste repositório — ressalva registrada). `tsc --noEmit` zerado em todos os arquivos tocados. Ainda sem commit/push — aguardando autorização do usuário. ~14 itens ALTO e MÉDIO/BAIXO da Fase 15 continuam pendentes. |
 | 21/06/2026 | Fase 14 | CAUSA RAIZ REAL do card travado: plano Hobby da Vercel mata função em 10s sem `maxDuration`; consulta direta a `agentes_log` provou que o teste de `?plano=elite` pós-Fase 13 nunca gerou log (nem sucesso nem erro) — função morta a meio caminho, provavelmente durante o upload pro Evolution API, deixando mídia incompleta. Fix: `export const maxDuration = 60` em `gerar-card` + outras 19 rotas com a mesma cadeia de fallback de IA. Reteste pós-deploy: chamada que antes nunca terminava completou em 9,95s; mensagem JPEG no grupo Elite com integridade criptográfica 100% confirmada (MAC + fileEncSha256 + fileSha256 + abertura visual). |
 | 21/06/2026 | Fase 13 | Auditoria profunda pós-Fase 12 (card ainda travava). Verificação criptográfica byte-a-byte provou que a mídia entregue ao CDN do WhatsApp é 100% íntegra (descarta corrupção). Grupos VIP/Elite têm 1 e 2 participantes — descarta falha de sync entre dispositivos do bot. Causa corrigida: PNG RGBA grande (~1,6MB) trocado por JPEG (~180KB, -88%) via `sharp`. Causa estrutural sem fix de código: possível throttling de mídia anti-abuso da Meta para contas automatizadas novas — monitorar se persistir. |
 | 21/06/2026 | Fase 12 | URGENTE — card publicava (Fase 11 ok) mas ficava "carregando" no grupo. Causa: legenda real medida em 1503/1066/1151 caracteres, acima do limite de ~1024 do WhatsApp para caption de mídia. Fix: max_tokens 500→350 + truncarLegenda() com corte seguro em LEGENDA_MAX=990. |

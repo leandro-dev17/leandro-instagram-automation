@@ -21,6 +21,11 @@ const AUTOCORRECT: Record<string, string> = {
   "usuarios.assinatura_inicio": "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS assinatura_inicio TIMESTAMP",
 };
 
+// Trava de segurança: só DDL aditivo/idempotente (ADD COLUMN IF NOT EXISTS) pode
+// rodar sem revisão humana. Bloqueia qualquer comando destrutivo (DROP, ALTER TYPE,
+// RENAME etc.) que venha a ser adicionado ao dicionário acima no futuro.
+const SAFE_DDL_PATTERN = /^ALTER TABLE \w+ ADD COLUMN IF NOT EXISTS \w+ .+$/i;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
@@ -46,6 +51,10 @@ export async function GET(req: NextRequest) {
 
       for (const [chave, sqlCmd] of Object.entries(AUTOCORRECT)) {
         if (msg.toLowerCase().includes(chave.toLowerCase())) {
+          if (!SAFE_DDL_PATTERN.test(sqlCmd)) {
+            pendentes.push(`⚠️ Autocorreção BLOQUEADA por segurança (não é ADD COLUMN IF NOT EXISTS): ${chave}`);
+            continue;
+          }
           try {
             await sql(sqlCmd);
             correcoes.push(`✅ Corrigido automaticamente: ${chave}`);
