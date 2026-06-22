@@ -30,6 +30,24 @@ const MODELO_FALLBACK: Record<string, string> = {
   "claude-sonnet-4-6": MODELO_LLAMA_GROQ,
 };
 
+// Llama 3.3 70B servido via Groq/Cerebras (inferência ultrarrápida) ocasionalmente "vaza"
+// tokens de outro alfabeto no meio do texto em português — efeito colateral conhecido desses
+// provedores. Detecta CJK/hangul/cirílico/árabe/hebraico/devanágari/tailandês para rejeitar
+// e cair para o próximo provedor da cadeia antes que o texto chegue ao WhatsApp.
+const REGEX_SCRIPT_NAO_PORTUGUES = /[一-鿿぀-ヿ가-힯Ѐ-ӿ؀-ۿ֐-׿ऀ-ॿ฀-๿]/;
+
+function contemScriptNaoPortugues(texto: string): boolean {
+  return REGEX_SCRIPT_NAO_PORTUGUES.test(texto);
+}
+
+class ErroScriptInvalido extends Error {}
+
+const INSTRUCAO_IDIOMA = "\n\nIMPORTANTE: responda inteiramente em português do Brasil. Nunca use caracteres de outros alfabetos (chinês, cirílico, árabe, etc.) em nenhuma parte do texto.";
+
+function comInstrucaoIdioma(params: MensagemIA): MensagemIA {
+  return { ...params, messages: params.messages.map((m) => ({ ...m, content: m.content + INSTRUCAO_IDIOMA })) };
+}
+
 function ehErroRecuperavel(err: unknown): boolean {
   // A SDK da Anthropic expõe `status` (429/529) e `error.type` (rate_limit_error/overloaded_error)
   // como campos do objeto de erro; os fallbacks via fetch (Groq/Cerebras) embutem o status no texto
@@ -150,18 +168,20 @@ async function gerarComAnthropic(params: MensagemIA): Promise<string> {
  * Cerebras, e só recorre ao Anthropic (pago) se os dois gratuitos também falharem/esgotarem.
  * Retorna o texto já extraído (trim aplicado).
  */
-export async function gerarTexto(params: MensagemIA): Promise<string> {
+export async function gerarTexto(paramsOriginais: MensagemIA): Promise<string> {
+  const params = comInstrucaoIdioma(paramsOriginais);
   const erros: string[] = [];
   const modeloLlama = MODELO_FALLBACK[params.model] || MODELO_LLAMA_GROQ;
 
   if (GROQ_API_KEY) {
     try {
       const texto = await gerarComOpenAICompativel("Groq", "https://api.groq.com/openai/v1/chat/completions", GROQ_API_KEY, modeloLlama, params);
+      if (contemScriptNaoPortugues(texto)) throw new ErroScriptInvalido("Groq retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida");
       await registrarConsumo(params.agente, "groq", "sucesso");
       return texto;
     } catch (err) {
       await registrarConsumo(params.agente, "groq", "erro");
-      if (!ehErroRecuperavel(err)) throw err;
+      if (!(err instanceof ErroScriptInvalido) && !ehErroRecuperavel(err)) throw err;
       erros.push(`Groq: ${String(err)}`);
     }
   }
@@ -169,17 +189,20 @@ export async function gerarTexto(params: MensagemIA): Promise<string> {
   if (CEREBRAS_API_KEY) {
     try {
       const texto = await gerarComOpenAICompativel("Cerebras", "https://api.cerebras.ai/v1/chat/completions", CEREBRAS_API_KEY, MODELO_LLAMA_CEREBRAS, params);
+      if (contemScriptNaoPortugues(texto)) throw new ErroScriptInvalido("Cerebras retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida");
       await registrarConsumo(params.agente, "cerebras", "sucesso");
       return texto;
     } catch (err) {
       await registrarConsumo(params.agente, "cerebras", "erro");
-      if (!ehErroRecuperavel(err)) throw err;
+      if (!(err instanceof ErroScriptInvalido) && !ehErroRecuperavel(err)) throw err;
       erros.push(`Cerebras: ${String(err)}`);
     }
   }
 
   try {
-    return await gerarComAnthropicComDisjuntor(params.agente, params);
+    const texto = await gerarComAnthropicComDisjuntor(params.agente, params);
+    if (contemScriptNaoPortugues(texto)) throw new Error("Anthropic retornou texto com caracteres de outro alfabeto");
+    return texto;
   } catch (err) {
     erros.push(`Anthropic: ${String(err)}`);
     throw new Error(`Groq, Cerebras e Anthropic falharam — ${erros.join(" | ")}`);
