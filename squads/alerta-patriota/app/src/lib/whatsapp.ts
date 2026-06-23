@@ -35,7 +35,7 @@ export async function enviarMensagemPrivada(telefone: string, texto: string): Pr
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
       body: JSON.stringify({
         number: `${numero}@s.whatsapp.net`,
-        textMessage: { text: texto },
+        text: texto,
       }),
     });
     return res.ok;
@@ -59,7 +59,7 @@ export async function enviarMensagemGrupo(plano: Plano, texto: string): Promise<
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
       body: JSON.stringify({
         number: groupId,
-        textMessage: { text: texto },
+        text: texto,
       }),
     });
     return res.ok;

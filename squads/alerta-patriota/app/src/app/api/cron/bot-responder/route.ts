@@ -58,7 +58,7 @@ async function enviarRespostaGrupo(groupJid: string, texto: string): Promise<boo
     const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({ number: groupJid, textMessage: { text: texto } }),
+      body: JSON.stringify({ number: groupJid, text: texto }),
     });
     return res.ok;
   } catch { return false; }

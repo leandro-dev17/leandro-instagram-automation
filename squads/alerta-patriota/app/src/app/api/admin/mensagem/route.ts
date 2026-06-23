@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({ number: groupJid, textMessage: { text: mensagem } }),
+      body: JSON.stringify({ number: groupJid, text: mensagem }),
     });
 
     if (!res.ok) return NextResponse.json({ erro: "Falha ao enviar mensagem" }, { status: 500 });

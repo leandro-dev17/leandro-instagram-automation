@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
       headers: { "Content-Type": "application/json", apikey: EVO_KEY! },
       body: JSON.stringify({
         number: GROUP_VIP,
-        textMessage: { text: `🗳️ *ENQUETE DO DIA — Capitão Braga quer saber sua opinião, patriota!*` },
+        text: `🗳️ *ENQUETE DO DIA — Capitão Braga quer saber sua opinião, patriota!*`,
       }),
     });
 
