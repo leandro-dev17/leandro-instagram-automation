@@ -41,17 +41,37 @@ export async function GET(req: NextRequest) {
     // Usa Neon API para criar branch de backup
     const neonKey = process.env.NEON_API_KEY;
     const neonProject = process.env.NEON_PROJECT_ID;
+    let branchCriado = false;
 
     if (neonKey && neonProject) {
       const hoje = new Date().toISOString().split("T")[0];
-      await fetch(`https://console.neon.tech/api/v2/projects/${neonProject}/branches`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${neonKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ branch: { name: `backup-${hoje}` } }),
-      }).catch(() => {}); // não crítico se falhar
+      try {
+        const res = await fetch(`https://console.neon.tech/api/v2/projects/${neonProject}/branches`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${neonKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ branch: { name: `backup-${hoje}` } }),
+        });
+        if (!res.ok) {
+          const corpo = await res.text().catch(() => "");
+          throw new Error(`Status ${res.status}: ${corpo}`);
+        }
+        branchCriado = true;
+      } catch (e) {
+        // FASE 21: antes o erro era engolido (.catch(() => {})) — o backup "logico" (contagens)
+        // sempre marcava sucesso mesmo se o branch de backup real no Neon nunca fosse criado,
+        // deixando o sistema sem snapshot de recuperação sem que ninguém soubesse.
+        await alertarTelegram("🔴", "Bruno Backup — falha ao criar branch de backup no Neon", String(e));
+      }
+    } else {
+      await alertarTelegram("🟡", "Bruno Backup — branch de backup não criado", "NEON_API_KEY ou NEON_PROJECT_ID não configurados.");
     }
 
-    return NextResponse.json({ ok: true, integridade });
+    await sql`
+      INSERT INTO agentes_log (agente, acao, status, detalhes)
+      VALUES ('bruno-backup', 'criar_branch_neon', ${branchCriado ? "sucesso" : "erro"}, ${JSON.stringify({ branchCriado })})
+    `.catch(() => {});
+
+    return NextResponse.json({ ok: true, integridade, branchCriado });
   } catch (err) {
     await alertarTelegram("🔴", "Bruno Backup — FALHA NO BACKUP", String(err));
     return NextResponse.json({ erro: String(err) }, { status: 500 });

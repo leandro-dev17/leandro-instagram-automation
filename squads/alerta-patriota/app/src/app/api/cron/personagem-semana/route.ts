@@ -67,15 +67,18 @@ export async function GET(req: NextRequest) {
 
     const msg = `🎯 *PERSONALIDADE DA SEMANA — Elite Global*\n\n👤 *${p.nome}*\n🌍 ${p.cargo} · ${p.pais}\n\n${perfil}`;
 
-    await enviarMensagemGrupo("elite", msg);
+    const enviado = await enviarMensagemGrupo("elite", msg);
+    if (!enviado) {
+      await alertarTelegram("🔴", "Falha ao enviar Personagem da Semana", `personalidade: ${p.nome} | pais: ${p.pais}`);
+    }
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes)
-      VALUES ('personagem-semana', 'enviar_perfil', 'sucesso',
+      VALUES ('personagem-semana', 'enviar_perfil', ${enviado ? "sucesso" : "erro"},
         ${JSON.stringify({ personalidade: p.nome, pais: p.pais })})
     `;
 
-    return NextResponse.json({ ok: true, personalidade: p.nome });
+    return NextResponse.json({ ok: enviado, personalidade: p.nome });
   } catch (err) {
     await alertarTelegram("🔴", "Falha Agente Personagem da Semana", String(err));
     await sql`

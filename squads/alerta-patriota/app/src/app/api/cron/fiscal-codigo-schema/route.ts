@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
@@ -80,13 +81,12 @@ export async function GET(req: NextRequest) {
     `;
 
     if (problemas.length > 0) {
-      await alertarTelegram("🔴", `FISCAL CÓDIGO — SCHEMA DIVERGENTE (${problemas.length} problemas)`,
-        problemas.map(p => `• ${p}`).join("\n") + "\n\n⚠️ Escalando para Revisor de Schema..."
-      );
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES ('codigo_schema', 'critico', ${`Schema divergente: ${problemas.join("; ")}`})
-      `;
+      const { criado } = await criarAlertaDedup("codigo_schema", "critico", `Schema divergente: ${problemas.join("; ")}`);
+      if (criado) {
+        await alertarTelegram("🔴", `FISCAL CÓDIGO — SCHEMA DIVERGENTE (${problemas.length} problemas)`,
+          problemas.map(p => `• ${p}`).join("\n") + "\n\n⚠️ Escalando para Revisor de Schema..."
+        );
+      }
       await fetch(`${APP}/api/cron/revisor-schema`, {
         headers: { Authorization: `Bearer ${CRON}` }, signal: AbortSignal.timeout(5000),
       }).catch(() => {});

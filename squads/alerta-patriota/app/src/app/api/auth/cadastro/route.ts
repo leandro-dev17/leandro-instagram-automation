@@ -23,10 +23,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Muitas tentativas. Tente novamente em alguns minutos." }, { status: 429 });
     }
 
-    const { nome, email, senha, telefone } = await req.json();
+    const { nome, email, senha, telefone, aceitaTermos } = await req.json();
 
     if (!nome || !email || !senha) {
       return NextResponse.json({ erro: "Nome, e-mail e senha são obrigatórios" }, { status: 400 });
+    }
+    // LGPD: cadastro sem aceite explícito dos termos/política de privacidade não tem base
+    // legal para tratamento dos dados — bloqueado no backend, não só na UI.
+    if (aceitaTermos !== true) {
+      return NextResponse.json({ erro: "É necessário aceitar os Termos de Uso e a Política de Privacidade" }, { status: 400 });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ erro: "E-mail inválido" }, { status: 400 });
@@ -45,8 +50,8 @@ export async function POST(req: NextRequest) {
     trialFim.setDate(trialFim.getDate() + 7);
 
     const rows = await sql`
-      INSERT INTO usuarios (nome, email, senha_hash, telefone, status, trial_inicio, trial_fim)
-      VALUES (${nome}, ${email.toLowerCase()}, ${senha_hash}, ${telefone || null}, 'trial', NOW(), ${trialFim.toISOString()})
+      INSERT INTO usuarios (nome, email, senha_hash, telefone, status, trial_inicio, trial_fim, aceite_termos_em, aceite_termos_ip)
+      VALUES (${nome}, ${email.toLowerCase()}, ${senha_hash}, ${telefone || null}, 'trial', NOW(), ${trialFim.toISOString()}, NOW(), ${ip})
       RETURNING id, nome, email, tipo_usuario, status, plano
     `;
 

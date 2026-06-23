@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
@@ -36,10 +37,13 @@ export async function GET(req: NextRequest) {
   }
 
   if (erros.length > 0) {
-    await alertarTelegram("🔴", "Fiscal André API — ROTAS COM PROBLEMA", erros.join("\n"));
+    let criado = false;
     try {
-      await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_api', 'alto', ${erros.join("; ")})`;
+      ({ criado } = await criarAlertaDedup("fiscal_api", "alto", erros.join("; ")));
     } catch { /* banco pode estar fora */ }
+    if (criado) {
+      await alertarTelegram("🔴", "Fiscal André API — ROTAS COM PROBLEMA", erros.join("\n"));
+    }
   } else {
     try {
       await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('andre-api', 'verificar_rotas', 'sucesso')`;

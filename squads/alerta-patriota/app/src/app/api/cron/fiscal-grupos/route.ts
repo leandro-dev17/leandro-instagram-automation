@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 interface GrupoSnapshot {
   id: number;
@@ -95,20 +96,20 @@ export async function GET(req: NextRequest) {
     // 4. Dispara alertas
     if (alertas.length > 0) {
       const nivel = temCritico ? "🚨" : "🔴";
-      await alertarTelegram(
-        nivel,
-        "CARLOS CARGO — Queda de Membros!",
-        `👥 ${alertas.join("\n")}\n\nInvestigar possível problema de conteúdo ou pagamento.`
+
+      const { criado } = await criarAlertaDedup(
+        "queda_membros",
+        temCritico ? "critico" : "alto",
+        `${alertas.length} grupo(s) com queda significativa de membros`
       );
 
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES (
-          'queda_membros',
-          ${temCritico ? "critico" : "alto"},
-          ${`${alertas.length} grupo(s) com queda significativa de membros`}
-        )
-      `;
+      if (criado) {
+        await alertarTelegram(
+          nivel,
+          "CARLOS CARGO — Queda de Membros!",
+          `👥 ${alertas.join("\n")}\n\nInvestigar possível problema de conteúdo ou pagamento.`
+        );
+      }
     }
 
     // 5. Salva novo snapshot

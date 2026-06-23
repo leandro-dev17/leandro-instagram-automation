@@ -14,7 +14,7 @@ const GROUP_IDS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { grupo, mensagem, tipo = "admin_manual" } = await req.json();
 
     if (!mensagem?.trim()) return NextResponse.json({ erro: "Mensagem vazia" }, { status: 400 });
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       `;
     }
 
-    await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('admin-manual', 'enviar_mensagem', 'sucesso', ${JSON.stringify({ grupo, chars: mensagem.length })})`;
+    await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('admin-manual', 'enviar_mensagem', 'sucesso', ${JSON.stringify({ grupo, chars: mensagem.length, adminId: admin.id, adminEmail: admin.email })})`;
 
     return NextResponse.json({ ok: true });
   } catch (err) {

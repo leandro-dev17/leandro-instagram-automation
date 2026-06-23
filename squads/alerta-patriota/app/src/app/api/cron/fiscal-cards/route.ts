@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const LIMITE_HORAS_SEM_CARD: Record<string, number> = {
   vip:      5,  // 6 cards/dia = a cada ~4h
@@ -77,11 +78,11 @@ export async function GET(req: NextRequest) {
         const msg = `Grupo *${plano}*: ${Math.round(horasDesdeUltimo)}h sem card visual (limite: ${limite}h)`;
         alertas.push(msg);
 
-        await sql`
-          INSERT INTO alertas (tipo, severidade, mensagem)
-          VALUES ('cards_sem_envio', 'alto', ${`${plano}: ${Math.round(horasDesdeUltimo)}h sem card`})
-          ON CONFLICT DO NOTHING
-        `.catch(() => {});
+        await criarAlertaDedup(
+          "cards_sem_envio",
+          "alto",
+          `${plano}: ${Math.round(horasDesdeUltimo)}h sem card`
+        ).catch(() => ({ criado: false }));
       }
     }
 

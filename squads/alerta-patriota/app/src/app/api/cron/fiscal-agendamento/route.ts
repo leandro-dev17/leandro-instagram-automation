@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram, alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const GITHUB_ACTIONS_URL =
   "https://github.com/leandro-dev17/leandro-instagram-automation/actions";
@@ -188,15 +189,14 @@ export async function GET(req: NextRequest) {
           GITHUB_ACTIONS_URL,
         ];
 
-        await enviarTelegram(linhas.join("\n"));
-
         const mensagemAlerta = `Card das ${janela.label} não publicado. Grupos: ${grupos.join(", ")}. Cron esperado: ${cronEsp}.`;
         alertasDisparados.push(mensagemAlerta);
 
-        await sql`
-          INSERT INTO alertas (tipo, severidade, mensagem)
-          VALUES ('publicacao_atrasada', 'alto', ${mensagemAlerta})
-        `;
+        const { criado } = await criarAlertaDedup("publicacao_atrasada", "alto", mensagemAlerta);
+
+        if (criado) {
+          await enviarTelegram(linhas.join("\n"));
+        }
 
         resultados.push({
           horario: janela.label,

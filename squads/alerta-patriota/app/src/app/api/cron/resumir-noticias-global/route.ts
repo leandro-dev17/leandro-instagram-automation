@@ -44,8 +44,21 @@ export async function GET(req: NextRequest) {
 
     for (const n of pendentes) {
       try {
+        // Reserva a notícia antes de chamar a IA — evita gerar e pagar pela IA duas vezes
+        // se houver execução concorrente (mesmo padrão usado em resumir-noticias).
+        const claim = await sql`
+          UPDATE noticias SET resumo_cavalcanti = '__PROCESSANDO__'
+          WHERE id = ${n.id} AND resumo_cavalcanti IS NULL
+          RETURNING id
+        `;
+        if (claim.length === 0) continue; // outra execução já está processando
+
         const resumo = await gerarResumoGlobal(n.titulo, n.url);
-        if (!resumo) { erros++; continue; }
+        if (!resumo) {
+          await sql`UPDATE noticias SET resumo_cavalcanti = NULL WHERE id = ${n.id}`;
+          erros++;
+          continue;
+        }
 
         await sql`
           UPDATE noticias
@@ -65,7 +78,10 @@ export async function GET(req: NextRequest) {
         }
 
         processadas++;
-      } catch { erros++; }
+      } catch {
+        await sql`UPDATE noticias SET resumo_cavalcanti = NULL WHERE id = ${n.id} AND resumo_cavalcanti = '__PROCESSANDO__'`.catch(() => {});
+        erros++;
+      }
     }
 
     await sql`

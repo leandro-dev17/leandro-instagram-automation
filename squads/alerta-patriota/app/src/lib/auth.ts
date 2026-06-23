@@ -65,3 +65,15 @@ export function verificarCronSecret(req: Request): boolean {
   if (!secret) return false; // CRON_SECRET obrigatório — sem ele, bloqueia tudo
   return auth === `Bearer ${secret}`;
 }
+
+// FASE 21: claude-resolver e claude-revisor têm permissão de escrita no GitHub (commit
+// direto na main) e de redeploy no Vercel — um blast radius muito maior que os ~60 crons
+// de leitura que compartilham CRON_SECRET. Segredo próprio reduz o risco de um vazamento
+// do CRON_SECRET (usado em toda chamada de cron) virar commit arbitrário no repositório.
+// Faz fallback para CRON_SECRET apenas se CLAUDE_AUTOFIX_SECRET ainda não foi configurado.
+export function verificarSegredoAutofix(req: Request): boolean {
+  const auth = req.headers.get("authorization");
+  const dedicado = process.env.CLAUDE_AUTOFIX_SECRET;
+  if (dedicado) return auth === `Bearer ${dedicado}`;
+  return verificarCronSecret(req);
+}

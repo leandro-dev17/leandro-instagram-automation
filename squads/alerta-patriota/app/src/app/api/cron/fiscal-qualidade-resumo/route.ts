@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const PALAVRAS_INGLESAS = [
   "the", "and", "for", "that", "this", "with", "from", "have", "will",
@@ -103,16 +104,15 @@ export async function GET(req: NextRequest) {
         `Ação: notícias marcadas para regeneração automática.\n` +
         `O Bernardo Resumidor irá reprocessar no próximo ciclo.`;
 
-      await enviarTelegram(alerta);
+      const { criado } = await criarAlertaDedup(
+        "vitor-validador",
+        "alto",
+        `${problemas.length} resumos inválidos detectados e marcados para regeneração.`
+      );
 
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES (
-          'vitor-validador',
-          'alto',
-          ${`${problemas.length} resumos inválidos detectados e marcados para regeneração.`}
-        )
-      `;
+      if (criado) {
+        await enviarTelegram(alerta);
+      }
     }
 
     const duracao_ms = Date.now() - inicio;

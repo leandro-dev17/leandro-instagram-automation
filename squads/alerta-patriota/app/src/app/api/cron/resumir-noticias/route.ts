@@ -84,23 +84,51 @@ export async function GET(req: NextRequest) {
         let resumoBraga: string | null = noticia.resumo_braga;
         let resumoCavalcanti: string | null = noticia.resumo_cavalcanti;
 
+        // Reserva cada resumo de forma atômica antes de chamar a IA: o UPDATE com
+        // WHERE ...IS NULL só afeta a linha se nenhuma outra execução concorrente
+        // (ex.: workflow_dispatch manual rodando junto com o cron agendado) já a
+        // tiver reservado — evita gerar e pagar pela IA duas vezes para a mesma notícia.
         if (!resumoBraga) {
-          resumoBraga = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_BRAGA);
+          const claim = await sql`
+            UPDATE noticias SET resumo_braga = '__PROCESSANDO__'
+            WHERE id = ${noticia.id} AND resumo_braga IS NULL
+            RETURNING id
+          `;
+          if (claim.length > 0) {
+            try {
+              resumoBraga = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_BRAGA);
+              await sql`UPDATE noticias SET resumo_braga = ${resumoBraga} WHERE id = ${noticia.id}`;
+            } catch (e) {
+              await sql`UPDATE noticias SET resumo_braga = NULL WHERE id = ${noticia.id}`;
+              throw e;
+            }
+          } else {
+            resumoBraga = null; // outra execução já está processando — pula nesta rodada
+          }
         }
 
         if (!resumoCavalcanti) {
-          resumoCavalcanti = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_CAVALCANTI);
+          const claim = await sql`
+            UPDATE noticias SET resumo_cavalcanti = '__PROCESSANDO__'
+            WHERE id = ${noticia.id} AND resumo_cavalcanti IS NULL
+            RETURNING id
+          `;
+          if (claim.length > 0) {
+            try {
+              resumoCavalcanti = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_CAVALCANTI);
+              await sql`UPDATE noticias SET resumo_cavalcanti = ${resumoCavalcanti} WHERE id = ${noticia.id}`;
+            } catch (e) {
+              await sql`UPDATE noticias SET resumo_cavalcanti = NULL WHERE id = ${noticia.id}`;
+              throw e;
+            }
+          } else {
+            resumoCavalcanti = null;
+          }
         }
 
         if (!resumoBraga || !resumoCavalcanti) {
           throw new Error('Resumo não gerado');
         }
-
-        await sql`
-          UPDATE noticias
-          SET resumo_braga = ${resumoBraga}, resumo_cavalcanti = ${resumoCavalcanti}
-          WHERE id = ${noticia.id}
-        `;
 
         processadas++;
       } catch (err) {

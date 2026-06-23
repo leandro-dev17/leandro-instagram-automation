@@ -1,4 +1,5 @@
 import type { Plano } from "@/lib/db";
+import { alertarTelegram } from "@/lib/telegram";
 
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
@@ -24,24 +25,38 @@ const GROUP_LINKS: Record<Plano, string> = {
 
 // ─── FUNÇÕES BASE ─────────────────────────────────────────────────────────────
 
+// FASE 21: antes, qualquer falha (rede ou HTTP) era engolida silenciosamente (`catch { return false }`),
+// sem retry e sem alerta — cliente pagava e não entrava no grupo, ou perguntava e nunca recebia
+// resposta, sem que ninguém soubesse. Agora tenta de novo uma vez e, se persistir, alerta no Telegram.
+async function chamarEvolution(url: string, options: RequestInit, contexto: string, tentativas = 2): Promise<boolean> {
+  let ultimoErro: unknown = null;
+  for (let i = 1; i <= tentativas; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return true;
+      ultimoErro = `HTTP ${res.status}`;
+    } catch (e) {
+      ultimoErro = e;
+    }
+    if (i < tentativas) await new Promise((r) => setTimeout(r, 1500));
+  }
+  await alertarTelegram("🔴", `Evolution API falhou — ${contexto}`, `Após ${tentativas} tentativas: ${String(ultimoErro)}`).catch(() => {});
+  return false;
+}
+
 export async function enviarMensagemPrivada(telefone: string, texto: string): Promise<boolean> {
   if (!EVO_URL || !EVO_KEY) return false;
   const numero = telefone.replace(/\D/g, "");
   if (!numero || numero.length < 10) return false;
 
-  try {
-    const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST_VIP}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({
-        number: `${numero}@s.whatsapp.net`,
-        text: texto,
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return chamarEvolution(`${EVO_URL}/message/sendText/${EVO_INST_VIP}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: EVO_KEY },
+    body: JSON.stringify({
+      number: `${numero}@s.whatsapp.net`,
+      text: texto,
+    }),
+  }, `enviarMensagemPrivada → ${numero}`);
 }
 
 // Defesa contra valores de plano fora de "vip"/"elite" vindos de dados externos (ex: webhook MP)
@@ -53,19 +68,14 @@ export async function enviarMensagemGrupo(plano: Plano, texto: string): Promise<
   const groupId = GROUP_IDS[plano];
   if (!groupId) return false;
 
-  try {
-    const res = await fetch(`${EVO_URL}/message/sendText/${getInstancia(plano)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({
-        number: groupId,
-        text: texto,
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return chamarEvolution(`${EVO_URL}/message/sendText/${getInstancia(plano)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: EVO_KEY },
+    body: JSON.stringify({
+      number: groupId,
+      text: texto,
+    }),
+  }, `enviarMensagemGrupo → plano ${plano}`);
 }
 
 export async function adicionarMembroGrupo(telefone: string, plano: Plano): Promise<boolean> {
@@ -76,20 +86,15 @@ export async function adicionarMembroGrupo(telefone: string, plano: Plano): Prom
   const numero = telefone.replace(/\D/g, "");
   if (!numero) return false;
 
-  try {
-    const res = await fetch(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({
-        groupJid: groupId,
-        action: "add",
-        participants: [`${numero}@s.whatsapp.net`],
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return chamarEvolution(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", apikey: EVO_KEY },
+    body: JSON.stringify({
+      groupJid: groupId,
+      action: "add",
+      participants: [`${numero}@s.whatsapp.net`],
+    }),
+  }, `adicionarMembroGrupo → ${numero} (${plano})`);
 }
 
 export async function removerMembroGrupo(telefone: string, plano: Plano): Promise<boolean> {
@@ -100,20 +105,33 @@ export async function removerMembroGrupo(telefone: string, plano: Plano): Promis
   const numero = telefone.replace(/\D/g, "");
   if (!numero) return false;
 
-  try {
-    const res = await fetch(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({
-        groupJid: groupId,
-        action: "remove",
-        participants: [`${numero}@s.whatsapp.net`],
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return chamarEvolution(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", apikey: EVO_KEY },
+    body: JSON.stringify({
+      groupJid: groupId,
+      action: "remove",
+      participants: [`${numero}@s.whatsapp.net`],
+    }),
+  }, `removerMembroGrupo → ${numero} (${plano})`);
+}
+
+export async function enviarEnqueteGrupo(plano: Plano, pergunta: string, opcoes: string[]): Promise<boolean> {
+  if (!GRUPOS_ATIVOS.includes(plano)) return false;
+  if (!EVO_URL || !EVO_KEY) return false;
+  const groupId = GROUP_IDS[plano];
+  if (!groupId) return false;
+
+  return chamarEvolution(`${EVO_URL}/message/sendPoll/${getInstancia(plano)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: EVO_KEY },
+    body: JSON.stringify({
+      number: groupId,
+      name: pergunta,
+      selectableCount: 1,
+      values: opcoes,
+    }),
+  }, `enviarEnqueteGrupo → plano ${plano}`);
 }
 
 export function getLinkGrupo(plano: Plano): string {

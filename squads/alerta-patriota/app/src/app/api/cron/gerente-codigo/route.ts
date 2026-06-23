@@ -75,7 +75,7 @@ ${altos.length > 0 ? `\n*ALTOS:*\n${altos.slice(0, 3).map(a => `• [${a.tipo}] 
 
       await fetch(`${APP}/api/cron/claude-revisor`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${CRON}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.CLAUDE_AUTOFIX_SECRET || CRON}` },
         body: JSON.stringify({ alertas: alertasCodigo.slice(0, 5) }),
         signal: AbortSignal.timeout(10000),
       }).catch(() => {});

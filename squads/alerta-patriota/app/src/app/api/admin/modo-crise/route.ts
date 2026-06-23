@@ -17,7 +17,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { acao } = await req.json();
 
     const res = await fetch(`${APP_URL}/api/cron/modo-crise?acao=${acao}`, {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     });
     const data = await res.json();
 
-    await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('admin-manual', ${`modo_crise_${acao}`}, 'sucesso')`;
+    await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('admin-manual', ${`modo_crise_${acao}`}, 'sucesso', ${JSON.stringify({ adminId: admin.id, adminEmail: admin.email })})`;
 
     return NextResponse.json({ ok: true, ...data });
   } catch (err) {

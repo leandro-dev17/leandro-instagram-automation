@@ -37,6 +37,11 @@ export default function AdminUsuarios() {
     carregar();
   };
 
+  const excluirDados = async (id: number) => {
+    if (!window.confirm("Anonimizar permanentemente os dados pessoais deste usuário (LGPD)? Essa ação não pode ser desfeita.")) return;
+    await executarAcao(id, "excluir_dados");
+  };
+
   const executarMassa = async () => {
     if (!acaoMassa || !selecionados.length) return;
     for (const id of selecionados) await executarAcao(id, acaoMassa);
@@ -125,6 +130,9 @@ export default function AdminUsuarios() {
                         <option value="">↑ Plano</option>
                         {["vip","elite"].map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
+                      {u.status!=="excluido" && (
+                        <button onClick={() => excluirDados(u.id)} title="Anonimizar dados pessoais (LGPD)" style={{ background:"rgba(255,255,255,0.05)", color:"#666", border:"1px solid rgba(255,255,255,0.1)", padding:"3px 8px", borderRadius:5, cursor:"pointer", fontSize:10 }}>🗑️ Excluir dados</button>
+                      )}
                     </div>
                   </td>
                 </tr>

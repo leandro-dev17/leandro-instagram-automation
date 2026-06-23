@@ -29,9 +29,15 @@ export async function POST(req: NextRequest) {
         assinatura_inicio TIMESTAMP,
         assinatura_fim TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
+        updated_at TIMESTAMP DEFAULT NOW(),
+        aceite_termos_em TIMESTAMP,
+        aceite_termos_ip VARCHAR(64)
       )
     `;
+    // FASE 21 (LGPD): colunas adicionadas depois da criação inicial da tabela em produção —
+    // ADD COLUMN IF NOT EXISTS garante que ambientes já existentes recebam as novas colunas.
+    await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS aceite_termos_em TIMESTAMP`;
+    await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS aceite_termos_ip VARCHAR(64)`;
 
     // ── ASSINATURAS ─────────────────────────────────────────────────────────
     await sql`
@@ -227,6 +233,44 @@ export async function POST(req: NextRequest) {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `;
+
+    // ── LEADS (captura da landing page) ─────────────────────────────────────
+    // FASE 21: schema final já com email nullable e colunas de whatsapp — antes essas
+    // migrações (CREATE TABLE + 4x ALTER TABLE) rodavam a cada requisição em
+    // /api/leads/registrar (rota pública) e a cada execução do cron
+    // sequencia-nao-conversao, gerando DDL repetido sem necessidade e lock
+    // potencial em rota de tráfego público.
+    await sql`
+      CREATE TABLE IF NOT EXISTS leads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE,
+        telefone VARCHAR(20),
+        nome VARCHAR(255),
+        plano_interesse VARCHAR(20),
+        origem VARCHAR(50),
+        convertido BOOLEAN DEFAULT false,
+        ultimo_email_enviado INT DEFAULT 0,
+        email_enviado_at TIMESTAMP,
+        ultimo_whatsapp_enviado INT DEFAULT 0,
+        whatsapp_enviado_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    await sql`ALTER TABLE leads ALTER COLUMN email DROP NOT NULL`;
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS leads_telefone_unique
+      ON leads(telefone) WHERE telefone IS NOT NULL
+    `;
+
+    // ── ÍNDICES DE PERFORMANCE ──────────────────────────────────────────────
+    // FASE 22: sem estes índices, agentes_log/pagamentos/usuarios fazem full
+    // table scan a cada webhook/cron — as colunas abaixo são filtradas em
+    // praticamente toda rota fiscal-* e no webhook do Mercado Pago.
+    await sql`CREATE INDEX IF NOT EXISTS idx_agentes_log_agente_created_at ON agentes_log(agente, created_at)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_usuario_id ON pagamentos(usuario_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_assinatura_id ON pagamentos(assinatura_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_status ON pagamentos(status)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_usuarios_mp_subscription_id ON usuarios(mp_subscription_id)`;
 
     // ── GRUPOS PADRÃO ───────────────────────────────────────────────────────
     await sql`

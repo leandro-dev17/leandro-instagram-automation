@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.ALERTA_GITHUB_TOKEN;
 const REPO = "leandro-dev17/leandro-instagram-automation";
@@ -121,16 +122,15 @@ export async function GET(req: NextRequest) {
       const mensagemAlerta = `Jobs críticos falhando repetidamente:\n${lista}\n\nLogs:\n${urlsLogs}`;
       alertas.push(mensagemAlerta);
 
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES ('workflow_falhando', 'critico', ${mensagemAlerta})
-      `;
+      const { criado } = await criarAlertaDedup("workflow_falhando", "critico", mensagemAlerta);
 
-      await alertarTelegram(
-        "🚨",
-        "FISCAL WAGNER WORKFLOW — Jobs Críticos Falhando",
-        mensagemAlerta
-      );
+      if (criado) {
+        await alertarTelegram(
+          "🚨",
+          "FISCAL WAGNER WORKFLOW — Jobs Críticos Falhando",
+          mensagemAlerta
+        );
+      }
     }
 
     const duracao = Date.now() - inicio;
@@ -159,11 +159,10 @@ export async function GET(req: NextRequest) {
       duracao_ms: duracao,
     });
   } catch (err) {
-    await alertarTelegram("🚨", "FISCAL WAGNER WORKFLOW — ERRO AO CONSULTAR GITHUB", String(err));
-    await sql`
-      INSERT INTO alertas (tipo, severidade, mensagem)
-      VALUES ('workflow_erro_api', 'alto', ${`Erro ao consultar GitHub Actions: ${String(err)}`})
-    `.catch(() => {});
+    const { criado } = await criarAlertaDedup("workflow_erro_api", "alto", `Erro ao consultar GitHub Actions: ${String(err)}`).catch(() => ({ criado: false }));
+    if (criado) {
+      await alertarTelegram("🚨", "FISCAL WAGNER WORKFLOW — ERRO AO CONSULTAR GITHUB", String(err));
+    }
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

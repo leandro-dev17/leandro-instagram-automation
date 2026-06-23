@@ -2,13 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 
+// FASE 21: campos como "nome" vêm do cadastro do usuário sem nenhum controle de conteúdo.
+// Um nome começando com =, +, -, @ ou tab é interpretado como fórmula pelo Excel/Sheets
+// ao abrir o CSV (CSV injection / fórmula maliciosa), podendo executar comandos no Windows
+// (ex: =cmd|'/c calc'!A1) na máquina do admin que abrir o export. Prefixamos com ' (apóstrofo)
+// para neutralizar — o Excel exibe o valor como texto literal em vez de avaliar como fórmula.
+function sanitizarCelulaCSV(valor: string): string {
+  return /^[=+\-@\t\r]/.test(valor) ? `'${valor}` : valor;
+}
+
 function toCSV(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
   const lines = [
     headers.join(","),
     ...rows.map(r => headers.map(h => {
-      const v = String(r[h] ?? "").replace(/"/g, '""');
+      const v = sanitizarCelulaCSV(String(r[h] ?? "")).replace(/"/g, '""');
       return v.includes(",") || v.includes('"') || v.includes("\n") ? `"${v}"` : v;
     }).join(","))
   ];

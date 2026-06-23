@@ -24,6 +24,11 @@ on:
     - cron: '0 3,9,15,21 * * *'
     # Guardião 24/7 — fiscaliza squad de revisão a cada 30min (24h, 7 dias)
     - cron: '*/30 * * * *'
+    # FASE 21: Paulo Ping (heartbeat diário 8h BRT) e Max Memória (limpeza mensal dia 1)
+    # nunca tinham sido adicionados a nenhum workflow — ambos tinham dedup interno mas
+    # 0% de chance de executar porque nada nunca os chamava.
+    - cron: '0 11 * * *'
+    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       etapa:
@@ -260,7 +265,10 @@ jobs:
   bot-responder:
     name: Bot Responder — VIP e Elite (5min)
     runs-on: ubuntu-latest
-    if: github.event.schedule == '*/5 11-23,0,1,2 * * *' || github.event.schedule == '0,30 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
+    # FASE 21: removida a condição extra '0,30 11-23,0,1,2 * * *' — nos minutos :00 e :30
+    # esse segundo schedule também disparava o job (além do */5), gerando duas execuções
+    # simultâneas que processavam a mesma fila e respondiam duplicado no grupo.
+    if: github.event.schedule == '*/5 11-23,0,1,2 * * *' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 3
     steps:
       - name: Processar fila de respostas
@@ -787,6 +795,28 @@ jobs:
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/agente-medico?servico=banco" \
             -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}" | tee /tmp/medico.json
           echo "Resultado: $(cat /tmp/medico.json)"
+
+  # ── PAULO PING — Heartbeat diário consolidado (8h BRT) ──────────────────
+  heartbeat:
+    name: Paulo Ping — Heartbeat diário de saúde
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 11 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Dashboard de saúde consolidado
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/agente-heartbeat" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── MAX MEMÓRIA — Limpeza mensal (roda diário, só age no dia 1) ─────────
+  limpeza-mensal:
+    name: Max Memória — Limpeza mensal do banco
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Limpeza mensal de registros antigos
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/agente-limpeza" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── GUARDIÃO 24/7 — fiscaliza squad de revisão a cada 30min ─────────────
   guardiao-24-7:

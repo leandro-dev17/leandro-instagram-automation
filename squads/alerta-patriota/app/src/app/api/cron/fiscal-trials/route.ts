@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!;
 const CRON_SECRET = process.env.CRON_SECRET!;
@@ -72,11 +73,17 @@ export async function GET(req: NextRequest) {
 
       const autoFixMsg = qtdChurn > 0 ? `\nChurn confirmado hoje: ${qtdChurn} usuário(s)\nAuto-fix: Enzo Engajamento acionado.` : "";
 
-      await alertarTelegram(
-        emRisco.length > 0 ? "🔴" : "🟡",
-        "TEREZA TRIAL — Trials em Risco",
-        `⚡ Expirando em 24h (não converteram):\n${linhasRisco || "(nenhum)"}\n${autoFixMsg}`
-      );
+      // Janela curta (2h, menor que o padrão de 6h) porque a lista de usuários em risco
+      // muda ao longo do dia — dedup evita reenviar a mesma lista sem mudança, sem
+      // esconder churn novo por tempo demais.
+      const { criado } = await criarAlertaDedup("fiscal_trials_em_risco", emRisco.length > 0 ? "alto" : "medio", `${emRisco.length} em risco, ${qtdChurn} churn confirmado`, 2);
+      if (criado) {
+        await alertarTelegram(
+          emRisco.length > 0 ? "🔴" : "🟡",
+          "TEREZA TRIAL — Trials em Risco",
+          `⚡ Expirando em 24h (não converteram):\n${linhasRisco || "(nenhum)"}\n${autoFixMsg}`
+        );
+      }
 
       if (qtdChurn > 0) {
         try {
@@ -117,7 +124,10 @@ export async function GET(req: NextRequest) {
       duracao_ms: duracao,
     });
   } catch (err) {
-    await alertarTelegram("🚨", "TEREZA TRIAL — ERRO INTERNO", String(err));
+    const { criado } = await criarAlertaDedup("fiscal_trials_erro", "alto", String(err)).catch(() => ({ criado: false }));
+    if (criado) {
+      await alertarTelegram("🚨", "TEREZA TRIAL — ERRO INTERNO", String(err));
+    }
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

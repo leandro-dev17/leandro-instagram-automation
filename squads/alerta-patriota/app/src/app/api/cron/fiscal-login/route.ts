@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
@@ -32,8 +33,10 @@ export async function GET(req: NextRequest) {
     }
 
     if (problemas.length > 0) {
-      await alertarTelegram("🔴", "Fiscal Lisa Login — PROBLEMA", problemas.join("\n"));
-      await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_login', 'alto', ${problemas.join("; ")})`;
+      const { criado } = await criarAlertaDedup("fiscal_login", "alto", problemas.join("; "));
+      if (criado) {
+        await alertarTelegram("🔴", "Fiscal Lisa Login — PROBLEMA", problemas.join("\n"));
+      }
     } else {
       await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('lisa-login', 'verificar_auth', 'sucesso')`;
     }

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
@@ -81,20 +82,19 @@ export async function GET(req: NextRequest) {
       const grupos = [...new Set(duplicatas.map((d) => d.grupo_nome))].join(", ");
       const tipos = [...new Set(duplicatas.map((d) => d.tipo_mensagem || d.tipo))].join(", ");
 
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES (
-          'duplicata_detectada',
-          'medio',
-          ${`${duplicatas.length} duplicata(s) detectada(s) nos grupos: ${grupos}`}
-        )
-      `;
-
-      await alertarTelegram(
-        "🟡",
-        "FISCAL DIANA DUPLICATA — Duplicatas Detectadas",
-        `${duplicatas.length} duplicata(s) encontrada(s)\nGrupos: ${grupos}\nTipos: ${tipos}\n\nVerifique: alertapatriota.vercel.app/admin`
+      const { criado } = await criarAlertaDedup(
+        "duplicata_detectada",
+        "medio",
+        `${duplicatas.length} duplicata(s) detectada(s) nos grupos: ${grupos}`
       );
+
+      if (criado) {
+        await alertarTelegram(
+          "🟡",
+          "FISCAL DIANA DUPLICATA — Duplicatas Detectadas",
+          `${duplicatas.length} duplicata(s) encontrada(s)\nGrupos: ${grupos}\nTipos: ${tipos}\n\nVerifique: alertapatriota.vercel.app/admin`
+        );
+      }
     }
 
     const duracao = Date.now() - inicio;

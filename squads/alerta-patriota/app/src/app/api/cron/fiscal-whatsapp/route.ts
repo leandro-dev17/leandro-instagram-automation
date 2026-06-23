@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
@@ -31,16 +32,20 @@ export async function GET(req: NextRequest) {
       // não dispara alerta crítico, só registra para acompanhamento.
       await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('wanderley-whatsapp', 'verificar_conexao', 'aviso', ${JSON.stringify({ estado, instancia: EVO_INST })})`;
     } else if (estado !== "open") {
-      await alertarTelegram("🔴", "Fiscal Wanderley WhatsApp — DESCONECTADO", `Estado atual: ${estado}\nInstância: ${EVO_INST}`);
-      await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_whatsapp', 'critico', ${`WhatsApp desconectado. Estado: ${estado}`})`;
+      const { criado } = await criarAlertaDedup("fiscal_whatsapp", "critico", `WhatsApp desconectado. Estado: ${estado}`);
+      if (criado) {
+        await alertarTelegram("🔴", "Fiscal Wanderley WhatsApp — DESCONECTADO", `Estado atual: ${estado}\nInstância: ${EVO_INST}`);
+      }
     } else {
       await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('wanderley-whatsapp', 'verificar_conexao', 'sucesso', ${JSON.stringify({ estado, instancia: EVO_INST })})`;
     }
 
     return NextResponse.json({ ok: estado === "open", estado });
   } catch (err) {
-    await alertarTelegram("🚨", "Fiscal Wanderley WhatsApp — EVOLUTION API FORA DO AR", String(err));
-    await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_whatsapp', 'critico', 'Evolution API não responde')`.catch(() => {});
+    const { criado } = await criarAlertaDedup("fiscal_whatsapp", "critico", "Evolution API não responde").catch(() => ({ criado: false }));
+    if (criado) {
+      await alertarTelegram("🚨", "Fiscal Wanderley WhatsApp — EVOLUTION API FORA DO AR", String(err));
+    }
     return NextResponse.json({ ok: false, erro: String(err) }, { status: 503 });
   }
 }

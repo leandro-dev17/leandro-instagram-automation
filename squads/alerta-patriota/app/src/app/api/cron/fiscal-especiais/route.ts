@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!;
 const CRON_SECRET = process.env.CRON_SECRET!;
@@ -52,15 +53,14 @@ export async function GET(req: NextRequest) {
       resultado.termometro = { esperado: true, enviado };
 
       if (!enviado && hora >= 21) {
-        await sql`
-          INSERT INTO alertas (tipo, severidade, mensagem)
-          VALUES ('publicacao_especial_ausente', 'critico', 'Termômetro político não enviado no domingo — hora já passou das 21h BRT')
-        `;
-        await alertarTelegram(
-          "🚨",
-          "VERA VERIFICAÇÃO — Termômetro NÃO enviado!",
-          "Domingo após 21h BRT e o <b>Termômetro da Tereza</b> ainda não foi enviado!\n\nAcionar manualmente: /api/cron/termometro"
-        );
+        const { criado } = await criarAlertaDedup("publicacao_especial_ausente", "critico", "Termômetro político não enviado no domingo — hora já passou das 21h BRT");
+        if (criado) {
+          await alertarTelegram(
+            "🚨",
+            "VERA VERIFICAÇÃO — Termômetro NÃO enviado!",
+            "Domingo após 21h BRT e o <b>Termômetro da Tereza</b> ainda não foi enviado!\n\nAcionar manualmente: /api/cron/termometro"
+          );
+        }
       }
     }
 
@@ -77,15 +77,14 @@ export async function GET(req: NextRequest) {
       resultado.analiseSemanal = { esperado: true, enviado };
 
       if (!enviado && hora >= 10) {
-        await sql`
-          INSERT INTO alertas (tipo, severidade, mensagem)
-          VALUES ('publicacao_especial_ausente', 'alto', 'Análise Semanal VIP não enviada na segunda — hora já passou das 10h BRT')
-        `;
-        await alertarTelegram(
-          "🔴",
-          "VERA VERIFICAÇÃO — Análise Semanal VIP ausente",
-          "Segunda-feira após 10h BRT e a <b>Análise Semanal VIP</b> ainda não foi enviada.\n\nAcionar: /api/cron/analise-semanal-vip"
-        );
+        const { criado } = await criarAlertaDedup("publicacao_especial_ausente", "alto", "Análise Semanal VIP não enviada na segunda — hora já passou das 10h BRT");
+        if (criado) {
+          await alertarTelegram(
+            "🔴",
+            "VERA VERIFICAÇÃO — Análise Semanal VIP ausente",
+            "Segunda-feira após 10h BRT e a <b>Análise Semanal VIP</b> ainda não foi enviada.\n\nAcionar: /api/cron/analise-semanal-vip"
+          );
+        }
       }
     }
 
@@ -102,15 +101,14 @@ export async function GET(req: NextRequest) {
       resultado.dossieElite = { esperado: true, enviado };
 
       if (!enviado && hora >= 12) {
-        await sql`
-          INSERT INTO alertas (tipo, severidade, mensagem)
-          VALUES ('publicacao_especial_ausente', 'alto', 'Dossiê Elite não enviado no sábado — hora já passou das 12h BRT')
-        `;
-        await alertarTelegram(
-          "🔴",
-          "VERA VERIFICAÇÃO — Dossiê Elite ausente — acionando auto-fix",
-          "Sábado após 12h BRT e o <b>Dossiê Elite</b> ainda não foi enviado.\n\nAcionando Davi Dossiê automaticamente..."
-        );
+        const { criado } = await criarAlertaDedup("publicacao_especial_ausente", "alto", "Dossiê Elite não enviado no sábado — hora já passou das 12h BRT");
+        if (criado) {
+          await alertarTelegram(
+            "🔴",
+            "VERA VERIFICAÇÃO — Dossiê Elite ausente — acionando auto-fix",
+            "Sábado após 12h BRT e o <b>Dossiê Elite</b> ainda não foi enviado.\n\nAcionando Davi Dossiê automaticamente..."
+          );
+        }
 
         try {
           await fetch(`${APP_URL}/api/cron/dossie-elite`, {

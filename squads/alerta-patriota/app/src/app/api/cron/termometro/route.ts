@@ -104,18 +104,21 @@ export async function GET(req: NextRequest) {
 
     // Posta versão completa no VIP e Elite
     const msgVIP = buildTermometroVIP(t, semana);
-    await Promise.all([
+    const [enviadoVip, enviadoElite] = await Promise.all([
       enviarMensagemGrupo("vip", msgVIP),
       enviarMensagemGrupo("elite", msgVIP),
     ]);
+    if (!enviadoVip || !enviadoElite) {
+      await alertarTelegram("🔴", "Falha ao enviar Termômetro", `vip: ${enviadoVip ? "ok" : "FALHOU"} | elite: ${enviadoElite ? "ok" : "FALHOU"}`);
+    }
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-      VALUES ('tereza-termometro', 'gerar_termometro', 'sucesso',
-        ${JSON.stringify({ semana, ano, scores: t })}, 0)
+      VALUES ('tereza-termometro', 'gerar_termometro', ${enviadoVip && enviadoElite ? "sucesso" : "erro"},
+        ${JSON.stringify({ semana, ano, scores: t, enviadoVip, enviadoElite })}, 0)
     `;
 
-    return NextResponse.json({ ok: true, semana, scores: t });
+    return NextResponse.json({ ok: enviadoVip && enviadoElite, semana, scores: t });
   } catch (err) {
     await alertarTelegram("🔴", "Falha Agente Tereza Termômetro", String(err));
     await sql`

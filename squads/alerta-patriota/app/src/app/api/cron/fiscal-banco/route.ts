@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
@@ -24,8 +25,10 @@ export async function GET(req: NextRequest) {
     const qtdLengas = Number(lengas[0].total);
 
     if (latencia > 5000) {
-      await alertarTelegram("🔴", "Fiscal Bruna Banco — BANCO LENTO", `Latência: ${latencia}ms`);
-      await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_banco', 'alto', ${`Latência ${latencia}ms`})`;
+      const { criado } = await criarAlertaDedup("fiscal_banco", "alto", `Latência ${latencia}ms`);
+      if (criado) {
+        await alertarTelegram("🔴", "Fiscal Bruna Banco — BANCO LENTO", `Latência: ${latencia}ms`);
+      }
     } else if (qtdLengas > 0) {
       await alertarTelegram("🟡", "Fiscal Bruna Banco — Query longa detectada", `${qtdLengas} query(s) rodando há +30s`);
     } else {
@@ -34,8 +37,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, latencia_ms: latencia, queries_lengas: qtdLengas });
   } catch (err) {
-    await alertarTelegram("🚨", "Fiscal Bruna Banco — BANCO FORA DO AR", String(err));
-    await sql`INSERT INTO alertas (tipo, severidade, mensagem) VALUES ('fiscal_banco', 'critico', 'Banco Neon não responde')`.catch(() => {});
+    const { criado } = await criarAlertaDedup("fiscal_banco", "critico", "Banco Neon não responde").catch(() => ({ criado: false }));
+    if (criado) {
+      await alertarTelegram("🚨", "Fiscal Bruna Banco — BANCO FORA DO AR", String(err));
+    }
     return NextResponse.json({ erro: "Banco fora do ar", detalhe: String(err) }, { status: 503 });
   }
 }

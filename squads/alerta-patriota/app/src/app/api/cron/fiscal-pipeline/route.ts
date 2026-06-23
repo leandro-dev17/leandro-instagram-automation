@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram, alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
 const CRON_SECRET = process.env.CRON_SECRET || "";
@@ -223,10 +224,7 @@ export async function GET(req: NextRequest) {
 
         const mensagemAlerta = `Pipeline incompleta no ciclo ${cicloLabel[cicloFalho.ciclo]}. Steps em falta: ${stepsEmFalta.join(", ") || "nenhum (card pendente)"}. Auto-fix: ${JSON.stringify(autoFixResult)}`;
 
-        await sql`
-          INSERT INTO alertas (tipo, severidade, mensagem)
-          VALUES ('pipeline_incompleta', 'critico', ${mensagemAlerta})
-        `;
+        const { criado } = await criarAlertaDedup("pipeline_incompleta", "critico", mensagemAlerta);
 
         const linhas = [
           `🔴 MATEUS MANCHETE — Pipeline Incompleta`,
@@ -246,7 +244,9 @@ export async function GET(req: NextRequest) {
         }
         linhas.push(`Cards serão gerados no próximo cron agendado.`);
 
-        await enviarTelegram(linhas.join("\n"));
+        if (criado) {
+          await enviarTelegram(linhas.join("\n"));
+        }
       }
     }
 

@@ -104,7 +104,7 @@ ${alertasAbertosN > 0 ? "\n⚠️ Há alertas não resolvidos — verificar pain
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.CRON_SECRET}`,
+          Authorization: `Bearer ${process.env.CLAUDE_AUTOFIX_SECRET || process.env.CRON_SECRET}`,
         },
         body: JSON.stringify({
           agente:     origemParam,

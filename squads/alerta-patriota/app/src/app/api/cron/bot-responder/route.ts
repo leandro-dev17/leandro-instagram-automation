@@ -10,13 +10,10 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { gerarTexto } from "@/lib/ai";
 import { alertarTelegram } from "@/lib/telegram";
+import { enviarMensagemGrupo } from "@/lib/whatsapp";
 
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
 export const maxDuration = 60;
-
-const EVO_URL = process.env.EVOLUTION_API_URL;
-const EVO_KEY = process.env.EVOLUTION_API_KEY;
-const EVO_INST = process.env.EVOLUTION_INSTANCIA;
 
 async function gerarRespostaBraga(pergunta: string): Promise<string> {
   const texto = await gerarTexto({
@@ -52,58 +49,55 @@ Responda APENAS com o texto.` }],
   return texto;
 }
 
-async function enviarRespostaGrupo(groupJid: string, texto: string): Promise<boolean> {
-  if (!EVO_URL || !EVO_KEY || !EVO_INST) return false;
-  try {
-    const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({ number: groupJid, text: texto }),
-    });
-    return res.ok;
-  } catch { return false; }
-}
-
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
   try {
-    // Busca mensagens pendentes na fila de respostas
+    // Reserva mensagens pendentes de forma atômica (claim via FOR UPDATE SKIP LOCKED) —
+    // evita que duas execuções concorrentes (ex.: triggers duplicados do GitHub Actions)
+    // peguem o mesmo item e respondam duas vezes no grupo.
     const pendentes = await sql`
-      SELECT id, usuario_id, tipo, mensagem
-      FROM whatsapp_fila
-      WHERE tipo IN ('pergunta_vip', 'pergunta_elite')
-      AND processado_em IS NULL
-      AND agendado_para <= NOW()
-      ORDER BY agendado_para ASC
-      LIMIT 10
+      WITH proximos AS (
+        SELECT id FROM whatsapp_fila
+        WHERE tipo IN ('pergunta_vip', 'pergunta_elite')
+        AND processado_em IS NULL
+        AND agendado_para <= NOW()
+        ORDER BY agendado_para ASC
+        LIMIT 10
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE whatsapp_fila SET processado_em = NOW()
+      WHERE id IN (SELECT id FROM proximos)
+      RETURNING id, usuario_id, tipo, mensagem
     `;
 
     let respondidas = 0;
 
     for (const item of pendentes) {
       const ehElite = item.tipo === "pergunta_elite";
-      const groupJid = ehElite
-        ? process.env.WPP_GROUP_ELITE
-        : process.env.WPP_GROUP_VIP;
-
-      if (!groupJid) continue;
+      const plano = ehElite ? "elite" : "vip";
 
       const resposta = ehElite
         ? await gerarRespostaCavalcanti(item.mensagem)
         : await gerarRespostaBraga(item.mensagem);
 
-      if (!resposta) continue;
+      if (!resposta) {
+        // Geração falhou — libera o item (já reservado pelo claim atômico acima) para nova tentativa
+        await sql`UPDATE whatsapp_fila SET processado_em = NULL WHERE id = ${item.id}`;
+        continue;
+      }
 
       const prefixo = ehElite
         ? "📊 *Prof. Cavalcanti responde:*\n\n"
         : "🎖️ *Capitão Braga responde:*\n\n";
 
-      const ok = await enviarRespostaGrupo(groupJid, prefixo + resposta);
+      const ok = await enviarMensagemGrupo(plano, prefixo + resposta);
 
       if (ok) {
-        await sql`UPDATE whatsapp_fila SET processado_em = NOW() WHERE id = ${item.id}`;
         respondidas++;
+      } else {
+        // Envio falhou — libera o item para a próxima execução tentar de novo
+        await sql`UPDATE whatsapp_fila SET processado_em = NULL WHERE id = ${item.id}`;
       }
 
       // Pausa entre respostas para não parecer bot

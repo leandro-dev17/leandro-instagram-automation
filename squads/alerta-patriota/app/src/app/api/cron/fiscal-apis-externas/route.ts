@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const TIMEOUT_MS = 8000;
 
@@ -128,20 +129,19 @@ export async function GET(req: NextRequest) {
       })
       .join("\n");
 
-    await alertarTelegram(
-      nivel,
-      `ARTURO APIS — ${api.nome} ${prioridadeMaxima ? "CRÍTICO (2ª falha)" : "DOWN"}`,
-      `🔌 ${linhas}\n\n${api.nome} DOWN pode causar falha nos serviços do Alerta Patriota!`
+    const { criado } = await criarAlertaDedup(
+      "api_externa_down",
+      prioridadeMaxima ? "critico" : "alto",
+      `${api.nome} não respondeu (tentativa ${qtdFalhas})`
     );
 
-    await sql`
-      INSERT INTO alertas (tipo, severidade, mensagem)
-      VALUES (
-        'api_externa_down',
-        ${prioridadeMaxima ? "critico" : "alto"},
-        ${`${api.nome} não respondeu (tentativa ${qtdFalhas})`}
-      )
-    `;
+    if (criado) {
+      await alertarTelegram(
+        nivel,
+        `ARTURO APIS — ${api.nome} ${prioridadeMaxima ? "CRÍTICO (2ª falha)" : "DOWN"}`,
+        `🔌 ${linhas}\n\n${api.nome} DOWN pode causar falha nos serviços do Alerta Patriota!`
+      );
+    }
   }
 
   if (downs.length === 0 && degradados.length > 0) {

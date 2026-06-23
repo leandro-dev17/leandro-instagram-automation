@@ -13,42 +13,12 @@ function excedeuLimite(ip: string): boolean {
   return historico.length > LIMITE_POR_JANELA;
 }
 
-async function ensureLeadsTable() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS leads (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      email VARCHAR(255) UNIQUE,
-      telefone VARCHAR(20),
-      nome VARCHAR(255),
-      plano_interesse VARCHAR(20),
-      origem VARCHAR(50),
-      convertido BOOLEAN DEFAULT false,
-      ultimo_email_enviado INT DEFAULT 0,
-      email_enviado_at TIMESTAMP,
-      ultimo_whatsapp_enviado INT DEFAULT 0,
-      whatsapp_enviado_at TIMESTAMP,
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `.catch(() => null);
-
-  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS telefone VARCHAR(20)`.catch(() => null);
-  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ultimo_whatsapp_enviado INT DEFAULT 0`.catch(() => null);
-  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS whatsapp_enviado_at TIMESTAMP`.catch(() => null);
-  await sql`ALTER TABLE leads ALTER COLUMN email DROP NOT NULL`.catch(() => null);
-  await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS leads_telefone_unique
-    ON leads(telefone) WHERE telefone IS NOT NULL
-  `.catch(() => null);
-}
-
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
     if (excedeuLimite(ip)) {
       return NextResponse.json({ erro: "Muitas requisições, tente novamente em breve" }, { status: 429 });
     }
-
-    await ensureLeadsTable();
 
     const body = await req.json() as {
       email?: string;

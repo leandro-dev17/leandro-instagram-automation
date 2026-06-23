@@ -9,10 +9,8 @@ export type SeveridadeAlerta = "critico" | "alto" | "medio" | "baixo";
  * registro se não houver um alerta do mesmo tipo ainda não resolvido dentro
  * da janela informada.
  *
- * NOTA: aplicado por enquanto só às rotas já revisadas nesta fase
- * (fiscal-mrr, fiscal-facebook, fiscal-codigo-logica). As demais rotas
- * fiscal-* (~20 arquivos) ainda inserem direto em `alertas` sem dedup —
- * migração completa fica para uma fase dedicada, dado o volume de arquivos.
+ * FASE 21: migração estendida para 22 das 25 rotas fiscal-* existentes.
+ * Pendente: fiscal-codigo-performance, fiscal-pagamentos, fiscal-trials.
  */
 export async function criarAlertaDedup(
   tipo: string,

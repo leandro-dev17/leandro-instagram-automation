@@ -8,6 +8,7 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarMensagemGrupo } from "@/lib/whatsapp";
 import { gerarTexto } from "@/lib/ai";
+import { alertarTelegram } from "@/lib/telegram";
 
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
 export const maxDuration = 60;
@@ -79,11 +80,15 @@ Responda APENAS com o texto.` }],
     if (!texto) return NextResponse.json({ ok: false });
 
     const mensagem = `💹 *RADAR ECONÔMICO — Prof. Bernardo Cavalcanti*\n\n${texto}`;
-    await enviarMensagemGrupo("elite", mensagem);
+    const enviado = await enviarMensagemGrupo("elite", mensagem);
+    if (!enviado) {
+      await alertarTelegram("🔴", "Falha ao enviar Radar Econômico", "enviarMensagemGrupo retornou false para o grupo elite");
+    }
 
-    await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('radar-economico', 'enviar_elite', 'sucesso')`;
-    return NextResponse.json({ ok: true });
+    await sql`INSERT INTO agentes_log (agente, acao, status) VALUES ('radar-economico', 'enviar_elite', ${enviado ? "sucesso" : "erro"})`;
+    return NextResponse.json({ ok: enviado });
   } catch (err) {
+    await alertarTelegram("🔴", "Falha Agente Radar Econômico", String(err)).catch(() => {});
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

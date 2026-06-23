@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const VALOR_PLANO: Record<string, number> = {
   vip: 9.9,
@@ -76,20 +77,19 @@ export async function GET(req: NextRequest) {
           ? `\n\nCasos graves (+7 dias):\n${graves.map((g) => `• ${g.nome} (${g.plano}) — ${g.dias} dias`).join("\n")}`
           : "";
 
-      await alertarTelegram(
-        "🔴",
-        "INAÊ INADIMPLÊNCIA — Total acima de R$150",
-        `💸 Total inadimplente: R$ ${formatBRL(totalInadimplencia)}\n${inadimplentes.length} usuário(s)\n\n${linhas}${gravesMsg}`
+      const { criado } = await criarAlertaDedup(
+        "inadimplencia_alta",
+        "alto",
+        `Inadimplência acumulada: R$ ${formatBRL(totalInadimplencia)} (${inadimplentes.length} usuários)`
       );
 
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES (
-          'inadimplencia_alta',
-          'alto',
-          ${`Inadimplência acumulada: R$ ${formatBRL(totalInadimplencia)} (${inadimplentes.length} usuários)`}
-        )
-      `;
+      if (criado) {
+        await alertarTelegram(
+          "🔴",
+          "INAÊ INADIMPLÊNCIA — Total acima de R$150",
+          `💸 Total inadimplente: R$ ${formatBRL(totalInadimplencia)}\n${inadimplentes.length} usuário(s)\n\n${linhas}${gravesMsg}`
+        );
+      }
     } else if (totalInadimplencia > 50) {
       await alertarTelegram(
         "🟡",

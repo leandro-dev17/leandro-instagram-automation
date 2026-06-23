@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
@@ -67,14 +68,20 @@ export async function GET(req: NextRequest) {
     `;
 
     if (alertas.length > 0) {
-      await alertarTelegram("🟡", `FISCAL CÓDIGO — PERFORMANCE DEGRADADA (${alertas.length})`,
-        alertas.map(a => `• ${a}`).join("\n")
-      );
+      const { criado } = await criarAlertaDedup("fiscal_codigo_performance", "medio", alertas.join(" | "));
+      if (criado) {
+        await alertarTelegram("🟡", `FISCAL CÓDIGO — PERFORMANCE DEGRADADA (${alertas.length})`,
+          alertas.map(a => `• ${a}`).join("\n")
+        );
+      }
     }
 
     return NextResponse.json({ ok: alertas.length === 0, latenciaDB, backlogN, taxaErroPercent: Math.round(taxaErro * 100), alertas });
   } catch (err) {
-    await alertarTelegram("🚨", "FISCAL CÓDIGO PERFORMANCE — ERRO", String(err));
+    const { criado } = await criarAlertaDedup("fiscal_codigo_performance", "critico", String(err)).catch(() => ({ criado: false }));
+    if (criado) {
+      await alertarTelegram("🚨", "FISCAL CÓDIGO PERFORMANCE — ERRO", String(err));
+    }
     return NextResponse.json({ erro: String(err) }, { status: 500 });
   }
 }

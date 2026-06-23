@@ -12,8 +12,9 @@
  * suspeita. Ver squads/alerta-patriota/PLANO-CORRECAO.md (Fase 7) para o histórico completo.
  */
 import { NextRequest, NextResponse } from "next/server";
+import * as ts from "typescript";
 import { sql } from "@/lib/db";
-import { verificarCronSecret } from "@/lib/auth";
+import { verificarSegredoAutofix } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
 import { gerarCodigoComClaude } from "@/lib/ai";
 
@@ -80,6 +81,35 @@ async function commitarFix(path: string, conteudo: string, mensagem: string): Pr
   return res.ok;
 }
 
+// FASE 21: este agente já recorrompeu resumir-noticias/route.ts 2x (ver aviso no topo do
+// arquivo) porque o único filtro pré-commit era "tem cerca de markdown / tamanho < 50
+// chars". Replica a mesma checagem de sintaxe TypeScript que o claude-resolver já tem,
+// bloqueando o commit se o código novo não compilar ou tiver encolhido de forma suspeita.
+function validarAntesDeCommitar(caminho: string, codigoNovo: string, codigoAntigo: string): { ok: boolean; motivo?: string } {
+  if (codigoNovo.includes("```")) {
+    return { ok: false, motivo: "markdown residual no código (cerca não removida)" };
+  }
+  if (codigoNovo.trim().length < codigoAntigo.trim().length * 0.5) {
+    return { ok: false, motivo: "conteúdo novo tem menos da metade do tamanho original (risco de truncamento)" };
+  }
+  if (caminho.endsWith(".ts") || caminho.endsWith(".tsx")) {
+    const resultado = ts.transpileModule(codigoNovo, {
+      compilerOptions: {
+        jsx: ts.JsxEmit.ReactJSX,
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2020,
+      },
+      reportDiagnostics: true,
+    });
+    const erros = (resultado.diagnostics || []).filter(d => d.category === ts.DiagnosticCategory.Error);
+    if (erros.length > 0) {
+      const msg = erros.map(e => ts.flattenDiagnosticMessageText(e.messageText, " ")).join("; ");
+      return { ok: false, motivo: `erro de sintaxe TypeScript: ${msg.substring(0, 200)}` };
+    }
+  }
+  return { ok: true };
+}
+
 async function redeploy(): Promise<boolean> {
   if (!VERCEL_TOKEN) return false;
   try {
@@ -101,7 +131,7 @@ async function redeploy(): Promise<boolean> {
 }
 
 export async function POST(req: NextRequest) {
-  if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  if (!verificarSegredoAutofix(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
   const inicio = Date.now();
 
@@ -212,6 +242,12 @@ O código deve ser válido e compilar sem erros.`,
     // Sanidade: se ainda sobrou alguma cerca no meio do conteúdo, o resultado não é código puro — não commita
     if (codigoLimpo.includes("```") || codigoLimpo.length < 50) {
       throw new Error("Claude retornou código com markdown residual — commit abortado por segurança");
+    }
+
+    // Validação pré-commit: bloqueia código com erro de sintaxe ou truncado antes do PUT no GitHub
+    const validacao = validarAntesDeCommitar(arquivo, codigoLimpo, codigoAtual);
+    if (!validacao.ok) {
+      throw new Error(`Fix BLOQUEADO antes do commit (${validacao.motivo})`);
     }
 
     // Commita o fix

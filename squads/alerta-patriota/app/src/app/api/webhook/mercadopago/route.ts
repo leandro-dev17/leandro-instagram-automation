@@ -18,21 +18,41 @@ const client = new MercadoPagoConfig({
 
 // ─── ATIVAR ACESSO ─────────────────────────────────────────────────────────────
 
-async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: string, valor: number, ciclo: "mensal" | "anual" = "mensal") {
-  // Atualiza usuário
-  await sql`
-    UPDATE usuarios
-    SET plano = ${plano}, status = 'ativo', mp_subscription_id = ${mpSubscriptionId},
-        assinatura_inicio = NOW(), updated_at = NOW()
-    WHERE id = ${usuarioId}
-  `;
+async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: string, valor: number, ciclo: "mensal" | "anual" = "mensal", mpPaymentId?: string, metodo: string = "desconhecido") {
+  // FASE 21: as 3 escritas abaixo (usuarios/assinaturas/pagamentos) iam cada uma em sua
+  // própria requisição HTTP ao Neon — uma falha de rede entre elas podia deixar o cliente
+  // "ativo" sem assinatura registrada, ou pagamento sem assinatura associada. O driver
+  // @neondatabase/serverless não suporta transação interativa multi-round-trip sobre HTTP,
+  // mas suporta `sql.transaction()` com um lote de queries independentes executadas
+  // atomicamente no servidor — por isso o id da assinatura é obtido aqui via subquery
+  // (mp_subscription_id), não via variável JS do resultado da query anterior.
+  const queries = [
+    sql`
+      UPDATE usuarios
+      SET plano = ${plano}, status = 'ativo', mp_subscription_id = ${mpSubscriptionId},
+          assinatura_inicio = NOW(), updated_at = NOW()
+      WHERE id = ${usuarioId}
+    `,
+    sql`
+      INSERT INTO assinaturas (usuario_id, plano, valor, ciclo, status, mp_subscription_id)
+      VALUES (${usuarioId}, ${plano}, ${valor}, ${ciclo}, 'ativa', ${mpSubscriptionId})
+      ON CONFLICT (mp_subscription_id) DO UPDATE SET status = 'ativa', renovada_em = NOW()
+      RETURNING id
+    `,
+  ];
 
-  // Registra assinatura com ciclo correto
-  await sql`
-    INSERT INTO assinaturas (usuario_id, plano, valor, ciclo, status, mp_subscription_id)
-    VALUES (${usuarioId}, ${plano}, ${valor}, ${ciclo}, 'ativa', ${mpSubscriptionId})
-    ON CONFLICT (mp_subscription_id) DO UPDATE SET status = 'ativa', renovada_em = NOW()
-  `;
+  // Registra o pagamento real (PIX/Checkout Pro já têm um payment id distinto da assinatura;
+  // a aprovação inicial de subscription_preapproval ainda não representa uma cobrança concreta).
+  if (mpPaymentId) {
+    queries.push(sql`
+      INSERT INTO pagamentos (assinatura_id, usuario_id, valor, status, mp_payment_id, metodo)
+      SELECT id, ${usuarioId}, ${valor}, 'aprovado', ${mpPaymentId}, ${metodo}
+      FROM assinaturas WHERE mp_subscription_id = ${mpSubscriptionId}
+      ON CONFLICT (mp_payment_id) DO UPDATE SET status = 'aprovado', assinatura_id = EXCLUDED.assinatura_id, valor = EXCLUDED.valor
+    `);
+  }
+
+  await sql.transaction(queries);
 
   // Busca dados do usuário
   const rows = await sql`SELECT nome, email, telefone FROM usuarios WHERE id = ${usuarioId} LIMIT 1`;
@@ -45,23 +65,29 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
     const addOk = await adicionarMembroGrupo(telefone, plano);
     console.log("[ativar-acesso] adicionarMembroGrupo resultado:", addOk);
 
-    // Registra membro no grupo
-    const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${plano} LIMIT 1`;
-    if (grupoRows.length > 0) {
-      await sql`
-        INSERT INTO membros_grupos (usuario_id, grupo_id, status)
-        VALUES (${usuarioId}, ${grupoRows[0].id}, 'ativo')
-        ON CONFLICT (usuario_id, grupo_id) DO UPDATE SET status = 'ativo', data_saida = NULL
-      `;
-      await sql`UPDATE grupos_whatsapp SET membros_ativos = membros_ativos + 1 WHERE id = ${grupoRows[0].id}`;
-    }
+    if (addOk) {
+      // Registra membro no grupo — só se a adição de fato funcionou, senão o contador/status
+      // ficam mentindo que o cliente está no grupo quando na verdade não está.
+      const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${plano} LIMIT 1`;
+      if (grupoRows.length > 0) {
+        await sql`
+          INSERT INTO membros_grupos (usuario_id, grupo_id, status)
+          VALUES (${usuarioId}, ${grupoRows[0].id}, 'ativo')
+          ON CONFLICT (usuario_id, grupo_id) DO UPDATE SET status = 'ativo', data_saida = NULL
+        `;
+        await sql`UPDATE grupos_whatsapp SET membros_ativos = membros_ativos + 1 WHERE id = ${grupoRows[0].id}`;
+      }
 
-    // Mensagem de boas-vindas privada
-    const msgBoasVindas = buildBoasVindas(plano, nome);
-    const msgOk = await enviarMensagemPrivada(telefone, msgBoasVindas);
-    console.log("[ativar-acesso] enviarMensagemPrivada resultado:", msgOk);
+      // Mensagem de boas-vindas privada
+      const msgBoasVindas = buildBoasVindas(plano, nome);
+      const msgOk = await enviarMensagemPrivada(telefone, msgBoasVindas);
+      console.log("[ativar-acesso] enviarMensagemPrivada resultado:", msgOk);
+    } else {
+      await alertarTelegram("🔴", "Cliente pagou mas não entrou no grupo WhatsApp", `usuarioId: ${usuarioId} | telefone: ${telefone} | plano: ${plano}\nAdicionar ao grupo via Evolution API falhou — ação manual necessária.`);
+    }
   } else {
     console.error("[ativar-acesso] Telefone não encontrado para usuarioId:", usuarioId, "— WhatsApp ignorado");
+    await alertarTelegram("🔴", "Cliente pagou mas não tem telefone cadastrado", `usuarioId: ${usuarioId} | plano: ${plano}`);
   }
 
   // E-mail de boas-vindas
@@ -78,14 +104,28 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
 
 // ─── RENOVAR ACESSO ────────────────────────────────────────────────────────────
 
-async function renovarAcesso(mpSubscriptionId: string) {
-  await sql`
-    UPDATE assinaturas SET renovada_em = NOW() WHERE mp_subscription_id = ${mpSubscriptionId}
-  `;
-  await sql`
-    UPDATE usuarios SET status = 'ativo', updated_at = NOW()
-    WHERE mp_subscription_id = ${mpSubscriptionId} AND status = 'inadimplente'
-  `;
+async function renovarAcesso(mpSubscriptionId: string, mpPaymentId: string, valor: number) {
+  // FASE 21: mesmo motivo do ativarAcesso — as 3 escritas viram um único lote atômico.
+  // O INSERT em pagamentos usa SELECT...FROM assinaturas (em vez de VALUES com id da
+  // query anterior) para que, se a assinatura não existir, ele simplesmente não insira
+  // nenhuma linha (0 rows do SELECT), preservando o comportamento condicional original
+  // sem depender do resultado de uma query anterior dentro do mesmo lote.
+  await sql.transaction([
+    sql`
+      UPDATE assinaturas SET renovada_em = NOW() WHERE mp_subscription_id = ${mpSubscriptionId}
+    `,
+    sql`
+      UPDATE usuarios SET status = 'ativo', updated_at = NOW()
+      WHERE mp_subscription_id = ${mpSubscriptionId} AND status = 'inadimplente'
+    `,
+    // Registra a cobrança recorrente — sem isso, renovações de cartão nunca aparecem no histórico financeiro
+    sql`
+      INSERT INTO pagamentos (assinatura_id, usuario_id, valor, status, mp_payment_id, metodo)
+      SELECT id, usuario_id, ${valor}, 'aprovado', ${mpPaymentId}, 'cartao_recorrente'
+      FROM assinaturas WHERE mp_subscription_id = ${mpSubscriptionId}
+      ON CONFLICT (mp_payment_id) DO UPDATE SET status = 'aprovado'
+    `,
+  ]);
 }
 
 // ─── DESATIVAR ACESSO ──────────────────────────────────────────────────────────
@@ -101,13 +141,13 @@ async function desativarAcesso(mpSubscriptionId: string, motivo: "cancelado" | "
 
   const { id, nome, email, telefone, plano } = rows[0];
 
-  // Atualiza status
-  await sql`
-    UPDATE usuarios SET status = ${motivo}, updated_at = NOW() WHERE id = ${id}
-  `;
-  await sql`
-    UPDATE assinaturas SET status = ${motivo} WHERE mp_subscription_id = ${mpSubscriptionId}
-  `;
+  // FASE 21: mesma razão do ativarAcesso/renovarAcesso — as 2 escritas de status
+  // (usuarios + assinaturas) em lote atômico via sql.transaction(), evitando estado
+  // inconsistente (ex: usuário marcado inadimplente mas assinatura ainda "ativa").
+  await sql.transaction([
+    sql`UPDATE usuarios SET status = ${motivo}, updated_at = NOW() WHERE id = ${id}`,
+    sql`UPDATE assinaturas SET status = ${motivo} WHERE mp_subscription_id = ${mpSubscriptionId}`,
+  ]);
 
   // Remove do grupo WhatsApp
   if (telefone && plano) {
@@ -245,8 +285,13 @@ export async function POST(req: NextRequest) {
         console.log("[webhook-mp] Ativando acesso — usuarioId:", usuarioId, "| plano:", plano, "| ciclo:", ciclo, "| valor:", valor);
 
         if (usuarioId && !isNaN(usuarioId) && ["vip","elite"].includes(plano)) {
-          await ativarAcesso(usuarioId, plano, dataId, valor, ciclo);
-          console.log("[webhook-mp] ativarAcesso concluído para usuarioId:", usuarioId);
+          if (!valor || isNaN(valor) || valor <= 0) {
+            console.error("[webhook-mp] valor inválido — acesso NÃO ativado. usuarioId:", usuarioId, "| valor:", valor);
+            await alertarTelegram("🔴", "Webhook MP — valor inválido, acesso NÃO ativado", `usuarioId: ${usuarioId} | plano: ${plano} | valor recebido: ${valor} | dataId: ${dataId}`);
+          } else {
+            await ativarAcesso(usuarioId, plano, dataId, valor, ciclo);
+            console.log("[webhook-mp] ativarAcesso concluído para usuarioId:", usuarioId);
+          }
         } else {
           console.error("[webhook-mp] Dados inválidos — usuarioId:", usuarioId, "| plano:", plano);
         }
@@ -262,7 +307,13 @@ export async function POST(req: NextRequest) {
       const preapprovalId = (payment as unknown as Record<string, unknown>).preapproval_id as string | undefined;
 
       if (payment.status === "approved" && preapprovalId) {
-        await renovarAcesso(preapprovalId);
+        const valor = payment.transaction_amount;
+        if (!valor || isNaN(valor) || valor <= 0) {
+          console.error("[webhook-mp] valor inválido na renovação — NÃO registrado. preapprovalId:", preapprovalId, "| valor:", valor);
+          await alertarTelegram("🔴", "Webhook MP — valor inválido na renovação", `preapprovalId: ${preapprovalId} | valor recebido: ${valor} | dataId: ${dataId}`);
+        } else {
+          await renovarAcesso(preapprovalId, String(dataId), valor);
+        }
       } else if (["rejected", "cancelled"].includes(payment.status || "") && preapprovalId) {
         await desativarAcesso(preapprovalId, "inadimplente");
       }
@@ -288,7 +339,13 @@ export async function POST(req: NextRequest) {
         }
 
         if (usuarioId && !isNaN(usuarioId) && ["vip", "elite"].includes(plano)) {
-          await ativarAcesso(usuarioId, plano, String(dataId), payment.transaction_amount || 0, ciclo);
+          const valor = payment.transaction_amount;
+          if (!valor || isNaN(valor) || valor <= 0) {
+            console.error("[webhook-mp] valor inválido — acesso NÃO ativado. usuarioId:", usuarioId, "| valor:", valor);
+            await alertarTelegram("🔴", "Webhook MP — valor inválido, acesso NÃO ativado", `usuarioId: ${usuarioId} | plano: ${plano} | valor recebido: ${valor} | dataId: ${dataId}`);
+          } else {
+            await ativarAcesso(usuarioId, plano, String(dataId), valor, ciclo, String(dataId), payment.payment_type_id || "desconhecido");
+          }
         }
       }
     }
@@ -296,6 +353,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("webhook/mercadopago error:", err);
+    await alertarTelegram("🔴", "Falha no webhook do Mercado Pago", String(err)).catch(() => {});
     return NextResponse.json({ ok: true }); // sempre 200 para MP
   }
 }

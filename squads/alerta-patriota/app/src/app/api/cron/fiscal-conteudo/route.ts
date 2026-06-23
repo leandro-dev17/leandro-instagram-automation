@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const PALAVRAS_PROIBIDAS = [
   "lipogênese",
@@ -118,20 +119,19 @@ export async function GET(req: NextRequest) {
         .slice(0, 5)
         .join("\n");
 
-      await sql`
-        INSERT INTO alertas (tipo, severidade, mensagem)
-        VALUES (
-          'conteudo_irrelevante',
-          'alto',
-          ${`${totalInvalidos} item(s) com conteúdo não-político detectado(s) nas últimas 24h`}
-        )
-      `;
-
-      await alertarTelegram(
-        "🔴",
-        "FISCAL CLARA CONTEÚDO — Conteúdo Inadequado Detectado",
-        `${postsInvalidos.length} post(s) e ${noticiasInvalidas.length} notícia(s) com conteúdo não-político\n\nExemplos:\n${exemplos}\n\n📋 Revisar: alertapatriota.vercel.app/admin`
+      const { criado } = await criarAlertaDedup(
+        "conteudo_irrelevante",
+        "alto",
+        `${totalInvalidos} item(s) com conteúdo não-político detectado(s) nas últimas 24h`
       );
+
+      if (criado) {
+        await alertarTelegram(
+          "🔴",
+          "FISCAL CLARA CONTEÚDO — Conteúdo Inadequado Detectado",
+          `${postsInvalidos.length} post(s) e ${noticiasInvalidas.length} notícia(s) com conteúdo não-político\n\nExemplos:\n${exemplos}\n\n📋 Revisar: alertapatriota.vercel.app/admin`
+        );
+      }
     }
 
     const postsValidos = posts.length - postsInvalidos.length;

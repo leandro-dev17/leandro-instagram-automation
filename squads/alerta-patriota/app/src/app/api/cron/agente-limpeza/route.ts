@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, mensagem: "Limpeza já executada neste mês.", deduplicado: true });
     }
 
-    const [logRes, noticiasRes, alertasRes, postsRes] = await Promise.all([
+    const [logRes, noticiasRes, alertasRes, postsRes, leadsRes] = await Promise.all([
       sql`DELETE FROM agentes_log WHERE created_at < NOW() - INTERVAL '90 days' RETURNING id`,
       sql`
         DELETE FROM noticias
@@ -44,6 +44,11 @@ export async function GET(req: NextRequest) {
       `,
       sql`DELETE FROM alertas WHERE resolvido = true AND created_at < NOW() - INTERVAL '30 days' RETURNING id`,
       sql`DELETE FROM posts_whatsapp WHERE enviado_at < NOW() - INTERVAL '90 days' RETURNING id`,
+      // FASE 22 (LGPD): leads que nunca converteram ficavam retidos para sempre —
+      // sem prazo de retenção definido, é dado pessoal (nome/e-mail/telefone) acumulando
+      // indefinidamente. 180 dias é tempo suficiente para qualquer sequência de
+      // recuperação/e-mail/whatsapp já ter rodado e esgotado.
+      sql`DELETE FROM leads WHERE convertido = false AND created_at < NOW() - INTERVAL '180 days' RETURNING id`,
     ]);
 
     const contagens = {
@@ -51,9 +56,10 @@ export async function GET(req: NextRequest) {
       noticias: noticiasRes.length,
       alertas: alertasRes.length,
       posts_whatsapp: postsRes.length,
+      leads: leadsRes.length,
     };
 
-    const totalRows = contagens.agentes_log + contagens.noticias + contagens.alertas + contagens.posts_whatsapp;
+    const totalRows = contagens.agentes_log + contagens.noticias + contagens.alertas + contagens.posts_whatsapp + contagens.leads;
     const bytesLiberados = totalRows * 500;
     const mbLiberados = (bytesLiberados / 1_048_576).toFixed(0);
 
@@ -68,7 +74,8 @@ export async function GET(req: NextRequest) {
       `• agentes_log: ${contagens.agentes_log.toLocaleString("pt-BR")} entradas (&gt; 90 dias)\n` +
       `• noticias: ${contagens.noticias.toLocaleString("pt-BR")} notícias publicadas (&gt; 60 dias)\n` +
       `• alertas: ${contagens.alertas.toLocaleString("pt-BR")} alertas resolvidos (&gt; 30 dias)\n` +
-      `• posts_whatsapp: ${contagens.posts_whatsapp.toLocaleString("pt-BR")} posts (&gt; 90 dias)\n\n` +
+      `• posts_whatsapp: ${contagens.posts_whatsapp.toLocaleString("pt-BR")} posts (&gt; 90 dias)\n` +
+      `• leads: ${contagens.leads.toLocaleString("pt-BR")} leads não convertidos (&gt; 180 dias)\n\n` +
       `Estimativa liberada: ~${mbLiberados} MB\n` +
       `Banco mantido enxuto para melhor performance. ✅`;
 

@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Ação sobre usuário específico (mudar plano, cancelar)
+// Ação em lote sobre usuário (somente mudar_plano — cancelar/reativar exigem
+// cancelar a cobrança recorrente no Mercado Pago e remover do grupo WhatsApp,
+// por isso vivem só em /api/admin/usuarios/[id], nunca duplicar essa lógica aqui).
 export async function PATCH(req: NextRequest) {
   try {
     await requireAdmin();
@@ -51,10 +53,8 @@ export async function PATCH(req: NextRequest) {
 
     if (acao === "mudar_plano" && plano) {
       await sql`UPDATE usuarios SET plano = ${plano}, updated_at = NOW() WHERE id = ${id}`;
-    } else if (acao === "cancelar") {
-      await sql`UPDATE usuarios SET status = 'cancelado', updated_at = NOW() WHERE id = ${id}`;
-    } else if (acao === "reativar") {
-      await sql`UPDATE usuarios SET status = 'ativo', updated_at = NOW() WHERE id = ${id}`;
+    } else {
+      return NextResponse.json({ erro: "Ação não suportada neste endpoint. Use /api/admin/usuarios/[id]." }, { status: 400 });
     }
 
     return NextResponse.json({ ok: true });

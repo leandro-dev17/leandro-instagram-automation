@@ -8,14 +8,10 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { gerarTexto } from "@/lib/ai";
+import { enviarMensagemGrupo, enviarEnqueteGrupo } from "@/lib/whatsapp";
 
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
 export const maxDuration = 60;
-
-const EVO_URL = process.env.EVOLUTION_API_URL;
-const EVO_KEY = process.env.EVOLUTION_API_KEY;
-const EVO_INST = process.env.EVOLUTION_INSTANCIA;
-const GROUP_VIP = process.env.WPP_GROUP_VIP;
 
 async function gerarEnquete(noticia: string): Promise<{ pergunta: string; opcoes: string[] } | null> {
   const texto = await gerarTexto({
@@ -35,23 +31,6 @@ Regras: máximo 3 opções, linguagem simples, tema político/conservador.` }],
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try { return JSON.parse(match[0]); } catch { return null; }
-}
-
-async function enviarEnqueteWPP(groupJid: string, pergunta: string, opcoes: string[]): Promise<boolean> {
-  if (!EVO_URL || !EVO_KEY || !EVO_INST) return false;
-  try {
-    const res = await fetch(`${EVO_URL}/message/sendPoll/${EVO_INST}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-      body: JSON.stringify({
-        number: groupJid,
-        name: pergunta,
-        selectableCount: 1,
-        values: opcoes,
-      }),
-    });
-    return res.ok;
-  } catch { return false; }
 }
 
 export async function GET(req: NextRequest) {
@@ -76,20 +55,14 @@ export async function GET(req: NextRequest) {
     if (noticias.length === 0) return NextResponse.json({ ok: true, motivo: "sem notícias" });
 
     const enquete = await gerarEnquete(noticias[0].titulo);
-    if (!enquete || !GROUP_VIP) return NextResponse.json({ ok: false });
+    if (!enquete) return NextResponse.json({ ok: false });
 
-    // Mensagem contextualizando antes da enquete
-    await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: EVO_KEY! },
-      body: JSON.stringify({
-        number: GROUP_VIP,
-        text: `🗳️ *ENQUETE DO DIA — Capitão Braga quer saber sua opinião, patriota!*`,
-      }),
-    });
+    // Mensagem contextualizando antes da enquete — se falhar, segue mesmo assim
+    // (a enquete sozinha ainda é útil), mas agora com retry + alerta via lib/whatsapp.ts
+    await enviarMensagemGrupo("vip", `🗳️ *ENQUETE DO DIA — Capitão Braga quer saber sua opinião, patriota!*`);
 
     await new Promise(r => setTimeout(r, 1000));
-    const ok = await enviarEnqueteWPP(GROUP_VIP, enquete.pergunta, enquete.opcoes);
+    const ok = await enviarEnqueteGrupo("vip", enquete.pergunta, enquete.opcoes);
 
     if (ok) {
       await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('enquete-dia', 'enviar_enquete', 'sucesso', ${JSON.stringify({ pergunta: enquete.pergunta })})`;

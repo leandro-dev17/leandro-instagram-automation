@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as ts from "typescript";
 import { sql } from "@/lib/db";
-import { verificarCronSecret } from "@/lib/auth";
+import { verificarSegredoAutofix } from "@/lib/auth";
 import { enviarTelegram } from "@/lib/telegram";
 import { gerarCodigoComClaude } from "@/lib/ai";
 
@@ -221,7 +221,7 @@ async function dispararWorkflow(workflowId?: string): Promise<boolean> {
 
 // ── HANDLER PRINCIPAL ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  if (!verificarSegredoAutofix(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   const inicio = Date.now();
 
   try {

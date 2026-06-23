@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
@@ -99,18 +100,21 @@ export async function GET(req: NextRequest) {
 
   if (falhas.length > 0) {
     const lista = falhas.map(f => `• [${f.severidade.toUpperCase()}] ${f.nome}: ${f.detalhe}`).join("\n");
-    await alertarTelegram(
-      criticos.length > 0 ? "🚨" : "🔴",
-      `FISCAL CÓDIGO — FALHA DE SEGURANÇA (${falhas.length}/${checks.length})`,
-      `${lista}\n\n⚠️ Escalando para Revisor de Segurança...`
-    );
 
     // Registra alerta e escala para o revisor
-    await sql`
-      INSERT INTO alertas (tipo, severidade, mensagem)
-      VALUES ('codigo_seguranca', ${criticos.length > 0 ? "critico" : "alto"},
-        ${`Falhas de segurança detectadas: ${falhas.map(f => f.nome).join(", ")}`})
-    `;
+    const { criado } = await criarAlertaDedup(
+      "codigo_seguranca",
+      criticos.length > 0 ? "critico" : "alto",
+      `Falhas de segurança detectadas: ${falhas.map(f => f.nome).join(", ")}`
+    );
+
+    if (criado) {
+      await alertarTelegram(
+        criticos.length > 0 ? "🚨" : "🔴",
+        `FISCAL CÓDIGO — FALHA DE SEGURANÇA (${falhas.length}/${checks.length})`,
+        `${lista}\n\n⚠️ Escalando para Revisor de Segurança...`
+      );
+    }
 
     await fetch(`${APP}/api/cron/revisor-seguranca`, {
       headers: { Authorization: `Bearer ${CRON}` },

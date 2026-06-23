@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram, alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const FONTES = [
   { nome: "Jovem Pan", url: "https://jovempan.com.br/feed/" },
@@ -77,6 +78,7 @@ export async function GET(req: NextRequest) {
   const resultados: StatusFonte[] = [];
   const fontesDown: string[] = [];
   const alertasCriticos: string[] = [];
+  let algumAlertaCriado = false;
 
   try {
     for (const fonte of FONTES) {
@@ -136,10 +138,8 @@ export async function GET(req: NextRequest) {
         const mensagemCritica = `Fonte ${fonte.nome} com ${falhasAtualizado} falhas consecutivas. Feed ${feedRespondeu ? "responde mas sem conteúdo novo" : "não responde (status " + feedStatus + ")"}. Última notícia: ${ultimaNoticia ? ultimaNoticia.toLocaleString("pt-BR") : "nunca"}`;
         alertasCriticos.push(mensagemCritica);
 
-        await sql`
-          INSERT INTO alertas (tipo, severidade, mensagem)
-          VALUES ('fonte_rss_down', 'critico', ${mensagemCritica})
-        `;
+        const { criado } = await criarAlertaDedup("fonte_rss_down", "critico", mensagemCritica);
+        if (criado) algumAlertaCriado = true;
       }
 
       resultados.push({
@@ -154,7 +154,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (alertasCriticos.length > 0) {
+    if (alertasCriticos.length > 0 && algumAlertaCriado) {
       const fontesCriticasLista = resultados
         .filter((f) => f.estado !== "ok")
         .map((f) => `• ${f.nome}: ${f.estado === "down" ? "DOWN" : "sem conteúdo"} (${f.horas_sem_noticia}h)`)
@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
       ].join("\n");
 
       await enviarTelegram(msg);
-    } else if (fontesDown.length > 0) {
+    } else if (alertasCriticos.length === 0 && fontesDown.length > 0) {
       const msg = [
         `🟡 ROBERTO RSS — Fontes Lentas`,
         fontesDown.map((f) => `• ${f}: sem notícias recentes`).join("\n"),
