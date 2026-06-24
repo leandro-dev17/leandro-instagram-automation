@@ -58,10 +58,12 @@ export async function GET(req: NextRequest) {
 
       if (!etapa) continue;
 
-      // Verifica se já enviou neste dia
+      // Verifica se já enviou com sucesso neste dia — checar só por status='sucesso'
+      // permite retentar nas próximas execuções (cron roda a cada 30min) quando o
+      // envio anterior falhou, em vez de marcar como enviado mesmo tendo falhado.
       const jaEnviou = await sql`
         SELECT id FROM agentes_log
-        WHERE agente = 'rebeca-recuperacao'
+        WHERE agente = 'rebeca-recuperacao' AND status = 'sucesso'
         AND detalhes->>'usuarioId' = ${String(usuarioId)}
         AND detalhes->>'dia' = ${String(diasCancelado)}
         LIMIT 1
@@ -72,18 +74,25 @@ export async function GET(req: NextRequest) {
       const email = d.email as string;
       const telefone = d.telefone as string;
 
+      // FASE 24: no branch de e-mail, `enviado` nunca era atualizado a partir do retorno
+      // real de enviarEmailRecuperacao() — ficava sempre `true`, mascarando falhas reais
+      // do Brevo e impedindo qualquer retentativa (a dedup acima só repete quando não há
+      // log com status='sucesso'). Mesma classe de bug já corrigida no lado WhatsApp.
+      let enviado = true;
       if (etapa.canal === "email") {
-        await enviarEmailRecuperacao(email, nome, diasCancelado).catch(() => {});
+        enviado = await enviarEmailRecuperacao(email, nome, diasCancelado).catch(() => false);
       } else if (telefone && MSGS_WPP[etapa.msg]) {
-        await enviarMensagemPrivada(telefone, MSGS_WPP[etapa.msg](nome));
+        enviado = await enviarMensagemPrivada(telefone, MSGS_WPP[etapa.msg](nome));
+      } else {
+        enviado = false; // sem telefone cadastrado para o canal whatsapp
       }
 
       await sql`
         INSERT INTO agentes_log (agente, acao, status, detalhes)
-        VALUES ('rebeca-recuperacao', 'enviar_recuperacao', 'sucesso',
+        VALUES ('rebeca-recuperacao', 'enviar_recuperacao', ${enviado ? "sucesso" : "erro"},
           ${JSON.stringify({ usuarioId, dia: diasCancelado, canal: etapa.canal })})
       `;
-      enviados++;
+      if (enviado) enviados++;
     }
 
     return NextResponse.json({ ok: true, enviados });

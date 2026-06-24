@@ -65,7 +65,10 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
+    // FASE 24: mesma proteção já aplicada a 6 outras rotas admin na Fase 23 — esta
+    // rota ficou de fora daquela varredura e continuava devolvendo String(err) cru.
+    console.error("admin/exportar GET error:", err);
     if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }

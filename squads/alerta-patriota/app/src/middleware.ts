@@ -16,7 +16,14 @@ const ROTAS_PUBLICAS = [
   "/elite",
   "/api/auth",
   "/api/webhook",
-  // "/api/admin/setup", -- removido: setup agora requer autenticação admin
+  // FASE 24: setup/fix-encoding/limpar-fontes autenticam via verificarCronSecret()
+  // (header Authorization: Bearer CRON_SECRET), não via cookie de sessão. O middleware
+  // exigia cookie ANTES de a requisição chegar à rota, então toda chamada externa
+  // (curl, script de manutenção) com o CRON_SECRET correto mas sem cookie de navegador
+  // recebia 401 do middleware sem a lógica de auth da própria rota ser avaliada.
+  "/api/admin/setup",
+  "/api/admin/fix-encoding",
+  "/api/admin/limpar-fontes",
   "/api/assinaturas",
 ];
 

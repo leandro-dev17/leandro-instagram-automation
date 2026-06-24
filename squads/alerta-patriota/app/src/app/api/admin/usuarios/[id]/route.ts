@@ -34,6 +34,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const id = parseInt(params.id);
 
     if (acao === "mudar_plano" && plano) {
+      // FASE 24: mesma validação aplicada em admin/usuarios/route.ts — ver comentário lá.
+      if (!["vip", "elite"].includes(plano)) {
+        return NextResponse.json({ erro: "Plano inválido — use 'vip' ou 'elite'" }, { status: 400 });
+      }
       await sql`UPDATE usuarios SET plano = ${plano}, updated_at = NOW() WHERE id = ${id}`;
     } else if (acao === "cancelar") {
       const u = await sql`SELECT telefone, plano, mp_subscription_id FROM usuarios WHERE id = ${id} LIMIT 1`;
@@ -48,7 +52,27 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         }
       }
 
-      if (u[0]?.telefone && u[0]?.plano) await removerMembroGrupo(u[0].telefone, u[0].plano as Plano);
+      // FASE 24: mesmo padrão já aplicado ao webhook do Mercado Pago — sem checar o
+      // grupo na tabela membros_grupos, membros_ativos nunca era decrementado e o
+      // status do membro ficava 'ativo' para sempre, mesmo após a remoção real do
+      // WhatsApp ter funcionado.
+      if (u[0]?.telefone && u[0]?.plano) {
+        const removido = await removerMembroGrupo(u[0].telefone, u[0].plano as Plano);
+        const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${u[0].plano} LIMIT 1`;
+        if (removido && grupoRows.length > 0) {
+          await sql`
+            UPDATE membros_grupos SET status = 'removido', data_saida = NOW()
+            WHERE usuario_id = ${id} AND grupo_id = ${grupoRows[0].id}
+          `;
+          await sql`UPDATE grupos_whatsapp SET membros_ativos = GREATEST(0, membros_ativos - 1) WHERE id = ${grupoRows[0].id}`;
+        } else if (!removido) {
+          await sql`
+            INSERT INTO agentes_log (agente, acao, status, detalhes)
+            VALUES ('admin-manual', 'remover_grupo', 'erro',
+              ${JSON.stringify({ usuarioId: id, plano: u[0].plano, motivo: "Evolution API recusou a remoção" })})
+          `;
+        }
+      }
       await sql`UPDATE usuarios SET status = 'cancelado', updated_at = NOW() WHERE id = ${id}`;
       await sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`;
     } else if (acao === "reativar") {
@@ -73,12 +97,33 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           return NextResponse.json({ erro: `Falha ao cancelar assinatura no Mercado Pago — exclusão abortada: ${String(e)}` }, { status: 502 });
         }
       }
-      if (u[0]?.telefone && u[0]?.plano) await removerMembroGrupo(u[0].telefone, u[0].plano as Plano);
+      if (u[0]?.telefone && u[0]?.plano) {
+        const removido = await removerMembroGrupo(u[0].telefone, u[0].plano as Plano);
+        const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${u[0].plano} LIMIT 1`;
+        if (removido && grupoRows.length > 0) {
+          await sql`
+            UPDATE membros_grupos SET status = 'removido', data_saida = NOW()
+            WHERE usuario_id = ${id} AND grupo_id = ${grupoRows[0].id}
+          `;
+          await sql`UPDATE grupos_whatsapp SET membros_ativos = GREATEST(0, membros_ativos - 1) WHERE id = ${grupoRows[0].id}`;
+        } else if (!removido) {
+          await sql`
+            INSERT INTO agentes_log (agente, acao, status, detalhes)
+            VALUES ('admin-manual', 'remover_grupo', 'erro',
+              ${JSON.stringify({ usuarioId: id, plano: u[0].plano, motivo: "Evolution API recusou a remoção (excluir_dados)" })})
+          `;
+        }
+      }
 
+      // FASE 24: a anonimização cobria só nome/email/telefone/senha_hash — mp_customer_id
+      // (identificador vinculável à pessoa no Mercado Pago) e aceite_termos_ip (dado pessoal,
+      // LGPD Art. 5º III) ficavam retidos indefinidamente sem justificativa de retenção
+      // (diferente de pagamentos/assinaturas, que têm retenção fiscal documentada).
       await sql`
         UPDATE usuarios SET
           nome = 'Usuário excluído', email = ${`excluido-${id}@anonimizado.invalid`},
-          telefone = NULL, senha_hash = ${`excluido-${id}`}, status = 'excluido', updated_at = NOW()
+          telefone = NULL, senha_hash = ${`excluido-${id}`}, status = 'excluido',
+          mp_customer_id = NULL, aceite_termos_ip = NULL, updated_at = NOW()
         WHERE id = ${id}
       `;
       await sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`;

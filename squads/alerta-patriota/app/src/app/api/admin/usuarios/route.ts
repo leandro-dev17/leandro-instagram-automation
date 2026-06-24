@@ -52,6 +52,13 @@ export async function PATCH(req: NextRequest) {
     const { id, acao, plano } = await req.json();
 
     if (acao === "mudar_plano" && plano) {
+      // FASE 24: sem isto, qualquer valor era gravado sem validação — getInstancia()/
+      // GROUP_IDS em lib/whatsapp.ts fazem fallback silencioso para VIP quando
+      // plano !== "elite", divergindo do que o financeiro reporta (admin/financeiro,
+      // admin/stats somam 0 para plano fora do enum). Mesmo padrão já usado no webhook MP.
+      if (!["vip", "elite"].includes(plano)) {
+        return NextResponse.json({ erro: "Plano inválido — use 'vip' ou 'elite'" }, { status: 400 });
+      }
       await sql`UPDATE usuarios SET plano = ${plano}, updated_at = NOW() WHERE id = ${id}`;
     } else {
       return NextResponse.json({ erro: "Ação não suportada neste endpoint. Use /api/admin/usuarios/[id]." }, { status: 400 });

@@ -78,42 +78,57 @@ export async function enviarMensagemGrupo(plano: Plano, texto: string): Promise<
   }, `enviarMensagemGrupo → plano ${plano}`);
 }
 
-export async function adicionarMembroGrupo(telefone: string, plano: Plano): Promise<boolean> {
+// FASE 24: a Evolution API v2.3.7 não tem rota PUT /group/updateParticipant (404) — o método
+// correto é POST com groupJid como query string. Além disso, números BR salvos sem o "9" extra
+// (formato antigo de cadastro no WhatsApp) geram um JID ${numero}@s.whatsapp.net que não corresponde
+// a nenhum participante real do grupo, então a Baileys recusa com 400 "internal-server-error".
+// Por isso o JID é sempre resolvido via /chat/whatsappNumbers antes de qualquer ação no grupo,
+// em vez de montar o JID adivinhando o formato do número.
+async function resolverJid(telefone: string, instancia: string): Promise<string | null> {
+  const numero = telefone.replace(/\D/g, "");
+  if (!numero) return null;
+  const comDDI = numero.startsWith("55") ? numero : `55${numero}`;
+
+  try {
+    const res = await fetch(`${EVO_URL}/chat/whatsappNumbers/${instancia}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: EVO_KEY! },
+      body: JSON.stringify({ numbers: [comDDI] }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const item = Array.isArray(data) ? data[0] : null;
+    return item?.exists ? item.jid : null;
+  } catch {
+    return null;
+  }
+}
+
+async function atualizarParticipanteGrupo(
+  telefone: string, plano: Plano, action: "add" | "remove", contexto: string,
+): Promise<boolean> {
   if (!GRUPOS_ATIVOS.includes(plano)) return false;
   if (!EVO_URL || !EVO_KEY) return false;
   const groupId = GROUP_IDS[plano];
   if (!groupId) return false;
-  const numero = telefone.replace(/\D/g, "");
-  if (!numero) return false;
+  const instancia = getInstancia(plano);
 
-  return chamarEvolution(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
-    method: "PUT",
+  const jid = await resolverJid(telefone, instancia);
+  if (!jid) return false;
+
+  return chamarEvolution(`${EVO_URL}/group/updateParticipant/${instancia}?groupJid=${encodeURIComponent(groupId)}`, {
+    method: "POST",
     headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-    body: JSON.stringify({
-      groupJid: groupId,
-      action: "add",
-      participants: [`${numero}@s.whatsapp.net`],
-    }),
-  }, `adicionarMembroGrupo → ${numero} (${plano})`);
+    body: JSON.stringify({ action, participants: [jid] }),
+  }, contexto);
+}
+
+export async function adicionarMembroGrupo(telefone: string, plano: Plano): Promise<boolean> {
+  return atualizarParticipanteGrupo(telefone, plano, "add", `adicionarMembroGrupo → ${telefone} (${plano})`);
 }
 
 export async function removerMembroGrupo(telefone: string, plano: Plano): Promise<boolean> {
-  if (!GRUPOS_ATIVOS.includes(plano)) return false;
-  if (!EVO_URL || !EVO_KEY) return false;
-  const groupId = GROUP_IDS[plano];
-  if (!groupId) return false;
-  const numero = telefone.replace(/\D/g, "");
-  if (!numero) return false;
-
-  return chamarEvolution(`${EVO_URL}/group/updateParticipant/${getInstancia(plano)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json", apikey: EVO_KEY },
-    body: JSON.stringify({
-      groupJid: groupId,
-      action: "remove",
-      participants: [`${numero}@s.whatsapp.net`],
-    }),
-  }, `removerMembroGrupo → ${numero} (${plano})`);
+  return atualizarParticipanteGrupo(telefone, plano, "remove", `removerMembroGrupo → ${telefone} (${plano})`);
 }
 
 export async function enviarEnqueteGrupo(plano: Plano, pergunta: string, opcoes: string[]): Promise<boolean> {

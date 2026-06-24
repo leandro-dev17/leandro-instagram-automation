@@ -61,9 +61,12 @@ export default function AdminConteudo() {
 
   const carregarHistorico = async () => {
     setLoading(true);
-    const res = await fetch("/api/admin/mensagens?limite=30");
-    const d = await res.json();
-    setHistorico(d.mensagens || d.posts || []);
+    // FASE 24: chamava /api/admin/mensagens (plural, inexistente) — a rota real é
+    // /api/admin/posts-whatsapp, que lê a tabela posts_whatsapp por trás de requireAdmin().
+    // A aba sempre recebia 404 e caía no fallback silencioso "Nenhuma mensagem no histórico".
+    const res = await fetch("/api/admin/posts-whatsapp?limite=30").catch(() => null);
+    const d = res ? await res.json().catch(() => ({})) : {};
+    setHistorico(d.posts || []);
     setLoading(false);
   };
 

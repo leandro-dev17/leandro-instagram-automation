@@ -27,7 +27,9 @@ export async function GET(req: NextRequest) {
       amostra: amostra.map(n => n.titulo),
     });
   } catch (err) {
+    // FASE 24: mesma proteção já aplicada a 7 outras rotas admin nas Fases 23/24.
+    console.error("admin/fix-encoding error:", err);
     await alertarTelegram("🔴", "Falha fix-encoding", String(err));
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }

@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
         const inserida = await sql`
           INSERT INTO noticias (titulo, fonte, url, categoria, global, created_at)
           VALUES (${n.titulo}, ${n.fonte}, ${n.url}, ${n.categoria}, true, NOW())
-          ON CONFLICT (url) DO NOTHING
+          ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
           RETURNING id
         `;
         if (inserida.length > 0) coletadas++; else duplicatas++;
@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
               true,
               NOW()
             )
-            ON CONFLICT (url) DO NOTHING
+            ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
             RETURNING id
           `;
           if (inserida.length > 0) coletadas++; else duplicatas++;

@@ -5,6 +5,8 @@ type Prompts = {
   braga_vip: string; cavalcanti: string;
 };
 
+type Padroes = Record<string, string>;
+
 const LABELS: Record<string, { label: string; cor: string; desc: string }> = {
   braga_vip:      { label:"🔥 Capitão Braga — VIP",       cor:"#dc2626",desc:"5-7 linhas, análise profunda" },
   cavalcanti:     { label:"🎖️ Prof. Cavalcanti — Elite",  cor:"#7c3aed",desc:"5-7 linhas, perspectiva global" },
@@ -12,12 +14,13 @@ const LABELS: Record<string, { label: string; cor: string; desc: string }> = {
 
 export default function AdminPrompts() {
   const [prompts, setPrompts] = useState<Prompts | null>(null);
+  const [padroes, setPadroes] = useState<Padroes>({});
   const [editando, setEditando] = useState<{ chave: string; valor: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/prompts").then(r => r.json()).then(d => setPrompts(d.prompts));
+    fetch("/api/admin/prompts").then(r => r.json()).then(d => { setPrompts(d.prompts); setPadroes(d.padroes || {}); });
   }, []);
 
   const salvar = async () => {
@@ -78,7 +81,11 @@ export default function AdminPrompts() {
                     <button onClick={salvar} disabled={salvando} style={{ background:meta?.cor||"#ffd700", color:"#0a0a14", fontWeight:900, padding:"8px 20px", borderRadius:8, border:"none", cursor:"pointer", fontSize:13 }}>
                       {salvando ? "Salvando..." : "💾 Salvar Prompt"}
                     </button>
-                    <button onClick={() => setEditando({ chave, valor: Object.values(LABELS)[0]?.label || valor })}
+                    {/* FASE 24: usava Object.values(LABELS)[0]?.label (string de UI, ex:
+                        "🔥 Capitão Braga — VIP") como se fosse o prompt padrão a restaurar —
+                        substituía o prompt customizado por um texto sem sentido semântico ao
+                        salvar. O prompt padrão real vem de GET /api/admin/prompts → padroes. */}
+                    <button onClick={() => setEditando({ chave, valor: padroes[chave] ?? valor })}
                       style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"#666", padding:"8px 14px", borderRadius:8, cursor:"pointer", fontSize:12 }}>
                       ↩️ Restaurar padrão
                     </button>

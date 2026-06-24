@@ -211,7 +211,7 @@ export async function GET(req: NextRequest) {
         const novaNoticia = await sql`
           INSERT INTO noticias (titulo, fonte, url, resumo_braga, resumo_cavalcanti, categoria, urgente, created_at)
           VALUES (${mencao.titulo}, ${politico.nome}, ${mencao.url}, ${alertaBraga}, ${alertaCavalcanti}, 'urgente', true, NOW())
-          ON CONFLICT (url) DO NOTHING
+          ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
           RETURNING id
         `;
 

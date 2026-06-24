@@ -53,10 +53,13 @@ export async function GET(req: NextRequest) {
     const semana = Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000));
     const p = PERSONALIDADES[semana % PERSONALIDADES.length];
 
-    // Verifica se já enviou esta semana
+    // Verifica se já enviou esta semana — FASE 24: faltava filtrar por status='sucesso'
+    // (padrão usado em enquete-dia/dossie-elite/analise-semanal-vip). Sem isso, uma falha
+    // de envio gravava status='erro' e bloqueava qualquer nova tentativa pelos 6 dias
+    // seguintes, sem chance de auto-recuperação até a próxima segunda.
     const jaEnviou = await sql`
       SELECT id FROM agentes_log
-      WHERE agente = 'personagem-semana'
+      WHERE agente = 'personagem-semana' AND status = 'sucesso'
       AND created_at >= NOW() - INTERVAL '6 days'
       LIMIT 1
     `;

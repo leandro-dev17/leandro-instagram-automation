@@ -112,9 +112,11 @@ export async function POST(req: NextRequest) {
 
       const nome = usuario?.nome || "Patriota";
 
-      // Posta boas-vindas no grupo
+      // Posta boas-vindas no grupo — FASE 24: o retorno do envio não era checado e o log
+      // abaixo gravava 'sucesso' incondicionalmente, mascarando falha real da Evolution API
+      // (mesma classe de bug já corrigida em outros 8+ pontos nas Fases 17/22/23/24).
       const msg = buildBoasVindasGrupo(plano, nome);
-      if (msg) await enviarMensagemGrupo(plano, msg);
+      const enviado = msg ? await enviarMensagemGrupo(plano, msg) : true;
 
       // Registra no banco se usuário encontrado
       if (usuario) {
@@ -131,7 +133,7 @@ export async function POST(req: NextRequest) {
       // Log do agente
       await sql`
         INSERT INTO agentes_log (agente, acao, status, detalhes)
-        VALUES ('regina-recepcao', 'boas_vindas_grupo', 'sucesso', ${JSON.stringify({ telefone, plano, nome })})
+        VALUES ('regina-recepcao', 'boas_vindas_grupo', ${enviado ? "sucesso" : "erro"}, ${JSON.stringify({ telefone, plano, nome })})
       `.catch(() => {});
     }
 

@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
               ${(n as { urgente?: boolean }).urgente ?? false},
               NOW()
             )
-            ON CONFLICT (url) DO NOTHING
+            ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
             RETURNING id
           `;
           if (inserida.length > 0) coletadas++; else duplicatas++;

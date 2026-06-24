@@ -178,14 +178,28 @@ async function desativarAcesso(mpSubscriptionId: string, motivo: "cancelado" | "
 
   // Remove do grupo WhatsApp
   if (telefone && plano) {
-    await removerMembroGrupo(telefone, plano as Plano);
+    // FASE 24: mesmo bug que a FASE 17 já tinha corrigido em moderacao-grupo — o
+    // retorno de removerMembroGrupo era ignorado e o banco marcava 'removido'
+    // mesmo quando a chamada à Evolution API falhava (ex: sessão do WhatsApp
+    // desconectada). Resultado real: usuário cancelado continuava no grupo pago
+    // vendo conteúdo de graça, e como membros_grupos já constava 'removido', o
+    // cron de retry (miguel-moderacao) nunca tentava de novo. Agora só marca
+    // 'removido' se a remoção de fato aconteceu; senão deixa 'ativo' para o
+    // cron tentar novamente depois.
+    const removido = await removerMembroGrupo(telefone, plano as Plano);
     const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${plano} LIMIT 1`;
-    if (grupoRows.length > 0) {
+    if (removido && grupoRows.length > 0) {
       await sql`
         UPDATE membros_grupos SET status = 'removido', data_saida = NOW()
         WHERE usuario_id = ${id} AND grupo_id = ${grupoRows[0].id}
       `;
       await sql`UPDATE grupos_whatsapp SET membros_ativos = GREATEST(0, membros_ativos - 1) WHERE id = ${grupoRows[0].id}`;
+    } else if (!removido) {
+      await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes)
+        VALUES ('augusto-assinaturas', 'remover_grupo', 'erro',
+          ${JSON.stringify({ usuarioId: id, plano, motivo: "Evolution API recusou a remoção" })})
+      `;
     }
   }
 

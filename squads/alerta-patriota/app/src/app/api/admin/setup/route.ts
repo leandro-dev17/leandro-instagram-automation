@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { verificarCronSecret } from "@/lib/auth";
 
 // Rota protegida — só executa com CRON_SECRET correto
 // POST /api/admin/setup — cria todas as tabelas do zero
 
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  // FASE 24: esta rota faz DDL completo (cria/migra todo o schema) — o maior
+  // blast radius do projeto — mas comparava o secret com `!==` puro em vez de
+  // compararSegredo()/timingSafeEqual, que corrigiu esse mesmo padrão em
+  // verificarCronSecret/verificarSegredoAutofix na Fase 23. Ficou de fora daquela
+  // migração porque a comparação aqui era inline, não passava por lib/auth.ts.
+  if (!verificarCronSecret(req)) {
     return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   }
 
@@ -304,7 +309,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, mensagem: "Banco de dados criado com sucesso!" });
   } catch (err) {
+    // FASE 24: rota de DDL completo — String(err) podia expor nomes reais de
+    // tabelas/colunas/constraints internas. Mesma proteção das outras 7 rotas admin.
     console.error("setup/route.ts error:", err);
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }
