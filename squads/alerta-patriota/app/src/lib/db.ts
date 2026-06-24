@@ -9,7 +9,7 @@ export const sql = neon(process.env.DATABASE_URL);
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
 export type Plano = "vip" | "elite";
-export type StatusUsuario = "trial" | "ativo" | "inadimplente" | "cancelado";
+export type StatusUsuario = "trial" | "ativo" | "inadimplente" | "cancelado" | "excluido";
 export type TipoUsuario = "membro" | "admin";
 
 export type Usuario = {

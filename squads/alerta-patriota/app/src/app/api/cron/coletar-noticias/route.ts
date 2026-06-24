@@ -127,12 +127,12 @@ export async function GET(req: NextRequest) {
 
       for (const n of noticias) {
         try {
-          // Verifica se URL já existe
-          const existe = await sql`SELECT id FROM noticias WHERE url = ${n.url} LIMIT 1`;
-          if (existe.length > 0) { duplicatas++; continue; }
-
+          // FASE 23: SELECT (checar duplicata) + INSERT em requisições separadas deixava uma
+          // janela onde 2 fontes com a mesma URL (ou 2 execuções concorrentes do cron)
+          // passavam ambas pelo SELECT antes de qualquer uma inserir — INSERT...ON CONFLICT
+          // fecha essa janela usando o índice único noticias_url_unique (admin/setup).
           const isCurada = (n as { curada?: boolean }).curada ?? false;
-          await sql`
+          const inserida = await sql`
             INSERT INTO noticias (titulo, fonte, url, categoria, urgente, created_at)
             VALUES (
               ${n.titulo}, ${n.fonte}, ${n.url},
@@ -140,8 +140,10 @@ export async function GET(req: NextRequest) {
               ${(n as { urgente?: boolean }).urgente ?? false},
               NOW()
             )
+            ON CONFLICT (url) DO NOTHING
+            RETURNING id
           `;
-          coletadas++;
+          if (inserida.length > 0) coletadas++; else duplicatas++;
         } catch { erros++; }
       }
     }

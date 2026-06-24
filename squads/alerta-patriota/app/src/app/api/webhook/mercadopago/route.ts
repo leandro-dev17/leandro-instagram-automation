@@ -52,7 +52,31 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
     `);
   }
 
-  await sql.transaction(queries);
+  try {
+    await sql.transaction(queries);
+  } catch (err: unknown) {
+    // FASE 23: idx_assinaturas_usuario_ativa (índice único parcial criado no admin/setup)
+    // rejeita esta INSERT com 23505 quando o usuário já tem outra assinatura 'ativa' —
+    // isso acontece quando 2 requisições de criação de assinatura (duplo clique, retry,
+    // 2 abas) passam pelo SELECT de status antes de qualquer uma confirmar pagamento no MP,
+    // gerando 2 PreApprovals/cobranças distintas para o mesmo usuário. A transação inteira
+    // (incluindo o UPDATE em usuarios) é revertida, então o usuário não fica em estado
+    // inconsistente — mas a 2ª cobrança no MP já aconteceu e precisa de estorno manual.
+    const pgErr = err as { code?: string };
+    if (pgErr?.code === "23505") {
+      await alertarTelegram(
+        "🔴",
+        "Assinatura duplicada detectada — estorno manual necessário",
+        `usuarioId: ${usuarioId} | plano: ${plano} | nova cobrança mp: ${mpSubscriptionId}\nUsuário já tinha assinatura ativa com outro mp_subscription_id. A 2ª cobrança no Mercado Pago foi efetuada mas NÃO foi ativada no sistema — verifique e estorne a cobrança duplicada manualmente.`
+      );
+      await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes)
+        VALUES ('augusto-assinaturas', 'ativar_acesso', 'duplicado', ${JSON.stringify({ usuarioId, plano, mpSubscriptionId, dataId: mpSubscriptionId })})
+      `.catch(() => {});
+      return;
+    }
+    throw err;
+  }
 
   // Busca dados do usuário
   const rows = await sql`SELECT nome, email, telefone FROM usuarios WHERE id = ${usuarioId} LIMIT 1`;
@@ -61,7 +85,10 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
 
   // Adiciona ao grupo WhatsApp
   if (telefone) {
-    console.log("[ativar-acesso] Adicionando ao grupo WhatsApp — telefone:", telefone, "| plano:", plano);
+    // FASE 23 (LGPD): console.log vai para o sistema de logs da Vercel, retido por mais
+    // tempo e acessível a mais gente que os alertas pontuais do Telegram — não deve
+    // conter o telefone completo, só os últimos 4 dígitos para correlação/depuração.
+    console.log("[ativar-acesso] Adicionando ao grupo WhatsApp — telefone: ***" + telefone.slice(-4), "| plano:", plano);
     const addOk = await adicionarMembroGrupo(telefone, plano);
     console.log("[ativar-acesso] adicionarMembroGrupo resultado:", addOk);
 
@@ -93,7 +120,7 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
   // E-mail de boas-vindas
   const linkGrupo = getLinkGrupo(plano);
   const emailOk = await enviarEmailBoasVindas(email, nome, plano, linkGrupo).catch((e) => { console.error("[ativar-acesso] erro email:", e); return false; });
-  console.log("[ativar-acesso] enviarEmailBoasVindas resultado:", emailOk, "→", email);
+  console.log("[ativar-acesso] enviarEmailBoasVindas resultado:", emailOk, "→ usuarioId:", usuarioId);
 
   // Log
   await sql`
@@ -346,6 +373,12 @@ export async function POST(req: NextRequest) {
           } else {
             await ativarAcesso(usuarioId, plano, String(dataId), valor, ciclo, String(dataId), payment.payment_type_id || "desconhecido");
           }
+        } else {
+          // FASE 23: pagamento aprovado no MP mas sem usuarioId/plano válido (metadata e
+          // external_reference ausentes/corrompidos) — antes isso era descartado em silêncio,
+          // sem log nem alerta, e o cliente pagava sem nunca ter o acesso ativado.
+          console.error("[webhook-mp] payment aprovado mas dados inválidos — acesso NÃO ativado. usuarioId:", usuarioId, "| plano:", plano, "| dataId:", dataId);
+          await alertarTelegram("🔴", "Webhook MP — payment aprovado com dados inválidos, acesso NÃO ativado", `usuarioId: ${usuarioId} | plano: ${plano || "(vazio)"} | dataId: ${dataId}\nVerifique manualmente — cliente pode ter pago sem receber acesso.`);
         }
       }
     }

@@ -125,15 +125,20 @@ export async function GET(req: NextRequest) {
       const inativos = await buscarInativos(onda);
 
       for (const u of inativos) {
+        // FASE 23: status 'sucesso' era gravado incondicionalmente, mesmo que e-mail e
+        // WhatsApp falhassem os dois — mascarando falhas reais de entrega na onda.
+        let emailOk = false;
+        let whatsappOk = false;
         if (u.email) {
-          await enviarEmailReengajamento(u.email, u.nome, onda.dias).catch(() => {});
+          emailOk = await enviarEmailReengajamento(u.email, u.nome, onda.dias).catch(() => false);
         }
         if (u.telefone) {
-          await enviarMensagemPrivada(u.telefone, mensagemWhatsApp(onda.dias, u.nome));
+          whatsappOk = await enviarMensagemPrivada(u.telefone, mensagemWhatsApp(onda.dias, u.nome));
         }
+        const algumEnvioOk = (u.email ? emailOk : true) && (u.telefone ? whatsappOk : true);
         await sql`
           INSERT INTO agentes_log (agente, acao, status, detalhes)
-          VALUES ('enzo-engajamento', ${onda.acao}, 'sucesso', ${JSON.stringify({ usuarioId: u.id })})
+          VALUES ('enzo-engajamento', ${onda.acao}, ${algumEnvioOk ? "sucesso" : "erro"}, ${JSON.stringify({ usuarioId: u.id, emailOk, whatsappOk })})
         `;
         acoes++;
       }

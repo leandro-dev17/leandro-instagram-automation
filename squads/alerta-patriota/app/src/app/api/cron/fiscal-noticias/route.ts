@@ -87,17 +87,28 @@ export async function GET(req: NextRequest) {
         await criarAlertaDedup("estoque_critico", "critico", mensagem);
       }
 
-      const linhas = [
-        `⚠️ SOFIA STOQUE — Estoque Crítico`,
-        `Notícias prontas:`,
-        `• VIP: ${estoque.vip} ${nivelEstoque(estoque.vip)}`,
-        `• Elite: ${estoque.elite} ${nivelEstoque(estoque.elite)}`,
-        ``,
-        `Auto-fix: coletar + curar + resumir acionados.`,
-        `Resultado: ${JSON.stringify(fixResult)}`,
-      ];
+      // FASE 23: este aviso disparava Telegram a cada execução enquanto o estoque
+      // permanecesse baixo — só o caso "ainda crítico após auto-fix" tinha dedup
+      // (criarAlertaDedup acima), faltava aplicar o mesmo aqui.
+      const { criado: avisoCriado } = await criarAlertaDedup(
+        "estoque_baixo",
+        "medio",
+        `Estoque baixo — VIP: ${estoque.vip}, Elite: ${estoque.elite}`
+      );
 
-      await enviarTelegram(linhas.join("\n"));
+      if (avisoCriado) {
+        const linhas = [
+          `⚠️ SOFIA STOQUE — Estoque Crítico`,
+          `Notícias prontas:`,
+          `• VIP: ${estoque.vip} ${nivelEstoque(estoque.vip)}`,
+          `• Elite: ${estoque.elite} ${nivelEstoque(estoque.elite)}`,
+          ``,
+          `Auto-fix: coletar + curar + resumir acionados.`,
+          `Resultado: ${JSON.stringify(fixResult)}`,
+        ];
+
+        await enviarTelegram(linhas.join("\n"));
+      }
     }
 
     const duracao = Date.now() - inicio;

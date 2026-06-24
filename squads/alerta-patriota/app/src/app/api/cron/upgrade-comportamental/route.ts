@@ -48,13 +48,15 @@ export async function GET(req: NextRequest) {
 
       for (const u of engajados) {
         if (!MSGS_UPGRADE[plano]) continue;
-        await enviarMensagemPrivada(u.telefone, MSGS_UPGRADE[plano](u.nome));
+        // FASE 23: status 'sucesso' era gravado incondicionalmente, mascarando falhas reais
+        // de envio da sugestão de upgrade.
+        const enviado = await enviarMensagemPrivada(u.telefone, MSGS_UPGRADE[plano](u.nome));
         await sql`
           INSERT INTO agentes_log (agente, acao, status, detalhes)
-          VALUES ('ulisses-upgrade', 'sugerir_upgrade', 'sucesso',
+          VALUES ('ulisses-upgrade', 'sugerir_upgrade', ${enviado ? "sucesso" : "erro"},
             ${JSON.stringify({ usuarioId: u.id, planoAtual: plano, planoSugerido: proxPlano })})
         `;
-        enviados++;
+        if (enviado) enviados++;
         await new Promise(r => setTimeout(r, 2000));
       }
     }

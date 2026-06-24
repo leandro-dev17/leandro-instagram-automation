@@ -11,7 +11,9 @@ export async function GET() {
     const ativo = await sql`SELECT id FROM alertas WHERE tipo = 'modo_crise' AND resolvido = false LIMIT 1`;
     return NextResponse.json({ ativo: ativo.length > 0 });
   } catch (err) {
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    console.error("admin/modo-crise GET error:", err);
+    if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }
 
@@ -29,7 +31,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, ...data });
   } catch (err) {
+    console.error("admin/modo-crise POST error:", err);
     if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }

@@ -19,7 +19,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const logs = await sql`SELECT * FROM agentes_log WHERE detalhes->>'usuarioId' = ${params.id} ORDER BY created_at DESC LIMIT 20`;
     return NextResponse.json({ usuario: usuario[0], pagamentos, logs });
   } catch (err) {
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    // FASE 23: String(err) bruto pode incluir mensagem de erro do driver Postgres
+    // (nomes de coluna/tabela, fragmento da query) — não deve ir para a resposta HTTP.
+    console.error("admin/usuarios/[id] GET error:", err);
+    if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }
 
@@ -85,6 +89,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('admin-manual', ${acao}, 'sucesso', ${JSON.stringify({ usuarioId: id, plano, motivo, adminId: admin.id, adminEmail: admin.email })})`;
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    console.error("admin/usuarios/[id] PATCH error:", err);
+    if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }

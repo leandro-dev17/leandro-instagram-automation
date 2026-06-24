@@ -91,19 +91,36 @@ export async function GET(req: NextRequest) {
         );
       }
     } else if (totalInadimplencia > 50) {
-      await alertarTelegram(
-        "🟡",
-        "INAÊ INADIMPLÊNCIA — Aviso",
-        `💸 Total inadimplente: R$ ${formatBRL(totalInadimplencia)} (${inadimplentes.length} usuário(s))`
+      // FASE 23: este aviso e o de Pix parado abaixo disparavam Telegram a cada execução
+      // do cron enquanto a condição persistisse (mesmo padrão de spam que o Fase 17 já
+      // corrigiu para inadimplencia_alta/mrr_queda) — faltava aplicar o mesmo dedup aqui.
+      const { criado } = await criarAlertaDedup(
+        "inadimplencia_media",
+        "medio",
+        `Inadimplência acumulada: R$ ${formatBRL(totalInadimplencia)} (${inadimplentes.length} usuários)`
       );
+      if (criado) {
+        await alertarTelegram(
+          "🟡",
+          "INAÊ INADIMPLÊNCIA — Aviso",
+          `💸 Total inadimplente: R$ ${formatBRL(totalInadimplencia)} (${inadimplentes.length} usuário(s))`
+        );
+      }
     }
 
     if (qtdPixParados > 0) {
-      await alertarTelegram(
-        "🟡",
-        "INAÊ INADIMPLÊNCIA — Pix parado há +2h",
-        `${qtdPixParados} Pix pendente(s) sem confirmação — total R$ ${formatBRL(totalPixParado)}\n\nVerificar painel do Mercado Pago.`
+      const { criado: criadoPix } = await criarAlertaDedup(
+        "pix_parado",
+        "medio",
+        `${qtdPixParados} Pix pendente(s) sem confirmação há +2h — total R$ ${formatBRL(totalPixParado)}`
       );
+      if (criadoPix) {
+        await alertarTelegram(
+          "🟡",
+          "INAÊ INADIMPLÊNCIA — Pix parado há +2h",
+          `${qtdPixParados} Pix pendente(s) sem confirmação — total R$ ${formatBRL(totalPixParado)}\n\nVerificar painel do Mercado Pago.`
+        );
+      }
     }
 
     const duracao = Date.now() - inicio;

@@ -7,13 +7,13 @@ export async function GET() {
     await requireAdmin();
 
     const [mrr, receita, inadimplentes, cancelamentos, crescimento] = await Promise.all([
+      // FASE 23: valores hardcoded (9.90/8.25/19.90/16.58) ficavam desatualizados sempre que
+      // o preço dos planos mudasse, e tratavam toda assinatura anual com o mesmo valor fixo
+      // independente do que foi realmente cobrado. Usa o `valor`/`ciclo` reais da linha,
+      // normalizando anual/12 — mesma lógica do fiscal-mrr/route.ts:26-34.
       sql`
         SELECT
-          SUM(CASE WHEN plano='vip'   AND ciclo='mensal'  THEN 9.90
-                   WHEN plano='vip'   AND ciclo='anual'   THEN 8.25
-                   WHEN plano='elite' AND ciclo='mensal'  THEN 19.90
-                   WHEN plano='elite' AND ciclo='anual'   THEN 16.58
-                   ELSE 0 END) as mrr,
+          SUM(CASE WHEN ciclo = 'anual' THEN valor / 12.0 ELSE valor END) as mrr,
           COUNT(*) as total_ativas
         FROM assinaturas WHERE status = 'ativa'
       `,

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
@@ -52,13 +53,21 @@ export async function GET(req: NextRequest) {
     if (servico === "banco" || servico === "all") {
       const ok = await curarBanco();
       resultados.banco = ok;
-      if (!ok) await alertarTelegram("🚨", "Mário Médico — NÃO CUROU o banco", "Neon não responde após 5 tentativas. Verificar console.neon.tech");
+      // FASE 23: chamado repetidamente pelos fiscais via claude-resolver enquanto o
+      // problema persistir, sem dedup gerava um Telegram novo a cada acionamento.
+      if (!ok) {
+        const { criado } = await criarAlertaDedup("medico_falha_banco", "critico", "Auto-cura do banco falhou após 5 tentativas");
+        if (criado) await alertarTelegram("🚨", "Mário Médico — NÃO CUROU o banco", "Neon não responde após 5 tentativas. Verificar console.neon.tech");
+      }
     }
 
     if (servico === "whatsapp" || servico === "all") {
       const ok = await curarWhatsApp();
       resultados.whatsapp = ok;
-      if (!ok) await alertarTelegram("🚨", "Mário Médico — NÃO CUROU WhatsApp", "Evolution API não reconecta. Acesse o manager para escanear QR.");
+      if (!ok) {
+        const { criado } = await criarAlertaDedup("medico_falha_whatsapp", "critico", "Auto-cura do WhatsApp falhou");
+        if (criado) await alertarTelegram("🚨", "Mário Médico — NÃO CUROU WhatsApp", "Evolution API não reconecta. Acesse o manager para escanear QR.");
+      }
     }
 
     // Registra resultado

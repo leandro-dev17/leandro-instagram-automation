@@ -89,14 +89,15 @@ export async function GET(req: NextRequest) {
       const noticias = await coletarFonte(fonte);
 
       for (const n of noticias) {
-        const existe = await sql`SELECT id FROM noticias WHERE url = ${n.url} LIMIT 1`;
-        if (existe.length > 0) { duplicatas++; continue; }
-
-        await sql`
+        // FASE 23: SELECT+INSERT separados deixavam janela de duplicata entre execuções
+        // concorrentes — INSERT...ON CONFLICT fecha a janela via noticias_url_unique.
+        const inserida = await sql`
           INSERT INTO noticias (titulo, fonte, url, categoria, global, created_at)
           VALUES (${n.titulo}, ${n.fonte}, ${n.url}, ${n.categoria}, true, NOW())
+          ON CONFLICT (url) DO NOTHING
+          RETURNING id
         `;
-        coletadas++;
+        if (inserida.length > 0) coletadas++; else duplicatas++;
       }
     }
 
@@ -120,10 +121,7 @@ export async function GET(req: NextRequest) {
 
           if (!titulo || !url) continue;
 
-          const existe = await sql`SELECT id FROM noticias WHERE url = ${url} LIMIT 1`;
-          if (existe.length > 0) { duplicatas++; continue; }
-
-          await sql`
+          const inserida = await sql`
             INSERT INTO noticias (titulo, fonte, url, categoria, urgente, global, created_at)
             VALUES (
               ${titulo}, ${lider.nome}, ${url},
@@ -132,8 +130,10 @@ export async function GET(req: NextRequest) {
               true,
               NOW()
             )
+            ON CONFLICT (url) DO NOTHING
+            RETURNING id
           `;
-          coletadas++;
+          if (inserida.length > 0) coletadas++; else duplicatas++;
           count++;
         }
       } catch { /* ignora falha de canal individual */ }

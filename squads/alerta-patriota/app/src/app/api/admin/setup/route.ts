@@ -202,12 +202,17 @@ export async function POST(req: NextRequest) {
         id SERIAL PRIMARY KEY,
         usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
         tipo VARCHAR(50) NOT NULL,
+        mensagem TEXT,
         tentativas INT DEFAULT 0,
         agendado_para TIMESTAMP DEFAULT NOW(),
         processado_em TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW()
       )
     `;
+    // FASE 23: a coluna mensagem (usada por webhook/whatsapp e bot-responder) faltava na
+    // CREATE TABLE original — só existia em bancos onde fix-encoding/revisor-schema já
+    // tinham rodado o ALTER TABLE de patch. Um setup do zero ficava sem a coluna.
+    await sql`ALTER TABLE whatsapp_fila ADD COLUMN IF NOT EXISTS mensagem TEXT`;
 
     // ── RADAR POLÍTICO (tweets detectados) ─────────────────────────────────
     await sql`
@@ -271,6 +276,22 @@ export async function POST(req: NextRequest) {
     await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_assinatura_id ON pagamentos(assinatura_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_status ON pagamentos(status)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_usuarios_mp_subscription_id ON usuarios(mp_subscription_id)`;
+
+    // FASE 23: sem isto, duas requisições concorrentes de criação de assinatura
+    // (duplo clique, retry, 2 abas) passam ambas pelo SELECT de status antes de
+    // qualquer uma confirmar pagamento no MP, gerando 2 PreApprovals/cobranças
+    // distintas para o mesmo usuário — o UNIQUE em mp_subscription_id não pega
+    // esse caso porque cada PreApproval tem um id diferente.
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_assinaturas_usuario_ativa ON assinaturas(usuario_id) WHERE status = 'ativa'`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_created_at ON pagamentos(created_at)`;
+
+    // FASE 23: coletar-noticias/coletar-noticias-global faziam SELECT (checar duplicata)
+    // seguido de INSERT em requisições separadas — 2 execuções concorrentes do cron (ou
+    // RSS+YouTube do mesmo ciclo) podiam ambas passar pelo SELECT antes de qualquer uma
+    // inserir, duplicando a notícia. Além disso, radar-politico já usa
+    // `ON CONFLICT (url) DO NOTHING` ao inserir em noticias, o que sem este índice único
+    // gera erro em runtime ("no unique or exclusion constraint matching ON CONFLICT").
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS noticias_url_unique ON noticias(url) WHERE url IS NOT NULL`;
 
     // ── GRUPOS PADRÃO ───────────────────────────────────────────────────────
     await sql`

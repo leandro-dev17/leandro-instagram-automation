@@ -60,11 +60,13 @@ export async function GET(req: NextRequest) {
         if (jaAlertado.length > 0) continue;
 
         const msg = `💛 *${u.nome}, não nos abandone!*\n\nPercebemos que você pode estar pensando em sair do Alerta Patriota. Antes de ir, queremos te oferecer algo especial.\n\nFale com a gente: ${APP_URL}/assinar\n\n_Capitão Braga — Deus, Pátria e Família._`;
-        await enviarMensagemPrivada(u.telefone, msg);
+        // FASE 23: status 'sucesso' era gravado incondicionalmente, mascarando falhas reais
+        // de envio do alerta de churn.
+        const enviado = await enviarMensagemPrivada(u.telefone, msg);
 
         await sql`
           INSERT INTO agentes_log (agente, acao, status, detalhes)
-          VALUES ('rodrigo-risco', 'alerta_churn', 'sucesso', ${JSON.stringify({ usuarioId: u.id, score, plano: u.plano })})
+          VALUES ('rodrigo-risco', 'alerta_churn', ${enviado ? "sucesso" : "erro"}, ${JSON.stringify({ usuarioId: u.id, score, plano: u.plano })})
         `;
         alertados++;
       }

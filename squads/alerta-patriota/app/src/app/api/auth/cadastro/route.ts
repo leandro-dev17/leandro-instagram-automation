@@ -40,7 +40,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Senha deve ter no mínimo 6 caracteres" }, { status: 400 });
     }
 
-    const existe = await sql`SELECT id FROM usuarios WHERE email = ${email} LIMIT 1`;
+    // FASE 23: checava o e-mail com a capitalização exata enviada pelo cliente, mas o
+    // INSERT abaixo sempre normaliza para minúsculas — "Foo@Bar.com" passava aqui mesmo já
+    // existindo como "foo@bar.com", e o INSERT então quebrava com erro de UNIQUE constraint
+    // não tratado (500 genérico) em vez do 409 "E-mail já cadastrado".
+    const existe = await sql`SELECT id FROM usuarios WHERE email = ${email.toLowerCase()} LIMIT 1`;
     if (existe.length > 0) {
       return NextResponse.json({ erro: "E-mail já cadastrado" }, { status: 409 });
     }

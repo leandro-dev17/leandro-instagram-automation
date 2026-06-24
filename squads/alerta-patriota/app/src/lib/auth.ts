@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { sql } from "@/lib/db";
 import type { Usuario } from "@/lib/db";
@@ -59,11 +60,21 @@ export function clearCookie(): Record<string, string> {
   };
 }
 
+// Comparação em tempo constante — evita que um atacante meça a latência da resposta
+// para descobrir o secret caractere por caractere (timing attack).
+function compararSegredo(auth: string | null, esperado: string): boolean {
+  if (!auth) return false;
+  const a = Buffer.from(auth);
+  const b = Buffer.from(`Bearer ${esperado}`);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
 export function verificarCronSecret(req: Request): boolean {
   const auth = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
   if (!secret) return false; // CRON_SECRET obrigatório — sem ele, bloqueia tudo
-  return auth === `Bearer ${secret}`;
+  return compararSegredo(auth, secret);
 }
 
 // FASE 21: claude-resolver e claude-revisor têm permissão de escrita no GitHub (commit
@@ -74,6 +85,6 @@ export function verificarCronSecret(req: Request): boolean {
 export function verificarSegredoAutofix(req: Request): boolean {
   const auth = req.headers.get("authorization");
   const dedicado = process.env.CLAUDE_AUTOFIX_SECRET;
-  if (dedicado) return auth === `Bearer ${dedicado}`;
+  if (dedicado) return compararSegredo(auth, dedicado);
   return verificarCronSecret(req);
 }

@@ -30,7 +30,12 @@ export async function GET(req: NextRequest) {
         await alertarTelegram("🔴", "Fiscal Bruna Banco — BANCO LENTO", `Latência: ${latencia}ms`);
       }
     } else if (qtdLengas > 0) {
-      await alertarTelegram("🟡", "Fiscal Bruna Banco — Query longa detectada", `${qtdLengas} query(s) rodando há +30s`);
+      // FASE 23: faltava dedup aqui — esse cron roda a cada 10min, então uma query longa
+      // que persistisse por horas gerava um alerta Telegram novo a cada execução.
+      const { criado: queryLengaCriado } = await criarAlertaDedup("fiscal_banco_query_lenga", "medio", `${qtdLengas} query(s) rodando há +30s`);
+      if (queryLengaCriado) {
+        await alertarTelegram("🟡", "Fiscal Bruna Banco — Query longa detectada", `${qtdLengas} query(s) rodando há +30s`);
+      }
     } else {
       await sql`INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms) VALUES ('bruna-banco', 'health_check', 'sucesso', '{}', ${latencia})`;
     }

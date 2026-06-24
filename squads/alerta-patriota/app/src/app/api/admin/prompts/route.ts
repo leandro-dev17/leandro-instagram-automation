@@ -19,8 +19,9 @@ export async function GET() {
     }
     return NextResponse.json({ prompts, padroes: PROMPTS_PADRAO });
   } catch (err) {
+    console.error("admin/prompts GET error:", err);
     if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }
 
@@ -38,7 +39,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, chave, chars: valor.length });
   } catch (err) {
+    console.error("admin/prompts POST error:", err);
     if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }

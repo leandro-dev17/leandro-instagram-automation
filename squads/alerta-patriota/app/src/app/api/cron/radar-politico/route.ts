@@ -221,20 +221,28 @@ export async function GET(req: NextRequest) {
         // Victor Viral — Capitão Braga posta SOMENTE no VIP
         if (alertaBraga) {
           const msgVIP = `🚨 *URGENTE — ${politico.nome.toUpperCase()}*\n\n${alertaBraga}`;
-          await enviarMensagemGrupo("vip", msgVIP);
+          // FASE 23: status 'enviado' era gravado incondicionalmente, mesmo quando o envio
+          // ao WhatsApp falhava — mascarando falhas reais no histórico de posts.
+          const enviadoVip = await enviarMensagemGrupo("vip", msgVIP);
+          if (!enviadoVip) {
+            await alertarTelegram("🔴", "Radar Político — falha ao enviar alerta urgente no VIP", `político: ${politico.nome} | url: ${mencao.url}`);
+          }
           const grupoVIP = await sql`SELECT id FROM grupos_whatsapp WHERE plano = 'vip' LIMIT 1`;
           if (grupoVIP.length > 0) {
-            await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoVIP[0].id}, ${noticiaId}, ${msgVIP}, 'urgente', 'enviado')`.catch(() => {});
+            await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoVIP[0].id}, ${noticiaId}, ${msgVIP}, 'urgente', ${enviadoVip ? "enviado" : "erro"})`.catch(() => {});
           }
         }
 
         // Victor Viral — Prof. Cavalcanti posta SOMENTE no Elite
         if (alertaCavalcanti) {
           const msgElite = `📊 *ANÁLISE URGENTE — ${politico.nome.toUpperCase()}*\n\n${alertaCavalcanti}`;
-          await enviarMensagemGrupo("elite", msgElite);
+          const enviadoElite = await enviarMensagemGrupo("elite", msgElite);
+          if (!enviadoElite) {
+            await alertarTelegram("🔴", "Radar Político — falha ao enviar análise urgente no Elite", `político: ${politico.nome} | url: ${mencao.url}`);
+          }
           const grupoElite = await sql`SELECT id FROM grupos_whatsapp WHERE plano = 'elite' LIMIT 1`;
           if (grupoElite.length > 0) {
-            await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoElite[0].id}, ${noticiaId}, ${msgElite}, 'urgente', 'enviado')`.catch(() => {});
+            await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoElite[0].id}, ${noticiaId}, ${msgElite}, 'urgente', ${enviadoElite ? "enviado" : "erro"})`.catch(() => {});
           }
         }
 

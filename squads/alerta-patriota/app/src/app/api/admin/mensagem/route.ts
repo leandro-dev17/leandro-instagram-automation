@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    console.error("admin/mensagem error:", err);
     if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }

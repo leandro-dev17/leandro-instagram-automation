@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, resultados });
   } catch (err) {
-    return NextResponse.json({ erro: String(err) }, { status: 500 });
+    console.error("admin/publicar-agora error:", err);
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
   }
 }
