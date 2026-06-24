@@ -712,6 +712,9 @@ Um `git stash` local antigo continha um `.env.local` em texto puro com credencia
 
 **Verificação final:** `npx tsc --noEmit` limpo após todas as correções desta fase.
 
+### Migração de dados em produção (pós-deploy)
+Ao aplicar o novo índice único `noticias_url_unique` diretamente no banco de produção (rota `admin/setup` ficou inacessível via `CRON_SECRET` porque o middleware já exige cookie de admin em `/api/admin/*` — achado lateral, não é bug, é proteção implementada antes), a criação do índice falhou: havia 11 notícias com URL duplicada já em produção (efeito real da própria corrida que esta fase corrigiu). Investigação mostrou que 9 dos 11 pares já tinham posts reais em `posts_whatsapp` referenciando as duas cópias (mensagens diferentes enviadas a VIP/Elite a partir de cada cópia). Resolvido sem perda de histórico: `posts_whatsapp.noticia_id` das 9 duplicatas repontado para a cópia mais antiga (260 posts atualizados), depois as 11 notícias duplicadas removidas, e só então o índice único criado com sucesso. Demais migrações (`idx_assinaturas_usuario_ativa`, `idx_pagamentos_created_at`, `whatsapp_fila.mensagem`) aplicadas sem conflito.
+
 ---
 
 ## BUGS ADICIONAIS IDENTIFICADOS (fora das fases principais)
