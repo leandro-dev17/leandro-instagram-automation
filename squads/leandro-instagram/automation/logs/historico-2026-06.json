@@ -516,6 +516,54 @@
           "runId": 28063734586
         }
       }
+    },
+    "2026-06-25": {
+      "data": "2026-06-25",
+      "geradoEm": "2026-06-25T01:52:45.707Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "failure",
+          "concluiuEm": "2026-06-24T22:59:40Z",
+          "runId": 28135029054
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "failure",
+          "concluiuEm": "2026-06-24T22:59:06Z",
+          "runId": 28135033230
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "failure",
+          "concluiuEm": "2026-06-24T23:47:52Z",
+          "runId": 28136992193
+        }
+      }
+    },
+    "2026-06-26": {
+      "data": "2026-06-26",
+      "geradoEm": "2026-06-26T01:55:00.540Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "failure",
+          "concluiuEm": "2026-06-25T23:08:03Z",
+          "runId": 28206126160
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "failure",
+          "concluiuEm": "2026-06-25T23:07:19Z",
+          "runId": 28206130109
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "failure",
+          "concluiuEm": "2026-06-25T23:15:32Z",
+          "runId": 28206408435
+        }
+      }
     }
   }
 }
