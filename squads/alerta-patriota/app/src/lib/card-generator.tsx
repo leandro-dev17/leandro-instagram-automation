@@ -16,8 +16,12 @@ function b64(nome: string): string {
   return `data:image/png;base64,${fs.readFileSync(p).toString("base64")}`;
 }
 
-function pick(fotos: string[]): string {
-  return fotos[new Date().getDate() % fotos.length];
+// FASE 25: pick() usava new Date().getDate() — todos os posts do mesmo dia
+// caíam na mesma foto, só mudando no dia seguinte. Agora a foto é escolhida
+// por um seed único por notícia (o próprio id da linha em `noticias`), então
+// cada card publicado varia mesmo que sejam vários no mesmo dia.
+function pick(fotos: string[], seed: number): string {
+  return fotos[((seed % fotos.length) + fotos.length) % fotos.length];
 }
 
 // Fotos disponíveis nas pastas de persona — todas usadas em rotação diária
@@ -54,50 +58,48 @@ export function getCardFonts() {
 // ═══════════════════════════════════════════════════════════
 function CardBraga(p: {
   foto: string; logo: string; label1: string; label2: string;
-  hookTitulo: string; headline: string; corpo: string;
-  acento: string; barraTexto: string;
-  nome: string; cargo: string; urgente?: boolean;
+  hookTitulo: string; headline: string; urgente?: boolean;
 }) {
   const hl = p.headline.length;
-  const headlineSize = hl > 70 ? 22 : hl > 55 ? 25 : hl > 40 ? 27 : 30;
+  // FASE 24b: menos texto na imagem (selo + 1 hook só) sobrevive melhor à
+  // compressão do WhatsApp — fonte bem maior já que corpo/rodapé saíram.
+  const headlineSize = hl > 90 ? 32 : hl > 70 ? 38 : hl > 50 ? 44 : 50;
 
   return (
     <div style={{ width: 1080, height: 1080, display: "flex", flexDirection: "column", background: "#000", fontFamily: "Inter" }}>
       {/* FOTO */}
       <div style={{ flex: 1, display: "flex", position: "relative", backgroundImage: `url(${p.foto})`, backgroundSize: "cover", backgroundPosition: "center top" }}>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 90, display: "flex", backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0))" }} />
-        <div style={{ position: "absolute", top: 24, left: 32, display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: 16, fontWeight: 900, color: "#ffd700", letterSpacing: 2, textTransform: "uppercase" }}>{p.label1}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.85)", letterSpacing: 1.5, marginTop: 5 }}>{p.label2}</span>
+        {/* FASE 25c: medição com grade pixel a pixel sobre a referência — altura de letra
+            real de "ANÁLISE VIP" = 40px de caixa-alta (fontSize≈54); largura da faixa é
+            consequência do texto, não um valor fixo. */}
+        <div style={{ position: "absolute", top: 52, left: 0, display: "flex", alignItems: "center", height: 73, background: "#e6b018", padding: "0 34px 0 30px" }}>
+          <span style={{ fontSize: 54, fontWeight: 900, color: "#15110a", letterSpacing: 1, textTransform: "uppercase", display: "flex" }}>{p.label1}</span>
         </div>
+        {/* "O QUE A MÍDIA ESCONDE" medido: caixa-alta com 20-21px de altura → fontSize≈28 (era 18, por isso ficou pequeno) */}
+        <div style={{ position: "absolute", top: 128, left: 30, display: "flex" }}>
+          <span style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: 1, textTransform: "uppercase" }}>{p.label2}</span>
+        </div>
+        {/* FASE 25c: logo medida com grade — diâmetro real ≈350px, margem topo≈34, direita≈30;
+            recorte circular obrigatório pois logo.png não tem alpha (fundo quadrado preto) */}
         {p.logo ? (
-          <div style={{ position: "absolute", top: 20, right: 28, display: "flex" }}>
-            <img src={p.logo} width={42} height={42} style={{ borderRadius: 21, border: "2px solid #ffd700" }} />
+          <div style={{ position: "absolute", top: 34, right: 30, display: "flex" }}>
+            <img src={p.logo} width={350} height={350} style={{ borderRadius: "50%" }} />
           </div>
         ) : null}
       </div>
 
-      {/* CARD BRANCO */}
-      <div style={{ background: "#fff", borderRadius: "22px 22px 0 0", boxShadow: "0 -5px 20px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "20px 34px 14px", display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, background: "#c0392b", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff" }}>
-              {p.urgente ? "🚨" : "⚠"}
-            </div>
-            <span style={{ fontFamily: "Bebas Neue", fontSize: 44, fontWeight: 400, color: p.urgente ? "#c0392b" : "#111", letterSpacing: 2 }}>{p.hookTitulo}</span>
-          </div>
-          <div style={{ fontSize: headlineSize, fontWeight: 800, color: "#111", lineHeight: 1.22, marginBottom: 7, display: "flex" }}>{p.headline}</div>
-          <div style={{ fontSize: 17, color: "#666", lineHeight: 1.45, marginBottom: 9, display: "flex" }}>{p.corpo}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#c0392b", lineHeight: 1.3, display: "flex" }}>{p.acento}</div>
+      {/* CARD BRANCO — só selo + hook */}
+      <div style={{ background: "#fff", borderRadius: "22px 22px 0 0", boxShadow: "0 -5px 20px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", padding: "30px 36px 32px" }}>
+        {/* FASE 25c: selo "URGENTE!"/"ATENÇÃO!" medido: caixa-alta com 32px de altura → fontSize≈44 (era 32) */}
+        <div style={{ display: "flex", alignSelf: "flex-start", marginBottom: 18 }}>
+          <span style={{ fontSize: 44, fontWeight: 900, color: "#dc2626", letterSpacing: 1, textTransform: "uppercase", display: "flex" }}>
+            {`${p.urgente ? "🚨" : "⚠️"} ${p.hookTitulo} ${p.urgente ? "🚨" : "⚠️"}`}
+          </span>
         </div>
-        <div style={{ background: "#1a5c2e", padding: "14px 34px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: 1.5, textTransform: "uppercase" }}>{p.barraTexto}</span>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>{p.nome}</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", letterSpacing: 0.5, marginTop: 1 }}>{p.cargo}</div>
-          </div>
-        </div>
+        <div style={{ fontSize: headlineSize, fontWeight: 800, color: "#111", lineHeight: 1.18, display: "flex" }}>{p.headline}</div>
       </div>
+      {/* FASE 25: faixa dourada inferior — só no card VIP, conforme referência */}
+      <div style={{ display: "flex", height: 14, background: "#e3b315" }} />
     </div>
   );
 }
@@ -105,54 +107,46 @@ function CardBraga(p: {
 // ═══════════════════════════════════════════════════════════
 // ESTILO PROF. BERNARDO CAVALCANTI
 // ═══════════════════════════════════════════════════════════
-function CardCavalcanti(p: { foto: string; logo: string; headline: string; corpo: string; urgente?: boolean }) {
+function CardCavalcanti(p: { foto: string; logo: string; headline: string; urgente?: boolean }) {
   const hl = p.headline.length;
-  const headlineSize = hl > 70 ? 26 : hl > 55 ? 29 : hl > 40 ? 32 : 35;
+  // FASE 24b: menos texto na imagem (selo + 1 hook só) sobrevive melhor à
+  // compressão do WhatsApp — fonte bem maior já que corpo/nome/rodapé saíram.
+  const headlineSize = hl > 90 ? 34 : hl > 70 ? 40 : hl > 50 ? 46 : 52;
 
   return (
     <div style={{ width: 1080, height: 1080, display: "flex", flexDirection: "column", background: "#07071a", fontFamily: "Inter" }}>
       {/* FOTO (overlay escuro no lugar do filter:brightness, não suportado pelo Satori) */}
       <div style={{ flex: 1, display: "flex", position: "relative", backgroundImage: `url(${p.foto})`, backgroundSize: "cover", backgroundPosition: "center top" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", background: "rgba(0,0,0,0.15)" }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 90, display: "flex", backgroundImage: "linear-gradient(to bottom, rgba(4,4,20,0.65), rgba(4,4,20,0))" }} />
-        <div style={{ position: "absolute", top: 24, left: 32, display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: 15, fontWeight: 900, color: "#a855f7", letterSpacing: 3, textTransform: "uppercase" }}>ANÁLISE EXCLUSIVA</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.65)", letterSpacing: 2, marginTop: 5 }}>ELITE GLOBAL</span>
+        {/* FASE 25c: "ANÁLISE EXCLUSIVA" medido: caixa-alta com 38px de altura → fontSize≈50 (era 32) */}
+        <div style={{ position: "absolute", top: 48, left: 0, display: "flex", alignItems: "center", height: 73, background: "#6e2fd6", padding: "0 34px 0 30px" }}>
+          <span style={{ fontSize: 50, fontWeight: 900, color: "#fff", letterSpacing: 1, textTransform: "uppercase", display: "flex" }}>ANÁLISE EXCLUSIVA</span>
         </div>
+        {/* "ELITE GLOBAL" medido: caixa-alta com 20px de altura → fontSize≈28 (era 17) */}
+        <div style={{ position: "absolute", top: 124, left: 30, display: "flex" }}>
+          <span style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: 1.5, textTransform: "uppercase" }}>ELITE GLOBAL</span>
+        </div>
+        {/* FASE 25c: mesma logo medida do CardBraga (asset/posição idênticos nas 2 referências) */}
         {p.logo ? (
-          <div style={{ position: "absolute", top: 20, right: 28, display: "flex" }}>
-            <img src={p.logo} width={42} height={42} style={{ borderRadius: 21, border: "2px solid #a855f7" }} />
+          <div style={{ position: "absolute", top: 34, right: 30, display: "flex" }}>
+            <img src={p.logo} width={350} height={350} style={{ borderRadius: "50%" }} />
           </div>
         ) : null}
       </div>
 
-      {/* CARD ESCURO */}
-      <div style={{ background: "#07071a", borderRadius: "22px 22px 0 0", borderTop: "1px solid rgba(168,85,247,0.3)", boxShadow: "0 -5px 24px rgba(0,0,0,0.6)", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "20px 36px 14px", display: "flex", flexDirection: "column" }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8, alignSelf: "flex-start",
-            background: p.urgente ? "#5b21b6" : "rgba(88,28,135,0.5)",
-            border: `1px solid ${p.urgente ? "#7c3aed" : "rgba(168,85,247,0.4)"}`,
-            color: "#c4b5fd", fontSize: 13, fontWeight: 800,
-            padding: "6px 16px", borderRadius: 4, letterSpacing: 2, textTransform: "uppercase", marginBottom: 13,
-          }}>
-            <div style={{ width: 6, height: 6, background: "#a855f7", borderRadius: 3, display: "flex" }} />
-            {p.urgente ? "ANÁLISE URGENTE" : "PERSPECTIVA GLOBAL"}
-          </div>
-          <div style={{ fontSize: headlineSize, fontWeight: 900, color: "#fff", lineHeight: 1.2, marginBottom: 10, letterSpacing: -0.3, display: "flex" }}>{p.headline}</div>
-          <div style={{ fontSize: 17, color: "rgba(255,255,255,0.6)", lineHeight: 1.45, marginBottom: 14, display: "flex" }}>{p.corpo}</div>
-          <div style={{ width: "100%", height: 1, display: "flex", marginBottom: 12, backgroundImage: "linear-gradient(to right, rgba(168,85,247,0.4), rgba(168,85,247,0))" }} />
-          <div style={{ fontSize: 19, fontWeight: 900, color: "#c4b5fd", letterSpacing: 0.3, display: "flex" }}>PROF. DR. BERNARDO CAVALCANTI</div>
-          <div style={{ fontSize: 12, color: "rgba(196,181,253,0.45)", letterSpacing: 1, marginTop: 3, display: "flex" }}>ANALISTA POLÍTICO GLOBAL · ELITE GLOBAL</div>
+      {/* CARD ESCURO — só selo + hook */}
+      <div style={{ background: "#07071a", borderRadius: "22px 22px 0 0", borderTop: "1px solid rgba(168,85,247,0.3)", boxShadow: "0 -5px 24px rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", padding: "30px 36px 38px" }}>
+        {/* FASE 25c: chip medido: caixa do selo tem 45px de altura e o texto 23px de caixa-alta
+            → fontSize≈26 (era 15, por isso ficou minúsculo) */}
+        <div style={{
+          display: "flex", alignSelf: "flex-start",
+          background: "#6e2fd6",
+          color: "#fff", fontSize: 26, fontWeight: 800,
+          padding: "6px 20px", borderRadius: 6, letterSpacing: 1, textTransform: "uppercase", marginBottom: 18,
+        }}>
+          {p.urgente ? "ANÁLISE URGENTE" : "PERSPECTIVA GLOBAL"}
         </div>
-        <div style={{ background: "rgba(88,28,135,0.55)", borderTop: "1px solid rgba(168,85,247,0.2)", padding: "13px 36px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: "#c4b5fd", letterSpacing: 2, textTransform: "uppercase" }}>O MUNDO MUDA PARA QUEM ENXERGA ANTES.</span>
-          {p.logo ? (
-            <div style={{ display: "flex" }}>
-              <img src={p.logo} width={30} height={30} style={{ borderRadius: 15, border: "1.5px solid rgba(168,85,247,0.5)", opacity: 0.8 }} />
-            </div>
-          ) : null}
-        </div>
+        <div style={{ fontSize: headlineSize, fontWeight: 900, color: "#fff", lineHeight: 1.16, letterSpacing: -0.3, display: "flex" }}>{p.headline}</div>
       </div>
     </div>
   );
@@ -163,12 +157,17 @@ function CardCavalcanti(p: { foto: string; logo: string; headline: string; corpo
 // ═══════════════════════════════════════════════════════════
 export function gerarCardElement(params: {
   plano: Plano; hook: string; corpo?: string;
-  fonte: string; urgente?: boolean;
+  fonte: string; urgente?: boolean; noticiaId?: number;
 }) {
-  const { plano, hook, corpo, urgente } = params;
+  // FASE 24b: corpo/fonte não são mais desenhados na imagem (ver CardBraga/
+  // CardCavalcanti) — a legenda da mensagem (gerarLegenda em cron/gerar-card)
+  // já traz nome da persona, data e fonte como texto simples do WhatsApp.
+  const { plano, hook, urgente, noticiaId } = params;
   const logo = b64("logo.png");
 
-  const fotoNome = plano === "elite" ? pick(FOTOS_CAVA) : pick(FOTOS_BRAGA);
+  // FASE 25: seed por notícia (id da linha) em vez de data — ver pick() acima.
+  const seed = noticiaId ?? Date.now();
+  const fotoNome = plano === "elite" ? pick(FOTOS_CAVA, seed) : pick(FOTOS_BRAGA, seed);
   const fotoData = b64(fotoNome);
 
   if (plano === "elite") {
@@ -176,7 +175,6 @@ export function gerarCardElement(params: {
       foto: fotoData,
       logo,
       headline: hook,
-      corpo: corpo || "Uma análise que vai além da superfície. Entenda o que realmente está em jogo no tabuleiro político.",
       urgente,
     });
   }
@@ -188,11 +186,6 @@ export function gerarCardElement(params: {
     label2: "O QUE A MÍDIA ESCONDE",
     hookTitulo: urgente ? "URGENTE!" : "ATENÇÃO!",
     headline: hook,
-    corpo: corpo || "Entenda o que está acontecendo e o que isso significa para o Brasil.",
-    acento: urgente ? "Isso não pode ficar sem resposta!" : "Até quando vamos aceitar isso?",
-    barraTexto: "DEUS, PÁTRIA E FAMÍLIA — SEMPRE.",
-    nome: "CAPITÃO ROBERTO BRAGA",
-    cargo: "COMENTARISTA DO ALERTA PATRIOTA",
     urgente,
   });
 }

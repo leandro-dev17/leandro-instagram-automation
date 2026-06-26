@@ -41,34 +41,39 @@ const PROMPTS_HOOK: Record<string, string> = {
 };
 
 // Prompts para a LEGENDA completa (caption da imagem)
+// FASE 24c: seções pedidas como "2-3 linhas" produziam corpo regularmente acima do
+// orçamento de caracteres (ver LEGENDA_MAX abaixo), fazendo truncarLegenda() cortar a
+// 3ª seção no meio — usuário via a análise incompleta ("...A possível liberação…").
+// Seções mais curtas (1-2 linhas, frase objetiva) cabem inteiras no limite seguro do
+// WhatsApp em vez de dependerem do corte de segurança.
 const PROMPTS_LEGENDA: Record<string, string> = {
   vip: `Você é o Capitão Braga. Escreva análise em 3 partes usando este formato EXATO:
 
 🧠 *O QUE ESTÁ ACONTECENDO*
-[2-3 linhas sobre o fato]
+[1 frase objetiva sobre o fato, máximo 20 palavras]
 
 🔍 *O QUE A MÍDIA ESCONDE*
-[2-3 linhas revelando o que está por trás]
+[1 frase objetiva revelando o que está por trás, máximo 20 palavras]
 
 🎯 *O QUE ISSO SIGNIFICA*
-[2-3 linhas sobre implicação para o Brasil]
+[1 frase objetiva sobre implicação para o Brasil, máximo 20 palavras]
 
 Termine com: Deus, Pátria e Família — sempre.
-Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
+Texto total entre 450-600 caracteres (sem contar emojis/marcação). Nunca deixe uma frase incompleta — prefira encurtar uma seção a cortar no meio. Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
 
   elite: `Você é o Prof. Bernardo Cavalcanti. Escreva análise em 3 partes usando este formato EXATO:
 
 🧠 *O QUE ESTÁ ACONTECENDO*
-[2-3 linhas sobre o fato]
+[1 frase objetiva sobre o fato, máximo 20 palavras]
 
 🌍 *MAPA GLOBAL*
-[2-3 linhas conectando a Milei, Trump, Orbán ou movimentos conservadores globais]
+[1 frase objetiva conectando a Milei, Trump, Orbán ou movimentos conservadores globais, máximo 20 palavras]
 
 🎯 *O QUE VOCÊ PRECISA SABER*
-[2-3 linhas sobre implicação estratégica para o Brasil]
+[1 frase objetiva sobre implicação estratégica para o Brasil, máximo 20 palavras]
 
 Termine com: O mundo muda para quem enxerga antes.
-Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
+Texto total entre 450-600 caracteres (sem contar emojis/marcação). Nunca deixe uma frase incompleta — prefira encurtar uma seção a cortar no meio. Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
 };
 
 async function gerarHook(titulo: string, plano: string): Promise<string> {
@@ -96,10 +101,13 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
   const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", timeZone:"America/Sao_Paulo" });
   const data = new Date().toLocaleDateString("pt-BR", { day:"numeric", month:"short", timeZone:"America/Sao_Paulo" });
 
+  // FASE 24c: 350 tokens deixava margem para o modelo passar do orçamento de 450-600
+  // caracteres pedido no prompt; 220 tokens (~600-650 caracteres em pt-BR) é teto coerente
+  // com o texto mais curto agora pedido, sem cortar a resposta da IA no meio de uma frase.
   const corpo = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
     agente: "gerador-card",
-    max_tokens: 350,
+    max_tokens: 220,
     messages: [{ role: "user", content: `${PROMPTS_LEGENDA[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
   });
 
@@ -112,11 +120,11 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
   return truncarLegenda(`${headers[plano]}\n${corpo}`);
 }
 
-async function renderizarEEnviar(plano: string, hook: string, corpo: string | undefined, fonte: string, urgente: boolean | undefined, groupJid: string, legenda: string): Promise<{ ok: boolean; erro?: string }> {
+async function renderizarEEnviar(plano: string, hook: string, corpo: string | undefined, fonte: string, urgente: boolean | undefined, groupJid: string, legenda: string, noticiaId: number): Promise<{ ok: boolean; erro?: string }> {
   if (!EVO_URL || !EVO_KEY) return { ok: false, erro: "Evolution API não configurada (EVOLUTION_API_URL/EVOLUTION_API_KEY ausentes)" };
 
   // Renderiza JSX → PNG via @vercel/og (Satori) — sem Chromium, funciona em serverless
-  const element = gerarCardElement({ plano: plano as "vip" | "elite", hook, corpo, fonte, urgente });
+  const element = gerarCardElement({ plano: plano as "vip" | "elite", hook, corpo, fonte, urgente, noticiaId });
   const imagem = new ImageResponse(element, { width: 1080, height: 1080, fonts: getCardFonts() });
   const pngBuffer = Buffer.from(await imagem.arrayBuffer());
 
@@ -199,7 +207,7 @@ export async function GET(req: NextRequest) {
 
       // Renderiza e envia
       const urgente = n.urgente === true || n.urgente === "true";
-      const resultado = await renderizarEEnviar(plano, hook, undefined, fonte, urgente, groupJid, legenda);
+      const resultado = await renderizarEEnviar(plano, hook, undefined, fonte, urgente, groupJid, legenda, n.id);
 
       if (resultado.ok) {
         enviado = true;
