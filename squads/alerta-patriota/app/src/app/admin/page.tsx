@@ -47,7 +47,7 @@ export default function AdminDashboard() {
   ];
 
   const nav = [
-    { href:"/admin/usuarios",   l:"👥 Membros"    },
+    { href:"/admin/membros",    l:"👥 Membros"    },
     { href:"/admin/financeiro", l:"💰 Financeiro" },
     { href:"/admin/conteudo",   l:"📰 Conteúdo"   },
     { href:"/admin/grupos",     l:"📱 Grupos"     },
