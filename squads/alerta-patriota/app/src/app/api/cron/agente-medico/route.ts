@@ -9,18 +9,24 @@ import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { criarAlertaDedup } from "@/lib/alertas";
 
+// Sem maxDuration, a Vercel mata a função em 10s por padrão — quando servico="all" (caso
+// default), curarBanco (até 31s de backoff) + curarWhatsApp (até 36s) rodam em sequência
+// e o pior caso somava ~67s, bem acima de qualquer teto. maxDuration=60 (limite do plano
+// Hobby) + backoffs reduzidos abaixo deixam o pior caso real em ~39s, com margem.
+export const maxDuration = 60;
+
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
 const EVO_INST = process.env.EVOLUTION_INSTANCIA || "alertapatriota";
 const APP_URL  = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
 async function curarBanco(): Promise<boolean> {
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     try {
       await sql`SELECT 1`;
       return true;
     } catch {
-      await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+      await new Promise(r => setTimeout(r, Math.min(Math.pow(2, i), 8) * 1000));
     }
   }
   return false;
@@ -32,7 +38,7 @@ async function curarWhatsApp(): Promise<boolean> {
     try {
       const res = await fetch(`${EVO_URL}/instance/connect/${EVO_INST}`, {
         headers: { apikey: EVO_KEY },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(6000),
       });
       if (res.ok) return true;
     } catch {

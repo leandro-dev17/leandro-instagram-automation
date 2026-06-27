@@ -44,6 +44,24 @@ export default function Home() {
     }
   }, []);
 
+  // FASE 27.6: links de campanha (sequencia-nao-conversao, engajamento, brevo.ts, card de
+  // notícias) sempre apontaram para /assinar?plano=X&ciclo=Y, mas /assinar só redirecionava para
+  // "/" sem esses params e esta página nunca os lia — então quem clicava num link "Elite Anual"
+  // caía na home genérica, sem o plano/ciclo certo pré-selecionado. Agora que /assinar encaminha
+  // a query string, lemos plano/ciclo aqui para refletir a intenção do link.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cicloParam = params.get("ciclo");
+    if (cicloParam === "anual" || cicloParam === "mensal") setCiclo(cicloParam);
+
+    const planoParam = params.get("plano");
+    if (planoParam && PLANOS.some(p => p.id === planoParam)) {
+      requestAnimationFrame(() => {
+        document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+  }, []);
+
   // Sticky CTA
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => setStickyVisible(!e.isIntersecting), { threshold: 0.2 });

@@ -65,9 +65,15 @@ function extrairTag(xml: string, tag: string): string {
 }
 
 function extrairLink(item: string): string {
-  // Tenta <link> sem CDATA primeiro, depois <guid>
+  // RSS 2.0: <link>URL</link> (texto)
   const link = item.match(/<link>([^<]+)<\/link>/);
   if (link) return link[1].trim();
+  // Atom (feeds de canal do YouTube): <link rel="alternate" href="URL"/> — tag
+  // self-closing com atributo, sem texto entre tags. Sem este fallback, todo item
+  // dos 8 canais/deputados em FONTES_YOUTUBE_DEPUTADOS ficava com url="" e nunca
+  // passava do filtro `url.startsWith("http")" — coleta morta silenciosamente.
+  const atomLink = item.match(/<link[^>]*\shref="([^"]+)"/);
+  if (atomLink) return atomLink[1].trim();
   const guid = item.match(/<guid[^>]*>([^<]+)<\/guid>/);
   return guid ? guid[1].trim() : "";
 }

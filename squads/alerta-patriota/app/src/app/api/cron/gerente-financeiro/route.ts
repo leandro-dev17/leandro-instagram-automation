@@ -7,13 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram } from "@/lib/telegram";
+import { calcularMRR } from "@/lib/mrr";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON_SECRET = process.env.CRON_SECRET;
-
-const VALORES_PLANO: Record<string, number> = {
-  vip: 9.90, elite: 19.90,
-};
 
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
@@ -22,18 +19,9 @@ export async function GET(req: NextRequest) {
   const problemas: string[] = [];
   let score = 100;
 
-  // 1. MRR atual
+  // 1. MRR atual — fonte única (lib/mrr.ts), não usuarios×preço-hardcoded
   try {
-    const ativos = await sql`
-      SELECT plano, COUNT(*) as total FROM usuarios
-      WHERE status IN ('ativo', 'trial')
-      GROUP BY plano
-    `;
-    let mrr = 0;
-    for (const r of ativos) {
-      const v = VALORES_PLANO[(r as { plano: string }).plano] ?? 0;
-      mrr += v * parseInt((r as { total: string }).total);
-    }
+    const { mrrTotal: mrr } = await calcularMRR();
 
     // Compara com snapshot da semana passada
     const snapSemana = await sql`

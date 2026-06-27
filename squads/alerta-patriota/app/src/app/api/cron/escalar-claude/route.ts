@@ -6,6 +6,13 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
 
+// Sem maxDuration, a Vercel mata a função em 10s por padrão — e a query de alertas abertos
+// não tinha LIMIT, então um acúmulo de alertas críticos (justamente o cenário em que este
+// agente é mais necessário) faria o loop de auto-fix (até 30s por alerta em cards_sem_envio,
+// que dispara 2 fetches sequenciais de 15s) crescer sem teto.
+export const maxDuration = 60;
+const ORCAMENTO_MS = 45000;
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -62,6 +69,7 @@ export async function GET(req: NextRequest) {
         AND severidade IN ('critico', 'alto')
         AND created_at < NOW() - INTERVAL '2 hours'
       ORDER BY severidade DESC, created_at ASC
+      LIMIT 15
     `;
 
     if (alertasAbertos.length === 0) {
@@ -79,7 +87,15 @@ export async function GET(req: NextRequest) {
     linhasMsg.push(`<b>🆘 ESCALONAMENTO PARA CLAUDE</b>`);
     linhasMsg.push(`${alertasAbertos.length} alerta(s) crítico(s) sem resolução:\n`);
 
+    let pulados = 0;
     for (const alerta of alertasAbertos) {
+      // Alertas pulados por orçamento continuam com resolvido=false e serão reavaliados
+      // (e reescalados) na próxima execução — nenhum alerta é perdido, só atrasado.
+      if (Date.now() - inicio > ORCAMENTO_MS) {
+        pulados = alertasAbertos.length - escalados.length;
+        break;
+      }
+
       const tipo = String(alerta.tipo);
       const severidade = String(alerta.severidade);
       const mensagem = String(alerta.mensagem);
@@ -106,6 +122,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    if (pulados > 0) {
+      linhasMsg.push(`⏱️ ${pulados} alerta(s) adicional(is) pulado(s) por orçamento de tempo — serão reescalados na próxima execução.`);
+    }
     linhasMsg.push(`Para acionar o Claude, execute no Claude Code:\n<code>/BioNexus Digital run alerta-patriota</code>`);
     linhasMsg.push(`\n📋 Ver painel: ${APP_URL}/admin`);
 

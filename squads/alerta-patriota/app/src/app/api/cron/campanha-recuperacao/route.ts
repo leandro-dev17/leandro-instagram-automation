@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
       const nome = d.nome as string;
       const email = d.email as string;
       const telefone = d.telefone as string;
+      const plano = d.plano as string | undefined;
 
       // FASE 24: no branch de e-mail, `enviado` nunca era atualizado a partir do retorno
       // real de enviarEmailRecuperacao() — ficava sempre `true`, mascarando falhas reais
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
       if (etapa.canal === "email") {
         enviado = await enviarEmailRecuperacao(email, nome, diasCancelado).catch(() => false);
       } else if (telefone && MSGS_WPP[etapa.msg]) {
-        enviado = await enviarMensagemPrivada(telefone, MSGS_WPP[etapa.msg](nome));
+        enviado = await enviarMensagemPrivada(telefone, MSGS_WPP[etapa.msg](nome), plano);
       } else {
         enviado = false; // sem telefone cadastrado para o canal whatsapp
       }

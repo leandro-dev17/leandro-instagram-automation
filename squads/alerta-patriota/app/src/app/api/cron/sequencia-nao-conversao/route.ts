@@ -219,7 +219,7 @@ export async function GET(req: NextRequest) {
         }
 
         if (wppNum > 0) {
-          const ok = await enviarMensagemPrivada(lead.telefone as string, msg);
+          const ok = await enviarMensagemPrivada(lead.telefone as string, msg, plano);
           if (ok) {
             await sql`
               UPDATE leads SET ultimo_whatsapp_enviado = ${wppNum}, whatsapp_enviado_at = NOW()

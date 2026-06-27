@@ -52,6 +52,31 @@ async function renovarToken(tokenAtual: string): Promise<string | null> {
   } catch { return null; }
 }
 
+// FASE 27.6: atualizarVercel() só fazia PATCH/POST na env var — a Vercel não reaplica env vars em
+// deployments já existentes, só nos próximos. Sem redeploy, o token novo (já trocado no Vercel)
+// ficava sem efeito real em produção até o próximo deploy natural do projeto, uma janela onde
+// o código continuava rodando com o token antigo prestes a vencer. Mesmo helper de redeploy
+// usado por claude-revisor/route.ts (redeploya o último build de produção, sem precisar de novo commit).
+async function redeploy(): Promise<boolean> {
+  if (!VERCEL_TOKEN) return false;
+  try {
+    const r = await fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=1&target=production`, {
+      headers: { Authorization: `Bearer ${VERCEL_TOKEN}` }, signal: AbortSignal.timeout(6000),
+    });
+    const d = await r.json();
+    const last = d.deployments?.[0];
+    if (!last) return false;
+
+    const deploy = await fetch(`https://api.vercel.com/v13/deployments?teamId=${VERCEL_TEAM_ID}&forceNew=1`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: last.name, deploymentId: last.uid, target: "production" }),
+      signal: AbortSignal.timeout(10000),
+    });
+    return deploy.ok;
+  } catch { return false; }
+}
+
 // ── Atualiza env var no Vercel ─────────────────────────────────────────────────
 async function atualizarVercel(key: string, value: string): Promise<boolean> {
   if (!VERCEL_TOKEN) return false;

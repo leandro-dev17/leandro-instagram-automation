@@ -50,10 +50,13 @@ export async function GET(req: NextRequest) {
       });
 
       if (score >= 70) {
-        // Verifica se já foi alertado nas últimas 72h
+        // Verifica se já foi alertado com sucesso nas últimas 72h — FASE 27.5: sem o
+        // filtro status='sucesso', uma falha de envio bloqueava qualquer nova tentativa
+        // de alertar aquele usuário de alto risco por 3 dias inteiros (mesmo bug de
+        // engajamento.ts/upgrade-comportamental.ts, já corrigido em campanha-recuperacao.ts).
         const jaAlertado = await sql`
           SELECT id FROM agentes_log
-          WHERE agente = 'rodrigo-risco' AND detalhes->>'usuarioId' = ${String(u.id)}
+          WHERE agente = 'rodrigo-risco' AND status = 'sucesso' AND detalhes->>'usuarioId' = ${String(u.id)}
           AND created_at >= NOW() - INTERVAL '72 hours'
           LIMIT 1
         `;
@@ -62,7 +65,7 @@ export async function GET(req: NextRequest) {
         const msg = `💛 *${u.nome}, não nos abandone!*\n\nPercebemos que você pode estar pensando em sair do Alerta Patriota. Antes de ir, queremos te oferecer algo especial.\n\nFale com a gente: ${APP_URL}/assinar\n\n_Capitão Braga — Deus, Pátria e Família._`;
         // FASE 23: status 'sucesso' era gravado incondicionalmente, mascarando falhas reais
         // de envio do alerta de churn.
-        const enviado = await enviarMensagemPrivada(u.telefone, msg);
+        const enviado = await enviarMensagemPrivada(u.telefone, msg, u.plano);
 
         await sql`
           INSERT INTO agentes_log (agente, acao, status, detalhes)

@@ -272,6 +272,31 @@ export async function POST(req: NextRequest) {
       ON leads(telefone) WHERE telefone IS NOT NULL
     `;
 
+    // ── PROMPTS CUSTOMIZADOS (editor /admin/prompts) ────────────────────────
+    // FASE 27.3: o editor de prompts salvava em `alertas` (tipo='prompt_update') só um
+    // JSON de metadados ({chave, chars}), nunca o texto do prompt em si, e o GET lia
+    // colunas chave/valor que não existem em `alertas` (sempre falhava, caía no
+    // .catch(() => []) e voltava ao padrão hardcoded). Tabela key-value dedicada e real.
+    await sql`
+      CREATE TABLE IF NOT EXISTS prompts_customizados (
+        chave VARCHAR(50) PRIMARY KEY,
+        valor TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // FASE 27.6: facebook-comentarios fazia SELECT (já respondido?) e só registrava o
+    // comentário em agentes_log DEPOIS de confirmar o envio da resposta — entre o SELECT
+    // e o INSERT existia uma janela onde uma segunda execução concorrente (overlap de
+    // cron) podia passar pelo mesmo SELECT e responder duplicado ao mesmo comentário.
+    // Índice único permite reivindicar o comentário atomicamente (INSERT ... ON CONFLICT)
+    // antes de gerar/enviar a resposta, no mesmo espírito do claim de resumir-noticias.
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_agentes_log_fb_comentario
+      ON agentes_log ((detalhes->>'comentarioId'))
+      WHERE agente = 'facebook-comentarios'
+    `;
+
     // ── ÍNDICES DE PERFORMANCE ──────────────────────────────────────────────
     // FASE 22: sem estes índices, agentes_log/pagamentos/usuarios fazem full
     // table scan a cada webhook/cron — as colunas abaixo são filtradas em

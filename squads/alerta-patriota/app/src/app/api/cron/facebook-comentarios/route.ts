@@ -61,26 +61,30 @@ export async function GET(req: NextRequest) {
     for (const c of comentarios) {
       if (!c.mensagem?.trim()) continue;
 
-      // Verifica se já respondemos este comentário
-      const jaRespondeu = await sql`
-        SELECT id FROM agentes_log
-        WHERE agente = 'facebook-comentarios' AND detalhes->>'comentarioId' = ${c.id}
-        LIMIT 1
-      `;
-      if (jaRespondeu.length > 0) continue;
+      // FASE 27.6: claim atômico via índice único (idx_agentes_log_fb_comentario, ver
+      // admin/setup/route.ts) ANTES de gerar/enviar a resposta — fecha a janela entre
+      // "checar se já respondeu" e "confirmar o envio" onde uma execução concorrente
+      // (overlap de cron) podia responder duplicado ao mesmo comentário.
+      const claim = await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes)
+        VALUES ('facebook-comentarios', 'responder_comentario', 'processando',
+          ${JSON.stringify({ comentarioId: c.id, autor: c.autor })})
+        ON CONFLICT DO NOTHING
+        RETURNING id
+      `.catch(() => []);
+      if (claim.length === 0) continue; // já reivindicado por esta ou outra execução
+
+      const claimId = claim[0].id;
 
       const resposta = await gerarRespostaComentario(c.autor, c.mensagem);
-      if (!resposta) continue;
-
-      const ok = await responderComentario(c.id, resposta);
+      const ok = resposta ? await responderComentario(c.id, resposta) : false;
 
       if (ok) {
-        await sql`
-          INSERT INTO agentes_log (agente, acao, status, detalhes)
-          VALUES ('facebook-comentarios', 'responder_comentario', 'sucesso',
-            ${JSON.stringify({ comentarioId: c.id, autor: c.autor })})
-        `;
+        await sql`UPDATE agentes_log SET status = 'sucesso' WHERE id = ${claimId}`;
         respondidos++;
+      } else {
+        // Libera o claim para retentativa no próximo ciclo
+        await sql`DELETE FROM agentes_log WHERE id = ${claimId}`;
       }
 
       // Pausa entre respostas para não parecer bot

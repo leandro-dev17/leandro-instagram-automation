@@ -65,14 +65,24 @@ export async function GET(req: NextRequest) {
   } catch (err) { problemas.push(`Erro ao verificar alertas críticos: ${String(err)}`); score -= 5; }
 
   // 4. Agente médico ativo? (deve ter rodado nas últimas 2h)
+  // FASE 27.5: buscava só o status da última linha, sem checar há quanto tempo ela
+  // foi gravada — se o cron do Agente Médico parasse de rodar por completo, a última
+  // execução registrada (ex.: dias atrás) continuava sendo lida como 'sucesso' e este
+  // check nunca acusava o problema, justamente o cenário que ele existe para detectar
+  // (ver agente-heartbeat/route.ts:17-26, que já faz a comparação de recência certa).
   try {
     const medico = await sql`
-      SELECT status FROM agentes_log
+      SELECT status, created_at FROM agentes_log
       WHERE agente = 'agente-medico'
       ORDER BY created_at DESC LIMIT 1
     `;
     if (medico.length === 0) { problemas.push("Agente Médico nunca executou"); score -= 10; }
-    else if ((medico[0] as { status: string }).status === "erro") { problemas.push("Agente Médico com erro"); score -= 15; }
+    else {
+      const ultimo = medico[0] as { status: string; created_at: string };
+      const diffH = (Date.now() - new Date(ultimo.created_at).getTime()) / 3_600_000;
+      if (diffH > 2) { problemas.push(`Agente Médico parado há ${diffH.toFixed(1)}h`); score -= 15; }
+      else if (ultimo.status === "erro") { problemas.push("Agente Médico com erro"); score -= 15; }
+    }
   } catch (err) { problemas.push(`Erro ao verificar Agente Médico: ${String(err)}`); score -= 5; }
 
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────

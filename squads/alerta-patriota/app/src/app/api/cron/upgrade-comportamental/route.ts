@@ -38,8 +38,10 @@ export async function GET(req: NextRequest) {
         AND u.telefone IS NOT NULL
         AND u.assinatura_inicio <= NOW() - INTERVAL '14 days'
         AND u.id NOT IN (
+          -- FASE 27.5: sem status='sucesso', uma falha de envio bloqueava qualquer nova
+          -- sugestão de upgrade pelos 30 dias inteiros da janela de dedup.
           SELECT (detalhes->>'usuarioId')::int FROM agentes_log
-          WHERE agente = 'ulisses-upgrade'
+          WHERE agente = 'ulisses-upgrade' AND status = 'sucesso'
           AND created_at >= NOW() - INTERVAL '30 days'
         )
         ORDER BY u.assinatura_inicio ASC

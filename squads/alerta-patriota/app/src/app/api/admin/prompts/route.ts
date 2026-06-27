@@ -11,11 +11,11 @@ const PROMPTS_PADRAO = {
 export async function GET() {
   try {
     await requireAdmin();
-    // Busca prompts customizados do banco, fallback para padrão
-    const rows = await sql`SELECT chave, valor FROM alertas WHERE tipo = 'prompt' LIMIT 10`.catch(() => []);
+    // Busca prompts customizados do banco (tabela dedicada), fallback para padrão
+    const rows = await sql`SELECT chave, valor FROM prompts_customizados`.catch(() => []);
     const prompts = { ...PROMPTS_PADRAO };
     for (const r of rows) {
-      (prompts as Record<string, string>)[r.chave] = r.valor;
+      (prompts as Record<string, string>)[String(r.chave)] = String(r.valor);
     }
     return NextResponse.json({ prompts, padroes: PROMPTS_PADRAO });
   } catch (err) {
@@ -30,11 +30,15 @@ export async function POST(req: NextRequest) {
     await requireAdmin();
     const { chave, valor } = await req.json();
     if (!chave || !valor) return NextResponse.json({ erro: "Chave e valor obrigatórios" }, { status: 400 });
+    if (!(chave in PROMPTS_PADRAO)) return NextResponse.json({ erro: "Chave de prompt desconhecida" }, { status: 400 });
 
-    // Salva na tabela de alertas (reuso de tabela existente como key-value store)
+    // Salva o texto completo do prompt na tabela dedicada (antes só gravava metadados
+    // {chave, chars} em `alertas`, nunca o conteúdo real — ver lib/personas.ts, que é
+    // onde resumir-noticias lê o prompt em uso para aplicar este override.
     await sql`
-      INSERT INTO alertas (tipo, severidade, mensagem)
-      VALUES ('prompt_update', 'baixo', ${JSON.stringify({ chave, chars: valor.length })})
+      INSERT INTO prompts_customizados (chave, valor, updated_at)
+      VALUES (${chave}, ${valor}, NOW())
+      ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor, updated_at = NOW()
     `;
 
     return NextResponse.json({ ok: true, chave, chars: valor.length });

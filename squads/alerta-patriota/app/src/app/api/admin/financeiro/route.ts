@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { calcularMRR } from "@/lib/mrr";
 
 export async function GET() {
   try {
     await requireAdmin();
 
-    const [mrr, receita, inadimplentes, cancelamentos, crescimento] = await Promise.all([
-      // FASE 23: valores hardcoded (9.90/8.25/19.90/16.58) ficavam desatualizados sempre que
-      // o preço dos planos mudasse, e tratavam toda assinatura anual com o mesmo valor fixo
-      // independente do que foi realmente cobrado. Usa o `valor`/`ciclo` reais da linha,
-      // normalizando anual/12 — mesma lógica do fiscal-mrr/route.ts:26-34.
-      sql`
-        SELECT
-          SUM(CASE WHEN ciclo = 'anual' THEN valor / 12.0 ELSE valor END) as mrr,
-          COUNT(*) as total_ativas
-        FROM assinaturas WHERE status = 'ativa'
-      `,
+    const [{ porPlano, mrrTotal, totalAssinantes }, receita, inadimplentes, cancelamentos, crescimento] = await Promise.all([
+      // FASE 27.3: usa a fonte única de MRR (lib/mrr.ts) em vez de uma query local —
+      // mesma lógica (valor real da assinatura, anual normalizado /12) que antes só
+      // existia duplicada aqui e em fiscal-mrr/route.ts.
+      calcularMRR(),
       sql`
         SELECT
           SUM(valor) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as mes_atual,
@@ -45,7 +40,13 @@ export async function GET() {
       `,
     ]);
 
-    return NextResponse.json({ mrr: mrr[0], receita: receita[0], inadimplentes, cancelamentos: cancelamentos[0], crescimento });
+    return NextResponse.json({
+      mrr: { mrr: mrrTotal, total_ativas: totalAssinantes, por_plano: porPlano },
+      receita: receita[0],
+      inadimplentes,
+      cancelamentos: cancelamentos[0],
+      crescimento,
+    });
   } catch (err) {
     if (String(err).includes("Acesso negado")) return NextResponse.json({ erro: "Acesso negado" }, { status: 403 });
     return NextResponse.json({ erro: "Erro interno" }, { status: 500 });

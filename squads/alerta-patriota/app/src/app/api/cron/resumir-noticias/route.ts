@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
-import { PROMPT_BRAGA, PROMPT_CAVALCANTI } from "@/lib/personas";
+import { PROMPT_BRAGA, PROMPT_CAVALCANTI, obterPromptCustomizado } from "@/lib/personas";
 import { gerarTexto } from "@/lib/ai";
 
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
@@ -48,6 +48,11 @@ export async function GET(req: NextRequest) {
   let noticiasDuplicadas = 0;
 
   try {
+    const [promptBraga, promptCavalcanti] = await Promise.all([
+      obterPromptCustomizado("braga_vip", PROMPT_BRAGA),
+      obterPromptCustomizado("cavalcanti", PROMPT_CAVALCANTI),
+    ]);
+
     const noticias = (await sql`
       SELECT id, titulo, conteudo_original, url, resumo_braga, resumo_cavalcanti
       FROM noticias
@@ -96,7 +101,7 @@ export async function GET(req: NextRequest) {
           `;
           if (claim.length > 0) {
             try {
-              resumoBraga = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_BRAGA);
+              resumoBraga = await gerarResumo(noticia.titulo, conteudo, noticia.url, promptBraga);
               await sql`UPDATE noticias SET resumo_braga = ${resumoBraga} WHERE id = ${noticia.id}`;
             } catch (e) {
               await sql`UPDATE noticias SET resumo_braga = NULL WHERE id = ${noticia.id}`;
@@ -115,7 +120,7 @@ export async function GET(req: NextRequest) {
           `;
           if (claim.length > 0) {
             try {
-              resumoCavalcanti = await gerarResumo(noticia.titulo, conteudo, noticia.url, PROMPT_CAVALCANTI);
+              resumoCavalcanti = await gerarResumo(noticia.titulo, conteudo, noticia.url, promptCavalcanti);
               await sql`UPDATE noticias SET resumo_cavalcanti = ${resumoCavalcanti} WHERE id = ${noticia.id}`;
             } catch (e) {
               await sql`UPDATE noticias SET resumo_cavalcanti = NULL WHERE id = ${noticia.id}`;

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { relatorioCEO, alertarTelegram, enviarTelegram } from "@/lib/telegram";
+import { calcularMRR } from "@/lib/mrr";
 
 function emoji(n: number, max: number) {
   const pct = n / max;
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // ── COLETA DADOS ────────────────────────────────────────────────────────
-    const [membros, financeiro, conteudo, alertasAbertos, errosAgentes] = await Promise.all([
+    const [membros, { mrrTotal }, conteudo, alertasAbertos, errosAgentes] = await Promise.all([
       sql`
         SELECT
           COUNT(*) FILTER (WHERE status = 'ativo')   as ativos,
@@ -29,13 +30,7 @@ export async function GET(req: NextRequest) {
           COUNT(*) FILTER (WHERE plano = 'elite'    AND status = 'ativo') as elite
         FROM usuarios
       `,
-      sql`
-        SELECT
-          COALESCE(SUM(CASE WHEN plano='vip'      AND ciclo='mensal'  THEN 9.90
-                            WHEN plano='elite'    AND ciclo='mensal'  THEN 19.90
-                            ELSE 0 END), 0) as mrr_estimado
-        FROM assinaturas WHERE status = 'ativa'
-      `,
+      calcularMRR(),
       sql`
         SELECT
           COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as coletadas_24h,
@@ -50,7 +45,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     const m = membros[0];
-    const mrr = Number(financeiro[0].mrr_estimado).toFixed(2).replace(".", ",");
+    const mrr = mrrTotal.toFixed(2).replace(".", ",");
     const alertasAbertosN = Number(alertasAbertos[0].total);
     const erros24h = Number(errosAgentes[0].total);
 

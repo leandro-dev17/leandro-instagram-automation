@@ -48,20 +48,6 @@ function comInstrucaoIdioma(params: MensagemIA): MensagemIA {
   return { ...params, messages: params.messages.map((m) => ({ ...m, content: m.content + INSTRUCAO_IDIOMA })) };
 }
 
-function ehErroRecuperavel(err: unknown): boolean {
-  // A SDK da Anthropic expõe `status` (429/529) e `error.type` (rate_limit_error/overloaded_error)
-  // como campos do objeto de erro; os fallbacks via fetch (Groq/Cerebras) embutem o status no texto
-  // da mensagem de erro — checa os dois formatos antes de decidir se vale tentar o próximo provedor.
-  const status = (err as { status?: number })?.status;
-  if (status && [429, 500, 502, 503, 529].includes(status)) return true;
-
-  const tipo = (err as { error?: { type?: string } })?.error?.type;
-  if (tipo === "rate_limit_error" || tipo === "overloaded_error") return true;
-
-  const msg = String(err);
-  return /usage limit|rate_limit|overloaded|\b(429|500|502|503|529)\b/.test(msg);
-}
-
 export type MensagemIA = {
   model: string;
   max_tokens: number;
@@ -181,7 +167,10 @@ export async function gerarTexto(paramsOriginais: MensagemIA): Promise<string> {
       return texto;
     } catch (err) {
       await registrarConsumo(params.agente, "groq", "erro");
-      if (!(err instanceof ErroScriptInvalido) && !ehErroRecuperavel(err)) throw err;
+      // FASE 27.6: qualquer erro não catalogado por uma heurística de "é recuperável?"
+      // (removida) abortava a função inteira em vez de cair para o próximo provedor —
+      // exatamente o oposto do propósito da cadeia de fallback Groq→Cerebras→Anthropic.
+      // Agora qualquer falha aqui sempre tenta o próximo provedor.
       erros.push(`Groq: ${String(err)}`);
     }
   }
@@ -194,7 +183,7 @@ export async function gerarTexto(paramsOriginais: MensagemIA): Promise<string> {
       return texto;
     } catch (err) {
       await registrarConsumo(params.agente, "cerebras", "erro");
-      if (!(err instanceof ErroScriptInvalido) && !ehErroRecuperavel(err)) throw err;
+      // FASE 27.6: mesmo fix do branch Groq acima — sempre cai para o Anthropic.
       erros.push(`Cerebras: ${String(err)}`);
     }
   }

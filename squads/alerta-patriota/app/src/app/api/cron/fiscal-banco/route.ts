@@ -24,11 +24,19 @@ export async function GET(req: NextRequest) {
     `;
     const qtdLengas = Number(lengas[0].total);
 
+    // FASE 27.5: o INSERT em agentes_log só acontecia no branch "tudo certo" (else) —
+    // latência alta e query lenga só gravavam em `alertas` (com dedup), nunca em
+    // agentes_log. Quem lê agentes_log para julgar a saúde de 'bruna-banco' (gerente-
+    // tecnico/route.ts:43 conta erros desse agente; agente-heartbeat lê a última linha)
+    // via essa fonte enxergava o agente como "nunca falhou"/"parado" justamente nos
+    // períodos em que ele estava mais ativo detectando degradação. Agora grava em todos
+    // os 3 caminhos, com status refletindo a severidade real.
     if (latencia > 5000) {
       const { criado } = await criarAlertaDedup("fiscal_banco", "alto", `Latência ${latencia}ms`);
       if (criado) {
         await alertarTelegram("🔴", "Fiscal Bruna Banco — BANCO LENTO", `Latência: ${latencia}ms`);
       }
+      await sql`INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms) VALUES ('bruna-banco', 'health_check', 'erro', ${JSON.stringify({ motivo: "latencia_alta", latencia })}, ${latencia})`.catch(() => {});
     } else if (qtdLengas > 0) {
       // FASE 23: faltava dedup aqui — esse cron roda a cada 10min, então uma query longa
       // que persistisse por horas gerava um alerta Telegram novo a cada execução.
@@ -36,6 +44,7 @@ export async function GET(req: NextRequest) {
       if (queryLengaCriado) {
         await alertarTelegram("🟡", "Fiscal Bruna Banco — Query longa detectada", `${qtdLengas} query(s) rodando há +30s`);
       }
+      await sql`INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms) VALUES ('bruna-banco', 'health_check', 'aviso', ${JSON.stringify({ motivo: "query_lenga", qtdLengas })}, ${latencia})`.catch(() => {});
     } else {
       await sql`INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms) VALUES ('bruna-banco', 'health_check', 'sucesso', '{}', ${latencia})`;
     }
@@ -46,6 +55,7 @@ export async function GET(req: NextRequest) {
     if (criado) {
       await alertarTelegram("🚨", "Fiscal Bruna Banco — BANCO FORA DO AR", String(err));
     }
+    await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('bruna-banco', 'health_check', 'erro', ${JSON.stringify({ erro: String(err) })})`.catch(() => {});
     return NextResponse.json({ erro: "Banco fora do ar", detalhe: String(err) }, { status: 503 });
   }
 }

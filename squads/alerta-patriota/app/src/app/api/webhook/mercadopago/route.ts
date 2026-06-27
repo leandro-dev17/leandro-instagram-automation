@@ -107,7 +107,7 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
 
       // Mensagem de boas-vindas privada
       const msgBoasVindas = buildBoasVindas(plano, nome);
-      const msgOk = await enviarMensagemPrivada(telefone, msgBoasVindas);
+      const msgOk = await enviarMensagemPrivada(telefone, msgBoasVindas, plano);
       console.log("[ativar-acesso] enviarMensagemPrivada resultado:", msgOk);
     } else {
       await alertarTelegram("🔴", "Cliente pagou mas não entrou no grupo WhatsApp", `usuarioId: ${usuarioId} | telefone: ${telefone} | plano: ${plano}\nAdicionar ao grupo via Evolution API falhou — ação manual necessária.`);

@@ -20,6 +20,12 @@ import { gerarCodigoComClaude } from "@/lib/ai";
 
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
 export const maxDuration = 60;
+// Os 4 fetches fixos (ler arquivo, ler SHA, commit, redeploy) já somavam até 50s de timeout
+// declarado, sobrando quase nada para a chamada de IA (a etapa mais lenta e variável) antes
+// de bater no teto de 60s do plano Hobby. ORCAMENTO_MS pula o redeploy (não-essencial — o
+// commit já resolve o alerta; o próximo push/deploy natural cobre isso) se o tempo já
+// estiver no limite, em vez de arriscar a function ser matada no meio do POST.
+const ORCAMENTO_MS = 45000;
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
@@ -30,11 +36,19 @@ const VERCEL_TEAM = "team_JnDwQYGSI9RBjHyIygKLR56b";
 const REPO = "leandro-dev17/leandro-instagram-automation";
 const BASE = "squads/alerta-patriota/app/src";
 
-// Mapa: tipo de alerta → arquivo mais provável para corrigir
+// Mapa: tipo de alerta → arquivo mais provável para corrigir.
+// FASE 27.6: "codigo_logica" foi removido deste mapa. fiscal-codigo-logica/route.ts agrupa
+// 6 categorias de problema completamente não relacionadas (coletor parado, resumidor parado,
+// 4 agentes diferentes sem rodar, limite de cards excedido, alertas críticos acumulados,
+// publicações duplicadas) sob o mesmo tipo de alerta "codigo_logica" — mas este mapa sempre
+// apontava para o mesmo arquivo hardcoded (resumir-noticias/route.ts), que só é a causa real
+// em 1 dessas 6 categorias. Nas outras 5, o auto-fix editaria um arquivo correto/não relacionado
+// enquanto o bug real (em coletar-noticias, gerador-card, etc.) ficava sem correção. Sem entrada
+// no mapa, esse tipo cai automaticamente no branch "tipo sem mapeamento seguro" (linha abaixo) e
+// escala direto para revisão humana, no mesmo espírito de ARQUIVOS_PROTEGIDOS.
 const ARQUIVO_POR_TIPO: Record<string, string> = {
   "codigo_seguranca": `${BASE}/lib/auth.ts`,
   "codigo_schema": `${BASE}/app/api/admin/setup/route.ts`,
-  "codigo_logica": `${BASE}/app/api/cron/resumir-noticias/route.ts`,
 };
 
 // Arquivos críticos que NUNCA podem ser sobrescritos por auto-fix do Claude —
@@ -51,7 +65,7 @@ const TAMANHO_MAX_AUTOFIX = 6000;
 async function lerArquivoGitHub(path: string): Promise<string> {
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github.v3+json" },
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(6000),
   });
   if (!r.ok) throw new Error(`GitHub ${r.status}: ${path}`);
   const d = await r.json();
@@ -62,7 +76,7 @@ async function commitarFix(path: string, conteudo: string, mensagem: string): Pr
   // Pega SHA atual do arquivo
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github.v3+json" },
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(6000),
   });
   if (!r.ok) return false;
   const d = await r.json();
@@ -76,7 +90,7 @@ async function commitarFix(path: string, conteudo: string, mensagem: string): Pr
       content: Buffer.from(conteudo).toString("base64"),
       sha: d.sha,
     }),
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(10000),
   });
   return res.ok;
 }
@@ -114,7 +128,7 @@ async function redeploy(): Promise<boolean> {
   if (!VERCEL_TOKEN) return false;
   try {
     const r = await fetch(`https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT}&teamId=${VERCEL_TEAM}&limit=1&target=production`, {
-      headers: { Authorization: `Bearer ${VERCEL_TOKEN}` }, signal: AbortSignal.timeout(10000),
+      headers: { Authorization: `Bearer ${VERCEL_TOKEN}` }, signal: AbortSignal.timeout(6000),
     });
     const d = await r.json();
     const last = d.deployments?.[0];
@@ -124,7 +138,7 @@ async function redeploy(): Promise<boolean> {
       method: "POST",
       headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, "Content-Type": "application/json" },
       body: JSON.stringify({ name: last.name, deploymentId: last.uid, target: "production" }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(10000),
     });
     return deploy.ok;
   } catch { return false; }
@@ -254,8 +268,9 @@ O código deve ser válido e compilar sem erros.`,
     const commitMsg = `fix(auto): claude-revisor corrige ${tipoAlerta}\n\nProblemas: ${problema.substring(0, 100)}\n\nCo-Authored-By: Claude Revisor <noreply@anthropic.com>`;
     const commitOk = await commitarFix(arquivo, codigoLimpo, commitMsg);
 
-    // Redeploy
-    const deployOk = commitOk ? await redeploy() : false;
+    // Redeploy — pulado se o orçamento já estiver no limite (commit já resolve o alerta;
+    // o próximo deploy natural do projeto sobe esse código de qualquer forma)
+    const deployOk = commitOk && Date.now() - inicio < ORCAMENTO_MS ? await redeploy() : false;
 
     // Registra
     await sql`

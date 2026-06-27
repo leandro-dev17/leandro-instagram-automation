@@ -5,9 +5,13 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY!;
 const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "Alerta Patriota";
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "contato@alertapatriota.com.br";
 
+// FASE 27.4: preços hardcoded aqui (R$59,90/mês e R$499/ano) nunca foram atualizados quando
+// o preço real cobrado em produção (ver assinaturas/criar/route.ts e a landing page) mudou
+// para R$9,90/mês (R$99/ano) e R$19,90/mês (R$199/ano) — o e-mail de confirmação prometia um
+// valor muito maior do que o que de fato seria cobrado.
 const NOMES_PLANO: Record<string, string> = {
-  vip: "VIP Premium (R$59,90/mês)",
-  elite: "Elite Global (R$499/ano)",
+  vip: "VIP Premium (R$9,90/mês ou R$99/ano)",
+  elite: "Elite Global (R$19,90/mês ou R$199/ano)",
 };
 
 export async function POST(req: NextRequest) {

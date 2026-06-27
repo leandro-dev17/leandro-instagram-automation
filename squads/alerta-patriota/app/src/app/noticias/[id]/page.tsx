@@ -116,20 +116,25 @@ export default async function NoticiaPage({ params }: Props) {
                   fontWeight:900, fontSize:16, padding:"14px 20px", borderRadius:12, textDecoration:"none",
                   marginBottom:10,
                 }}>
-                  📲 Entrar por R$1
+                  📲 Começar 7 dias grátis
                 </a>
 
                 <p style={{ fontSize:11, color:"#333" }}>
-                  Primeiros 7 dias por R$1 · Cancele quando quiser
+                  7 dias grátis, depois a partir de R$9,90/mês · Cancele quando quiser
                 </p>
 
+                {/* FASE 27.4: estes 3 planos (Básico/Patriota/VIP a R$12,90/29,90/59,90) eram de uma
+                  versão antiga do produto — o sistema real hoje só tem 2 planos (vip/elite, ver
+                  page.tsx e assinaturas/criar/route.ts), a R$9,90 e R$19,90/mês. Quem clicasse aqui
+                  via /assinar?plano=básico (inexistente) caía em /assinar, que sempre redireciona
+                  para "/" ignorando o parâmetro — mas o preço prometido nesta página já estava
+                  errado antes mesmo do redirect. */}
                 <div style={{ display:"flex", justifyContent:"center", gap:24, marginTop:20, flexWrap:"wrap" }}>
                   {[
-                    { emoji:"🇧🇷", label:"Básico", preco:"R$12,90/mês" },
-                    { emoji:"⚡", label:"Patriota", preco:"R$29,90/mês" },
-                    { emoji:"🔥", label:"VIP", preco:"R$59,90/mês" },
+                    { emoji:"🔥", label:"VIP Premium", id:"vip", preco:"R$9,90/mês" },
+                    { emoji:"🎖️", label:"Elite Global", id:"elite", preco:"R$19,90/mês" },
                   ].map(p => (
-                    <a key={p.label} href={`${appUrl}/assinar?plano=${p.label.toLowerCase()}`} style={{ textDecoration:"none" }}>
+                    <a key={p.id} href={`${appUrl}/assinar?plano=${p.id}`} style={{ textDecoration:"none" }}>
                       <div style={{ textAlign:"center" }}>
                         <span style={{ fontSize:20 }}>{p.emoji}</span>
                         <p style={{ fontSize:11, color:"#ffd700", fontWeight:700 }}>{p.label}</p>

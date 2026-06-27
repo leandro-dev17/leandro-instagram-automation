@@ -44,12 +44,18 @@ async function chamarEvolution(url: string, options: RequestInit, contexto: stri
   return false;
 }
 
-export async function enviarMensagemPrivada(telefone: string, texto: string): Promise<boolean> {
+// FASE 27.7: hardcoded em EVO_INST_VIP sempre, ignorando o getInstancia(plano) que já existe
+// e que enviarMensagemGrupo usa corretamente. Mascarado hoje porque EVOLUTION_INSTANCIA e
+// EVOLUTION_INSTANCIA_ELITE apontam pro mesmo valor em produção — mas campanha-recuperacao,
+// sequencia-nao-conversao, preditor-churn e engajamento mandam mensagem privada pra membros/leads
+// Elite reais, e webhook/mercadopago manda a boas-vindas logo após o pagamento. `plano` é opcional
+// (default "vip") pra não quebrar call sites que genuinamente não têm essa info (ex: trial D-6).
+export async function enviarMensagemPrivada(telefone: string, texto: string, plano?: Plano | string): Promise<boolean> {
   if (!EVO_URL || !EVO_KEY) return false;
   const numero = telefone.replace(/\D/g, "");
   if (!numero || numero.length < 10) return false;
 
-  return chamarEvolution(`${EVO_URL}/message/sendText/${EVO_INST_VIP}`, {
+  return chamarEvolution(`${EVO_URL}/message/sendText/${getInstancia(plano || "vip")}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: EVO_KEY },
     body: JSON.stringify({

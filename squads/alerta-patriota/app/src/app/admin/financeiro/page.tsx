@@ -1,14 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 
-// Valores mensais por plano
-const VALOR_PLANO: Record<string, number> = {
-  vip: 9.90,
-  elite: 19.90,
-};
-
 type FinData = {
-  mrr: { mrr: number; total_ativas: number };
+  mrr: { mrr: number; total_ativas: number; por_plano: Record<string, { assinantes: number; mrr: number }> };
   receita: { mes_atual: number; mes_anterior: number; total_historico: number };
   inadimplentes: Array<{ id: number; nome: string; email: string; plano: string; updated_at: string }>;
   cancelamentos: { mes_atual: number; mes_anterior: number };
@@ -26,14 +20,6 @@ type Pagamento = {
   status: string;
   mp_payment_id?: string;
   created_at: string;
-};
-
-type StatsData = {
-  membros: {
-    vip: number;
-    elite: number;
-    ativos: number;
-  };
 };
 
 const STATUS_COR: Record<string, string> = {
@@ -78,7 +64,6 @@ function exportarCSV(pagamentos: Pagamento[]) {
 
 export default function AdminFinanceiro() {
   const [fin, setFin] = useState<FinData | null>(null);
-  const [stats, setStats] = useState<StatsData | null>(null);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,11 +71,9 @@ export default function AdminFinanceiro() {
     setLoading(true);
     Promise.all([
       fetch("/api/admin/financeiro").then(r => r.json()),
-      fetch("/api/admin/stats").then(r => r.json()),
       fetch("/api/admin/financeiro/pagamentos?limite=30").then(r => r.json()).catch(() => ({ pagamentos: [] })),
-    ]).then(([f, s, p]) => {
+    ]).then(([f, p]) => {
       setFin(f);
-      setStats(s);
       setPagamentos(p.pagamentos || []);
       setLoading(false);
     });
@@ -99,18 +82,16 @@ export default function AdminFinanceiro() {
   if (loading) return <div style={{ padding: 24, color: "#555", textAlign: "center" }}>Carregando...</div>;
   if (!fin) return <div style={{ padding: 24, color: "#ef4444" }}>Erro ao carregar dados financeiros.</div>;
 
+  // FASE 27.3: MRR vem direto da fonte única (lib/mrr.ts, via /api/admin/financeiro) —
+  // antes era recalculado aqui no cliente com contagem de usuários × preço hardcoded,
+  // ignorando ciclo anual e divergindo do valor "oficial" mostrado mais abaixo.
   const mrr = Number(fin.mrr?.mrr || 0);
+  const porPlano = fin.mrr?.por_plano || {};
   const mesAtual = Number(fin.receita?.mes_atual || 0);
   const mesAnt = Number(fin.receita?.mes_anterior || 0);
   const varPct = mesAnt > 0 ? (((mesAtual - mesAnt) / mesAnt) * 100).toFixed(1) : null;
   const anualProjetado = mrr * 12;
   const maxCres = Math.max(...(fin.crescimento || []).map(d => Number(d.novos)), 1);
-
-  // MRR calculado por plano via stats
-  const mrrPlanos = stats ? (
-    (stats.membros.vip || 0) * VALOR_PLANO.vip +
-    (stats.membros.elite || 0) * VALOR_PLANO.elite
-  ) : mrr;
 
   return (
     <div style={{ padding: 24, color: "#fff", fontFamily: "'Inter',sans-serif" }}>
@@ -127,7 +108,7 @@ export default function AdminFinanceiro() {
       {/* KPI Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12, marginBottom: 24 }}>
         {[
-          { l: "MRR Total",          v: fmt(mrrPlanos),         c: "#ffd700", i: "💰" },
+          { l: "MRR Total",          v: fmt(mrr),               c: "#ffd700", i: "💰" },
           { l: "Receita Anual Proj.", v: fmt(anualProjetado),    c: "#22c55e", i: "📊" },
           { l: "Este Mês",           v: fmt(mesAtual),           c: "#3b82f6", i: "📆" },
           { l: "Variação MoM",       v: varPct != null ? `${varPct}%` : "—", c: varPct != null && Number(varPct) >= 0 ? "#22c55e" : "#ef4444", i: "📈" },
@@ -142,21 +123,17 @@ export default function AdminFinanceiro() {
       </div>
 
       {/* MRR por plano */}
-      {stats && (
+      {Object.keys(porPlano).length > 0 && (
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20, marginBottom: 20 }}>
           <h3 style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 }}>Assinaturas Ativas por Plano</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-            {(["vip", "elite"] as const).map(p => {
-              const qtd = stats.membros[p] || 0;
-              const contrib = qtd * VALOR_PLANO[p];
-              return (
-                <div key={p} style={{ background: `${PLANO_COR[p]}11`, border: `1px solid ${PLANO_COR[p]}33`, borderRadius: 10, padding: "12px 14px" }}>
-                  <p style={{ fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{p}</p>
-                  <p style={{ fontSize: 20, fontWeight: 900, color: PLANO_COR[p] }}>{qtd}</p>
-                  <p style={{ fontSize: 11, color: "#444", marginTop: 2 }}>= {fmt(contrib)}/mês</p>
-                </div>
-              );
-            })}
+            {Object.entries(porPlano).map(([p, v]) => (
+              <div key={p} style={{ background: `${PLANO_COR[p] || "#888"}11`, border: `1px solid ${PLANO_COR[p] || "#888"}33`, borderRadius: 10, padding: "12px 14px" }}>
+                <p style={{ fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{p}</p>
+                <p style={{ fontSize: 20, fontWeight: 900, color: PLANO_COR[p] || "#aaa" }}>{v.assinantes}</p>
+                <p style={{ fontSize: 11, color: "#444", marginTop: 2 }}>= {fmt(v.mrr)}/mês</p>
+              </div>
+            ))}
           </div>
         </div>
       )}

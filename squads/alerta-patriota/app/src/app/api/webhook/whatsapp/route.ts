@@ -81,10 +81,13 @@ export async function POST(req: NextRequest) {
         const texto = data.message.conversation as string;
 
         if (deveBotResponder(texto) && texto.length > 10) {
-          // Enfileira para o bot-responder processar
+          // Enfileira para o bot-responder processar. usuario_id é NULL (mensagem de
+          // grupo não tem dono identificado de forma confiável) — usuario_id=0 violava
+          // a FK para usuarios(id) e fazia todo INSERT falhar silenciosamente (.catch),
+          // então o bot nunca respondia nada.
           await sql`
             INSERT INTO whatsapp_fila (usuario_id, tipo, mensagem, agendado_para)
-            VALUES (0, ${`pergunta_${plano}`}, ${texto.slice(0, 500)}, NOW() + INTERVAL '30 seconds')
+            VALUES (NULL, ${`pergunta_${plano}`}, ${texto.slice(0, 500)}, NOW() + INTERVAL '30 seconds')
           `.catch(() => {});
         }
       }

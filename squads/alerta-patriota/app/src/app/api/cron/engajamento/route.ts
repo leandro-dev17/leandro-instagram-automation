@@ -54,15 +54,19 @@ async function buscarInativos(onda: Onda) {
   const max = onda.dias < 30 ? onda.dias + 5 : null;
   const dedup = onda.dedupDias;
 
+  // FASE 27.5: o dedup excluía o usuário se EXISTISSE qualquer log da onda na janela,
+  // sem checar status — uma falha de envio (status='erro') bloqueava qualquer nova
+  // tentativa pelo resto da janela de dedup (5 ou 60 dias), igual ao bug já corrigido
+  // em campanha-recuperacao.ts. Adicionado status = 'sucesso' para permitir retentativa.
   if (max !== null) {
     return sql`
-      SELECT id, nome, email, telefone FROM usuarios
+      SELECT id, nome, email, telefone, plano FROM usuarios
       WHERE status = 'ativo'
         AND updated_at < NOW() - INTERVAL '1 day' * ${min}
         AND updated_at >= NOW() - INTERVAL '1 day' * ${max}
         AND id NOT IN (
           SELECT (detalhes->>'usuarioId')::int FROM agentes_log
-          WHERE agente = 'enzo-engajamento' AND acao = ${onda.acao}
+          WHERE agente = 'enzo-engajamento' AND acao = ${onda.acao} AND status = 'sucesso'
             AND created_at >= NOW() - INTERVAL '1 day' * ${dedup}
             AND detalhes->>'usuarioId' IS NOT NULL
         )
@@ -72,12 +76,12 @@ async function buscarInativos(onda: Onda) {
 
   // onda_30: sem limite superior (30+ dias inativos)
   return sql`
-    SELECT id, nome, email, telefone FROM usuarios
+    SELECT id, nome, email, telefone, plano FROM usuarios
     WHERE status = 'ativo'
       AND updated_at < NOW() - INTERVAL '30 days'
       AND id NOT IN (
         SELECT (detalhes->>'usuarioId')::int FROM agentes_log
-        WHERE agente = 'enzo-engajamento' AND acao = ${onda.acao}
+        WHERE agente = 'enzo-engajamento' AND acao = ${onda.acao} AND status = 'sucesso'
           AND created_at >= NOW() - INTERVAL '1 day' * ${dedup}
           AND detalhes->>'usuarioId' IS NOT NULL
       )
@@ -98,13 +102,13 @@ export async function GET(req: NextRequest) {
     // o lembrete várias vezes ao dia, todos os dias na janela. Agora segue o
     // mesmo padrão de dedup das ondas de reengajamento abaixo.
     const trialsD6 = await sql`
-      SELECT id, nome, telefone FROM usuarios
+      SELECT id, nome, telefone, plano FROM usuarios
       WHERE status = 'trial'
         AND trial_fim BETWEEN NOW() + INTERVAL '5 days' AND NOW() + INTERVAL '7 days'
         AND telefone IS NOT NULL
         AND id NOT IN (
           SELECT (detalhes->>'usuarioId')::int FROM agentes_log
-          WHERE agente = 'enzo-engajamento' AND acao = 'trial_d6'
+          WHERE agente = 'enzo-engajamento' AND acao = 'trial_d6' AND status = 'sucesso'
             AND created_at >= NOW() - INTERVAL '7 days'
             AND detalhes->>'usuarioId' IS NOT NULL
         )
@@ -112,7 +116,7 @@ export async function GET(req: NextRequest) {
 
     for (const u of trialsD6) {
       const msg = `⏰ *${u.nome}, seus 7 dias estão acabando!*\n\nVocê ainda tem acesso ao Alerta Patriota por poucos dias. Não fique sem as notícias que a mídia esconde.\n\nManter minha assinatura: ${APP_URL}/assinar\n\n_Capitão Braga — Deus, Pátria e Família._`;
-      const enviado = await enviarMensagemPrivada(u.telefone, msg);
+      const enviado = await enviarMensagemPrivada(u.telefone, msg, u.plano);
       await sql`
         INSERT INTO agentes_log (agente, acao, status, detalhes)
         VALUES ('enzo-engajamento', 'trial_d6', ${enviado ? "sucesso" : "erro"}, ${JSON.stringify({ usuarioId: u.id })})
@@ -133,7 +137,7 @@ export async function GET(req: NextRequest) {
           emailOk = await enviarEmailReengajamento(u.email, u.nome, onda.dias).catch(() => false);
         }
         if (u.telefone) {
-          whatsappOk = await enviarMensagemPrivada(u.telefone, mensagemWhatsApp(onda.dias, u.nome));
+          whatsappOk = await enviarMensagemPrivada(u.telefone, mensagemWhatsApp(onda.dias, u.nome), u.plano);
         }
         const algumEnvioOk = (u.email ? emailOk : true) && (u.telefone ? whatsappOk : true);
         await sql`

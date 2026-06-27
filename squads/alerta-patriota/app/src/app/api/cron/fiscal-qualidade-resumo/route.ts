@@ -43,7 +43,12 @@ function validarResumoCavalcanti(texto: string): string | null {
   if (texto.length < 100) return "muito curto (" + texto.length + " chars)";
   if (temPlaceholder(texto)) return "contém placeholder inválido";
   if (temIdiomaSuspeito(texto)) return "possível texto em inglês detectado";
-  if (!/mundo muda|enxerga antes/i.test(texto)) return "sem assinatura esperada";
+  // resumo_cavalcanti é preenchido por DUAS personas com assinaturas diferentes:
+  // PROMPT_CAVALCANTI (resumir-noticias, a maioria dos casos) termina com "Análise do
+  // Prof. Cavalcanti.", e PROMPT_CAVALCANTI_GLOBAL (resumir-noticias-global) termina com
+  // "O mundo muda para quem enxerga antes." — só validar a segunda apagava como "inválido"
+  // todo resumo bom gerado pela persona normal (lib/personas.ts).
+  if (!/Análise do Prof\.?\s*Cavalcanti|mundo muda|enxerga antes/i.test(texto)) return "sem assinatura esperada";
   return null;
 }
 

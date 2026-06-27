@@ -61,14 +61,25 @@ export async function GET(req: NextRequest) {
   } catch (err) { problemas.push(`Erro ao verificar membros inativos: ${String(err)}`); score -= 5; }
 
   // 4. Bot responder funcionando?
+  // FASE 27.5: lia só o status da última linha, sem checar há quanto tempo foi gravada —
+  // bot-responder só grava log quando responde alguma pergunta (whatsapp_fila não-vazia),
+  // então um log antigo de 'sucesso' satisfazia esta checagem para sempre, mesmo que o cron
+  // tivesse parado de rodar. 24h (bem mais generoso que o limite de 2h do Agente Médico, que
+  // é um heartbeat de fato periódico) porque dias de baixa atividade no grupo sem perguntas
+  // são normais e não devem disparar falso alarme (ver agente-heartbeat/route.ts:17-26).
   try {
     const botLog = await sql`
-      SELECT status FROM agentes_log
+      SELECT status, created_at FROM agentes_log
       WHERE agente = 'bot-responder'
       ORDER BY created_at DESC LIMIT 1
     `;
     if (botLog.length === 0) { problemas.push("Bot Responder nunca executou"); score -= 5; }
-    else if ((botLog[0] as { status: string }).status === "erro") { problemas.push("Bot Responder com erro"); score -= 10; }
+    else {
+      const ultimo = botLog[0] as { status: string; created_at: string };
+      const diffH = (Date.now() - new Date(ultimo.created_at).getTime()) / 3_600_000;
+      if (ultimo.status === "erro") { problemas.push("Bot Responder com erro"); score -= 10; }
+      else if (diffH > 24) { problemas.push(`Bot Responder sem atividade há ${diffH.toFixed(0)}h`); score -= 5; }
+    }
   } catch (err) { problemas.push(`Erro ao verificar Bot Responder: ${String(err)}`); score -= 5; }
 
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────

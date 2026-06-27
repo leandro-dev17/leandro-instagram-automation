@@ -6,6 +6,7 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { criarAlertaDedup } from "@/lib/alertas";
+import { calcularMRR } from "@/lib/mrr";
 
 const VALOR_PLANO: Record<string, number> = {
   vip: 9.9,
@@ -22,17 +23,8 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
 
   try {
-    // 1. MRR atual por plano (status ativo ou trial)
-    // IMPORTANTE: assinaturas anuais guardam o valor cheio do ano em `valor` (ex: R$99,
-    // R$199) — sem normalizar por `ciclo`, SUM(valor) trata isso como receita MENSAL e
-    // superestima o MRR em até 12x. Normaliza dividindo por 12 quando ciclo = 'anual'.
-    const assinaturasAtivas = await sql`
-      SELECT plano, COUNT(*) as total,
-             SUM(CASE WHEN ciclo = 'anual' THEN valor / 12.0 ELSE valor END) as soma
-      FROM assinaturas
-      WHERE status = 'ativa'
-      GROUP BY plano
-    `;
+    // 1. MRR atual por plano (status ativo) via fonte única — ver lib/mrr.ts
+    const { porPlano } = await calcularMRR();
 
     const trialsAtivos = await sql`
       SELECT plano, COUNT(*) as total
@@ -42,16 +34,6 @@ export async function GET(req: NextRequest) {
         AND plano IS NOT NULL
       GROUP BY plano
     `;
-
-    const porPlano: Record<string, { assinantes: number; mrr: number }> = {};
-
-    for (const row of assinaturasAtivas) {
-      const plano = String(row.plano);
-      porPlano[plano] = {
-        assinantes: Number(row.total),
-        mrr: Number(row.soma),
-      };
-    }
 
     // Trials contam para MRR com valor do plano (assumindo conversão)
     for (const row of trialsAtivos) {

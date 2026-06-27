@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { calcularMRR } from "@/lib/mrr";
 
 export async function GET() {
   try {
     await requireAdmin();
 
-    const [membros, financeiro, grupos, noticias, agentes] = await Promise.all([
+    const [membros, { mrrTotal }, receitaTotalRows, grupos, noticias, agentes] = await Promise.all([
       // Membros por plano e status
       sql`
         SELECT
@@ -20,17 +21,9 @@ export async function GET() {
           COUNT(*) FILTER (WHERE status = 'cancelado' AND updated_at >= NOW() - INTERVAL '24 hours') as cancelados_hoje
         FROM usuarios
       `,
-      // MRR aproximado
-      sql`
-        SELECT
-          SUM(CASE WHEN plano = 'vip' AND ciclo = 'mensal' THEN 9.90
-                   WHEN plano = 'vip' AND ciclo = 'anual' THEN (99.00 / 12)
-                   WHEN plano = 'elite' AND ciclo = 'mensal' THEN 19.90
-                   WHEN plano = 'elite' AND ciclo = 'anual' THEN (199.00 / 12)
-                   ELSE 0 END) as mrr_estimado,
-          SUM(valor) as receita_total
-        FROM assinaturas WHERE status = 'ativa'
-      `,
+      // MRR real — fonte única (lib/mrr.ts), não mais preço hardcoded por plano/ciclo
+      calcularMRR(),
+      sql`SELECT SUM(valor) as receita_total FROM assinaturas WHERE status = 'ativa'`,
       // Status dos grupos
       sql`SELECT nome, plano, membros_ativos, max_membros, ativo FROM grupos_whatsapp ORDER BY plano`,
       // Notícias das últimas 24h
@@ -50,7 +43,7 @@ export async function GET() {
 
     return NextResponse.json({
       membros: membros[0],
-      financeiro: financeiro[0],
+      financeiro: { mrr_estimado: mrrTotal, receita_total: Number(receitaTotalRows[0].receita_total) },
       grupos,
       noticias: noticias[0],
       erros_recentes: agentes,

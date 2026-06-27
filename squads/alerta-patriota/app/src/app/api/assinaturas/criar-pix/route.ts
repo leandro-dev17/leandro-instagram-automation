@@ -83,10 +83,19 @@ export async function POST(req: NextRequest) {
       }
       usuarioId = usuarios[0].id;
     } else {
+      // FASE 27.6: SELECT (sem usuário) seguido de INSERT puro tinha uma janela TOCTOU — duplo
+      // clique ou retry do cliente PIX (rede lenta é comum nesse fluxo) gerava 2 requisições
+      // concorrentes que ambas viam "não existe" e ambas tentavam INSERT com o mesmo e-mail
+      // (UNIQUE). A segunda batia no constraint, não tinha .catch() aqui, e a request inteira
+      // falhava com 500 — em vez de simplesmente reaproveitar o usuário já criado pela primeira.
+      // ON CONFLICT...RETURNING (mesmo padrão de criar-direto/route.ts) sempre retorna uma linha,
+      // não importa qual das duas requisições "ganhou" a corrida.
       const senhaAleatoria = await bcrypt.hash(randomUUID(), 10);
       const novoUsuario = await sql`
         INSERT INTO usuarios (nome, email, senha_hash, telefone, status)
         VALUES (${nome}, ${email.toLowerCase()}, ${senhaAleatoria}, ${telefone || null}, 'trial')
+        ON CONFLICT (email) DO UPDATE SET
+          telefone = COALESCE(usuarios.telefone, EXCLUDED.telefone)
         RETURNING id
       `;
       usuarioId = novoUsuario[0].id;

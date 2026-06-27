@@ -20,31 +20,37 @@ type JanelaPublicacao = {
   cardDesdeHoraBRT: number;
 };
 
+// FASE 27.7: horarioBRT/label/verificacaoInicioBRT/verificacaoFimBRT do grupo "todos"
+// assumiam cron às 7h/13h/19h BRT, mas o cron real (alerta-patriota-crons.yml: '0 9,15,21 * * *')
+// roda às 6h/12h/18h BRT — 1h antes do que este arquivo assumia. cardDesdeHoraBRT já estava
+// certo (6.5/12.5/18.5 = 30min após o cron real), só os outros campos estavam errados, o que
+// atrasava em 1h a janela de verificação e fazia cronEsperado() informar um horário UTC errado
+// no alerta ("cron deveria ter rodado às 10:00 UTC" quando na verdade era 09:00 UTC).
 const JANELAS: JanelaPublicacao[] = [
   // Horários para todos os grupos (cron 0 9,15,21 UTC = 6h, 12h, 18h BRT)
   // Verificação: 30min–90min após o horário
   {
-    horarioBRT: 7,
-    label: "7h",
+    horarioBRT: 6,
+    label: "6h",
     grupos: "todos",
-    verificacaoInicioBRT: 7.5,
-    verificacaoFimBRT: 9.0,
+    verificacaoInicioBRT: 6.5,
+    verificacaoFimBRT: 8.0,
     cardDesdeHoraBRT: 6.5,
   },
   {
-    horarioBRT: 13,
-    label: "13h",
+    horarioBRT: 12,
+    label: "12h",
     grupos: "todos",
-    verificacaoInicioBRT: 13.5,
-    verificacaoFimBRT: 15.0,
+    verificacaoInicioBRT: 12.5,
+    verificacaoFimBRT: 14.0,
     cardDesdeHoraBRT: 12.5,
   },
   {
-    horarioBRT: 19,
-    label: "19h",
+    horarioBRT: 18,
+    label: "18h",
     grupos: "todos",
-    verificacaoInicioBRT: 19.5,
-    verificacaoFimBRT: 21.0,
+    verificacaoInicioBRT: 18.5,
+    verificacaoFimBRT: 20.0,
     cardDesdeHoraBRT: 18.5,
   },
   // Horários extras VIP+Elite (cron 0 13,19,1 UTC = 10h, 16h, 22h BRT)
@@ -130,11 +136,11 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
   const horaBRT = agoraHoraBRT();
 
-  // Não alerta antes das 7h30 BRT (primeiro horário do dia)
-  if (horaBRT < 7.5) {
+  // Não alerta antes das 6h30 BRT (primeiro horário do dia)
+  if (horaBRT < 6.5) {
     return NextResponse.json({
       ok: true,
-      motivo: "Antes do primeiro horário do dia (7h30 BRT)",
+      motivo: "Antes do primeiro horário do dia (6h30 BRT)",
       hora_brt: horaBRT.toFixed(2),
       duracao_ms: Date.now() - inicio,
     });

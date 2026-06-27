@@ -22,12 +22,21 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
 
   try {
-    // 1. Usuários inadimplentes
+    // 1. Usuários inadimplentes — junta com a última assinatura de cada um para usar o
+    // valor REAL cobrado (normalizando anual/12) em vez de um preço fixo por plano, que
+    // fica desatualizado sempre que o preço muda (mesma fonte de verdade do lib/mrr.ts).
     const inadimplentes = await sql`
-      SELECT id, nome, email, plano, status, updated_at, created_at
-      FROM usuarios
-      WHERE status = 'inadimplente'
-      ORDER BY updated_at ASC
+      SELECT u.id, u.nome, u.email, u.plano, u.status, u.updated_at, u.created_at,
+             a.valor as assinatura_valor, a.ciclo as assinatura_ciclo
+      FROM usuarios u
+      LEFT JOIN LATERAL (
+        SELECT valor, ciclo FROM assinaturas
+        WHERE usuario_id = u.id
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) a ON true
+      WHERE u.status = 'inadimplente'
+      ORDER BY u.updated_at ASC
     `;
 
     // 2. Calcula total de inadimplência e agrupamento por plano
@@ -37,7 +46,10 @@ export async function GET(req: NextRequest) {
 
     for (const u of inadimplentes) {
       const plano = String(u.plano ?? "vip");
-      const valor = VALOR_PLANO[plano] ?? 9.9;
+      const valorAssinatura = u.assinatura_valor != null ? Number(u.assinatura_valor) : null;
+      const valor = valorAssinatura != null
+        ? (u.assinatura_ciclo === "anual" ? valorAssinatura / 12 : valorAssinatura)
+        : (VALOR_PLANO[plano] ?? 9.9);
       totalInadimplencia += valor;
 
       if (!porPlano[plano]) porPlano[plano] = { qtd: 0, valor: 0 };

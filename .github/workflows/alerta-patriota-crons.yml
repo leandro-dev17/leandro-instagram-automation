@@ -10,8 +10,6 @@ on:
     - cron: '*/5 11-23,0,1,2 * * *'
     # Gerentes a cada 10min (críticos — precisam de resposta rápida)
     - cron: '*/10 * * * *'
-    # VIP + Elite extras — 3 publicações adicionais (10h, 16h, 22h BRT = 13h, 19h, 1h UTC)
-    - cron: '0 13,19,1 * * *'
     # Márcio Crise — verifica crise a cada 2h
     - cron: '0 */2 * * *'
     # Tereza Termômetro — todo domingo às 23h UTC (20h BRT)

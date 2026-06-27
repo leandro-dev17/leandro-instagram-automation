@@ -66,6 +66,10 @@ const ARQUIVOS_PROTEGIDOS = [
 const TAMANHO_MAX_AUTOFIX = 12000;
 
 // ── STEP 1: Auto-fix por chamada de rotas ────────────────────────────────────
+// maxDuration=60 é um teto rígido no plano Hobby da Vercel (não dá pra aumentar) — com
+// até 3 rotas em AUTO_FIX_ROTAS, os timeouts/sleeps antigos (20s + 3s por rota) somavam
+// até 69s SÓ nesta etapa, antes mesmo da espera de verificação. Reduzidos para caber com
+// margem dentro do orçamento total de ORCAMENTO_MS verificado no handler principal.
 async function tentarFixRotas(tipo: string): Promise<{ ok: boolean; acoes: string[] }> {
   const rotas = AUTO_FIX_ROTAS[tipo] || [];
   const acoes: string[] = [];
@@ -74,11 +78,11 @@ async function tentarFixRotas(tipo: string): Promise<{ ok: boolean; acoes: strin
     try {
       const res = await fetch(`${APP_URL}${rota}`, {
         headers: { Authorization: `Bearer ${CRON_SECRET}` },
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(8000),
       });
       const data = await res.json().catch(() => ({}));
       acoes.push(`${rota}: ${res.ok ? "✅ OK" : `❌ ${res.status}`}`);
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 1000));
     } catch (e) {
       acoes.push(`${rota}: ❌ ${String(e).substring(0, 80)}`);
     }
@@ -234,27 +238,40 @@ export async function POST(req: NextRequest) {
     const etapas: string[] = [];
     let resolvido = false;
 
+    // Orçamento de tempo: maxDuration=60 é um teto rígido (Vercel Hobby). Cada etapa
+    // abaixo checa o tempo já gasto antes de iniciar — se não há margem segura para
+    // completar a próxima etapa, ela é pulada e o problema é escalado para Leandro em
+    // vez de a função ser matada no meio de uma escrita (commit/redeploy).
+    const ORCAMENTO_MS = 42000;
+    const orcamentoEsgotado = () => Date.now() - inicio > ORCAMENTO_MS;
+
     // ── ETAPA 1: Auto-fix por chamadas de API ────────────────────────────────
     const fixRotas = await tentarFixRotas(tipo);
     if (fixRotas.ok) {
       etapas.push(...fixRotas.acoes);
-      // Aguarda 10s e verifica se resolveu
-      await new Promise(r => setTimeout(r, 10000));
-      const verificacao = await fetch(`${APP_URL}/api/cron/fiscal-pipeline`, {
-        headers: { Authorization: `Bearer ${CRON_SECRET}` },
-        signal: AbortSignal.timeout(15000),
-      }).catch(() => null);
-      const vData = await verificacao?.json().catch(() => ({})) as { ok?: boolean };
-      if (vData?.ok) {
-        resolvido = true;
-        etapas.push("✅ Verificação pós-fix: pipeline OK");
+      if (!orcamentoEsgotado()) {
+        // Aguarda e verifica se resolveu
+        await new Promise(r => setTimeout(r, 5000));
+        const verificacao = await fetch(`${APP_URL}/api/cron/fiscal-pipeline`, {
+          headers: { Authorization: `Bearer ${CRON_SECRET}` },
+          signal: AbortSignal.timeout(8000),
+        }).catch(() => null);
+        const vData = await verificacao?.json().catch(() => ({})) as { ok?: boolean };
+        if (vData?.ok) {
+          resolvido = true;
+          etapas.push("✅ Verificação pós-fix: pipeline OK");
+        } else {
+          etapas.push("⚠️ Fix de rotas não resolveu completamente — tentando fix de código");
+        }
       } else {
-        etapas.push("⚠️ Fix de rotas não resolveu completamente — tentando fix de código");
+        etapas.push("⏱️ Orçamento de tempo esgotado após etapa 1 — verificação pulada");
       }
     }
 
     // ── ETAPA 2: Fix de código via Claude + GitHub API ───────────────────────
-    if (!resolvido && MAPA_ARQUIVOS[tipo] && GITHUB_TOKEN && !ARQUIVOS_PROTEGIDOS.includes(MAPA_ARQUIVOS[tipo])) {
+    if (!resolvido && orcamentoEsgotado()) {
+      etapas.push("⏱️ Orçamento de tempo esgotado — etapa 2 (fix de código) pulada nesta execução");
+    } else if (!resolvido && MAPA_ARQUIVOS[tipo] && GITHUB_TOKEN && !ARQUIVOS_PROTEGIDOS.includes(MAPA_ARQUIVOS[tipo])) {
       const arquivo = MAPA_ARQUIVOS[tipo];
       const fileData = await lerArquivoGitHub(arquivo);
 
@@ -283,9 +300,11 @@ export async function POST(req: NextRequest) {
                 await dispararRedeploy();
                 etapas.push("🔄 Redeploy Vercel disparado");
               }
-              // Re-run workflow se for arquivo de automação
+              // Re-run workflow se for arquivo de automação. Sem espera bloqueante de 30s
+              // pelo deploy: o overhead de fila + checkout + setup do próprio GitHub Actions
+              // já costuma superar o tempo de propagação do deploy, e os 30s fixos aqui
+              // somavam diretamente ao risco de exceder maxDuration=60.
               if (arquivo.includes("/automation/") || arquivo.includes(".yml")) {
-                await new Promise(r => setTimeout(r, 30000)); // aguarda deploy
                 await dispararWorkflow();
                 etapas.push("🔄 GitHub Actions workflow re-disparado");
               }
@@ -299,7 +318,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── ETAPA 3: Re-run workflow como última tentativa automática ─────────────
-    if (!resolvido && ["cards_sem_envio", "workflow_falhando"].includes(tipo)) {
+    if (!resolvido && !orcamentoEsgotado() && ["cards_sem_envio", "workflow_falhando"].includes(tipo)) {
       const wOk = await dispararWorkflow();
       etapas.push(wOk ? "✅ Workflow GitHub Actions re-disparado" : "❌ Re-run falhou");
       if (wOk) resolvido = true;

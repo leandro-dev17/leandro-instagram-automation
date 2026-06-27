@@ -72,7 +72,10 @@ export async function POST(req: NextRequest) {
 
     if ((porTelefone as Array<{ id: number }>).length > 0) {
       usuarioId = (porTelefone as Array<{ id: number }>)[0].id;
-      await sql`UPDATE usuarios SET nome = COALESCE(NULLIF(nome,''), ${nomeUsuario}), email = ${emailNorm} WHERE id = ${usuarioId}`.catch(() => {});
+      // Nunca sobrescrever um e-mail já cadastrado: alguém que descubra o telefone de
+      // outra pessoa não pode sequestrar a conta trocando o e-mail para o próprio.
+      // Só preenche se o usuário ainda não tinha e-mail nenhum.
+      await sql`UPDATE usuarios SET nome = COALESCE(NULLIF(nome,''), ${nomeUsuario}), email = COALESCE(NULLIF(email,''), ${emailNorm}) WHERE id = ${usuarioId}`.catch(() => {});
     } else {
       const inserido = await sql`
         INSERT INTO usuarios (nome, email, telefone, status, senha_hash)

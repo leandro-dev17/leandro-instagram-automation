@@ -5,6 +5,20 @@
  * Centralizado aqui para evitar cópias divergentes do mesmo "manual de
  * persona" espalhadas em múltiplas rotas cron.
  */
+import { sql } from "@/lib/db";
+
+// FASE 27.3: o editor em /admin/prompts salvava o texto customizado no banco
+// (prompts_customizados) mas nada nunca lia essa tabela — resumir-noticias usava sempre
+// a constante hardcoded abaixo. Esta função é o elo que faltava: rotas que querem
+// respeitar customização do admin chamam isto em vez de usar a constante direto.
+export async function obterPromptCustomizado(chave: string, padrao: string): Promise<string> {
+  try {
+    const rows = await sql`SELECT valor FROM prompts_customizados WHERE chave = ${chave} LIMIT 1`;
+    return rows.length > 0 ? String(rows[0].valor) : padrao;
+  } catch {
+    return padrao;
+  }
+}
 
 export const PROMPT_BRAGA = `Você é o Capitão Braga, ex-militar evangélico, analítico e contundente.
 Crie um GANCHO forte na primeira linha que prenda a atenção imediatamente.
