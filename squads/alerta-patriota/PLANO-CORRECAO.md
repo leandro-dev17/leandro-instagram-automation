@@ -1254,17 +1254,11 @@ regressão de tipos introduzida.
     para `/?...` em vez de descartá-la; (b) `page.tsx` (home) agora lê `plano`/`ciclo` da URL
     em um `useEffect` no mount e usa para pré-selecionar o ciclo (mensal/anual) e rolar até a
     seção `#planos` — restaurando o comportamento que os links de campanha sempre assumiram.
-    ⚠️ **Achado adicional, não corrigido nesta fase — registrado abaixo como pendência**: o
-    parâmetro `cupom` não tem hoje NENHUM caminho funcional de uso. O desconto (`CUPONS_DESCONTO`,
-    10/15/20%) só existe em `api/assinaturas/criar-pix/route.ts`, que não é chamado por
-    nenhuma página do app (precisa de CPF + exibição de QR code PIX, que não existem na UI). O
-    fluxo de checkout que a home realmente usa (`criar-direto` → assinatura recorrente via
-    Mercado Pago) nunca recebeu suporte a cupom. Ou seja: toda campanha de win-back que promete
-    10%/15%/20% de desconto (`engajamento/route.ts`, `brevo.ts`) está prometendo um desconto que
-    nenhum usuário consegue de fato resgatar, mesmo com o redirect corrigido. Corrigir isso de
-    verdade exige uma decisão de produto (construir uma UI de PIX+CPF para usar `criar-pix`, OU
-    adicionar suporte a cupom na assinatura recorrente de `criar-direto`) — fora do escopo de um
-    fix mecânico de auditoria. **Decisão pendente do usuário, ver item 21-bis abaixo.**
+    ⚠️ **Achado adicional, registrado e já resolvido — ver item 21-bis abaixo.** Na época deste
+    item, o parâmetro `cupom` não tinha NENHUM caminho funcional de uso — o desconto
+    (`CUPONS_DESCONTO`, 10/15/20%) só existia em `api/assinaturas/criar-pix/route.ts` (PIX,
+    nunca chamado por nenhuma página), e `criar-direto` (fluxo real da home) não tinha suporte a
+    cupom. Resolvido no item 21-bis: cupom portado para `criar-direto`, desconto permanente.
 
 20. ✅ `criar-pix` — sem `ON CONFLICT` (race condition TOCTOU).
     SELECT ("usuário já existe?") seguido de INSERT puro (sem `.catch()`, sem `ON CONFLICT`)
@@ -1276,24 +1270,43 @@ regressão de tipos introduzida.
     estabelecido em `criar-direto/route.ts` — sempre retorna uma linha, não importa qual das
     duas requisições "ganhou" a corrida.
 
-21. 🟡 Sistema órfão `api/auth/cadastro` + `api/auth/login` — **decisão pendente do usuário**,
-    não corrigido nesta fase. As rotas existem e estão íntegras (`api/auth/cadastro/`,
-    `api/auth/login/`, confirmado via listagem de diretório — nada foi alterado), mas o
-    fluxo real de cadastro de usuário é via `criar-direto`/`criar-pix` (cadastro implícito no
-    checkout, sem senha real — `senha_hash` é um hash aleatório ou `'__sem_senha__'`), não via
-    essas rotas. Precisa de decisão explícita: (a) remover as rotas órfãs, ou (b) construir a
-    UI de login/cadastro que as usaria. Não removido nem vinculado automaticamente, por ser
-    uma decisão de produto, não um bug a corrigir.
+21. ✅ Sistema órfão `api/auth/cadastro` + `api/auth/login` — **removido (decisão do usuário:
+    "se você me der certeza absoluta que ela não tem utilidade na automação, pode remover")**.
+    Confirmado com certeza absoluta antes de remover: (1) login real do admin é via Server
+    Action `fazerLogin` em `login/page.tsx` (`"use server"`, consulta `usuarios` direto e seta
+    o cookie de sessão) — não passa por `/api/auth/login` em nenhum momento; (2) cadastro real
+    de cliente é via `/api/assinaturas/criar-direto` (coleta só nome/e-mail/telefone, sem campo
+    de senha em lugar nenhum da UI); (3) não existe página `/cadastro` no app (confirmado pela
+    listagem de rotas do build); (4) busca por `auth/cadastro`/`auth/login` em todo `src/`
+    encontrou só 2 referências, ambas como smoke test em crons de monitoramento
+    (`fiscal-login`, `fiscal-codigo-seguranca`), nenhuma em código de produto. Removidos
+    `api/auth/cadastro/route.ts` e `api/auth/login/route.ts`. Ajustado `fiscal-login/route.ts`
+    (removido o teste de `/api/auth/login`, mantido o de `/api/auth/me`) e
+    `fiscal-codigo-seguranca/route.ts` (removido o check `cadastro_valida_email`, que passaria
+    a falsear um alerta de segurança ao receber 404 em vez do 400 esperado) para não gerarem
+    falso alarme após a remoção.
 
-21-bis. 🟡 **Novo, decisão pendente do usuário** (achado durante o item 19): o sistema de
-    cupom de desconto de win-back (`VOLTA10/15/20`, prometido por `engajamento/route.ts` e
-    `brevo.ts`) não tem nenhum caminho de checkout funcional na UI — `criar-pix` (única rota
-    que aplica o desconto) nunca é chamado por nenhuma página. Decisão necessária: (a)
-    construir a UI de PIX+CPF para usar `criar-pix` como está, (b) portar o desconto para
-    `criar-direto` (assinatura recorrente, sem PIX/CPF), ou (c) remover as menções a cupom das
-    campanhas de win-back até uma das opções acima ser implementada. Enquanto isso, as
-    mensagens de `engajamento`/`brevo.ts` continuam prometendo um desconto que nenhum usuário
-    consegue resgatar.
+21-bis. ✅ Sistema de cupom de desconto de win-back (`VOLTA10/15/20`) — **implementado
+    (decisão do usuário: desconto permanente, opção recomendada)**. Confirmado que `criar-pix`
+    já tinha a lógica de cupom pronta, mas é PIX único (exige CPF) sem nenhuma UI que o chame;
+    `criar-direto` é o fluxo real (assinatura recorrente via Mercado Pago `PreApproval`, cartão
+    de crédito) que a home de fato usa, e não tinha suporte a cupom. Como o Mercado Pago cobra
+    o mesmo `transaction_amount` em toda renovação de uma assinatura recorrente — não existe
+    "desconto só no 1º ano" sem uma rotina extra pra reajustar o valor depois de 12 meses —, e
+    o usuário escolheu a opção mais simples e sem novo ponto de falha (desconto permanente
+    enquanto a assinatura ficar ativa), a implementação foi: (1) `criar-direto/route.ts` agora
+    aceita `cupom` no body, aplica o desconto só para `plano === "elite"` (mesma regra de
+    `criar-pix`) sobre o valor mensal ou anual, e propaga o cupom aplicado no
+    `external_reference` (`usuarioId|plano|ciclo|CUPOM`) para rastreabilidade no painel do MP —
+    confirmado que o parser do webhook (`webhook/mercadopago/route.ts:321-324`) só lê os 3
+    primeiros campos por índice, então o 4º campo extra é seguro e não quebra nada; (2)
+    `app/page.tsx` agora lê `?cupom=` da URL (mesmo padrão já usado para `plano`/`ciclo` desde a
+    Fase 27.6) e envia no body dos 2 call-sites de `criar-direto` (gate modal e checkout direto
+    de quem já passou pelo gate). `assinar/page.tsx` já repassava todo query param para `/`
+    (Fase 27.6, sem mudança necessária). O valor realmente cobrado pelo Mercado Pago
+    (`pa.auto_recurring.transaction_amount`) é o que `ativarAcesso()` grava como mensalidade do
+    usuário no webhook — já vem correto com o desconto aplicado, sem precisar tocar nesse
+    código.
 
 `tsc --noEmit` zerado após os arquivos desta sub-fase (`lib/ai.ts`, `facebook-comentarios/route.ts`,
 `admin/setup/route.ts`, `claude-revisor/route.ts`, `fiscal-facebook/route.ts`, `assinar/page.tsx`,
@@ -1355,15 +1368,39 @@ regressão de tipos introduzida.
       automaticamente: o risco de inventar nome/emoji/horário errado para mais de 56 agentes
       supera o benefício de uma lista "completa" com metadados adivinhados. Requer decisão do
       usuário sobre quais agentes merecem cartão próprio no painel.
-    - **Páginas `admin/conteudo` e `admin/noticias` parecem se sobrepor.** Diferente do caso de
-      `admin/usuarios` acima, as duas estão linkadas no menu e funcionam — a questão é
-      product/UX (manter as duas, fundir, ou redefinir o que cada uma faz), não um bug técnico.
+    - **Páginas `admin/conteudo` e `admin/noticias` parecem se sobrepor — ✅ fundidas (decisão
+      do usuário: "pode fundir as duas").** As duas eram, na prática, a mesma tela (mesmo `<h1>`
+      "📰 Central de Conteúdo", mesma fonte de dados `/api/admin/noticias`): `conteudo` tinha
+      abas Notícias/Fila/Histórico + botão "Publicar agora", `noticias` tinha filtro
+      Todas/Pendente/Publicada + modal de edição (urgente, resumo Braga, resumo Cavalcanti) +
+      link "Ver" para a fonte original. Fundidas em uma única página em `admin/conteudo/page.tsx`
+      com 2 abas ("Notícias" com os filtros + botão publicar + editar + link da fonte, e
+      "Histórico"), mantendo 100% das funcionalidades das duas. `admin/noticias/page.tsx`
+      removida. Atualizado `sidebar.tsx` (removido o item "🗞️ Notícias" duplicado) e
+      `admin/page.tsx` (o quick-nav do dashboard apontava para `/admin/noticias`, agora aponta
+      para `/admin/conteudo`).
+    - **Bug adicional encontrado durante a fusão: link morto no menu lateral.** `sidebar.tsx`
+      tinha duas entradas para a mesma área de membros: "Membros" apontando para
+      `/admin/membros` — rota que **não existe** (nenhum `admin/membros/page.tsx` no projeto,
+      404 garantido) — e "LGPD / Em massa" apontando para `/admin/usuarios`, que é na verdade a
+      página completa de gestão de membros (`<h1>👥 Gestão de Membros</h1>`: filtro por
+      plano/status/busca, exportar CSV, ações em massa e LGPD). Ou seja, o item "Membros" do
+      menu sempre foi um link morto desde que essa página foi renomeada/movida de `membros` para
+      `usuarios`, e a Fase 27.7 só tinha conectado a página real sob o nome técnico errado
+      ("LGPD / Em massa") sem remover o link morto duplicado. Corrigido: as duas entradas foram
+      unificadas em uma só — "Membros" → `/admin/usuarios` —, que é como a própria página se
+      identifica no `<h1>`.
     - **`cron/backup/route.ts` cria uma branch nova no Neon todo dia (`backup-${data}`) e nunca
-      apaga nenhuma.** Sem rotina de expiração/limpeza em lugar nenhum do código (confirmado via
-      busca por `branches`/`NEON_API_KEY` em todo o `src/`). Acúmulo indefinido de branches tem
-      custo de armazenamento e eventualmente esbarra em limite de plano do Neon — mas apagar
-      branches de backup é uma ação destrutiva e a política de retenção (quantos dias manter) é
-      uma decisão do usuário, não algo para implementar por conta própria.
+      apagava nenhuma — ✅ implementado, retenção de 14 dias.** Sugestão dada ao usuário (que
+      pediu "qual sua sugestão"): 14 dias cobre qualquer cenário realista de "preciso recuperar
+      de um backup" (resposta a incidente) sem acumular branches indefinidamente — ajustável
+      via a constante `RETENCAO_DIAS` no topo do arquivo, caso o usuário prefira outro período.
+      Implementado `limparBackupsAntigos()`: lista as branches via `GET /branches` da API Neon,
+      filtra as que começam com `backup-` e têm `created_at` mais antigo que `RETENCAO_DIAS`,
+      apaga cada uma via `DELETE /branches/{id}`. Roda depois da criação da branch do dia, loga
+      o resultado em `agentes_log` (`limpar_branches_antigas`) e só alerta no Telegram (severi-
+      dade baixa, 🟡) se alguma exclusão falhar — nunca é fatal para o backup do dia, que já tem
+      seu próprio alerta (Fase 21) se a criação falhar.
 
     **Triado e classificado como informativo, sem ação necessária:**
     - **Valores não-sensíveis hardcoded no YAML dos jobs `crise-monitor`/`dossie-elite`**
@@ -1415,6 +1452,9 @@ não afeta o `tsc`.
 
 | Data | Fase | Descrição |
 |------|------|-----------|
+| 27/06/2026 | Fase 27 — Gap de deploy | Usuário reportou que os cards e a legenda continuavam com os mesmos problemas das Fases 24b/25 mesmo após as correções terem sido feitas e commitadas. Investigado via `vercel inspect`: o último deploy real em `alertapatriota.vercel.app` era de **24/06 às 09:43**, ou seja, **antes** do commit da Fase 24 (15:22 do mesmo dia) e muito antes do commit `50bd343` (Fase 24c+25, 26/06 17:57) — os dois estavam no GitHub (`origin/main`) mas nunca foram deployados, porque este projeto não tem integração automática Vercel↔GitHub (precisa de `vercel --prod` manual a cada lote de mudanças, mesma situação do Vovó Teresinha). Ou seja: 3 dias de correções reais (Fase 24 completa + Fase 24c/25 + agora Fase 27.1-27.7) estavam todas só no repositório, nunca em produção. Corrigido: commit único da Fase 27 (`de0a71d`) + merge dos commits automáticos do bot `guardian-state` + push (`834ba17`) + `vercel --prod` disparado manualmente, trazendo de uma vez todo o backlog parado. Deploy `dpl_8DpfUSFqzJh4fEn53rBvr3mhEN2A` promovido a produção e alias `alertapatriota.vercel.app` atualizado com sucesso. **Lição para o processo**: a partir de agora, todo commit/push relevante para este projeto precisa ser seguido de `cd squads/alerta-patriota/app && NODE_OPTIONS=--use-system-ca vercel --prod` — push no GitHub sozinho não atualiza produção. |
+| 27/06/2026 | Verificação exaustiva pós-Fase 27 | Usuário pediu para confirmar que **nenhuma outra fase** além da já encontrada (24/24c/25) ficou sem deploy. Cruzado `git log` (timestamps de todos os commits que tocam `squads/alerta-patriota`) com `vercel ls`/`vercel inspect` (timestamps de todos os deploys de produção, 2 páginas, cobrindo 18/06 a 27/06). Achados: (1) o deploy de 24/06 09:43:25 aconteceu só 104s depois do commit da Fase 23 (`ae2a034`, 09:41:41) e antes de qualquer commit posterior — confirma que Fase 23 (e tudo ≤23) estava genuinamente em produção. (2) Não existe **nenhum** deploy registrado em 25/06 ou 26/06 — confirma que o gap era exatamente Fase 24/24c/25 (commitadas nesses dias, sem deploy), exatamente como já identificado e corrigido na linha acima. (3) De 18/06 a 24/06 há pelo menos um deploy por dia (em vários dias, vários no mesmo dia) — nenhum outro gap de dia-sem-deploy nesse intervalo. Conclusão: **confirmado que o único gap de todo o histórico do projeto foi o já corrigido pela Fase 27** — não há nenhuma fase anterior adicional que tenha ficado só no GitHub sem chegar à produção. |
+| 27/06/2026 | Fase 27 — itens 1, 2, 4, 5 (decisões do usuário) | Resolução dos 4 itens que a Fase 27 tinha deixado como decisão pendente do usuário (item 3 — cobertura parcial de `admin/agentes` — não precisa de ação, usuário confirmou). **Item 1** (usuário: "se tiver certeza absoluta que não tem utilidade, pode remover"): confirmado via grep exaustivo que `/api/auth/cadastro` e `/api/auth/login` não tinham nenhum caller real (login real do admin é Server Action em `/login`, cadastro real de cliente é `/api/assinaturas/criar-direto`) — só eram chamadas por testes de fumaça em `fiscal-login`/`fiscal-codigo-seguranca`. Rotas deletadas; os dois crons fiscais atualizados para não testar mais rota inexistente (testam `/api/auth/me` no lugar). **Item 2** (cupom de win-back sem checkout funcional — usuário perguntou desconto permanente vs só 1º ano, escolheu **permanente**): `criar-direto` (fluxo real de assinatura recorrente, usado pelo link `?cupom=` das campanhas Enzo) passou a aplicar o desconto (`CUPONS_DESCONTO`, só Elite, mesma regra de `criar-pix`) no `transaction_amount` da `PreApproval` e a propagar o cupom no `external_reference` (`usuarioId|plano|ciclo|CUPOM`); `page.tsx` (home) passou a ler `?cupom=` da URL e mandar no body de `criar-direto`. Webhook MP confirmado seguro sem alteração (lê o valor cobrado direto de `pa.auto_recurring.transaction_amount`, não recalcula). **Item 4** (usuário: "pode fundir as duas"): `admin/conteudo` e `admin/noticias` fundidas numa única página (abas Notícias/Histórico, preservando filtros + edição de resumo + "Publicar agora" + link externo das duas); `admin/noticias/page.tsx` deletada; link duplicado removido de `sidebar.tsx`; achado incidental durante essa auditoria — `sidebar.tsx` tinha **2 entradas** para a mesma página (`/admin/usuarios`: uma rotulada "LGPD/Em massa", outra apontando pro link morto `/admin/membros` que nunca existiu) — corrigido para 1 entrada única "Membros"; link morto de `admin/page.tsx` (`/admin/noticias`) também corrigido para `/admin/conteudo`. **Item 5** (retenção de backup no Neon — usuário perguntou sugestão): implementado direto (baixo risco, ajustável): `cron/backup` agora apaga branches `backup-*` com mais de 14 dias após criar a do dia, com log e alerta Telegram em caso de falha ao apagar (não bloqueia o backup do dia). `tsc --noEmit` zerado em todas as 4 mudanças. Sem commit/push — aguardando autorização do usuário. |
 | 27/06/2026 | Fase 27 (27.1-27.7) | Auditoria geral completa (pedido do usuário: "auditoria em tudo sem deixar passar nenhuma linha de código") consolidada nas Fases 26/M, executada em 7 sub-fases do mais crítico ao menos crítico. Destaques por sub-fase: 27.1 segurança/disponibilidade core; 27.2 risco de `maxDuration` na família de autocorreção; 27.3 MRR (fórmula única) e qualidade de conteúdo; 27.4 comunicação de preço para clientes reais; 27.5 padrões recorrentes restantes (dedup incluindo `status='erro'` bloqueando retry em múltiplas rotas); 27.6 altos restantes (item 17 `ARQUIVO_POR_TIPO` do `claude-revisor`, item 18 `fiscal-facebook` sem redeploy após renovar token, item 19 `assinar/page.tsx` descartando query params no redirect, item 20 `criar-pix` sem `ON CONFLICT`/TOCTOU); 27.7 médios/baixos/informativos — `lib/whatsapp.ts` `enviarMensagemPrivada` hardcoded em VIP corrigido (propagado `plano` em 5 call sites: `webhook/mercadopago`, `campanha-recuperacao`, `sequencia-nao-conversao`, `preditor-churn`, `engajamento`), página LGPD/ações-em-massa (`admin/usuarios`) reconectada ao menu (estava sem link), `fiscal-agendamento` com janela de verificação 1h atrasada para o grupo "todos" corrigida, schedule fantasma (`0 13,19,1 * * *`, sem job ouvindo) removido de `alerta-patriota-crons.yml`, `lib/instagram.ts` confirmado código morto (informativo), configs não-sensíveis duplicadas no YAML triadas e classificadas como não-risco. Registrado como decisão pendente do usuário (não corrigido — escolha de produto/risco): item 21 (sistema órfão `auth/cadastro`+`auth/login`), item 21-bis (sistema de cupom de desconto sem checkout funcional na UI), cobertura parcial de `admin/agentes` (14 de ~70 agentes), duplicação `admin/conteudo`/`admin/noticias`, política de retenção das branches de backup no Neon (`cron/backup` cria uma nova por dia e nunca apaga). `tsc --noEmit` zerado em todas as 7 sub-fases. Sem commit/push — aguardando autorização do usuário para fechar a Fase 27 por completo. |
 | 26/06/2026 | Fase 25 | Teste real em produção confirmou Fase 24b/24c funcionando (legenda aprovada pelo usuário por escrito); número 5547991818222 adicionado aos grupos VIP e Elite via Evolution API; corrigido bug de foto repetida o dia inteiro (`pick()` usava `Date().getDate()`, agora usa o `id` da notícia como seed, propagado via novo parâmetro `noticiaId`). Cards redesenhados em `card-generator.tsx` para casar exatamente com 2 imagens de referência enviadas pelo usuário — processo levou 3 rodadas até bater: 1ª tentativa (estimativa visual) rejeitada (faixa tampando a cabeça, selo errado); 2ª rodada (medição por amostragem de pixel via `sharp`) corrigiu posição/alinhamento, mas usuário reportou forte insatisfação porque fonte de `label2`/selos inferiores ficou pequena demais e a logo ganhou fundo preto feio (`borderRadius` removido por engano — `logo.png` não tem canal alpha); 3ª rodada mediu cada elemento com grade de pixel sobreposta na referência (valores finais: faixa top 52/48 + altura 73 + largura automática; fontSize 54/50 no label1, 28 no label2, 44 no selo VIP, 26 no chip Elite; logo 350px circular). Usuário aprovou por escrito ("agora sim ficou do jeito que eu queria"). `tsc --noEmit` zerado, scripts temporários de medição/preview removidos do diretório do app. Commit único combinando Fase 24c (legenda) + Fase 25 (redesign + foto-seed) feito após esta aprovação — ver hash no commit real do repositório. |
 | 25-26/06/2026 | Fase 24b | Usuário reportou (2 screenshots): nome "Roberto Braga" ainda aparecendo no grupo Elite, e texto ilegível nos cards (comparado a um post da CNN). (1) Confirmado via Evolution API que o `profileName` real é "Alerta Patriota" — causa é nome de contato salvo localmente no celular de quem vê o nome errado, sem fix de código possível. (2) Redesign CNN-style dos dois cards (`card-generator.tsx`): removidos parágrafo, divisor, bloco nome/cargo e rodapé de `CardBraga`/`CardCavalcanti`, mantendo só selo + 1 headline grande (informação de persona/data/fonte já existia na legenda de texto, não se perde). Verificado visualmente via 4 renders de teste. (3) Usuário notou em paralelo que a legenda de texto vinha cortada no meio de frase nos dois grupos — causa: seções de prompt "2-3 linhas" sem orçamento de caracteres regularmente excediam o espaço restante dentro do limite seguro de 990 caracteres (Fase 12), sendo cortadas por `truncarLegenda()`. Corrigido: seções reduzidas a "1 frase, máx. 20 palavras" com orçamento total de 450-600 caracteres explícito no prompt, `max_tokens` 350→220; `LEGENDA_MAX`/corte de segurança mantidos intactos. `tsc --noEmit` zerado. Pendente: reteste em produção pós-deploy. |

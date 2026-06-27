@@ -49,25 +49,17 @@ export async function GET(req: NextRequest) {
     return { nome: "setup_sem_auth_bloqueado", ok, detalhe: `status=${r.status} (esperado 401)`, severidade: "critico" };
   }));
 
-  // 4. Cadastro com email inválido deve rejeitar
-  checks.push(await testar("cadastro_valida_email", async () => {
-    const r = await fetch(`${APP}/api/auth/cadastro`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome: "Teste", email: "nao-e-email", senha: "123456" }),
-      signal: AbortSignal.timeout(8000),
-    });
-    const ok = r.status === 400;
-    return { nome: "cadastro_valida_email", ok, detalhe: `status=${r.status} (esperado 400)`, severidade: "alto" };
-  }));
+  // FASE 27 (item 1): check "cadastro_valida_email" removido — testava /api/auth/cadastro,
+  // rota morta excluída (cadastro real de cliente é via /api/assinaturas/criar-direto, sem senha).
 
-  // 5. Webhook MP aceita só POST
+  // 4. Webhook MP aceita só POST
   checks.push(await testar("webhook_mp_metodo", async () => {
     const r = await fetch(`${APP}/api/webhook/mercadopago`, { signal: AbortSignal.timeout(8000) });
     const ok = r.status === 405 || r.status === 404;
     return { nome: "webhook_mp_metodo", ok, detalhe: `status=${r.status} (esperado 405)`, severidade: "medio" };
   }));
 
-  // 6. Cron COM secret correto deve funcionar
+  // 5. Cron COM secret correto deve funcionar
   checks.push(await testar("cron_com_secret_funciona", async () => {
     if (!CRON) return { nome: "cron_com_secret_funciona", ok: false, detalhe: "CRON_SECRET não configurado!", severidade: "critico" };
     const r = await fetch(`${APP}/api/cron/fiscal-api`, {
@@ -77,7 +69,7 @@ export async function GET(req: NextRequest) {
     return { nome: "cron_com_secret_funciona", ok, detalhe: `status=${r.status} (esperado 200)`, severidade: "alto" };
   }));
 
-  // 7. Assinatura sem auth deve rejeitar
+  // 6. Assinatura sem auth deve rejeitar
   checks.push(await testar("assinatura_sem_auth", async () => {
     const r = await fetch(`${APP}/api/assinaturas/criar`, {
       method: "POST", headers: { "Content-Type": "application/json" },

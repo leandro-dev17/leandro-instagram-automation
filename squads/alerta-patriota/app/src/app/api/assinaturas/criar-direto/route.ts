@@ -19,6 +19,19 @@ const LIMITE_POR_JANELA = 5;
 const JANELA_MS = 10 * 60_000;
 const requisicoesPorIp = new Map<string, number[]>();
 
+// FASE 27 (item 2): cupons de win-back (enzo-engajamento, ondas D20/D25/D30) prometiam
+// desconto em /assinar?...&cupom=VOLTA10, mas só existiam em criar-pix (PIX único, sem UI
+// que o chame) — quem cancelou e clicava no link de volta caía em criar-direto (o fluxo
+// real, cobrança recorrente por cartão) e pagava o preço cheio, sem desconto nenhum.
+// Decisão do usuário: desconto permanente enquanto a assinatura ficar ativa (mais simples,
+// sem precisar de uma rotina extra pra reajustar o valor depois do 1º ano). Só Elite, mesma
+// regra de negócio já usada em criar-pix.
+const CUPONS_DESCONTO: Record<string, number> = {
+  VOLTA10: 0.10,
+  VOLTA15: 0.15,
+  VOLTA20: 0.20,
+};
+
 function excedeuLimite(ip: string): boolean {
   const agora = Date.now();
   const historico = (requisicoesPorIp.get(ip) || []).filter((t) => agora - t < JANELA_MS);
@@ -40,9 +53,10 @@ export async function POST(req: NextRequest) {
       telefone?: string;
       plano?: string;
       ciclo?: string;
+      cupom?: string;
     };
 
-    const { nome, email, telefone, plano = "vip", ciclo = "mensal" } = body;
+    const { nome, email, telefone, plano = "vip", ciclo = "mensal", cupom } = body;
 
     const fone = (telefone || "").replace(/\D/g, "");
     if (fone.length < 10) {
@@ -60,7 +74,9 @@ export async function POST(req: NextRequest) {
     }
 
     const nomeUsuario = (nome || "").trim() || "Patriota";
-    const valorFinal = ciclo === "anual" ? dadosPlano.valorAnual : dadosPlano.valor;
+    const valorBase = ciclo === "anual" ? dadosPlano.valorAnual : dadosPlano.valor;
+    const desconto = cupom && plano === "elite" ? (CUPONS_DESCONTO[cupom.toUpperCase()] ?? 0) : 0;
+    const valorFinal = Math.round(valorBase * (1 - desconto) * 100) / 100;
 
     // Busca usuário pelo telefone ou e-mail, ou cria novo
     let usuarioId: number | undefined;
@@ -123,7 +139,7 @@ export async function POST(req: NextRequest) {
           ...(ciclo === "mensal" ? { free_trial: { frequency: 7, frequency_type: "days" as const } } : {}),
         },
         payer_email: emailNorm,
-        external_reference: `${usuarioId}|${plano}|${ciclo}`,
+        external_reference: desconto > 0 ? `${usuarioId}|${plano}|${ciclo}|${cupom!.toUpperCase()}` : `${usuarioId}|${plano}|${ciclo}`,
         back_url: `${APP_URL}/pagamento/sucesso?plano=${plano}`,
         payment_methods_allowed: {
           payment_types: [{ id: "credit_card" }],

@@ -32,6 +32,7 @@ export default function Home() {
   const [dadosUser, setDadosUser] = useState<{ nome: string; email: string; telefone: string } | null>(null);
   const [pendingPlano, setPendingPlano] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [cupom, setCupom] = useState<string | null>(null);
 
   useEffect(() => {
     const jaOk = localStorage.getItem("ap_gate_ok");
@@ -60,6 +61,13 @@ export default function Home() {
         document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
       });
     }
+
+    // FASE 27 (item 2): cupom de win-back (?cupom=VOLTA10/15/20) vinha sendo prometido pelas
+    // campanhas de remarketing (enzo-engajamento) mas nunca era lido nem enviado no checkout —
+    // quem voltava pelo link pagava o preço cheio. Guardado em state para ir no body de
+    // criar-direto junto com plano/ciclo.
+    const cupomParam = params.get("cupom");
+    if (cupomParam) setCupom(cupomParam);
   }, []);
 
   // Sticky CTA
@@ -129,7 +137,7 @@ export default function Home() {
         const res = await fetch("/api/assinaturas/criar-direto", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nome: dados.nome, email: dados.email, telefone: dados.telefone, plano: pendingPlano, ciclo }),
+          body: JSON.stringify({ nome: dados.nome, email: dados.email, telefone: dados.telefone, plano: pendingPlano, ciclo, cupom }),
         });
         const data = await res.json();
         if (data.checkout_url) { localStorage.setItem("ap_plano", pendingPlano); window.location.href = data.checkout_url; return; }
@@ -152,7 +160,7 @@ export default function Home() {
       const res = await fetch("/api/assinaturas/criar-direto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: dadosUser.nome, email: dadosUser.email, telefone: dadosUser.telefone, plano: planoId, ciclo }),
+        body: JSON.stringify({ nome: dadosUser.nome, email: dadosUser.email, telefone: dadosUser.telefone, plano: planoId, ciclo, cupom }),
       });
       const data = await res.json();
       if (data.checkout_url) { localStorage.setItem("ap_plano", planoId); window.location.href = data.checkout_url; }

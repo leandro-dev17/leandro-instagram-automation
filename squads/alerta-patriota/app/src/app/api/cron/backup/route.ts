@@ -7,6 +7,43 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 
+// FASE 27 (item 5): retenção de 14 dias para as branches de backup do Neon.
+// O cron criava uma branch `backup-YYYY-MM-DD` todo dia e nunca apagava nenhuma —
+// crescimento indefinido de armazenamento/custo. 14 dias cobre qualquer cenário
+// realista de "preciso recuperar de um backup" (resposta a incidente) sem acumular
+// branches por meses. Ajustável aqui se o usuário quiser outro período.
+const RETENCAO_DIAS = 14;
+
+async function limparBackupsAntigos(neonKey: string, neonProject: string): Promise<{ apagados: number; falhas: number }> {
+  let apagados = 0;
+  let falhas = 0;
+  try {
+    const res = await fetch(`https://console.neon.tech/api/v2/projects/${neonProject}/branches`, {
+      headers: { Authorization: `Bearer ${neonKey}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return { apagados: 0, falhas: 1 };
+    const data = await res.json();
+    const limite = Date.now() - RETENCAO_DIAS * 24 * 60 * 60 * 1000;
+    const antigos = (data.branches || []).filter(
+      (b: { name?: string; id: string; created_at: string }) =>
+        typeof b.name === "string" && b.name.startsWith("backup-") && new Date(b.created_at).getTime() < limite
+    );
+    for (const b of antigos) {
+      const del = await fetch(`https://console.neon.tech/api/v2/projects/${neonProject}/branches/${b.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${neonKey}` },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (del.ok) apagados++;
+      else falhas++;
+    }
+  } catch {
+    falhas++;
+  }
+  return { apagados, falhas };
+}
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
@@ -71,7 +108,20 @@ export async function GET(req: NextRequest) {
       VALUES ('bruno-backup', 'criar_branch_neon', ${branchCriado ? "sucesso" : "erro"}, ${JSON.stringify({ branchCriado })})
     `.catch(() => {});
 
-    return NextResponse.json({ ok: true, integridade, branchCriado });
+    // Limpeza de branches de backup com mais de RETENCAO_DIAS dias
+    let limpeza = { apagados: 0, falhas: 0 };
+    if (neonKey && neonProject) {
+      limpeza = await limparBackupsAntigos(neonKey, neonProject);
+      await sql`
+        INSERT INTO agentes_log (agente, acao, status, detalhes)
+        VALUES ('bruno-backup', 'limpar_branches_antigas', ${limpeza.falhas === 0 ? "sucesso" : "aviso"}, ${JSON.stringify({ ...limpeza, retencaoDias: RETENCAO_DIAS })})
+      `.catch(() => {});
+      if (limpeza.falhas > 0) {
+        await alertarTelegram("🟡", "Bruno Backup — falha ao apagar branch(es) antiga(s) do Neon", `${limpeza.falhas} falha(s) ao apagar, ${limpeza.apagados} apagada(s) com sucesso.`);
+      }
+    }
+
+    return NextResponse.json({ ok: true, integridade, branchCriado, limpeza });
   } catch (err) {
     await alertarTelegram("🔴", "Bruno Backup — FALHA NO BACKUP", String(err));
     return NextResponse.json({ erro: String(err) }, { status: 500 });

@@ -1,5 +1,9 @@
 /**
- * FISCAL LISA LOGIN — Testa login/cadastro/reset a cada 5 min
+ * FISCAL LISA LOGIN — Testa rota de sessão (/api/auth/me) a cada 5 min.
+ * FASE 27 (item 1): /api/auth/login e /api/auth/cadastro foram removidas
+ * (rotas mortas — login real do admin é via Server Action em /login,
+ * cadastro real de cliente é via /api/assinaturas/criar-direto). O teste
+ * dessas rotas foi removido junto para não gerar falso alarme de 404.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";

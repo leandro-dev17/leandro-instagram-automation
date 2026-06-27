@@ -5,11 +5,9 @@ import { useEffect, useState } from "react";
 
 const NAV = [
   { href:"/admin",             icon:"📊", label:"Dashboard"   },
-  { href:"/admin/membros",     icon:"👥", label:"Membros"     },
-  { href:"/admin/usuarios",    icon:"🗑️", label:"LGPD / Em massa" },
+  { href:"/admin/usuarios",    icon:"👥", label:"Membros"     },
   { href:"/admin/financeiro",  icon:"💰", label:"Financeiro"  },
   { href:"/admin/conteudo",    icon:"📰", label:"Conteúdo"    },
-  { href:"/admin/noticias",    icon:"🗞️", label:"Notícias"    },
   { href:"/admin/grupos",      icon:"📱", label:"Grupos WPP"  },
   { href:"/admin/mensagens",   icon:"💬", label:"Mensagens"   },
   { href:"/admin/prompts",     icon:"🧠", label:"Prompts IA"  },
