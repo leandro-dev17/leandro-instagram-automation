@@ -24,23 +24,42 @@ export const maxDuration = 60;
 // por nome nos portais de notícia e nos canais de mídia genéricos.
 // tipo "empresario": só gera análise do Prof. Cavalcanti (Elite) — Capitão Braga
 // comenta exclusivamente notícias do Brasil sobre política, não sobre empresários.
-type Pessoa = { nome: string; busca: string; tipo: "politico" | "empresario"; canalYoutube?: string };
+// periodos: em quais janelas do dia (BRT) a pessoa é monitorada — evita que os 9
+// sejam verificados todos de manhã e quase nenhum de noite (pedido do usuário em
+// 27/06/2026). Cada pessoa cobre 2 dos 3 períodos, distribuídos para que cada
+// período tenha ~6 pessoas ativas (balanceado).
+type Periodo = "manha" | "tarde" | "noite";
+type Pessoa = { nome: string; busca: string; tipo: "politico" | "empresario"; canalYoutube?: string; periodos: Periodo[] };
 
 const PESSOAS: Pessoa[] = [
   // Políticos brasileiros — canais verificados em 27/06/2026 (os IDs anteriores
   // aqui não correspondiam a nenhum canal real; o coletor de notícias usa os
   // IDs corretos há mais tempo, daqui replicamos os mesmos)
-  { nome: "Nikolas Ferreira",   busca: "nikolas ferreira", tipo: "politico", canalYoutube: "UCxI9vN6UbxmBt8VIvUKtJaA" },
-  { nome: "Eduardo Bolsonaro",  busca: "eduardo bolsonaro", tipo: "politico", canalYoutube: "UCkR6xPOHhpjq3wnFchVI4sg" },
-  { nome: "Marco Feliciano",    busca: "feliciano",        tipo: "politico", canalYoutube: "UCpdI21rGF-U3fMoTMCHotSA" },
-  { nome: "Damares Alves",      busca: "damares",          tipo: "politico", canalYoutube: "UCUygDoaCJVidyeo9dQFQFnA" },
-  { nome: "Sergio Moro",        busca: "sergio moro",       tipo: "politico" },
-  { nome: "General Mourão",     busca: "mourão OR mourao",  tipo: "politico" },
+  { nome: "Nikolas Ferreira",   busca: "nikolas ferreira", tipo: "politico", canalYoutube: "UCxI9vN6UbxmBt8VIvUKtJaA", periodos: ["tarde", "noite"] },
+  { nome: "Eduardo Bolsonaro",  busca: "eduardo bolsonaro", tipo: "politico", canalYoutube: "UCkR6xPOHhpjq3wnFchVI4sg", periodos: ["manha", "noite"] },
+  { nome: "Marco Feliciano",    busca: "feliciano",        tipo: "politico", canalYoutube: "UCpdI21rGF-U3fMoTMCHotSA", periodos: ["manha", "tarde"] },
+  { nome: "Damares Alves",      busca: "damares",          tipo: "politico", canalYoutube: "UCUygDoaCJVidyeo9dQFQFnA", periodos: ["tarde", "noite"] },
+  { nome: "Sergio Moro",        busca: "sergio moro",       tipo: "politico", periodos: ["manha", "noite"] },
+  { nome: "General Mourão",     busca: "mourão OR mourao",  tipo: "politico", periodos: ["manha", "tarde"] },
   // Empresários de direita — canais verificados em 27/06/2026
-  { nome: "Luciano Hang",       busca: "luciano hang",     tipo: "empresario", canalYoutube: "UCQVGpvqkT_VI_qKg6MYqeWA" },
-  { nome: "Flávio Augusto",     busca: "flávio augusto",   tipo: "empresario", canalYoutube: "UCP3PkxfP6A_KqbaCOBEQQuA" },
-  { nome: "Pablo Marçal",       busca: "pablo marçal",     tipo: "empresario", canalYoutube: "UCbroBIg8zvIH8-F4631wJhA" },
+  { nome: "Luciano Hang",       busca: "luciano hang",     tipo: "empresario", canalYoutube: "UCQVGpvqkT_VI_qKg6MYqeWA", periodos: ["tarde", "noite"] },
+  { nome: "Flávio Augusto",     busca: "flávio augusto",   tipo: "empresario", canalYoutube: "UCP3PkxfP6A_KqbaCOBEQQuA", periodos: ["manha", "noite"] },
+  { nome: "Pablo Marçal",       busca: "pablo marçal",     tipo: "empresario", canalYoutube: "UCbroBIg8zvIH8-F4631wJhA", periodos: ["manha", "tarde"] },
 ];
+
+// Limite de alertas gerados por pessoa por dia — evita inundar os grupos quando
+// alguém publica vários vídeos no mesmo dia (pedido do usuário em 27/06/2026).
+const CAP_DIARIO_POR_PESSOA = 2;
+
+function obterPeriodoAtual(): Periodo | null {
+  const hora = parseInt(
+    new Date().toLocaleString("pt-BR", { hour: "numeric", timeZone: "America/Sao_Paulo" })
+  );
+  if (hora >= 6 && hora < 12) return "manha";
+  if (hora >= 12 && hora < 18) return "tarde";
+  if (hora >= 18 && hora < 24) return "noite";
+  return null; // madrugada (0h-6h): sem monitoramento, pouco conteúdo real nesse horário
+}
 
 // Fontes RSS — apenas as mais rápidas e confiáveis (máx 3 para evitar timeout)
 const FONTES_NOTICIAS_RADAR = [
@@ -211,9 +230,24 @@ export async function GET(req: NextRequest) {
       PESSOAS[(indiceBase + 2) % PESSOAS.length],
     ];
 
+    const periodoAtual = obterPeriodoAtual();
+
     for (const pessoa of rodada) {
       // Para se ultrapassou o tempo limite
       if (Date.now() - inicio > LIMITE_MS) break;
+
+      // Pessoa só é monitorada na(s) janela(s) do dia atribuída(s) a ela
+      if (periodoAtual && !pessoa.periodos.includes(periodoAtual)) continue;
+
+      // Conta quantos alertas essa pessoa já gerou hoje (BRT) — para respeitar o cap diário
+      const contagemHojeRow = await sql`
+        SELECT COUNT(*)::int AS total FROM radar_politico
+        WHERE politico = ${pessoa.nome}
+        AND processado = true
+        AND (created_at AT TIME ZONE 'America/Sao_Paulo')::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
+      `;
+      let alertasHojePessoa = contagemHojeRow[0].total as number;
+      if (alertasHojePessoa >= CAP_DIARIO_POR_PESSOA) continue;
 
       const mencoes = [
         ...(await buscarVideosCanalProprio(pessoa)),
@@ -221,6 +255,8 @@ export async function GET(req: NextRequest) {
       ];
 
       for (const mencao of mencoes.slice(0, 3)) {
+        if (alertasHojePessoa >= CAP_DIARIO_POR_PESSOA) break;
+
         // Verifica se já foi processado nas últimas 12h
         const jaProcessado = await sql`
           SELECT id FROM radar_politico
@@ -294,6 +330,7 @@ export async function GET(req: NextRequest) {
         await sql`UPDATE radar_politico SET processado = true WHERE tweet_id = ${mencao.url}`;
 
         alertasGerados++;
+        alertasHojePessoa++;
       }
     }
 

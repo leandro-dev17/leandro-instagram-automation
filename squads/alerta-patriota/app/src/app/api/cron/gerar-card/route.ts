@@ -46,8 +46,13 @@ const PROMPTS_HOOK: Record<string, string> = {
 // 3ª seção no meio — usuário via a análise incompleta ("...A possível liberação…").
 // Seções mais curtas (1-2 linhas, frase objetiva) cabem inteiras no limite seguro do
 // WhatsApp em vez de dependerem do corte de segurança.
+// FASE 29: a legenda era gerada do zero só com título+fonte, sem ver o resumo_braga/
+// resumo_cavalcanti que o resumidor já escreveu com conteúdo real da notícia — a IA
+// não tinha nenhum fato pra se basear e produzia frases genéricas tipo "Transmissão
+// ao vivo de X" (sintoma "parece só título, sem comentário real" reportado em
+// 27/06/2026). Agora a análise já escrita é passada como base obrigatória.
 const PROMPTS_LEGENDA: Record<string, string> = {
-  vip: `Você é o Capitão Braga. Escreva análise em 3 partes usando este formato EXATO:
+  vip: `Você é o Capitão Braga. Baseado na ANÁLISE JÁ ESCRITA abaixo (não invente fatos que não estão nela), escreva uma versão resumida em 3 partes usando este formato EXATO:
 
 🧠 *O QUE ESTÁ ACONTECENDO*
 [1 frase objetiva sobre o fato, máximo 20 palavras]
@@ -61,7 +66,7 @@ const PROMPTS_LEGENDA: Record<string, string> = {
 Termine com: Deus, Pátria e Família — sempre.
 Texto total entre 450-600 caracteres (sem contar emojis/marcação). Nunca deixe uma frase incompleta — prefira encurtar uma seção a cortar no meio. Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
 
-  elite: `Você é o Prof. Bernardo Cavalcanti. Escreva análise em 3 partes usando este formato EXATO:
+  elite: `Você é o Prof. Bernardo Cavalcanti. Baseado na ANÁLISE JÁ ESCRITA abaixo (não invente fatos que não estão nela), escreva uma versão resumida em 3 partes usando este formato EXATO:
 
 🧠 *O QUE ESTÁ ACONTECENDO*
 [1 frase objetiva sobre o fato, máximo 20 palavras]
@@ -97,7 +102,7 @@ function truncarLegenda(texto: string): string {
   return `${cortado.slice(0, ultimaQuebra > 0 ? ultimaQuebra : LEGENDA_MAX)}…`;
 }
 
-async function gerarLegenda(titulo: string, plano: string, fonte: string): Promise<string> {
+async function gerarLegenda(titulo: string, plano: string, fonte: string, resumoExistente: string | null): Promise<string> {
   const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", timeZone:"America/Sao_Paulo" });
   const data = new Date().toLocaleDateString("pt-BR", { day:"numeric", month:"short", timeZone:"America/Sao_Paulo" });
 
@@ -108,7 +113,10 @@ async function gerarLegenda(titulo: string, plano: string, fonte: string): Promi
     model: "claude-haiku-4-5-20251001",
     agente: "gerador-card",
     max_tokens: 220,
-    messages: [{ role: "user", content: `${PROMPTS_LEGENDA[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}` }],
+    messages: [{
+      role: "user",
+      content: `${PROMPTS_LEGENDA[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}\n${resumoExistente ? `ANÁLISE JÁ ESCRITA:\n${resumoExistente}\n` : ""}`,
+    }],
   });
 
   // Header formatado por grupo
@@ -202,7 +210,7 @@ export async function GET(req: NextRequest) {
       // Gera hook e legenda em paralelo
       const [hook, legenda] = await Promise.all([
         gerarHook(n.titulo, plano),
-        gerarLegenda(n.titulo, plano, fonte),
+        gerarLegenda(n.titulo, plano, fonte, plano === "vip" ? n.resumo_braga : n.resumo_cavalcanti),
       ]);
 
       // Renderiza e envia
