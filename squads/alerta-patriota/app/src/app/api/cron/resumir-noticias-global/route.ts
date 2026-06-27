@@ -14,12 +14,37 @@ import { gerarTexto } from "@/lib/ai";
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
 export const maxDuration = 60;
 
-async function gerarResumoGlobal(titulo: string, url: string): Promise<string> {
+// Busca og:description na página quando o RSS não trouxe conteúdo (ou trouxe pouco) —
+// mesmo padrão usado em resumir-noticias, aplicado só às ~6 notícias globais pendentes.
+async function buscarConteudoFallback(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AlertaPatriota/1.0)" },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return "";
+    const html = await res.text();
+    const og = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
+    if (!og) return "";
+    return og[1]
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#\d+;/g, "")
+      .replace(/&quot;/g, '"').replace(/&#039;/g, "'")
+      .trim().slice(0, 2000);
+  } catch {
+    return "";
+  }
+}
+
+async function gerarResumoGlobal(titulo: string, conteudo: string, url: string): Promise<string> {
   return gerarTexto({
     model: "claude-haiku-4-5-20251001",
     agente: "cavalcanti-resumidor",
     max_tokens: 450,
-    messages: [{ role: "user", content: `${PROMPT_CAVALCANTI_GLOBAL}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${url}` }],
+    messages: [{
+      role: "user",
+      content: `${PROMPT_CAVALCANTI_GLOBAL}\n\nNOTÍCIA: "${titulo}"\n${conteudo ? `CONTEÚDO: ${conteudo}\n` : ""}FONTE: ${url}`,
+    }],
   });
 }
 
@@ -33,7 +58,7 @@ export async function GET(req: NextRequest) {
   try {
     // Busca notícias globais sem resumo
     const pendentes = await sql`
-      SELECT id, titulo, url
+      SELECT id, titulo, url, conteudo_original
       FROM noticias
       WHERE global = true
       AND resumo_cavalcanti IS NULL
@@ -53,7 +78,13 @@ export async function GET(req: NextRequest) {
         `;
         if (claim.length === 0) continue; // outra execução já está processando
 
-        const resumo = await gerarResumoGlobal(n.titulo, n.url);
+        let conteudo = (n.conteudo_original as string | null) || "";
+        if (conteudo.length < 200) {
+          const fallback = await buscarConteudoFallback(n.url);
+          if (fallback.length > conteudo.length) conteudo = fallback;
+        }
+
+        const resumo = await gerarResumoGlobal(n.titulo, conteudo, n.url);
         if (!resumo) {
           await sql`UPDATE noticias SET resumo_cavalcanti = NULL WHERE id = ${n.id}`;
           erros++;

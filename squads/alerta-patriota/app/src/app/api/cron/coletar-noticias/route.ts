@@ -78,7 +78,24 @@ function extrairLink(item: string): string {
   return guid ? guid[1].trim() : "";
 }
 
-async function coletarRSS(fonte: typeof FONTES_BR[0]): Promise<Array<{ titulo: string; url: string; fonte: string; categoria: string }>> {
+// O resumidor (resumir-noticias) escrevia o resumo só com o título da manchete,
+// porque conteudo_original nunca era preenchido aqui — sem nenhum fato real para
+// trabalhar, a IA só conseguia produzir gancho + frase de efeito, sem substância.
+// Pega o melhor texto disponível no próprio feed: content:encoded (corpo completo,
+// comum em feeds WordPress) > description (resumo editorial) > media:description
+// (descrição de vídeo do YouTube), removendo HTML residual.
+function extrairConteudo(bloco: string): string {
+  const candidatos = [
+    extrairTag(bloco, "content:encoded"),
+    extrairTag(bloco, "description"),
+    extrairTag(bloco, "media:description"),
+  ].filter(Boolean);
+  if (candidatos.length === 0) return "";
+  const maior = candidatos.reduce((a, b) => (b.length > a.length ? b : a));
+  return maior.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2000);
+}
+
+async function coletarRSS(fonte: typeof FONTES_BR[0]): Promise<Array<{ titulo: string; url: string; fonte: string; categoria: string; conteudo: string }>> {
   try {
     const res = await fetch(fonte.url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; AlertaPatriota/1.0)" },
@@ -87,7 +104,7 @@ async function coletarRSS(fonte: typeof FONTES_BR[0]): Promise<Array<{ titulo: s
     if (!res.ok) return [];
 
     const xml = await res.text();
-    const itens: Array<{ titulo: string; url: string; fonte: string; categoria: string }> = [];
+    const itens: Array<{ titulo: string; url: string; fonte: string; categoria: string; conteudo: string }> = [];
 
     // Divide por <item> ou <entry> (RSS e Atom)
     const regex = /<(?:item|entry)[^>]*>([\s\S]*?)<\/(?:item|entry)>/g;
@@ -100,7 +117,7 @@ async function coletarRSS(fonte: typeof FONTES_BR[0]): Promise<Array<{ titulo: s
       const url = extrairLink(bloco);
 
       if (titulo && url && url.startsWith("http")) {
-        itens.push({ titulo, url, fonte: fonte.nome, categoria: fonte.categoria });
+        itens.push({ titulo, url, fonte: fonte.nome, categoria: fonte.categoria, conteudo: extrairConteudo(bloco) });
         count++;
       }
     }
@@ -139,12 +156,13 @@ export async function GET(req: NextRequest) {
           // fecha essa janela usando o índice único noticias_url_unique (admin/setup).
           const isCurada = (n as { curada?: boolean }).curada ?? false;
           const inserida = await sql`
-            INSERT INTO noticias (titulo, fonte, url, categoria, urgente, created_at)
+            INSERT INTO noticias (titulo, fonte, url, categoria, urgente, created_at, conteudo_original)
             VALUES (
               ${n.titulo}, ${n.fonte}, ${n.url},
               ${isCurada ? "curada" : (n.categoria ?? "politica")},
               ${(n as { urgente?: boolean }).urgente ?? false},
-              NOW()
+              NOW(),
+              ${n.conteudo || null}
             )
             ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
             RETURNING id

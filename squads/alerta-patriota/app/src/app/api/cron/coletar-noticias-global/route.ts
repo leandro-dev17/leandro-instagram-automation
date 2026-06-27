@@ -44,7 +44,22 @@ function extrairLink(bloco: string): string {
   return atom ? atom[1].trim() : "";
 }
 
-async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<Array<{titulo: string; url: string; fonte: string; categoria: string; global: boolean}>> {
+// Sem isto, conteudo_original ficava sempre NULL e o resumidor (resumir-noticias-global)
+// só recebia o título — a IA escrevia gancho sem nenhum fato real para se basear nele.
+function extrairConteudo(bloco: string): string {
+  const candidatos = [
+    bloco.match(/<content:encoded[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content:encoded>/)?.[1] || "",
+    bloco.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/)?.[1] || "",
+    bloco.match(/<media:description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/media:description>/)?.[1] || "",
+  ].filter(Boolean);
+  if (candidatos.length === 0) return "";
+  const maior = candidatos.reduce((a, b) => (b.length > a.length ? b : a));
+  return maior.trim()
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#\d+;/g, "")
+    .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2000);
+}
+
+async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<Array<{titulo: string; url: string; fonte: string; categoria: string; global: boolean; conteudo: string}>> {
   try {
     const res = await fetch(fonte.url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; AlertaPatriota/1.0)" },
@@ -53,7 +68,7 @@ async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<Array<{titu
     if (!res.ok) return [];
 
     const xml = await res.text();
-    const itens: Array<{titulo: string; url: string; fonte: string; categoria: string; global: boolean}> = [];
+    const itens: Array<{titulo: string; url: string; fonte: string; categoria: string; global: boolean; conteudo: string}> = [];
     const regex = /<(?:item|entry)[^>]*>([\s\S]*?)<\/(?:item|entry)>/g;
     let match;
     let count = 0;
@@ -65,7 +80,7 @@ async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<Array<{titu
       if (titulo && url && url.startsWith("http")) {
         // Traduz título se necessário (marca para o resumidor traduzir)
         const tituloFinal = fonte.idioma !== "pt" ? `[${fonte.idioma.toUpperCase()}] ${titulo}` : titulo;
-        itens.push({ titulo: tituloFinal, url, fonte: fonte.nome, categoria: "mundial", global: true });
+        itens.push({ titulo: tituloFinal, url, fonte: fonte.nome, categoria: "mundial", global: true, conteudo: extrairConteudo(match[1]) });
         count++;
       }
     }
@@ -92,8 +107,8 @@ export async function GET(req: NextRequest) {
         // FASE 23: SELECT+INSERT separados deixavam janela de duplicata entre execuções
         // concorrentes — INSERT...ON CONFLICT fecha a janela via noticias_url_unique.
         const inserida = await sql`
-          INSERT INTO noticias (titulo, fonte, url, categoria, global, created_at)
-          VALUES (${n.titulo}, ${n.fonte}, ${n.url}, ${n.categoria}, true, NOW())
+          INSERT INTO noticias (titulo, fonte, url, categoria, global, created_at, conteudo_original)
+          VALUES (${n.titulo}, ${n.fonte}, ${n.url}, ${n.categoria}, true, NOW(), ${n.conteudo || null})
           ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
           RETURNING id
         `;
@@ -122,13 +137,14 @@ export async function GET(req: NextRequest) {
           if (!titulo || !url) continue;
 
           const inserida = await sql`
-            INSERT INTO noticias (titulo, fonte, url, categoria, urgente, global, created_at)
+            INSERT INTO noticias (titulo, fonte, url, categoria, urgente, global, created_at, conteudo_original)
             VALUES (
               ${titulo}, ${lider.nome}, ${url},
               'curada',
               ${lider.urgente},
               true,
-              NOW()
+              NOW(),
+              ${extrairConteudo(match[1]) || null}
             )
             ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
             RETURNING id

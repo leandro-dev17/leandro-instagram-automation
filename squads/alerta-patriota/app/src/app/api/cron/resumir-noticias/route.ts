@@ -17,6 +17,30 @@ interface Noticia {
   resumo_cavalcanti: string | null;
 }
 
+// Quando o RSS não trouxe descrição (ou trouxe algo curto demais p/ a IA ter
+// substância real pra resumir), busca o og:description direto na página da notícia —
+// só roda para as ~100 notícias curadas pendentes, não no lote inteiro da coleta,
+// pra não arriscar timeout do cron de coleta.
+async function buscarConteudoFallback(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AlertaPatriota/1.0)" },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return "";
+    const html = await res.text();
+    const og = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
+    if (!og) return "";
+    return og[1]
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#\d+;/g, "")
+      .replace(/&quot;/g, '"').replace(/&#039;/g, "'")
+      .trim().slice(0, 2000);
+  } catch {
+    return "";
+  }
+}
+
 async function gerarResumo(titulo: string, conteudo: string, url: string, prompt: string): Promise<string> {
   try {
     return await gerarTexto({
@@ -57,6 +81,7 @@ export async function GET(req: NextRequest) {
       SELECT id, titulo, conteudo_original, url, resumo_braga, resumo_cavalcanti
       FROM noticias
       WHERE categoria = 'curada'
+        AND (global IS NULL OR global = false)
         AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
         AND created_at >= NOW() - INTERVAL '6 hours'
       ORDER BY created_at DESC
@@ -85,7 +110,11 @@ export async function GET(req: NextRequest) {
       noticiasJaProcessadas[noticia.id] = true;
 
       try {
-        const conteudo = noticia.conteudo_original || "";
+        let conteudo = noticia.conteudo_original || "";
+        if (conteudo.length < 200) {
+          const fallback = await buscarConteudoFallback(noticia.url);
+          if (fallback.length > conteudo.length) conteudo = fallback;
+        }
         let resumoBraga: string | null = noticia.resumo_braga;
         let resumoCavalcanti: string | null = noticia.resumo_cavalcanti;
 
