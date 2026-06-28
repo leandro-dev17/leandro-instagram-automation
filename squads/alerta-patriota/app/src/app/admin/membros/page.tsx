@@ -50,6 +50,7 @@ export default function AdminMembros() {
   const [acao, setAcao] = useState<{ id: number; tipo: string } | null>(null);
   const [selecionados, setSelecionados] = useState<number[]>([]);
   const [acaoMassa, setAcaoMassa] = useState("");
+  const [executandoMassa, setExecutandoMassa] = useState(false);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -91,8 +92,19 @@ export default function AdminMembros() {
   };
 
   const executarMassa = async () => {
-    if (!acaoMassa || !selecionados.length) return;
-    for (const id of selecionados) await executarAcao(id, acaoMassa);
+    // FASE 30: ação em massa (cancela/reativa todos de uma vez — cada uma cancela no
+    // Mercado Pago e remove/readiciona ao grupo WhatsApp) era a única ação destrutiva do
+    // painel sem confirm() nem trava de duplo-clique, e a mais perigosa (afeta N usuários
+    // de uma vez). `executandoMassa` bloqueia clique repetido enquanto o lote roda.
+    if (!acaoMassa || !selecionados.length || executandoMassa) return;
+    const ok = confirm(`Confirmar "${acaoMassa}" para ${selecionados.length} membro(s) selecionado(s)? Esta ação afeta todos de uma vez (Mercado Pago + grupo WhatsApp) e não pode ser desfeita automaticamente.`);
+    if (!ok) return;
+    setExecutandoMassa(true);
+    try {
+      for (const id of selecionados) await executarAcao(id, acaoMassa);
+    } finally {
+      setExecutandoMassa(false);
+    }
     setAcaoMassa("");
   };
 
@@ -164,8 +176,8 @@ export default function AdminMembros() {
             <option value="cancelar">Cancelar todos</option>
             <option value="reativar">Reativar todos</option>
           </select>
-          <button onClick={executarMassa} disabled={!acaoMassa} style={{ background: acaoMassa ? "#ef4444" : "#1e1e2e", color: "#fff", fontWeight: 700, padding: "5px 14px", borderRadius: 6, border: "none", cursor: acaoMassa ? "pointer" : "not-allowed", fontSize: 12 }}>Aplicar</button>
-          <button onClick={() => setSelecionados([])} style={{ color: "#555", background: "transparent", border: "none", cursor: "pointer", fontSize: 11 }}>Limpar seleção</button>
+          <button onClick={executarMassa} disabled={!acaoMassa || executandoMassa} style={{ background: acaoMassa && !executandoMassa ? "#ef4444" : "#1e1e2e", color: "#fff", fontWeight: 700, padding: "5px 14px", borderRadius: 6, border: "none", cursor: acaoMassa && !executandoMassa ? "pointer" : "not-allowed", fontSize: 12 }}>{executandoMassa ? "Aplicando..." : "Aplicar"}</button>
+          <button onClick={() => setSelecionados([])} disabled={executandoMassa} style={{ color: "#555", background: "transparent", border: "none", cursor: executandoMassa ? "not-allowed" : "pointer", fontSize: 11 }}>Limpar seleção</button>
         </div>
       )}
 

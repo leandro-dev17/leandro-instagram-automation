@@ -1,7 +1,6 @@
 /**
  * AGENTE MIGUEL MODERAÇÃO
  * Roda 1x/dia. Remove do grupo WhatsApp membros com assinatura cancelada/inadimplente.
- * Remove inativos há +60 dias sem atividade.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -15,6 +14,11 @@ export async function GET(req: NextRequest) {
 
   try {
     let removidos = 0;
+    // FASE 30: a remoção é 100% automática (sem checkpoint humano antes de tirar alguém
+    // do grupo pago) — usuário decidiu manter a automação, mas com visibilidade: cada
+    // execução agora notifica no Telegram quem foi removido, em vez de só logar em
+    // agentes_log (que ninguém olha proativamente).
+    const removidosDetalhe: { id: number; plano: string; motivo: string }[] = [];
 
     // 1. Remove membros com assinatura cancelada/inadimplente há mais de 3 dias
     const cancelados = await sql`
@@ -64,7 +68,14 @@ export async function GET(req: NextRequest) {
           ${JSON.stringify({ usuarioId: u.id, plano: u.plano, motivo: u.status })})
       `;
       removidos++;
+      removidosDetalhe.push({ id: u.id, plano: u.plano, motivo: u.status });
       await new Promise(r => setTimeout(r, 1500));
+    }
+
+    if (removidosDetalhe.length > 0) {
+      await alertarTelegram("🟡", "MIGUEL MODERAÇÃO — Membros removidos do grupo",
+        removidosDetalhe.map(r => `• Usuário #${r.id} (${r.plano}) — motivo: ${r.motivo}`).join("\n")
+      );
     }
 
     return NextResponse.json({ ok: true, removidos });

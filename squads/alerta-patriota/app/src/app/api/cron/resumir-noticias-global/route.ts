@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
           await sql`
             INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status)
             VALUES (${grupoElite[0].id}, ${n.id}, ${msg}, 'noticia', 'rascunho')
-            ON CONFLICT DO NOTHING
+            ON CONFLICT (grupo_id, noticia_id, tipo) WHERE status = 'rascunho' DO NOTHING
           `;
         }
 

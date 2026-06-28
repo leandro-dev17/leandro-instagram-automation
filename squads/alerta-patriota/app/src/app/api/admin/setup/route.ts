@@ -134,6 +134,15 @@ export async function POST(req: NextRequest) {
         enviado_at TIMESTAMP DEFAULT NOW()
       )
     `;
+    // FASE 30: `resumir-noticias-global` usa `ON CONFLICT DO NOTHING` ao salvar o rascunho
+    // do Elite, mas sem índice único o Postgres rejeita o INSERT em runtime. Escopo do
+    // índice limitado a status='rascunho' (não cobre os INSERTs de 'enviado'/'erro' feitos
+    // por publicar-noticias/radar-politico/gerar-card, que legitimamente podem coexistir
+    // para o mesmo grupo_id+noticia_id+tipo='noticia' quando a notícia é global).
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS posts_whatsapp_rascunho_unique
+      ON posts_whatsapp(grupo_id, noticia_id, tipo) WHERE status = 'rascunho'
+    `;
 
     // ── LISTA DE ESPERA ─────────────────────────────────────────────────────
     await sql`
@@ -145,6 +154,11 @@ export async function POST(req: NextRequest) {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `;
+    // FASE 30: `lista-de-espera/route.ts` usa `ON CONFLICT DO NOTHING` ao inserir, mas
+    // sem nenhum índice único sobre `email` o Postgres rejeita o INSERT em runtime
+    // ("no unique or exclusion constraint matching ON CONFLICT") — todo cadastro de lead
+    // quebrava com erro 500 (confirmado em produção: tabela com 0 linhas).
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS lista_espera_email_unique ON lista_espera(email)`;
 
     // ── LINKS DE COMPARTILHAMENTO ───────────────────────────────────────────
     await sql`
@@ -295,6 +309,20 @@ export async function POST(req: NextRequest) {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_agentes_log_fb_comentario
       ON agentes_log ((detalhes->>'comentarioId'))
       WHERE agente = 'facebook-comentarios'
+    `;
+
+    // FASE 32: fiscal-pipeline.ts (auto-fix do mateus-manchete) checava cooldown via SELECT
+    // antes do fetch e só gravava o INSERT depois — duas execuções concorrentes do cron
+    // passavam ambas pelo SELECT e disparavam o mesmo step em duplicidade. Índice único por
+    // hora-cheia (date_trunc) permite reivindicar a tentativa atomicamente via
+    // INSERT...ON CONFLICT DO NOTHING antes de chamar a rota de auto-fix, no mesmo espírito
+    // do claim de facebook-comentarios acima. Nuance: cooldown passa a ser por hora-relógio
+    // (ex.: 10:58 e 11:01 contam como horas diferentes) em vez de janela deslizante de 60min
+    // — suficiente para o objetivo real ("evitar re-disparar o mesmo step em loop").
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_agentes_log_autofix_unique
+      ON agentes_log (acao, date_trunc('hour', created_at))
+      WHERE agente = 'mateus-manchete' AND acao LIKE 'auto_fix_%'
     `;
 
     // ── ÍNDICES DE PERFORMANCE ──────────────────────────────────────────────

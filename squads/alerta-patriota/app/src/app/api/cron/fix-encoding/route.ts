@@ -6,8 +6,10 @@ import { verificarCronSecret } from "@/lib/auth";
 async function fixSchema() {
   // Adiciona coluna mensagem na whatsapp_fila se não existir
   await sql`ALTER TABLE whatsapp_fila ADD COLUMN IF NOT EXISTS mensagem TEXT`.catch(() => {});
-  // Limpa alertas antigos (resolvidos automaticamente após 24h)
-  const deleted = await sql`DELETE FROM alertas WHERE created_at < NOW() - INTERVAL '24 hours' RETURNING id`;
+  // FASE 30: faltava `resolvido = true` — apagava alertas críticos ainda não resolvidos
+  // (dos quais escalar-claude/gerente-codigo/relatorio-ceo dependem) só por terem >24h,
+  // mesmo nunca tratados. Mesmo filtro já usado em agente-limpeza.
+  const deleted = await sql`DELETE FROM alertas WHERE resolvido = true AND created_at < NOW() - INTERVAL '24 hours' RETURNING id`;
   return deleted.length;
 }
 

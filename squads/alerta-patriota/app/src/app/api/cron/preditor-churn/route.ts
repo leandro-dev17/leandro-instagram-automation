@@ -72,6 +72,10 @@ export async function GET(req: NextRequest) {
           VALUES ('rodrigo-risco', 'alerta_churn', ${enviado ? "sucesso" : "erro"}, ${JSON.stringify({ usuarioId: u.id, score, plano: u.plano })})
         `;
         alertados++;
+        // FASE 30: este loop podia disparar dezenas de mensagens privadas em sequência sem
+        // nenhuma pausa, risco de ban da instância Evolution API por padrão de envio em massa
+        // — mesmo delay já usado em upgrade-comportamental.ts para o mesmo tipo de envio.
+        await new Promise(r => setTimeout(r, 2000));
       }
     }
 

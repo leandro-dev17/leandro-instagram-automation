@@ -169,10 +169,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, motivo: "Sem alertas para corrigir" });
     }
 
-    // Verifica se já tentou corrigir e falhou recentemente (dedup)
+    // Determina o arquivo principal a corrigir
+    const tipoAlerta = alertas[0].tipo;
+    const arquivo = ARQUIVO_POR_TIPO[tipoAlerta];
+
+    // FASE 30: o dedup original só contava tentativas com status='erro' — um commit que
+    // "teve sucesso" (commitOk=true) mas não corrigiu o problema de fato (ver INCIDENTE
+    // 19-20/06/2026 no topo do arquivo: resumir-noticias/route.ts recorrompido 2x, ambas
+    // as vezes logado como 'sucesso') nunca incrementava esse contador. Resultado: o mesmo
+    // tipoAlerta podia reaparecer e ser "corrigido" indefinidamente sem nunca escalar para
+    // revisão humana. Agora conta qualquer tentativa anterior (sucesso OU erro) para o
+    // MESMO tipoAlerta: se o alerta voltou depois de uma tentativa anterior, essa tentativa
+    // não resolveu de verdade.
     const jaCorrigiu = await sql`
       SELECT id FROM agentes_log WHERE agente = 'claude-revisor'
-      AND status = 'erro'
+      AND detalhes->>'tipoAlerta' = ${tipoAlerta}
       AND created_at > NOW() - INTERVAL '1 hour'
     `;
     const tentativas = jaCorrigiu.length;
@@ -187,10 +198,6 @@ export async function POST(req: NextRequest) {
       }).catch(() => {});
       return NextResponse.json({ ok: false, motivo: "Escalado para Claude Resolver" });
     }
-
-    // Determina o arquivo principal a corrigir
-    const tipoAlerta = alertas[0].tipo;
-    const arquivo = ARQUIVO_POR_TIPO[tipoAlerta];
 
     // Arquivo crítico (auth/db/middleware) ou tipo sem mapeamento seguro → não faz auto-fix, escala direto
     if (!arquivo || ARQUIVOS_PROTEGIDOS.includes(arquivo)) {

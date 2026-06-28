@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     await sql`
       INSERT INTO lista_espera (email, telefone, plano_desejado)
       VALUES (${email.toLowerCase().trim()}, ${telefone.trim()}, ${plano})
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (email) DO NOTHING
     `;
 
     const nomePlano = NOMES_PLANO[plano] || plano;

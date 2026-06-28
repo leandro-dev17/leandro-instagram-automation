@@ -7,6 +7,10 @@ import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { criarAlertaDedup } from "@/lib/alertas";
 
+// FASE 32: sem maxDuration, a Vercel mata a função em 10s por padrão — busca os jobs de
+// até 5 runs em sequência, cada fetch com timeout de 8s, somando até ~50s no pior caso.
+export const maxDuration = 60;
+
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.ALERTA_GITHUB_TOKEN;
 const REPO = "leandro-dev17/leandro-instagram-automation";
 

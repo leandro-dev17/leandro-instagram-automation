@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { removerMembroGrupo } from "@/lib/whatsapp";
+import { removerMembroGrupo, adicionarMembroGrupo, enviarMensagemPrivada } from "@/lib/whatsapp";
+import { alertarTelegram } from "@/lib/telegram";
 import { MercadoPagoConfig, PreApproval } from "mercadopago";
 import type { Plano } from "@/lib/db";
 
 const mpClient = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN! });
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -76,7 +78,45 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       await sql`UPDATE usuarios SET status = 'cancelado', updated_at = NOW() WHERE id = ${id}`;
       await sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`;
     } else if (acao === "reativar") {
+      const u = await sql`SELECT telefone, plano FROM usuarios WHERE id = ${id} LIMIT 1`;
+      if (!u.length) return NextResponse.json({ erro: "Usuário não encontrado" }, { status: 404 });
+
       await sql`UPDATE usuarios SET status = 'ativo', updated_at = NOW() WHERE id = ${id}`;
+
+      // FASE 30: "Reativar" só trocava o status no banco — não readicionava ao grupo
+      // WhatsApp (de onde o usuário tinha sido removido por cancelar/moderacao-grupo) nem
+      // recriava cobrança no Mercado Pago. Cliente "reativado" ficava sem receber o produto.
+      if (u[0].telefone && u[0].plano) {
+        const addOk = await adicionarMembroGrupo(u[0].telefone, u[0].plano as Plano);
+        if (addOk) {
+          const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${u[0].plano} LIMIT 1`;
+          if (grupoRows.length > 0) {
+            await sql`
+              INSERT INTO membros_grupos (usuario_id, grupo_id, status)
+              VALUES (${id}, ${grupoRows[0].id}, 'ativo')
+              ON CONFLICT (usuario_id, grupo_id) DO UPDATE SET status = 'ativo', data_saida = NULL
+            `;
+            await sql`UPDATE grupos_whatsapp SET membros_ativos = membros_ativos + 1 WHERE id = ${grupoRows[0].id}`;
+          }
+        } else {
+          await alertarTelegram("🔴", "Reativação manual — falha ao readicionar ao grupo WhatsApp",
+            `usuarioId: ${id} | plano: ${u[0].plano}\nAdicionar ao grupo via Evolution API falhou — ação manual necessária.`
+          );
+        }
+
+        // A cobrança recorrente cancelada no Mercado Pago não pode ser recriada do lado do
+        // servidor — exige o cliente reautorizar com os dados do cartão via checkout (a
+        // criação de PreApproval real só acontece em assinaturas/criar-direto, fluxo do
+        // próprio cliente). Em vez de deixar "reativado" com acesso de graça e sem nenhuma
+        // cobrança em andamento, manda o link de assinatura por WhatsApp para ele refazer.
+        await enviarMensagemPrivada(
+          u[0].telefone,
+          `🔔 *Acesso reativado!*\n\nSeu acesso ao Alerta Patriota foi reativado manualmente. Para manter sua assinatura ativa, finalize sua cobrança aqui: ${APP_URL}/assinar?plano=${u[0].plano}`,
+          u[0].plano as Plano
+        );
+      } else if (!u[0].telefone) {
+        await alertarTelegram("🔴", "Reativação manual sem telefone cadastrado", `usuarioId: ${id}\nNão foi possível readicionar ao grupo WhatsApp nem enviar o link de cobrança — verifique manualmente.`);
+      }
     } else if (acao === "mudar_tipo") {
       if (motivo !== "admin" && motivo !== "cliente") {
         return NextResponse.json({ erro: "tipo_usuario inválido — use 'admin' ou 'cliente'" }, { status: 400 });
@@ -129,6 +169,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       await sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`;
       // Apaga também o registro de captura de lead vinculado ao e-mail original (fora de usuarios)
       if (u[0].email) await sql`DELETE FROM leads WHERE email = ${u[0].email}`.catch(() => {});
+
+      // FASE 30: a anonimização cobria só a tabela `usuarios` — `agentes_log.detalhes`
+      // (JSONB de eventos operacionais como boas-vindas no grupo, sequência de e-mail/WhatsApp
+      // de não-conversão) guarda nome/e-mail/telefone em texto puro em registros antigos,
+      // recuperáveis via admin/logs mesmo após o "esquecimento" (descumprimento Art. 18 LGPD).
+      // jsonb_set com create_missing=false só redige a chave quando ela já existe no registro,
+      // sem adicionar campos novos a logs que nunca os tinham.
+      await sql`
+        UPDATE agentes_log
+        SET detalhes = jsonb_set(
+              jsonb_set(
+                jsonb_set(detalhes, '{email}', '"[REDACTED]"', false),
+                '{telefone}', '"[REDACTED]"', false
+              ),
+              '{nome}', '"[REDACTED]"', false
+            )
+        WHERE detalhes->>'email' = ${u[0].email}
+           OR detalhes->>'telefone' = ${u[0].telefone}
+           OR detalhes->>'usuarioId' = ${String(id)}
+      `.catch(() => {});
     }
 
     await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('admin-manual', ${acao}, 'sucesso', ${JSON.stringify({ usuarioId: id, plano, motivo, adminId: admin.id, adminEmail: admin.email })})`;

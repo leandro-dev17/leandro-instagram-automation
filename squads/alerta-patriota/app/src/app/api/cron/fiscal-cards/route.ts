@@ -33,6 +33,12 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
   const horaBrt = horaBRT();
   const alertas: string[] = [];
+  // FASE 32: `alertas` alimenta o Telegram incondicionalmente a cada execução enquanto a
+  // condição persistir, mesmo quando criarAlertaDedup() já tinha decidido não criar um novo
+  // registro (criado=false) — o dedup só impedia duplicar a linha na tabela `alertas`, não o
+  // spam de Telegram em si. `alertasNovos` guarda só o que de fato é novo (criado=true) e é
+  // o que vai pro Telegram; `alertas` continua completo só para a resposta JSON/log.
+  const alertasNovos: string[] = [];
   const statusGrupos: Record<string, unknown> = {};
 
   try {
@@ -78,11 +84,12 @@ export async function GET(req: NextRequest) {
         const msg = `Grupo *${plano}*: ${Math.round(horasDesdeUltimo)}h sem card visual (limite: ${limite}h)`;
         alertas.push(msg);
 
-        await criarAlertaDedup(
+        const { criado } = await criarAlertaDedup(
           "cards_sem_envio",
           "alto",
           `${plano}: ${Math.round(horasDesdeUltimo)}h sem card`
         ).catch(() => ({ criado: false }));
+        if (criado) alertasNovos.push(msg);
       }
     }
 
@@ -100,12 +107,20 @@ export async function GET(req: NextRequest) {
       const resumo = errosRecentes
         .map((e) => `• ${(e as { acao: string }).acao}`)
         .join("\n");
-      alertas.push(`${errosRecentes.length} erro(s) no gerador nas últimas 2h:\n${resumo}`);
+      const msg = `${errosRecentes.length} erro(s) no gerador nas últimas 2h:\n${resumo}`;
+      alertas.push(msg);
+
+      const { criado } = await criarAlertaDedup(
+        "cards_erro_gerador",
+        "alto",
+        msg
+      ).catch(() => ({ criado: false }));
+      if (criado) alertasNovos.push(msg);
     }
 
     // ── 3. ALERTAR TELEGRAM (sem auto-fix com texto — cards precisam de Puppeteer) ──
-    if (alertas.length > 0) {
-      const corpo = alertas.join("\n\n");
+    if (alertasNovos.length > 0) {
+      const corpo = alertasNovos.join("\n\n");
       await enviarTelegram(
         `🔍 *FLORA FOTO — ALERTA DE CARDS*\n📅 ${dataBRT()} · ${horaBrt}h BRT\n\n${corpo}\n\n` +
         `ℹ️ Cards visuais são gerados via /api/cron/gerar-card (@vercel/og).\n` +

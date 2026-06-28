@@ -22,8 +22,31 @@ async function testar(nome: string, fn: () => Promise<CheckResult>): Promise<Che
   }
 }
 
+// FASE 32: a rota dispara testes reais (incluindo um POST e uma execução real e completa
+// de /api/cron/fiscal-api) contra endpoints de produção, sem nenhum limite de frequência
+// próprio — o docstring diz "roda a cada 6h", mas a Fase 30 já confirmou que o workflow do
+// GitHub Actions chama os crons com frequência real muito maior (10-40min). Sem essa trava,
+// cada chamada fora do intervalo pretendido soma carga real e desnecessária em produção
+// (auth, MP, e uma execução completa do fiscal-api). Cooldown de 5h (abaixo do intervalo de
+// 6h documentado) garante que a execução pretendida nunca é pulada, só as repetições extras.
+const COOLDOWN_HORAS = 5;
+
+async function jaRodouRecentemente(): Promise<boolean> {
+  const rows = await sql`
+    SELECT id FROM agentes_log
+    WHERE agente = 'fiscal-codigo-seguranca' AND acao = 'auditoria_seguranca'
+      AND created_at >= NOW() - INTERVAL '1 hour' * ${COOLDOWN_HORAS}
+    LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+
+  if (await jaRodouRecentemente()) {
+    return NextResponse.json({ ok: true, pulado_rate_limit: true });
+  }
 
   const inicio = Date.now();
   const checks: CheckResult[] = [];

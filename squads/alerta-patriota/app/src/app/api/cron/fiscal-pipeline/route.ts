@@ -4,6 +4,11 @@ import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram, alertarTelegram } from "@/lib/telegram";
 import { criarAlertaDedup } from "@/lib/alertas";
 
+// FASE 32: sem maxDuration, a Vercel mata a função em 10s por padrão — o auto-fix de
+// até 3 steps soma até 99s (3 fetches de até 30s + 3s de pausa entre cada). 60s é o
+// teto do plano Hobby (mesmo padrão usado em claude-revisor.ts/agente-medico.ts).
+export const maxDuration = 60;
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -111,17 +116,21 @@ async function verificarStepNoBanco(
   return rows.length > 0;
 }
 
-const COOLDOWN_AUTOFIX_MS = 60 * 60 * 1000; // 1h: evita re-disparar o mesmo step em loop
-
-async function jaTentouRecentemente(step: string, ciclo: Ciclo): Promise<boolean> {
+// FASE 32: o cooldown checava (SELECT) se já tinha tentado o mesmo step antes de chamar
+// fetch() — mas o INSERT que registra a tentativa só acontecia DEPOIS do fetch completar.
+// Duas execuções concorrentes do cron (overlap) passavam ambas pelo SELECT antes de
+// qualquer uma gravar o log, disparando o mesmo auto-fix em duplicidade (mesma classe de
+// bug já corrigida em noticias_url_unique/lista_espera_email_unique). Agora reivindica a
+// tentativa via INSERT...ON CONFLICT DO NOTHING ANTES do fetch — atômico por construção,
+// usando o índice único idx_agentes_log_autofix_unique (admin/setup/route.ts).
+async function reivindicarAutoFix(step: string, ciclo: Ciclo): Promise<number | null> {
   const rows = await sql`
-    SELECT id FROM agentes_log
-    WHERE agente = 'mateus-manchete'
-      AND acao = ${`auto_fix_${step}_${ciclo}`}
-      AND created_at >= NOW() - INTERVAL '1 hour'
-    LIMIT 1
-  `;
-  return rows.length > 0;
+    INSERT INTO agentes_log (agente, acao, status, detalhes)
+    VALUES ('mateus-manchete', ${`auto_fix_${step}_${ciclo}`}, 'tentando', '{}')
+    ON CONFLICT DO NOTHING
+    RETURNING id
+  `.catch(() => [] as { id: number }[]);
+  return rows.length > 0 ? rows[0].id : null;
 }
 
 async function tentarAutoFix(stepsEmFalta: string[], ciclo: Ciclo): Promise<Record<string, string>> {
@@ -144,7 +153,8 @@ async function tentarAutoFix(stepsEmFalta: string[], ciclo: Ciclo): Promise<Reco
     const rota = rotasPorStep[step];
     if (!rota) continue;
 
-    if (await jaTentouRecentemente(step, ciclo)) {
+    const claimId = await reivindicarAutoFix(step, ciclo);
+    if (claimId === null) {
       resultado[step] = "pulado_cooldown";
       continue;
     }
@@ -157,8 +167,8 @@ async function tentarAutoFix(stepsEmFalta: string[], ciclo: Ciclo): Promise<Reco
     }
 
     await sql`
-      INSERT INTO agentes_log (agente, acao, status, detalhes)
-      VALUES ('mateus-manchete', ${`auto_fix_${step}_${ciclo}`}, 'sucesso', ${JSON.stringify({ resultado: resultado[step] })})
+      UPDATE agentes_log SET status = 'sucesso', detalhes = ${JSON.stringify({ resultado: resultado[step] })}
+      WHERE id = ${claimId}
     `.catch(() => {});
 
     await new Promise((r) => setTimeout(r, 3000));

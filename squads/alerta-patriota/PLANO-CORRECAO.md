@@ -1611,6 +1611,129 @@ Pedido do usuário: "faça novamente a mesma auditoria que fez e achou esses úl
 
 ---
 
+## FASE 32 — Correções Fase 30, por Severidade (28/06/2026)
+**Status: 🔄 EM ANDAMENTO — itens 🔴 Alto sendo corrigidos um a um, do mais severo ao menos severo**
+
+### Item 1 — `lista_espera`: `ON CONFLICT` sem constraint UNIQUE
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Confirmado em produção (consulta direta ao Neon): tabela `lista_espera` só tinha `PRIMARY KEY (id)`, nenhum índice único em `email`, e **0 linhas** — ou seja, todo cadastro de lead vinha quebrando com erro real do Postgres ("no unique or exclusion constraint matching ON CONFLICT") desde que o `ON CONFLICT DO NOTHING` foi escrito em `lista-de-espera/route.ts`, perdendo 100% dos cadastros silenciosamente (capturado só como 500 genérico).
+- `admin/setup/route.ts`: adicionado `CREATE UNIQUE INDEX IF NOT EXISTS lista_espera_email_unique ON lista_espera(email)`.
+- `lista-de-espera/route.ts`: `ON CONFLICT DO NOTHING` → `ON CONFLICT (email) DO NOTHING` (referência explícita à coluna).
+- **Pendente:** este índice só é criado quando `/api/admin/setup` for chamado em produção pós-deploy — incluir essa chamada no lote de ativação desta fase.
+
+### Item 2 — `posts_whatsapp`: `ON CONFLICT` sem constraint UNIQUE
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Mesma classe de bug em `resumir-noticias-global/route.ts` (rascunho do Elite para notícia global). Investigação adicional mostrou que um índice único table-wide seria arriscado: `publicar-noticias` também insere `tipo='noticia'` para o grupo Elite (incluindo notícias globais, já que seu `SELECT` não filtra `global`), com `status='enviado'`, sem `ON CONFLICT` — coexistindo legitimamente com o rascunho do `resumir-noticias-global`. Um índice único geral nessas 3 colunas faria o INSERT de `publicar-noticias` quebrar depois de já ter enviado a mensagem real no WhatsApp (regressão pior que o bug original).
+- `admin/setup/route.ts`: índice único **parcial**, escopado só a `status = 'rascunho'`: `CREATE UNIQUE INDEX IF NOT EXISTS posts_whatsapp_rascunho_unique ON posts_whatsapp(grupo_id, noticia_id, tipo) WHERE status = 'rascunho'`.
+- `resumir-noticias-global/route.ts`: `ON CONFLICT DO NOTHING` → `ON CONFLICT (grupo_id, noticia_id, tipo) WHERE status = 'rascunho' DO NOTHING`.
+- Não afeta os INSERTs de `publicar-noticias`/`radar-politico`/`gerar-card` (status `enviado`/`erro`, fora do escopo do índice parcial).
+
+**Validação (itens 1 e 2):** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo). Sem commit/push/deploy ainda — serão feitos em lote ao final desta fase, junto com a chamada a `/api/admin/setup` para aplicar os 2 índices novos em produção.
+
+### Item 3 — `cron/fix-encoding.ts`: apagava alertas não resolvidos com >24h
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado: `src/app/api/cron/fix-encoding/route.ts` (rota de cron, distinta de `admin/fix-encoding/route.ts`, que só corrige encoding e não tem DELETE) fazia `DELETE FROM alertas WHERE created_at < NOW() - INTERVAL '24 hours'` sem filtrar `resolvido = true` — apagava silenciosamente alertas críticos ainda não tratados, dos quais `escalar-claude`/`gerente-codigo`/`relatorio-ceo` dependem para decidir escalonamento. Comparado com `agente-limpeza/route.ts`, que já faz a limpeza correta (`resolvido = true AND created_at < 30 dias`).
+- Fix: adicionado `resolvido = true` ao filtro do DELETE em `cron/fix-encoding/route.ts`, mesmo padrão do `agente-limpeza`. Janela de 24h mantida (escopo do achado era o filtro ausente, não o prazo).
+
+**Validação:** `tsc --noEmit` limpo.
+
+### Item 4 — LGPD: `excluir_dados` não limpava PII de `agentes_log.detalhes`
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado: a anonimização do "direito ao esquecimento" cobria só a tabela `usuarios`, mas `agentes_log.detalhes` (JSONB de eventos operacionais) guarda nome/e-mail/telefone em texto puro em registros antigos — confirmado em `webhook/whatsapp.ts` (`{telefone, plano, nome}`), `lista-de-espera/route.ts` (`{email, plano, telefone}`) e `sequencia-nao-conversao/route.ts` (`{email, ...}`/`{telefone, ...}`). Esses dados continuam recuperáveis via admin/logs mesmo após a exclusão (descumprimento Art. 18 LGPD).
+- Fix em `admin/usuarios/[id]/route.ts` (ação `excluir_dados`): novo `UPDATE agentes_log SET detalhes = jsonb_set(...)` redigindo as chaves `email`/`telefone`/`nome` para `"[REDACTED]"` em qualquer log cujo `detalhes->>'email'`/`'telefone'` bata com os valores originais do usuário (capturados antes da anonimização) ou cujo `detalhes->>'usuarioId'` bata com o id — usando `create_missing=false` em cada `jsonb_set` para só redigir chaves que já existem no registro, sem adicionar campos novos a logs que nunca os tinham.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, no `GET` do mesmo arquivo — não relacionado a esta mudança, que foi só no `PATCH`).
+
+### Item 5 — `claude-revisor.ts`: loop de auto-correção sem nunca escalar
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado: o dedup de tentativas (`SELECT ... WHERE agente='claude-revisor' AND status='erro' AND created_at > NOW() - INTERVAL '1 hour'`) só contava tentativas que falharam (`status='erro'`). Um commit "bem-sucedido" (`commitOk=true`) que não resolvia o problema de fato — exatamente o que descreve o INCIDENTE 19-20/06/2026 documentado no topo do próprio arquivo, onde o agente recorrompeu `resumir-noticias/route.ts` 2x, ambas as vezes logado como `'sucesso'` — nunca incrementava esse contador. Resultado: o mesmo `tipoAlerta` podia reaparecer (novo alerta gerado pelo monitoramento) e ser "corrigido" indefinidamente pelo `claude-revisor`, sem nunca acionar a escalação para o Claude Resolver + notificação ao Leandro.
+- Fix: dedup agora conta qualquer tentativa anterior (sucesso OU erro) para o **mesmo `tipoAlerta`** dentro da última 1h (`detalhes->>'tipoAlerta' = ${tipoAlerta}`, sem filtro de `status`) — se o alerta voltou depois de uma tentativa anterior, essa tentativa não resolveu de verdade, então conta para o limite de 2 antes de escalar.
+- A determinação de `tipoAlerta`/`arquivo` foi movida para antes da consulta de dedup (sem mudança de comportamento — só reordenação necessária para o filtro).
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+### Item 6 — `preditor-churn.ts`: envio em massa sem delay entre mensagens
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado: o loop que envia o alerta de churn para todos os usuários com `score >= 70` chamava `enviarMensagemPrivada()` em sequência, sem nenhuma pausa entre os envios — risco de ban da instância Evolution API por padrão de envio em massa, mesma classe de risco já mitigada em `upgrade-comportamental.ts` (que já tem `await new Promise(r => setTimeout(r, 2000))` no loop equivalente de sugestão de upgrade).
+- Fix: adicionado o mesmo delay de 2s após cada envio no loop de `preditor-churn/route.ts`, replicando o padrão já estabelecido em `upgrade-comportamental.ts`.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+### Item 7 — `moderacao-grupo.ts`: remoção automática sem checkpoint humano
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado: o cron remove membros do grupo WhatsApp automaticamente por inadimplência/cancelamento sem nenhum checkpoint humano antes da ação real, e a docstring do arquivo mencionava uma regra de "inativos 60+ dias" que não existe de fato no código (já registrado como nota na Fase 17, item 12). Perguntado ao usuário que tipo de checkpoint fazia sentido (notificar sem bloquear vs. bloquear até aprovação manual vs. manter como está); usuário escolheu **notificar via Telegram sem bloquear** — manter a automação diária (sem fricção operacional), mas com visibilidade de quem foi removido a cada execução.
+- Fix: docstring corrigida (removida a menção à regra de "inativos 60+ dias" inexistente). Novo array `removidosDetalhe` acumula `{id, plano, motivo}` de cada remoção bem-sucedida no loop; ao final, se houver pelo menos 1 remoção, envia um `alertarTelegram("🟡", ...)` com a lista completa — antes só existia registro em `agentes_log`, que ninguém consulta proativamente.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+### Item 8 — admin "Reativar" não readicionava ao grupo nem recriava cobrança
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado: a ação `reativar` em `admin/usuarios/[id]/route.ts` só trocava `status` para `'ativo'` no banco — não readicionava o membro ao grupo WhatsApp (de onde tinha sido removido por cancelamento/moderação) nem fazia nada quanto à cobrança no Mercado Pago (que já estava cancelada). Cliente "reativado" pelo admin continuava sem receber o produto.
+- Fix: busca `telefone`/`plano` do usuário antes de reativar; chama `adicionarMembroGrupo()` (mesma função usada em `ativarAcesso()` do webhook MP) e, se bem-sucedido, faz o upsert em `membros_grupos` (`ON CONFLICT (usuario_id, grupo_id) DO UPDATE SET status='ativo', data_saida=NULL`) + incrementa `grupos_whatsapp.membros_ativos` — mesmo padrão já usado em `ativarAcesso()`. Em caso de falha na Evolution API, alerta no Telegram para ação manual.
+- **Sobre a cobrança no Mercado Pago:** recriar uma `PreApproval` real exige o cliente reautorizar com os dados do cartão via checkout (fluxo só existe do lado do cliente, em `assinaturas/criar-direto`) — não é possível fazer isso pelo servidor sem a interação dele. Em vez de deixar o cliente "reativado" com acesso de graça e nenhuma cobrança em andamento, a rota agora envia uma mensagem de WhatsApp com o link de assinatura (`/assinar?plano=...`) para ele refazer a cobrança recorrente.
+- Sem telefone cadastrado: alerta Telegram avisando que nem o grupo nem o link puderam ser enviados — requer verificação manual.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+### Item 9 — admin: ação em massa sem confirmação/trava de duplo-clique
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado: `executarMassa()` em `admin/membros/page.tsx` disparava `cancelar`/`reativar` para todos os selecionados sem `confirm()` e sem nenhuma trava contra clique duplo — única ação destrutiva do painel sem essa proteção, e a mais perigosa (afeta N usuários de uma vez: cancela no Mercado Pago e remove do grupo, ou reativa e readiciona, para cada um).
+- Fix: adicionado `confirm()` com a contagem de selecionados antes de iniciar o lote (mesmo padrão já usado em `confirmarEExecutar`/`excluirDados` para ações individuais). Novo estado `executandoMassa` desabilita o botão "Aplicar" (e troca o texto para "Aplicando...") e o botão "Limpar seleção" enquanto o lote roda, prevenindo um segundo clique disparar o mesmo lote em paralelo.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+---
+
+### Item 10 — `fiscal-pipeline.ts`/`fiscal-workflow.ts`: cooldown com corrida + sem `maxDuration`
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado, leitura completa dos dois arquivos:
+
+**10a. Corrida no cooldown de auto-fix (`fiscal-pipeline.ts`):** `tentarAutoFix()` chamava `jaTentouRecentemente(step, ciclo)` — um `SELECT` em `agentes_log` por `agente='mateus-manchete'` + `acao='auto_fix_${step}_${ciclo}'` nos últimos 60min — e só registrava o `INSERT` da tentativa DEPOIS do `fetch()` completar, dentro da mesma iteração do loop. Duas execuções concorrentes do cron (overlap real, já visto em outras rotas) passavam ambas pelo `SELECT` antes de qualquer uma gravar o log, disparando o mesmo `auto_fix_${step}_${ciclo}` em duplicidade — mesma classe de bug do check-then-insert já corrigida em `noticias_url_unique` (Fase 23) e nos Itens 1-2 desta Fase 32.
+- Fix: substituído o par SELECT-então-fetch-então-INSERT por uma reivindicação atômica `INSERT INTO agentes_log (...) VALUES (..., 'tentando', ...) ON CONFLICT DO NOTHING RETURNING id` ANTES do `fetch()` — se 0 linhas voltam, o step já foi reivindicado por outra execução nesta janela e pula (`pulado_cooldown`); se 1 linha volta, segue com o `fetch()` e depois faz `UPDATE` no mesmo `id` reivindicado com o resultado real (`sucesso`/detalhes).
+- A atomicidade depende de um índice único novo, criado em `admin/setup/route.ts`: `idx_agentes_log_autofix_unique` em `agentes_log(acao, date_trunc('hour', created_at)) WHERE agente = 'mateus-manchete' AND acao LIKE 'auto_fix_%'` — sem esse índice o `ON CONFLICT DO NOTHING` não tem o que verificar e o `INSERT` simplesmente duplica como antes.
+- **Nuance assumida deliberadamente:** o cooldown deixa de ser uma janela deslizante de 60min e passa a ser por hora-cheia do relógio (ex.: uma tentativa às 10:58 e outra às 11:01 contam como horas diferentes e ambas passam). Isso é mais permissivo que o `INTERVAL '1 hour'` original em alguns casos de borda, mas é atômico de verdade e cumpre o objetivo real do cooldown ("evitar re-disparar o mesmo step em loop dentro da mesma execução/overlap"), que é o que a corrida quebrava.
+- Removida a constante `COOLDOWN_AUTOFIX_MS` (já estava morta — não era lida em lugar nenhum, o `jaTentouRecentemente()` antigo usava o literal `INTERVAL '1 hour'` direto na query).
+
+**10b. `maxDuration` ausente em ambos os arquivos:**
+- `fiscal-pipeline.ts`: `tentarAutoFix()` pode rodar até 3 steps em sequência, cada um com `fetch` de até 30s de timeout + 3s de pausa — até 99s no pior caso, bem acima do limite padrão de 10s da Vercel. Adicionado `export const maxDuration = 60` (teto do plano Hobby, mesmo padrão de `claude-revisor.ts`/`agente-medico.ts` — não elimina o risco de timeout no pior caso absoluto, mas é o máximo disponível no plano atual).
+- `fiscal-workflow.ts`: busca jobs de até 5 runs do GitHub Actions em sequência, cada `fetch` com timeout de 8s, mais a chamada inicial de 10s — até ~50s no pior caso. Adicionado `export const maxDuration = 60`.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+---
+
+### Item 11 — `fiscal-cards.ts`: alerta sem deduplicação padrão
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado, leitura completa do arquivo: a rota já chamava `criarAlertaDedup("cards_sem_envio", ...)` para o alerta de "grupo sem card", mas o resultado (`criado`) nunca era checado — o envio ao Telegram no passo 3 disparava sempre que `alertas.length > 0`, **independente do dedup ter decidido `criado: false`**. Ou seja: o helper de dedup só evitava duplicar a linha na tabela `alertas`, mas não evitava o spam de Telegram em si, que é o problema real que `criarAlertaDedup` existe para resolver (ver Item 14 da Fase 30 no histórico desta auditoria). O segundo tipo de alerta da rota (erros recentes do gerador, passo 2) nem chamava `criarAlertaDedup` — ia direto pro array `alertas` e era enviado ao Telegram todo run, por até 2h após cada erro.
+- Fix: criado um segundo array `alertasNovos`, populado só quando `criarAlertaDedup(...)` retorna `criado: true`. O passo 3 (envio ao Telegram) agora usa `alertasNovos` em vez de `alertas` — `alertas` continua existindo intacto para a resposta JSON/log da execução (`statusGrupos`, contagem para o status `sucesso`/`aviso`), só o gatilho do Telegram mudou.
+- Adicionado `criarAlertaDedup("cards_erro_gerador", "alto", ...)` para o alerta de erros recentes do gerador, que antes não passava por nenhuma deduplicação — mesmo padrão e janela padrão de 6h já usado em `cards_sem_envio`.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+---
+
+### Item 12 — `fiscal-codigo-seguranca.ts`: testes reais em produção sem rate limit
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando deploy**
+
+Achado da Fase 30 confirmado, leitura completa do arquivo: a rota dispara 6 testes reais contra produção a cada execução (3 GETs/POST esperando 401, 1 GET esperando 405, e um GET com o `CRON_SECRET` real disparando uma **execução completa de `/api/cron/fiscal-api`**, não simulada). Os 5 testes de auth negativa são seguros — cada rota testada rejeita por auth antes de tocar Mercado Pago/DB (confirmado lendo `assinaturas/criar/route.ts`: `getUsuarioLogado()` roda antes de qualquer chamada ao MP). O risco real é de frequência: o docstring diz "Roda a cada 6h", mas a Fase 30 já tinha confirmado (achado registrado mais acima neste documento, Frente sobre `fiscal-workflow`) que o workflow do GitHub Actions dispara os crons com frequência real de 10-40min — bem mais que o pretendido. Sem nenhum limite próprio na rota, cada chamada fora do intervalo de 6h soma carga real e redundante em produção, incluindo uma execução completa e desnecessária de `fiscal-api`.
+- Fix: adicionado cooldown via `agentes_log` (mesmo padrão de `rodrigo-risco`/`claude-revisor` antes da Fase 32) — `jaRodouRecentemente()` checa se já existe um log de `fiscal-codigo-seguranca`/`auditoria_seguranca` nas últimas 5h (1h de margem abaixo do intervalo de 6h documentado, para nunca pular a execução pretendida) e retorna `{ ok: true, pulado_rate_limit: true }` sem rodar nenhum teste se sim.
+- Não foi a aplicada a reivindicação atômica (claim) usada no Item 10 — aqui não há corrida real a se proteger (execuções não se sobrepõem na escala de minutos como o auto-fix do fiscal-pipeline), é puramente uma trava de frequência, mesmo padrão simples já usado em outras rotas de cadência diária/a cada N horas.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+---
+
 ## CREDENCIAIS E REFERÊNCIAS
 
 | Item | Valor |
