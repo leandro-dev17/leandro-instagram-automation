@@ -1514,6 +1514,101 @@ não afeta o `tsc`.
 
 ---
 
+## FASE 30 — Nova Auditoria Completa, 7 Categorias (27/06/2026)
+**Status: 🔍 ACHADOS REPORTADOS — nenhum fix aplicado ainda, aguardando priorização do usuário**
+
+Pedido do usuário: "faça novamente a mesma auditoria que fez e achou esses últimos erros... para ver se está tudo correto" — repetição do padrão histórico (Fases 15/21/22/23/26/27): subagentes paralelos somente-leitura, um por categoria, reportando antes de qualquer correção.
+
+### 1. Pagamentos/Assinaturas
+- 🔴 Pagamentos PIX pendentes nunca são reconciliados contra o status real no Mercado Pago — só são alertados, nunca resolvidos automaticamente.
+- 🟠 Cupons `VOLTA10/15/20` sem limite de uso, sem checagem de elegibilidade e sem rastreamento de uso — qualquer pessoa que obtenha o código tem desconto recorrente permanente.
+- 🟡 2 achados adicionais de menor severidade (detalhes no histórico de execução desta fase).
+
+### 2. WhatsApp/Mensagens
+- 🔴 `admin/mensagem.ts` ignora a função central `lib/whatsapp.ts` (`enviarMensagemGrupo`/`getInstancia`), usando uma env var `EVOLUTION_INSTANCIA` fixa — mesma classe de bug já corrigida em outros lugares na Fase 27.7, não propagada aqui.
+- 🟠 `enquete-dia.ts`: quando `enviarEnqueteGrupo` retorna `false` (sem lançar exceção), nenhum log/alerta dispara — único caminho de erro é um `catch` externo que nunca é alcançado nesse modo de falha. (Reconfirmado de forma independente pela auditoria de Agentes Fiscais desta mesma rodada — ver item 🟡 "enquete-dia" abaixo.)
+- ⚪ Confirmado: a classe de bug "resultado de envio não verificado" (Fase 23) está corrigida em todos os outros pontos do pipeline.
+
+### 3. Pipeline de Notícias
+- 🔴 `posts_whatsapp` não tem nenhuma constraint UNIQUE — todo `ON CONFLICT DO NOTHING` que depende dela (ex.: `resumir-noticias-global.ts:107`) é decorativo, não deduplica de fato.
+- 🔴 `radar-economico.ts`: a guarda de "já rodou hoje" não filtra por sucesso — se o envio falhar uma vez, a análise econômica diária simplesmente não é reenviada até o dia seguinte (falha que se autoperpetua).
+- 🟠 `fiscal-noticias.ts` sem `maxDuration` apesar de somar 15s+ só em sleeps fixos entre 3 chamadas sequenciais — risco real de ser matado pela Vercel no meio do auto-fix sem registrar.
+- 🟠 Critério de "estoque" do VIP exclui notícias com fonte "Metrópoles" (`NOT ILIKE`), Elite não tem o mesmo filtro — assimetria sem motivo de negócio aparente.
+- 🟠 Falha de fonte RSS individual (`coletar-noticias.ts`/`coletar-noticias-global.ts`) é engolida silenciosamente — uma fonte fora do ar para sempre nunca gera nenhum alerta.
+- 🟠 `radar-politico.ts`: se o mesmo vídeo for encontrado por 2 vias (canal próprio + busca genérica) com URLs levemente diferentes (parâmetros de tracking), pode gerar 2 alertas para o mesmo fato.
+- 🟡 Notícia cuja geração de resumo Cavalcanti falhe persistentemente fica reprocessada (gastando IA) indefinidamente, sem alerta dedicado.
+- 🟡 `gerar-card.ts` não tem early-exit por tempo decorrido entre tentativas de fallback — em dia de degradação total da Evolution API, risco de ser cortado pela Vercel antes do alerta final disparar.
+- ⚪ Mesma notícia publicada como texto (`publicar-noticias`) e como card (`gerar-card`) no mesmo grupo é comportamento intencional, mas sem coordenação de horário entre os 2 crons.
+
+### 4. Agentes de Gestão/Crons Fiscais
+- 🔴 `claude-revisor.ts`: para arquivos protegidos/grandes demais, o ciclo de auto-correção se repete indefinidamente gerando Telegram repetido, sem nunca escalar definitivamente (branches de erro não gravam `status='erro'`, só o `catch` final conta para a escalada).
+- 🔴 `fix-encoding.ts`: `DELETE FROM alertas WHERE created_at < 24h` sem filtrar `resolvido = true` — apaga silenciosamente alertas críticos ainda não resolvidos dos quais outros agentes (escalar-claude, gerente-codigo, relatorio-ceo) dependem.
+- 🔴 `preditor-churn.ts`: loop de envio de WhatsApp para usuários em risco sem nenhum delay entre mensagens (outros agentes similares usam 1500-2000ms) — risco de ban da instância oficial.
+- 🔴 `moderacao-grupo.ts`: remove membros do grupo automaticamente por inadimplência/cancelamento sem checkpoint humano; comentário do cabeçalho descreve uma regra de "inativos 60+ dias" que não existe de fato no código.
+- 🔴 `fiscal-pipeline.ts`: cooldown de auto-fix de 1h checado antes do log ser gravado — duas execuções concorrentes podem ambas passar, duplicando chamadas de IA.
+- 🔴 `fiscal-pipeline.ts`/`fiscal-workflow.ts` sem `maxDuration` apesar de somarem 50-99s de chamadas sequenciais.
+- 🔴 `fiscal-cards.ts`: alerta de erros do gerador de cards enviado sem passar pela deduplicação padrão (`criarAlertaDedup`).
+- 🔴 `fiscal-codigo-seguranca.ts`: dispara testes reais (POST) contra endpoints de admin/pagamento em produção a cada 6h, sem ambiente de teste nem rate limit.
+- 🟠 11 achados adicionais (detalhe completo no histórico de execução): `fiscal-facebook` (redeploy de token nunca chamado), `fiscal-especiais` (não verifica `response.ok`), `fiscal-agendamento` (confirma card gerado sem checar plano/grupo certo), `fiscal-trials` (`catch{}` vazio em recuperação de churn), `gerente-financeiro` (score sem cap), `revisor-schema` (contagem pode ficar negativa), entre outros.
+- 🟡 9 achados de baixa severidade (heurísticas frágeis tipo `ILIKE`/substring, gaps de observabilidade).
+- ⚪ Nota positiva confirmada: autenticação via `verificarCronSecret`/`verificarSegredoAutofix` presente e correta em ~42 arquivos lidos; sem SQL injection (queries parametrizadas, DDL dinâmico protegido por regex).
+
+### 5. Banco de Dados
+- 🔴 `lista-de-espera/route.ts`: `ON CONFLICT DO NOTHING` sem nenhuma constraint UNIQUE na tabela `lista_espera` — isso **quebra em runtime** (erro do Postgres por falta de constraint para inferência), perdendo o cadastro de lead.
+- 🔴 `resumir-noticias-global.ts:107`: mesmo problema em `posts_whatsapp` — o rascunho da análise Elite nunca é salvo quando o INSERT falha por falta de constraint.
+- 🟠 `agentes_log.detalhes->>'usuarioId'` consultado em 8+ lugares sem nenhum índice de expressão — combinado com N+1 real em `campanha-recuperacao.ts` (uma query de dedup por usuário dentro do loop).
+- 🟠 N+1 + scan sem índice também em `radar-politico.ts` (`COUNT(*) WHERE politico = ...` sem índice na coluna).
+- 🟠 Colunas `noticias.postada_vip_card`/`postada_elite_card`/`*_card_at` (criadas só em `gerar-card.ts`, com `.catch()` que engole erro real) estão fora do dicionário do fiscal de schema — se o ALTER falhar num ambiente novo, ninguém detecta.
+- 🟡 Faltam índices em `posts_whatsapp.grupo_id` e em `(grupo_id, tipo, created_at)` usados por self-join de detecção de duplicatas.
+- ⚪ `SCHEMA_ESPERADO` do fiscal de schema não cobre 7 tabelas existentes (`leads`, `radar_politico`, `consumo_ia_log`, `termometro`, `prompts_customizados`, `links_compartilhamento`, `lista_espera`); driver Neon HTTP não tem transação multi-statement (UPDATE+INSERT em chamadas separadas, sem rollback conjunto).
+
+### 6. Admin/Painel
+- 🔴 "Reativar" em Membros (`admin/usuarios/[id]/route.ts:78-79`) só troca `status` no banco — não readiciona ao grupo WhatsApp nem recria cobrança no Mercado Pago. Cliente "reativado" continua sem receber o produto.
+- 🔴 Ação em massa (cancelar/reativar todos) em `admin/membros/page.tsx` não tem `confirm()` nem trava de duplo-clique — única ação destrutiva do painel sem essa proteção, e a mais perigosa (afeta N usuários de uma vez: cancela no MP e remove do grupo todos os selecionados).
+- 🟠 Envio manual de mensagem ao grupo (`admin/mensagens`) sem `confirm()` antes de despachar para centenas de assinantes pagantes.
+- 🟠 "Publicar agora" sempre tenta publicar nos 2 grupos mesmo quando um já está marcado como publicado — duplicidade depende inteiramente da idempotência do cron-alvo.
+- 🟡 2 achados de UX (modal de edição de notícia não mostra resumo já salvo; `modo-crise` sem validação de enum no campo `acao`).
+- ⚪ Confirmada ausência de regressão nas fusões da Fase 27 (admin/conteudo, admin/membros, link LGPD).
+
+### 7. Infra/Segurança/LGPD
+- 🔴 "Direito ao esquecimento" (`excluir_dados`) anonimiza `usuarios` e apaga `leads`, mas **não toca em `agentes_log.detalhes`** — telefone/nome/email em texto puro continuam recuperáveis via `admin/logs` mesmo após a exclusão (descumprimento do Art. 18 LGPD). Fontes confirmadas: `webhook/whatsapp.ts`, `lista-de-espera.ts`, `sequencia-nao-conversao.ts`.
+- 🔴 Secret do webhook Evolution API (WhatsApp) aceito via query string (`?secret=`) — maior superfície de exposição (logs de acesso, proxies, histórico de config) do que um header dedicado.
+- 🟠 Webhook Mercado Pago aceita requisição sem `x-signature` sem nenhuma validação (fallback documentado, mas em produção é uma porta sem trava real — impacto limitado porque `ativarAcesso` ainda depende do retorno da API oficial do MP).
+- 🟠 Rate limit de `leads/registrar` é em memória de processo — ineficaz em ambiente serverless (cada cold start reseta o contador).
+- 🟡 `vercel.json` com `crons: []` — toda a agenda depende do GitHub Actions sem redundância nativa da Vercel.
+- ⚪ Confirmado: `.env.local` nunca foi commitado; `CRON_SECRET` validado com `timingSafeEqual` em todas as ~70 rotas de cron; todas as rotas `/api/admin/*` protegidas; headers de segurança (`X-Frame-Options`, HSTS, etc.) configurados.
+
+**Pendente:** apresentar este resumo ao usuário para priorização antes de qualquer correção — nenhum arquivo foi modificado nesta fase.
+
+---
+
+## FASE 31 — Causa Raiz Real da Legenda Rasa do Card (28/06/2026)
+**Status: ✅ CÓDIGO CONCLUÍDO (versão final, redesenhada) — aguardando autorização para commit/push/deploy**
+
+**Problema:** mesmo após a Fase 29 (passar o resumo_braga/resumo_cavalcanti como contexto), o usuário reportou que os cards continuavam saindo "quase sem nada escrito, praticamente só título" — reapresentou prints do WhatsApp como evidência (esclareceu que reaproveitou capturas antigas, mas confirmou que o problema é o mesmo hoje).
+
+**Investigação:** consultado o banco de produção diretamente (Neon, via script Node com `--use-system-ca`).
+- `noticias.resumo_braga`/`resumo_cavalcanti` gerados após o deploy da Fase 29 (28/06) **já estão substanciais** — 700 a 960 caracteres, parágrafo real na voz da persona, já terminando com a assinatura certa.
+- Mas a legenda final efetivamente enviada (`posts_whatsapp.conteudo`, tipo `card_visual`) continuava saindo em frases soltas e genéricas tipo *"Flávio Augusto faz declaração política."* — sem nenhum dos detalhes concretos do resumo já disponível.
+
+**Causa raiz real:** a Fase 29 corrigiu a ENTRADA do prompt (passar o resumo rico como base), mas não tocou na instrução de SAÍDA herdada da Fase 24c — `"[1 frase objetiva, máximo 20 palavras]"` por seção. A IA recebia a análise completa e, seguindo a instrução literal, a espremia em frases soltas — por isso o card "parece só título" mesmo com contexto rico disponível.
+
+**Primeira tentativa de fix (descartada pelo usuário):** aumentar cada seção do prompt para 2 frases de 35-45 palavras em vez de 1 frase de 20. O usuário rejeitou explicitamente essa abordagem: *"Não quero que tenha uma frase de 20 palávras, quero que seja escrito um resumo de cada notícia, isso é um grupo de notícias e precisa ter elas com pelo menos um resumo que dê para entender o assunto."* — ou seja, nenhum tamanho fixo de frase resolve, porque o problema é a compressão por IA em si, não o tamanho do limite.
+
+**Fix final aplicado em `gerar-card/route.ts`:** eliminada a regeneração por IA da legenda. O corpo da legenda agora usa **direto** o `resumo_braga`/`resumo_cavalcanti` já existente (a análise completa, 700-960 caracteres, já escrita pelo resumidor na voz da persona) — sem reescrita, sem perda de substância, sem assinatura duplicada (confirmado em `lib/personas.ts` que os prompts do resumidor já instruem a IA a terminar com a assinatura certa: "Deus, Pátria e Família — sempre." no Braga, "Análise do Prof. Cavalcanti."/"O mundo muda para quem enxerga antes." no Cavalcanti — por isso nenhuma assinatura estática extra é concatenada).
+- Removidos: dict `PROMPTS_LEGENDA` (prompt de 3 seções) e a função `truncarLegenda()` antiga (corte genérico por espaço).
+- `gerarLegenda()` deixou de ser assíncrona/IA e passou a só montar cabeçalho + corpo (resumo cortado se necessário).
+- Nova função `cortarNoFimDeFrase()`: corta no último ponto-final real antes do limite de `LEGENDA_MAX` (990), com um `Set` de abreviações comuns ("prof", "dr", "sr" etc.) para não confundir "Prof." com fim de frase — retrocede até achar um ponto real, só cai no corte genérico por espaço+"…" se não houver nenhum ponto real no trecho.
+
+**Validação:**
+- `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo já documentado, em `admin/usuarios/[id]/route.ts`).
+- Simulação com dados reais do banco (resumo #6646, 826 caracteres, terminando em "...Análise do Prof. Cavalcanti.") confirmou que a assinatura completa é preservada intacta — a versão inicial do corte cortava errado logo depois de "Prof.", a versão com `ABREVIACOES` corrige isso.
+- Simulação de um resumo forçadamente maior que o limite confirmou que o corte cai num ponto-final real (não corta no meio de uma frase).
+
+**Pendente:** autorização do usuário para commit/push/deploy; reteste em produção das próximas publicações de card para confirmar visualmente que as legendas saem como resumo completo e legível.
+
+---
+
 ## CREDENCIAIS E REFERÊNCIAS
 
 | Item | Valor |
@@ -1532,6 +1627,8 @@ não afeta o `tsc`.
 
 | Data | Fase | Descrição |
 |------|------|-----------|
+| 28/06/2026 | Fase 31 | Usuário reportou (novamente, com prints reaproveitados) que cards continuavam saindo rasos mesmo após a Fase 29. Investigado direto no banco de produção (Neon via script Node `--use-system-ca`): o `resumo_braga`/`resumo_cavalcanti` já está rico desde a Fase 29 (700-960 caracteres), mas a legenda final enviada (`posts_whatsapp.conteudo`) continuava saindo em frases soltas e genéricas. Causa raiz real: a instrução de saída do prompt (herdada da Fase 24c) pedia "1 frase, máximo 20 palavras" por seção — a IA recebia o contexto rico e mesmo assim o espremia, por seguir a instrução literal. Primeira tentativa de fix (2 frases de 35-45 palavras por seção) foi explicitamente rejeitada pelo usuário: "não quero frase de 20 palavras, quero um resumo de cada notícia que dê para entender o assunto" — o problema era a compressão por IA em si, não o tamanho do limite. Redesenhado: eliminada a regeneração por IA da legenda; `gerarLegenda()` virou síncrona e usa direto o `resumo_braga`/`resumo_cavalcanti` já existente como corpo da legenda (sem reescrita, sem assinatura duplicada — confirmado em `lib/personas.ts` que o resumo já termina com a assinatura certa da persona). Removidos `PROMPTS_LEGENDA` e `truncarLegenda()` antigos; nova função `cortarNoFimDeFrase()` corta no último ponto-final real antes do `LEGENDA_MAX` (990), com `Set` de abreviações ("prof", "dr" etc.) para não confundir "Prof." com fim de frase. Validado com simulação contra dado real do banco (resumo terminando em "Análise do Prof. Cavalcanti.") confirmando que a assinatura sai intacta. `tsc --noEmit` zerado. Sem commit/push ainda — aguardando autorização do usuário. |
+| 27-28/06/2026 | Fase 30 | Nova auditoria completa das 7 categorias pedida pelo usuário (mesmo padrão histórico, subagentes somente-leitura paralelos por categoria). 16 achados Alto, 24 Médio, 19 Baixo, vários positivos confirmados (sem regressão das Fases 26/27). Destaques Alto: `lista_espera`/`posts_whatsapp` com `ON CONFLICT` sem constraint UNIQUE (o de `lista_espera` quebra com erro 500 real, perdendo cadastro de lead); `fix-encoding.ts` apaga alertas com menos de 24h mesmo não resolvidos; `claude-revisor.ts` pode entrar em loop de auto-correção sem nunca escalar; `preditor-churn.ts` sem delay entre envios em massa (risco de ban); `moderacao-grupo.ts` remove membros do grupo sem checkpoint humano; "Reativar" membro no admin não readiciona ao grupo nem recria cobrança no MP; ação em massa do admin sem confirmação; exclusão LGPD não limpa PII de `agentes_log.detalhes`. Lista completa por categoria registrada na seção "FASE 30" acima. Resumo apresentado ao usuário; nenhuma correção aplicada ainda nesta fase — aguardando priorização. |
 | 27/06/2026 | Fase 29 | Usuário confirmou (com prints) que o radar de deputados/empresários da Fase 28 voltou a funcionar, mas reportou 2 pontos novos: (1) ainda viu notícias "que parece só título, sem comentário real" nos prints — investigado e identificado como bug separado em `gerar-card/route.ts`: a legenda do card é gerada do zero (só `titulo`+`fonte`), sem nunca olhar para o `resumo_braga`/`resumo_cavalcanti` já escrito com conteúdo real — corrigido passando o resumo existente como "ANÁLISE JÁ ESCRITA" para a IA da legenda. (2) Pediu (proativamente, "o que você acha?") limitar a 1-2 alertas por pessoa por dia para não inundar o grupo quando alguém publica vários vídeos, e distribuir quem é monitorado por período do dia (deu exemplo: "Pablo de manhã e de tarde, Nikolas de tarde e de noite") — implementado em `radar-politico/route.ts`: `CAP_DIARIO_POR_PESSOA = 2` (conta alertas `processado=true` do dia por pessoa, BRT) + campo `periodos` por pessoa (cada uma ativa em 2 de 3 períodos: manhã/tarde/noite, balanceado em ~6 pessoas por período). `tsc --noEmit` zerado nos 2 arquivos tocados (único erro remanescente é o mesmo pré-existente e não-relacionado já documentado na Fase 28). Commit `1183ea5`, merge com bot `guardian-state` + push (`80b371a`) + deploy em produção (`dpl_56iaqjPXY3QZKrxVMHp2PVnkQex6`). |
 | 27/06/2026 | Fase 28 | Usuário reportou 2 problemas: (1) notícias publicadas ficaram "só hooks/CTA" pós-Fase 27 — causa real era `conteudo_original` nunca preenchido por nenhum coletor (não foi redução de caracteres); corrigido extraindo `description`/`content:encoded`/`media:description` do RSS em `coletar-noticias.ts`/`coletar-noticias-global.ts`, mais fallback de `og:description` da própria página em `resumir-noticias.ts`/`resumir-noticias-global.ts` (este último também passou a usar `conteudo_original`, que antes ignorava). (2) Radar de deputados/empresários no YouTube "não funciona" — usuário pediu opções, escolheu: confiar no canal do YouTube da pessoa (sem exigir nome no título) + cadastrar canais dos 3 empresários (Luciano Hang, Flávio Augusto, Pablo Marçal, IDs verificados via WebSearch/WebFetch). `radar-politico/route.ts` reescrito: `PESSOAS` com `tipo`/`canalYoutube`, busca direta no canal próprio sem filtro de título, filtro por nome mantido só nas fontes genéricas (portais + 2 canais de mídia). Corrigido de quebra bug pré-existente: 3 IDs de canal hardcoded (Nikolas Ferreira/Eduardo Bolsonaro/Marco Feliciano) eram fabricados/errados — substituídos pelos IDs corretos já usados em `coletar-noticias.ts`. Usuário esclareceu regra de persona: Capitão Braga só comenta Brasil, Prof. Cavalcanti comenta mundo+presidentes+empresários — aplicado pulando geração/postagem do Braga para `tipo==="empresario"`, e corrigido bug relacionado em `resumir-noticias.ts` (SELECT sem filtro `global`, podia gerar `resumo_braga` indevido para notícia global). `tsc --noEmit` zerado nos 5 arquivos tocados (único erro remanescente é pré-existente e não-relacionado, em `admin/usuarios/[id]`). Commit `b6cb28a`, push e deploy em produção (confirmado: radar voltou a funcionar). |
 | 27/06/2026 | Fase 27 — Gap de deploy | Usuário reportou que os cards e a legenda continuavam com os mesmos problemas das Fases 24b/25 mesmo após as correções terem sido feitas e commitadas. Investigado via `vercel inspect`: o último deploy real em `alertapatriota.vercel.app` era de **24/06 às 09:43**, ou seja, **antes** do commit da Fase 24 (15:22 do mesmo dia) e muito antes do commit `50bd343` (Fase 24c+25, 26/06 17:57) — os dois estavam no GitHub (`origin/main`) mas nunca foram deployados, porque este projeto não tem integração automática Vercel↔GitHub (precisa de `vercel --prod` manual a cada lote de mudanças, mesma situação do Vovó Teresinha). Ou seja: 3 dias de correções reais (Fase 24 completa + Fase 24c/25 + agora Fase 27.1-27.7) estavam todas só no repositório, nunca em produção. Corrigido: commit único da Fase 27 (`de0a71d`) + merge dos commits automáticos do bot `guardian-state` + push (`834ba17`) + `vercel --prod` disparado manualmente, trazendo de uma vez todo o backlog parado. Deploy `dpl_8DpfUSFqzJh4fEn53rBvr3mhEN2A` promovido a produção e alias `alertapatriota.vercel.app` atualizado com sucesso. **Lição para o processo**: a partir de agora, todo commit/push relevante para este projeto precisa ser seguido de `cd squads/alerta-patriota/app && NODE_OPTIONS=--use-system-ca vercel --prod` — push no GitHub sozinho não atualiza produção. |

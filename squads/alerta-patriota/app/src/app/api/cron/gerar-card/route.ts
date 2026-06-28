@@ -40,47 +40,6 @@ const PROMPTS_HOOK: Record<string, string> = {
   elite:    `Crie UMA frase analítica e sofisticada (máximo 12 palavras) do Prof. Bernardo Cavalcanti sobre esta notícia. Tom intelectual e revelador. SEM aspas.`,
 };
 
-// Prompts para a LEGENDA completa (caption da imagem)
-// FASE 24c: seções pedidas como "2-3 linhas" produziam corpo regularmente acima do
-// orçamento de caracteres (ver LEGENDA_MAX abaixo), fazendo truncarLegenda() cortar a
-// 3ª seção no meio — usuário via a análise incompleta ("...A possível liberação…").
-// Seções mais curtas (1-2 linhas, frase objetiva) cabem inteiras no limite seguro do
-// WhatsApp em vez de dependerem do corte de segurança.
-// FASE 29: a legenda era gerada do zero só com título+fonte, sem ver o resumo_braga/
-// resumo_cavalcanti que o resumidor já escreveu com conteúdo real da notícia — a IA
-// não tinha nenhum fato pra se basear e produzia frases genéricas tipo "Transmissão
-// ao vivo de X" (sintoma "parece só título, sem comentário real" reportado em
-// 27/06/2026). Agora a análise já escrita é passada como base obrigatória.
-const PROMPTS_LEGENDA: Record<string, string> = {
-  vip: `Você é o Capitão Braga. Baseado na ANÁLISE JÁ ESCRITA abaixo (não invente fatos que não estão nela), escreva uma versão resumida em 3 partes usando este formato EXATO:
-
-🧠 *O QUE ESTÁ ACONTECENDO*
-[1 frase objetiva sobre o fato, máximo 20 palavras]
-
-🔍 *O QUE A MÍDIA ESCONDE*
-[1 frase objetiva revelando o que está por trás, máximo 20 palavras]
-
-🎯 *O QUE ISSO SIGNIFICA*
-[1 frase objetiva sobre implicação para o Brasil, máximo 20 palavras]
-
-Termine com: Deus, Pátria e Família — sempre.
-Texto total entre 450-600 caracteres (sem contar emojis/marcação). Nunca deixe uma frase incompleta — prefira encurtar uma seção a cortar no meio. Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
-
-  elite: `Você é o Prof. Bernardo Cavalcanti. Baseado na ANÁLISE JÁ ESCRITA abaixo (não invente fatos que não estão nela), escreva uma versão resumida em 3 partes usando este formato EXATO:
-
-🧠 *O QUE ESTÁ ACONTECENDO*
-[1 frase objetiva sobre o fato, máximo 20 palavras]
-
-🌍 *MAPA GLOBAL*
-[1 frase objetiva conectando a Milei, Trump, Orbán ou movimentos conservadores globais, máximo 20 palavras]
-
-🎯 *O QUE VOCÊ PRECISA SABER*
-[1 frase objetiva sobre implicação estratégica para o Brasil, máximo 20 palavras]
-
-Termine com: O mundo muda para quem enxerga antes.
-Texto total entre 450-600 caracteres (sem contar emojis/marcação). Nunca deixe uma frase incompleta — prefira encurtar uma seção a cortar no meio. Use apenas *negrito* (asterisco simples). Responda APENAS com o texto.`,
-};
-
 async function gerarHook(titulo: string, plano: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
@@ -93,39 +52,56 @@ async function gerarHook(titulo: string, plano: string): Promise<string> {
 
 // WhatsApp trava/não entrega caption de mídia acima de ~1024 caracteres — a mensagem
 // fica presa em "carregando" para quem recebe mesmo com o upload da imagem OK.
-// Corta no último espaço/quebra de linha antes do limite para não truncar no meio de uma palavra.
 const LEGENDA_MAX = 990;
-function truncarLegenda(texto: string): string {
-  if (texto.length <= LEGENDA_MAX) return texto;
-  const cortado = texto.slice(0, LEGENDA_MAX);
-  const ultimaQuebra = Math.max(cortado.lastIndexOf("\n"), cortado.lastIndexOf(" "));
-  return `${cortado.slice(0, ultimaQuebra > 0 ? ultimaQuebra : LEGENDA_MAX)}…`;
+
+// FASE 31: cortar em "." real (fim de frase) em vez de espaço genérico — texto cortado
+// no meio de uma frase lê como quebrado mesmo com "…". Pula pontos de abreviação comuns
+// ("Prof.", "Dr.", etc.) para não cortar logo depois deles, retrocedendo até achar um
+// ponto final de verdade. Só cai no corte genérico se não houver ponto real no trecho.
+const ABREVIACOES = new Set(["prof", "dr", "dra", "sr", "sra", "srta", "eng", "exa", "av", "art", "min", "gen", "cap", "cel", "ed"]);
+function cortarNoFimDeFrase(texto: string, max: number): string {
+  if (texto.length <= max) return texto;
+  let limite = max;
+  while (limite > max * 0.4) {
+    const cortado = texto.slice(0, limite);
+    const pontoIdx = Math.max(cortado.lastIndexOf(". "), cortado.lastIndexOf(".\n"), cortado.lastIndexOf("! "), cortado.lastIndexOf("? "));
+    if (pontoIdx <= 0) break;
+    const antes = cortado.slice(0, pontoIdx);
+    const ultimaPalavra = (antes.match(/(\w+)$/) || [""])[0].toLowerCase();
+    if (!ABREVIACOES.has(ultimaPalavra)) return cortado.slice(0, pontoIdx + 1);
+    limite = pontoIdx; // ponto era abreviação — tenta achar um ponto real antes dele
+  }
+  const cortado = texto.slice(0, max);
+  const ultimoEspaco = cortado.lastIndexOf(" ");
+  return `${cortado.slice(0, ultimoEspaco > 0 ? ultimoEspaco : max)}…`;
 }
 
-async function gerarLegenda(titulo: string, plano: string, fonte: string, resumoExistente: string | null): Promise<string> {
+// FASE 24c/29 tentaram fazer uma IA reescrever a notícia em 3 frases curtas
+// (até 20, depois 35-45 palavras) — mesmo recebendo a análise completa como base, a IA
+// devolvia frases soltas e genéricas ("Flávio Augusto faz declaração política."), porque
+// a instrução de saída forçava compressão extrema. Usuário pediu explicitamente: nada de
+// frase de 20 palavras, quer "um resumo de cada notícia que dê para entender o assunto".
+// FASE 31: a análise completa (resumo_braga/resumo_cavalcanti, já escrita pelo resumidor
+// com 700-960 caracteres de conteúdo real, na voz da persona, já terminando com a
+// assinatura certa — "Deus, Pátria e Família" no Braga, "Análise do Prof. Cavalcanti"/
+// "O mundo muda..." no Cavalcanti, ver lib/personas.ts) é usada DIRETO como corpo da
+// legenda — sem reescrita por IA, sem perda de substância, sem assinatura duplicada.
+// `gerar-card` só busca notícias com resumo_braga/resumo_cavalcanti IS NOT NULL, então
+// resumoExistente nunca é null neste fluxo; o fallback pro título só existe por segurança.
+function gerarLegenda(titulo: string, plano: string, fonte: string, resumoExistente: string | null): string {
   const hora = new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", timeZone:"America/Sao_Paulo" });
   const data = new Date().toLocaleDateString("pt-BR", { day:"numeric", month:"short", timeZone:"America/Sao_Paulo" });
 
-  // FASE 24c: 350 tokens deixava margem para o modelo passar do orçamento de 450-600
-  // caracteres pedido no prompt; 220 tokens (~600-650 caracteres em pt-BR) é teto coerente
-  // com o texto mais curto agora pedido, sem cortar a resposta da IA no meio de uma frase.
-  const corpo = await gerarTexto({
-    model: "claude-haiku-4-5-20251001",
-    agente: "gerador-card",
-    max_tokens: 220,
-    messages: [{
-      role: "user",
-      content: `${PROMPTS_LEGENDA[plano]}\n\nNOTÍCIA: "${titulo}"\nFONTE: ${fonte}\n${resumoExistente ? `ANÁLISE JÁ ESCRITA:\n${resumoExistente}\n` : ""}`,
-    }],
-  });
-
-  // Header formatado por grupo
   const headers: Record<string, string> = {
     vip:      `╔══════════════════╗\n║   🔥 VIP PREMIUM   ║\n╚══════════════════╝\n_${data} · ${hora} · ${fonte}_\n`,
     elite:    `╔══════════════════╗\n║  🎖️  ELITE GLOBAL  ║\n╚══════════════════╝\n*Prof. Dr. Bernardo Cavalcanti*\n_${data} · ${hora} · ${fonte}_\n`,
   };
 
-  return truncarLegenda(`${headers[plano]}\n${corpo}`);
+  const header = headers[plano];
+  const orcamentoCorpo = LEGENDA_MAX - header.length - 1;
+  const corpo = cortarNoFimDeFrase((resumoExistente || titulo).trim(), orcamentoCorpo);
+
+  return `${header}\n${corpo}`;
 }
 
 async function renderizarEEnviar(plano: string, hook: string, corpo: string | undefined, fonte: string, urgente: boolean | undefined, groupJid: string, legenda: string, noticiaId: number): Promise<{ ok: boolean; erro?: string }> {
@@ -207,11 +183,8 @@ export async function GET(req: NextRequest) {
     for (const n of rows) {
       const fonte = n.fonte || "Alerta Patriota";
 
-      // Gera hook e legenda em paralelo
-      const [hook, legenda] = await Promise.all([
-        gerarHook(n.titulo, plano),
-        gerarLegenda(n.titulo, plano, fonte, plano === "vip" ? n.resumo_braga : n.resumo_cavalcanti),
-      ]);
+      const hook = await gerarHook(n.titulo, plano);
+      const legenda = gerarLegenda(n.titulo, plano, fonte, plano === "vip" ? n.resumo_braga : n.resumo_cavalcanti);
 
       // Renderiza e envia
       const urgente = n.urgente === true || n.urgente === "true";
