@@ -2,21 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
 const LIMITE_POR_JANELA = 5;
-const JANELA_MS = 60_000;
-const requisicoesPorIp = new Map<string, number[]>();
 
-function excedeuLimite(ip: string): boolean {
-  const agora = Date.now();
-  const historico = (requisicoesPorIp.get(ip) || []).filter((t) => agora - t < JANELA_MS);
-  historico.push(agora);
-  requisicoesPorIp.set(ip, historico);
-  return historico.length > LIMITE_POR_JANELA;
+// Item 26 (Fase 30): o rate limit anterior usava um Map em memória do processo —
+// ineficaz em serverless, onde cada cold start (e cada instância concorrente sob
+// carga) tem memória isolada, então o limite nunca era de fato global por IP.
+// Persistido em leads_rate_limit (tabela criada em admin/setup/route.ts), válido
+// entre instâncias/invocações. Limpeza oportunista evita crescimento indefinido
+// sem precisar de um cron dedicado só para isso.
+async function excedeuLimite(ip: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS total FROM leads_rate_limit
+    WHERE ip = ${ip} AND created_at > NOW() - INTERVAL '60 seconds'
+  `;
+  await sql`INSERT INTO leads_rate_limit (ip) VALUES (${ip})`;
+  await sql`DELETE FROM leads_rate_limit WHERE created_at < NOW() - INTERVAL '10 minutes'`.catch(() => {});
+  return (rows[0]?.total ?? 0) >= LIMITE_POR_JANELA;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
-    if (excedeuLimite(ip)) {
+    if (await excedeuLimite(ip)) {
       return NextResponse.json({ erro: "Muitas requisições, tente novamente em breve" }, { status: 429 });
     }
 

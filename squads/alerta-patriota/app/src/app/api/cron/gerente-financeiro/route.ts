@@ -76,6 +76,12 @@ export async function GET(req: NextRequest) {
     if (n > 3) { problemas.push(`${n} trials expiram em 24h sem converter`); score -= 5; }
   } catch { /* silencioso */ }
 
+  // Item 20 (Fase 30): score só subtraía, sem teto inferior — vários problemas simultâneos
+  // (ex.: muitos Pix pendentes, onde o desconto é `5 * n` sem limite) podiam levar o score
+  // bem abaixo de 0, exibindo algo como "Score: -50/100" nos alertas e no log, quando a
+  // documentação do próprio arquivo declara a escala como 0-100.
+  score = Math.max(0, Math.min(100, score));
+
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────
   if (score < 50) {
     await fetch(`${APP_URL}/api/cron/relatorio-ceo?origem=gerente-financeiro&score=${score}`, {

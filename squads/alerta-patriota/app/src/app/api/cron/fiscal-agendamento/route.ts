@@ -102,21 +102,30 @@ function horaBRTParaUTC(horaBRT: number): Date {
   return new Date(`${dataStr}T${String(utcHora).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:00Z`);
 }
 
-async function verificarCardGerado(cardDesdeHoraBRT: number, fimVerificacaoBRT: number): Promise<boolean> {
+// Item 20 (Fase 30): a versão anterior checava só `acao LIKE 'card_%'` sem dizer qual grupo —
+// gerar-card.ts grava `acao = 'card_' + plano` (ex.: 'card_vip', 'card_elite'). Como isso aceitava
+// QUALQUER card no período como prova de que "o card foi gerado", se o VIP saísse e o Elite
+// falhasse (ou vice-versa) o fiscal via 1 card_vip na janela e considerava tudo ok — o grupo que
+// realmente falhou nunca gerava alerta. Agora verifica cada grupo esperado individualmente e
+// retorna a lista dos que de fato faltaram.
+async function verificarCardsGerados(cardDesdeHoraBRT: number, fimVerificacaoBRT: number, grupos: string[]): Promise<string[]> {
   const inicio = horaBRTParaUTC(cardDesdeHoraBRT);
   const fim = horaBRTParaUTC(fimVerificacaoBRT);
 
-  const rows = await sql`
-    SELECT id FROM agentes_log
-    WHERE agente = 'gerador-card'
-      AND acao LIKE 'card_%'
-      AND status = 'sucesso'
-      AND created_at >= ${inicio.toISOString()}::timestamptz
-      AND created_at <= ${fim.toISOString()}::timestamptz
-    LIMIT 1
-  `;
-
-  return rows.length > 0;
+  const faltando: string[] = [];
+  for (const grupo of grupos) {
+    const rows = await sql`
+      SELECT id FROM agentes_log
+      WHERE agente = 'gerador-card'
+        AND acao = ${`card_${grupo}`}
+        AND status = 'sucesso'
+        AND created_at >= ${inicio.toISOString()}::timestamptz
+        AND created_at <= ${fim.toISOString()}::timestamptz
+      LIMIT 1
+    `;
+    if (rows.length === 0) faltando.push(grupo);
+  }
+  return faltando;
 }
 
 // Desde a descontinuação dos planos Básico/Patriota, tanto as janelas "todos"
@@ -173,10 +182,10 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const cardGerado = await verificarCardGerado(janela.cardDesdeHoraBRT, janela.verificacaoFimBRT);
+      const gruposFaltando = await verificarCardsGerados(janela.cardDesdeHoraBRT, janela.verificacaoFimBRT, gruposAfetados());
+      const cardGerado = gruposFaltando.length === 0;
 
       if (!cardGerado) {
-        const grupos = gruposAfetados();
         const horaBRTAtualFormatada = new Date().toLocaleString("pt-BR", {
           timeZone: "America/Sao_Paulo",
           hour: "2-digit",
@@ -188,14 +197,14 @@ export async function GET(req: NextRequest) {
           `⏰ PEDRO PONTUAL — Publicação Atrasada!`,
           `Horário ${janela.label}: card não publicado (${horaBRTAtualFormatada} BRT)`,
           ``,
-          `Grupos afetados: ${grupos.join(", ")}`,
+          `Grupos afetados: ${gruposFaltando.join(", ")}`,
           `O cron deveria ter rodado às ${cronEsp} (${janela.horarioBRT.toString().padStart(2, "0")}:00 BRT).`,
           ``,
           `Verifique os logs do GitHub Actions:`,
           GITHUB_ACTIONS_URL,
         ];
 
-        const mensagemAlerta = `Card das ${janela.label} não publicado. Grupos: ${grupos.join(", ")}. Cron esperado: ${cronEsp}.`;
+        const mensagemAlerta = `Card das ${janela.label} não publicado. Grupos: ${gruposFaltando.join(", ")}. Cron esperado: ${cronEsp}.`;
         alertasDisparados.push(mensagemAlerta);
 
         const { criado } = await criarAlertaDedup("publicacao_atrasada", "alto", mensagemAlerta);

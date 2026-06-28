@@ -168,6 +168,18 @@ async function buscarVideosCanalProprio(pessoa: Pessoa): Promise<Array<{ titulo:
   }
 }
 
+// Item 19 (Fase 30): o mesmo vídeo pode ser encontrado pela busca no canal próprio (URL limpa,
+// vinda do Atom feed do YouTube) e pela busca genérica em portais/canais de mídia (URL do mesmo
+// vídeo, mas com parâmetros de tracking como ?si=..., &feature=... ou utm_*, vindos de como o
+// link foi embedado na fonte) — como o dedup (jaProcessado e os ON CONFLICT em radar_politico/
+// noticias) compara a URL como texto exato, as duas variantes nunca batiam e a mesma análise
+// era gerada duas vezes. Normaliza para a forma canônica (youtube.com/watch?v=ID) antes de
+// qualquer busca/inserção, então as duas vias convergem para a mesma chave de dedup.
+function normalizarUrlVideo(url: string): string {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+  return m ? `https://www.youtube.com/watch?v=${m[1]}` : url;
+}
+
 async function gerarAlertaBraga(politico: string, titulo: string): Promise<string> {
   const texto = await gerarTexto({
     model: "claude-haiku-4-5-20251001",
@@ -232,6 +244,20 @@ export async function GET(req: NextRequest) {
 
     const periodoAtual = obterPeriodoAtual();
 
+    // Item 22 (Fase 30): a contagem diária por pessoa rodava 1 SELECT COUNT(*) por pessoa
+    // DENTRO do loop (N+1 — 3 round-trips por execução, sem nenhum índice em
+    // radar_politico.politico, então cada COUNT(*) varria a tabela inteira). Agora busca
+    // em lote, fora do loop, a contagem das 3 pessoas da rodada numa única query agrupada.
+    const nomesRodada = rodada.map(p => p.nome);
+    const contagensRows = await sql`
+      SELECT politico, COUNT(*)::int AS total FROM radar_politico
+      WHERE politico = ANY(${nomesRodada})
+      AND processado = true
+      AND (created_at AT TIME ZONE 'America/Sao_Paulo')::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
+      GROUP BY politico
+    `;
+    const contagensPorPessoa = new Map(contagensRows.map(r => [r.politico as string, r.total as number]));
+
     for (const pessoa of rodada) {
       // Para se ultrapassou o tempo limite
       if (Date.now() - inicio > LIMITE_MS) break;
@@ -240,19 +266,13 @@ export async function GET(req: NextRequest) {
       if (periodoAtual && !pessoa.periodos.includes(periodoAtual)) continue;
 
       // Conta quantos alertas essa pessoa já gerou hoje (BRT) — para respeitar o cap diário
-      const contagemHojeRow = await sql`
-        SELECT COUNT(*)::int AS total FROM radar_politico
-        WHERE politico = ${pessoa.nome}
-        AND processado = true
-        AND (created_at AT TIME ZONE 'America/Sao_Paulo')::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
-      `;
-      let alertasHojePessoa = contagemHojeRow[0].total as number;
+      let alertasHojePessoa = contagensPorPessoa.get(pessoa.nome) ?? 0;
       if (alertasHojePessoa >= CAP_DIARIO_POR_PESSOA) continue;
 
       const mencoes = [
         ...(await buscarVideosCanalProprio(pessoa)),
         ...(await buscarMencoesGenericas(pessoa)),
-      ];
+      ].map(m => ({ ...m, url: normalizarUrlVideo(m.url) }));
 
       for (const mencao of mencoes.slice(0, 3)) {
         if (alertasHojePessoa >= CAP_DIARIO_POR_PESSOA) break;

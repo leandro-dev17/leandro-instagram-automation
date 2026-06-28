@@ -67,6 +67,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ erro: "Grupo inválido" }, { status: 400 });
   }
 
+  // Item 25 (Fase 30): noticia_id era recebido mas nunca usado — "Publicar agora"
+  // de uma notícia específica acabava publicando qualquer outra que estivesse no
+  // topo da fila daquele grupo. Quando informado, restringe a seleção a essa
+  // notícia (COALESCE faz o filtro virar no-op quando não informado, preservando
+  // o comportamento original do cron agendado).
+  const noticiaIdParam = searchParams.get("noticia_id");
+  const noticiaId = noticiaIdParam && /^\d+$/.test(noticiaIdParam) ? parseInt(noticiaIdParam, 10) : null;
+
   const inicio = Date.now();
 
   try {
@@ -81,6 +89,7 @@ export async function GET(req: NextRequest) {
           WITH proxima AS (
             SELECT id FROM noticias
             WHERE postada_vip = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false)
+              AND id = COALESCE(${noticiaId}, id)
             ORDER BY urgente DESC, created_at DESC LIMIT 1
             FOR UPDATE SKIP LOCKED
           )
@@ -93,6 +102,7 @@ export async function GET(req: NextRequest) {
           WITH proxima AS (
             SELECT id FROM noticias
             WHERE postada_elite = false AND resumo_cavalcanti IS NOT NULL
+              AND id = COALESCE(${noticiaId}, id)
             ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 1
             FOR UPDATE SKIP LOCKED
           )

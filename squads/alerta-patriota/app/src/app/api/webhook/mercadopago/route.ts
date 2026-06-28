@@ -18,7 +18,7 @@ const client = new MercadoPagoConfig({
 
 // ─── ATIVAR ACESSO ─────────────────────────────────────────────────────────────
 
-async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: string, valor: number, ciclo: "mensal" | "anual" = "mensal", mpPaymentId?: string, metodo: string = "desconhecido") {
+async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: string, valor: number, ciclo: "mensal" | "anual" = "mensal", mpPaymentId?: string, metodo: string = "desconhecido", cupom?: string) {
   // FASE 21: as 3 escritas abaixo (usuarios/assinaturas/pagamentos) iam cada uma em sua
   // própria requisição HTTP ao Neon — uma falha de rede entre elas podia deixar o cliente
   // "ativo" sem assinatura registrada, ou pagamento sem assinatura associada. O driver
@@ -34,8 +34,8 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
       WHERE id = ${usuarioId}
     `,
     sql`
-      INSERT INTO assinaturas (usuario_id, plano, valor, ciclo, status, mp_subscription_id)
-      VALUES (${usuarioId}, ${plano}, ${valor}, ${ciclo}, 'ativa', ${mpSubscriptionId})
+      INSERT INTO assinaturas (usuario_id, plano, valor, ciclo, status, mp_subscription_id, cupom)
+      VALUES (${usuarioId}, ${plano}, ${valor}, ${ciclo}, 'ativa', ${mpSubscriptionId}, ${cupom || null})
       ON CONFLICT (mp_subscription_id) DO UPDATE SET status = 'ativa', renovada_em = NOW()
       RETURNING id
     `,
@@ -45,8 +45,8 @@ async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: s
   // a aprovação inicial de subscription_preapproval ainda não representa uma cobrança concreta).
   if (mpPaymentId) {
     queries.push(sql`
-      INSERT INTO pagamentos (assinatura_id, usuario_id, valor, status, mp_payment_id, metodo)
-      SELECT id, ${usuarioId}, ${valor}, 'aprovado', ${mpPaymentId}, ${metodo}
+      INSERT INTO pagamentos (assinatura_id, usuario_id, valor, status, mp_payment_id, metodo, cupom)
+      SELECT id, ${usuarioId}, ${valor}, 'aprovado', ${mpPaymentId}, ${metodo}, ${cupom || null}
       FROM assinaturas WHERE mp_subscription_id = ${mpSubscriptionId}
       ON CONFLICT (mp_payment_id) DO UPDATE SET status = 'aprovado', assinatura_id = EXCLUDED.assinatura_id, valor = EXCLUDED.valor
     `);
@@ -317,20 +317,21 @@ export async function POST(req: NextRequest) {
       console.log("[webhook-mp] preapproval status:", pa.status, "| external_reference:", pa.external_reference);
 
       if (pa.status === "authorized") {
-        // external_reference: "usuarioId|plano|ciclo"
+        // external_reference: "usuarioId|plano|ciclo" ou "usuarioId|plano|ciclo|CUPOM"
         const partes = (pa.external_reference || "").split("|");
         const usuarioId = parseInt(partes[0]);
         const plano = (partes[1] || "vip") as Plano;
         const ciclo = (partes[2] || "mensal") as "mensal" | "anual";
+        const cupom = partes[3] || undefined;
         const valor = (pa.auto_recurring as { transaction_amount?: number })?.transaction_amount ?? 0;
-        console.log("[webhook-mp] Ativando acesso — usuarioId:", usuarioId, "| plano:", plano, "| ciclo:", ciclo, "| valor:", valor);
+        console.log("[webhook-mp] Ativando acesso — usuarioId:", usuarioId, "| plano:", plano, "| ciclo:", ciclo, "| valor:", valor, "| cupom:", cupom || "(nenhum)");
 
         if (usuarioId && !isNaN(usuarioId) && ["vip","elite"].includes(plano)) {
           if (!valor || isNaN(valor) || valor <= 0) {
             console.error("[webhook-mp] valor inválido — acesso NÃO ativado. usuarioId:", usuarioId, "| valor:", valor);
             await alertarTelegram("🔴", "Webhook MP — valor inválido, acesso NÃO ativado", `usuarioId: ${usuarioId} | plano: ${plano} | valor recebido: ${valor} | dataId: ${dataId}`);
           } else {
-            await ativarAcesso(usuarioId, plano, dataId, valor, ciclo);
+            await ativarAcesso(usuarioId, plano, dataId, valor, ciclo, undefined, "desconhecido", cupom);
             console.log("[webhook-mp] ativarAcesso concluído para usuarioId:", usuarioId);
           }
         } else {

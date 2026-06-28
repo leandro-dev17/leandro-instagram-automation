@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, PreApproval } from "mercadopago";
 import { sql } from "@/lib/db";
 import type { Plano } from "@/lib/db";
+import { validarCupom } from "@/lib/cupons";
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -25,12 +26,7 @@ const requisicoesPorIp = new Map<string, number[]>();
 // real, cobrança recorrente por cartão) e pagava o preço cheio, sem desconto nenhum.
 // Decisão do usuário: desconto permanente enquanto a assinatura ficar ativa (mais simples,
 // sem precisar de uma rotina extra pra reajustar o valor depois do 1º ano). Só Elite, mesma
-// regra de negócio já usada em criar-pix.
-const CUPONS_DESCONTO: Record<string, number> = {
-  VOLTA10: 0.10,
-  VOLTA15: 0.15,
-  VOLTA20: 0.20,
-};
+// regra de negócio já usada em criar-pix. Elegibilidade/limite de uso: ver src/lib/cupons.ts.
 
 function excedeuLimite(ip: string): boolean {
   const agora = Date.now();
@@ -75,8 +71,6 @@ export async function POST(req: NextRequest) {
 
     const nomeUsuario = (nome || "").trim() || "Patriota";
     const valorBase = ciclo === "anual" ? dadosPlano.valorAnual : dadosPlano.valor;
-    const desconto = cupom && plano === "elite" ? (CUPONS_DESCONTO[cupom.toUpperCase()] ?? 0) : 0;
-    const valorFinal = Math.round(valorBase * (1 - desconto) * 100) / 100;
 
     // Busca usuário pelo telefone ou e-mail, ou cria novo
     let usuarioId: number | undefined;
@@ -123,6 +117,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Você já tem uma assinatura ativa nesse telefone/e-mail. Para alterar seu plano, contate o suporte." }, { status: 409 });
     }
 
+    const { desconto, codigo: cupomAplicado } = await validarCupom(cupom, plano, usuarioId);
+    const valorFinal = Math.round(valorBase * (1 - desconto) * 100) / 100;
+
     // start_date alguns minutos no futuro
     const startDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
@@ -139,7 +136,7 @@ export async function POST(req: NextRequest) {
           ...(ciclo === "mensal" ? { free_trial: { frequency: 7, frequency_type: "days" as const } } : {}),
         },
         payer_email: emailNorm,
-        external_reference: desconto > 0 ? `${usuarioId}|${plano}|${ciclo}|${cupom!.toUpperCase()}` : `${usuarioId}|${plano}|${ciclo}`,
+        external_reference: cupomAplicado ? `${usuarioId}|${plano}|${ciclo}|${cupomAplicado}` : `${usuarioId}|${plano}|${ciclo}`,
         back_url: `${APP_URL}/pagamento/sucesso?plano=${plano}`,
         payment_methods_allowed: {
           payment_types: [{ id: "credit_card" }],

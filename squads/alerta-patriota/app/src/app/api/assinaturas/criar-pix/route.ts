@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
+import { validarCupom } from "@/lib/cupons";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const MP_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN!;
@@ -23,13 +24,6 @@ function excedeuLimite(ip: string): boolean {
   requisicoesPorIp.set(ip, historico);
   return historico.length > LIMITE_POR_JANELA;
 }
-
-// Cupons de reengajamento — válidos apenas para Elite Anual
-const CUPONS_DESCONTO: Record<string, number> = {
-  VOLTA10: 0.10,
-  VOLTA15: 0.15,
-  VOLTA20: 0.20,
-};
 
 export async function POST(req: NextRequest) {
   try {
@@ -68,8 +62,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Esta rota aceita apenas ciclo anual" }, { status: 400 });
     }
 
-    const desconto = cupom && plano === "elite" ? (CUPONS_DESCONTO[cupom.toUpperCase()] ?? 0) : 0;
-    const valor = Math.round(VALORES_ANUAIS[plano] * (1 - desconto) * 100) / 100;
     const idempotencyKey = randomUUID();
 
     // Busca usuário existente ou cria um novo (necessário para ativar acesso após o pagamento)
@@ -100,6 +92,9 @@ export async function POST(req: NextRequest) {
       `;
       usuarioId = novoUsuario[0].id;
     }
+
+    const { desconto, codigo: cupomAplicado } = await validarCupom(cupom, plano, usuarioId);
+    const valor = Math.round(VALORES_ANUAIS[plano] * (1 - desconto) * 100) / 100;
 
     const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -145,8 +140,8 @@ export async function POST(req: NextRequest) {
     const paymentId = String(mpData.id);
 
     await sql`
-      INSERT INTO pagamentos (usuario_id, valor, status, mp_payment_id, metodo)
-      VALUES (${usuarioId}, ${valor}, 'pendente', ${paymentId}, 'pix')
+      INSERT INTO pagamentos (usuario_id, valor, status, mp_payment_id, metodo, cupom)
+      VALUES (${usuarioId}, ${valor}, 'pendente', ${paymentId}, 'pix', ${cupomAplicado})
     `;
 
     return NextResponse.json({

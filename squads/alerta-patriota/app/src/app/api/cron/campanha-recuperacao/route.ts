@@ -48,6 +48,23 @@ export async function GET(req: NextRequest) {
       AND u.updated_at >= NOW() - INTERVAL '30 days'
     `;
 
+    // Item 21 (Fase 30): a checagem "já enviou neste dia?" rodava 1 SELECT por usuário
+    // DENTRO do loop — N+1 clássico, agravado pela ausência de índice de expressão em
+    // agentes_log.detalhes->>'usuarioId' (cada SELECT fazia varredura textual no JSON).
+    // Agora busca em lote, fora do loop, todos os envios já confirmados para os
+    // candidatos desta execução. Índice de expressão correspondente adicionado em
+    // admin/setup/route.ts (idx_agentes_log_rebeca_usuario_dia).
+    const usuarioIdsCandidatos = pendentes.map(p => ((p.detalhes as Record<string, unknown>).usuarioId as number));
+    const enviosAnteriores = usuarioIdsCandidatos.length > 0
+      ? await sql`
+          SELECT detalhes->>'usuarioId' as usuario_id, detalhes->>'dia' as dia
+          FROM agentes_log
+          WHERE agente = 'rebeca-recuperacao' AND status = 'sucesso'
+          AND (detalhes->>'usuarioId')::int = ANY(${usuarioIdsCandidatos})
+        `
+      : [];
+    const jaEnviadosSet = new Set(enviosAnteriores.map(r => `${r.usuario_id}:${r.dia}`));
+
     let enviados = 0;
 
     for (const p of pendentes) {
@@ -61,14 +78,7 @@ export async function GET(req: NextRequest) {
       // Verifica se já enviou com sucesso neste dia — checar só por status='sucesso'
       // permite retentar nas próximas execuções (cron roda a cada 30min) quando o
       // envio anterior falhou, em vez de marcar como enviado mesmo tendo falhado.
-      const jaEnviou = await sql`
-        SELECT id FROM agentes_log
-        WHERE agente = 'rebeca-recuperacao' AND status = 'sucesso'
-        AND detalhes->>'usuarioId' = ${String(usuarioId)}
-        AND detalhes->>'dia' = ${String(diasCancelado)}
-        LIMIT 1
-      `;
-      if (jaEnviou.length > 0) continue;
+      if (jaEnviadosSet.has(`${usuarioId}:${diasCancelado}`)) continue;
 
       const nome = d.nome as string;
       const email = d.email as string;

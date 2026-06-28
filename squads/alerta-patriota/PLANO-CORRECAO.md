@@ -1748,6 +1748,188 @@ Com os dois bloqueios removidos, rodei a sequência completa dos ~30 statements 
 
 ---
 
+### Item 14 — Cupons VOLTA10/15/20: sem limite de uso, sem checagem de elegibilidade, sem rastreamento
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Pagamentos/Assinaturas): os cupons de win-back `VOLTA10`/`VOLTA15`/`VOLTA20` (enviados pelo `enzo-engajamento` nas ondas D20/D25/D30 para reconquistar quem parou de interagir) existiam como um mapa fixo de desconto duplicado em `criar-pix/route.ts` e `criar-direto/route.ts`, sem nenhuma validação real:
+1. **Sem checagem de elegibilidade**: qualquer pessoa que descobrisse o código (compartilhado entre usuários, vazado, ou simplesmente adivinhado — são só 3 strings curtas) conseguia o desconto, mesmo nunca tendo sido alvo da campanha de reengajamento.
+2. **Sem limite de uso**: o mesmo código podia ser reaplicado indefinidamente pela mesma conta (cancelar e recriar assinatura, por exemplo).
+3. **Sem rastreamento**: mesmo quando o cupom era de fato aplicado via `criar-direto` (cobrança recorrente, o fluxo real), o valor com desconto era escrito apenas no `external_reference` da `PreApproval` do Mercado Pago — o webhook (`webhook/mercadopago/route.ts`) só lia os 3 primeiros campos desse texto (`usuarioId|plano|ciclo`) e descartava o 4º (o código do cupom) sem nunca persistir no banco, então não havia como auditar quem usou qual cupom.
+
+**Fix aplicado:**
+- Criado `src/lib/cupons.ts` como fonte única do mapa de cupons (substitui as 2 cópias duplicadas em `criar-pix`/`criar-direto`) com a função `validarCupom(cupom, plano, usuarioId)`, que: (a) só aceita cupom para plano Elite (regra de negócio já existente); (b) checa em `agentes_log` se aquele `usuarioId` específico de fato recebeu a onda correspondente do `enzo-engajamento` nos últimos 60 dias; (c) faz um claim atômico (`UPDATE usuarios SET cupom_usado = ... WHERE id = ... AND cupom_usado IS NULL RETURNING id`) para garantir 1 cupom por conta, sem janela de corrida em duplo clique/retry.
+- `criar-pix/route.ts` e `criar-direto/route.ts`: removido o mapa local `CUPONS_DESCONTO`; cálculo do desconto movido para depois da resolução do `usuarioId` (a validação de elegibilidade/uso precisa do ID resolvido, que antes só existia depois do cálculo do valor).
+- `criar-direto/route.ts`: `external_reference` da `PreApproval` agora usa o código já validado (`cupomAplicado`) em vez do valor bruto enviado pelo usuário na requisição.
+- `webhook/mercadopago/route.ts`: `ativarAcesso()` ganhou parâmetro opcional `cupom`, persistido nos `INSERT` de `assinaturas` e `pagamentos`; parsing do `external_reference` estendido para ler o 4º campo (`usuarioId|plano|ciclo|CUPOM`) que antes era descartado.
+- `admin/setup/route.ts`: 3 novas colunas (`usuarios.cupom_usado`, `pagamentos.cupom`, `assinaturas.cupom`) via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` — mesmo padrão de drift-fix já usado nesta rota (Item 13). Ainda não materializadas em produção; depende de rodar `/api/admin/setup` novamente após o deploy, mesmo passo já feito para o Item 13.
+
+**Trade-off aceito (não corrigido, por desproporção de esforço):** o claim do cupom (`cupom_usado`) acontece antes da chamada `pa.create()` ao Mercado Pago. Se a criação da `PreApproval` falhar depois do claim, o cupom fica "gasto" sem nenhuma assinatura real ter sido criada. Mesmo padrão de risco já aceito em outros claims atômicos deste projeto (ex.: `__PROCESSANDO__` em `resumir-noticias-global`) — falha de criação na API do MP é rara, e o caso de borda dá para resolver manualmente (zerar `cupom_usado` via admin) se acontecer.
+
+**Validação:** `tsc --noEmit` sem nenhum erro novo nos 5 arquivos tocados (`src/lib/cupons.ts`, `admin/setup/route.ts`, `criar-pix/route.ts`, `criar-direto/route.ts`, `webhook/mercadopago/route.ts`) — único erro remanescente é o mesmo pré-existente e não-relacionado em `admin/usuarios/[id]` (assinatura de `params` como `Promise` em rota não tocada nesta correção).
+
+---
+
+### Item 15 — `enquete-dia`: falha de envio da enquete ficava em silêncio total
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria WhatsApp/Mensagens): `enviarEnqueteGrupo()` (em `lib/whatsapp.ts`) retorna `boolean`, mas a rota só gravava em `agentes_log` quando `ok === true` (`if (ok) { INSERT ... 'sucesso' }`), sem nenhum `else`. Resultado: se o envio falhasse, não sobrava nenhum rastro no banco — nem `status='erro'`, nada. Pior, o alerta no Telegram que `chamarEvolution()` dispara internamente (Fase 21) só acontece se a função chegar a tentar o `fetch` — os 3 early-returns de `enviarEnqueteGrupo()` (env var ausente, `groupId` não configurado, plano fora de `vip`/`elite`) retornam `false` direto, sem nunca chamar `chamarEvolution`, então nem o alerta automático dispara nesses casos. Ou seja: existiam cenários reais (configuração ausente) em que uma falha de envio não gerava log nem alerta — ninguém ficaria sabendo que a enquete do dia não saiu.
+
+**Fix aplicado** (`cron/enquete-dia/route.ts`): adotado o mesmo padrão já usado em `enzo-engajamento/route.ts` (Fase 23) — gravar sempre em `agentes_log` com `status: ok ? 'sucesso' : 'erro'`, nunca condicional. Adicionado também um `alertarTelegram()` explícito quando `ok === false`, para não depender só do alerta interno (que, como descrito acima, não cobre os 3 casos de early-return).
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/enquete-dia/route.ts`.
+
+---
+
+### Item 16 — `fiscal-noticias` (Sofia Stoque) sem `maxDuration`
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Pipeline de Notícias): `cron/fiscal-noticias/route.ts` (agente "sofia-stoque") chama `chamarAutoFix()` quando o estoque de notícias prontas fica crítico, que executa 3 etapas sequenciais (`coletar-noticias` → `curar-noticias` → `resumir-noticias`), cada uma com até 30s de timeout de fetch + 5s de pausa fixa depois — até 105s no pior caso. Sem `export const maxDuration`, a Vercel mata a função no limite padrão de 10s do plano Hobby, interrompendo o auto-fix no meio e potencialmente deixando o estoque de notícias sem se recuperar. Mesma classe de bug já corrigida nos arquivos estruturalmente quase idênticos `fiscal-pipeline.ts` e `fiscal-workflow.ts` na própria Fase 32 — só este (`fiscal-noticias.ts`) tinha ficado de fora.
+
+**Fix aplicado:** adicionado `export const maxDuration = 60` (teto do plano Hobby), mesmo padrão e mesmo texto de comentário já usado em `fiscal-pipeline.ts`/`fiscal-workflow.ts`.
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/fiscal-noticias/route.ts`.
+
+---
+
+### Item 17 — Critério de estoque VIP excluía fonte "Metrópoles" (Elite não) — assimetria sem motivo de negócio
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Pipeline de Notícias), já registrado antes (linha ~942 deste arquivo, achado ⚪ informativo de uma fase anterior) como pendente de confirmação humana — não era um bug "confirmado", por isso ficou de fora das rodadas anteriores. A contagem de estoque VIP em `fiscal-noticias.ts` (`contarEstoque()`) tinha `AND fonte NOT ILIKE '%metropoles%'`, mas a contagem Elite não tinha o filtro equivalente.
+
+**Investigação:** busquei "metropoles" em todo o pipeline de coleta ativo (`coletar-noticias.ts` → `FONTES_BR`, `coletar-noticias-global.ts` → `FONTES_GLOBAL`, `radar-politico.ts` → `FONTES_NOTICIAS_RADAR`/`FONTES_YOUTUBE_MIDIA`) — nenhuma dessas listas contém ou já conteve "Metrópoles" como fonte. A única outra referência no código é `admin/limpar-fontes/route.ts`, uma rota manual de limpeza de backlog (não relacionada à contagem de estoque) que trata Metrópoles/UOL/R7/Terra como "fontes generalistas" a descartar — mas não tem nenhuma ligação com `contarEstoque()`. Ou seja: hoje, o filtro não exclui nenhuma linha real — é código morto que não corresponde a nenhuma fonte efetivamente coletada.
+
+**Decisão do usuário** (pergunta apresentada com 3 opções: remover do VIP / replicar no Elite / só documentar sem agir): **remover o filtro do VIP**, já que não há fonte real correspondente hoje e a assimetria só gerava confusão.
+
+**Fix aplicado:** removida a cláusula `AND fonte NOT ILIKE '%metropoles%'` da contagem de estoque VIP em `fiscal-noticias.ts` — as contagens VIP e Elite usam agora exatamente o mesmo critério (`resumo_* IS NOT NULL AND postada_* = false`).
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/fiscal-noticias/route.ts`.
+
+---
+
+### Item 18 — Falha de fonte RSS individual engolida silenciosamente
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Pipeline de Notícias): em `coletar-noticias.ts` (`coletarRSS()`) e `coletar-noticias-global.ts` (`coletarFonte()` + loop de YouTube dos líderes internacionais), qualquer falha ao buscar uma fonte — timeout, erro de rede, HTTP não-OK, URL que mudou ou saiu do ar — retornava silenciosamente `[]`/`continue`, exatamente o mesmo resultado de uma fonte que rodou normalmente mas não tinha nada novo para publicar. Não havia como distinguir os dois casos nos logs (`agentes_log` só registrava `coletadas`/`duplicatas`, nunca por fonte), e nenhum alerta disparava. Uma fonte (ex.: Jovem Pan trocou a URL do feed) podia ficar quebrada por semanas sem ninguém notar — o pipeline simplesmente parecia "sem notícias novas daquela fonte" indefinidamente.
+
+**Fix aplicado:**
+- `coletarRSS()`/`coletarFonte()` agora retornam `{ itens, falhou }` em vez de só o array — distinguindo "buscou e não achou nada novo" (`falhou: false`, itens vazio) de "a busca em si falhou" (`falhou: true`).
+- O loop de YouTube em `coletar-noticias-global.ts` (que tinha um `catch { /* ignora falha de canal individual */ }` e um `if (!res.ok) continue` sem nenhum rastro) agora empurra o canal para a mesma lista de falhas.
+- Após cada execução, cada fonte com falha gera um alerta dedup (`criarAlertaDedup`, janela padrão de 6h por fonte — evita repetir o aviso a cada execução do cron, 3x/dia, enquanto a mesma fonte continuar fora do ar) + Telegram na primeira ocorrência dentro da janela.
+- `agentes_log` e a resposta JSON de ambas as rotas agora incluem `fontes_falha` (lista de nomes) para auditoria mesmo sem abrir o Telegram.
+
+**Validação:** `tsc --noEmit` sem erro novo em `coletar-noticias/route.ts` e `coletar-noticias-global/route.ts`.
+
+---
+
+### Item 19 — `radar-politico.ts`: mesmo vídeo encontrado por 2 vias pode gerar alerta duplicado
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Radar Político): para cada pessoa monitorada, `radar-politico.ts` combina os resultados de `buscarVideosCanalProprio()` (busca direta no canal pessoal verificado, URL "limpa" vinda do Atom feed do YouTube) com `buscarMencoesGenericas()` (busca por nome em portais de notícia e canais de mídia genéricos, onde o mesmo vídeo pode aparecer embedado com parâmetros de tracking, ex.: `?si=...`, `&feature=...`, `utm_*`). Tanto o check de "já processado nas últimas 12h" (`SELECT ... WHERE tweet_id = ${mencao.url}`) quanto os `ON CONFLICT (tweet_id)` / `ON CONFLICT (url)` em `radar_politico`/`noticias` comparam a URL como texto exato — então as duas variantes da mesma URL (limpa vs. com tracking) nunca colidiam entre si, e o mesmo vídeo podia gerar 2 análises/alertas distintos (um pela via do canal próprio, outro pela via genérica).
+
+**Fix aplicado:**
+- Adicionada `normalizarUrlVideo()`: extrai o ID de 11 caracteres de URLs `youtube.com/watch?v=...` ou `youtu.be/...` via regex e remonta a URL na forma canônica `https://www.youtube.com/watch?v=ID`, descartando qualquer parâmetro de tracking. URLs que não batem o padrão (ex.: links de artigos de notícia, que não são duplicação de vídeo) passam inalteradas.
+- A normalização é aplicada uma única vez, logo após combinar os resultados das duas buscas (`mencoes = [...canalProprio, ...genericas].map(m => ({...m, url: normalizarUrlVideo(m.url)}))`), antes de qualquer comparação ou insert — então tanto o check de 12h quanto os dois `ON CONFLICT` (e até a deduplicação dentro do próprio loop, caso as duas vias apareçam na mesma execução) passam a reconhecer as duas variantes como o mesmo vídeo.
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/radar-politico/route.ts`.
+
+---
+
+### Item 20 — 6 achados pontuais em agentes fiscais (Facebook, especiais, agendamento, trials, financeiro, schema)
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Fiscais/Auto-fix): bundle de 6 bugs pontuais, um por agente, todos da mesma classe — uma etapa de auto-correção/auto-fix que parecia funcionar mas na prática não tinha o efeito esperado, por causas distintas em cada arquivo.
+
+**1. `fiscal-facebook/route.ts` (token Facebook/Instagram) — redeploy nunca acionado.** A função `redeploy()` existia (criada na Fase 27.6, com comentário explicando que a Vercel não reaplica env vars em deployments já existentes) mas nunca era chamada em nenhum lugar do arquivo — confirmado via grep. Resultado: depois de uma "renovação automática bem-sucedida" do token, a env var nova ficava salva no Vercel mas só entraria em vigor no próximo deploy natural do projeto, deixando o token antigo (prestes a vencer) rodando em produção. Fix: `redeploy()` agora é chamado depois de `atualizarVercel()` ter sucesso; `redeployOk` entra no log e no relatório Telegram.
+
+**2. `fiscal-especiais/route.ts` (Vera Verificação) — auto-fix do Dossiê Elite não checava `res.ok`.** O `fetch` que aciona `/api/cron/dossie-elite` quando o dossiê de sábado está atrasado só tinha `try/catch` para exceção de rede — uma resposta HTTP de erro (401 por `CRON_SECRET` divergente, 500 interno) não lança exceção, então `dossieAutoFix` era marcado como `"acionado"` mesmo quando o dossiê não saiu de fato. Fix: verifica `res.ok`, marca `erro_<status>` quando falha e dispara alerta Telegram.
+
+**3. `fiscal-agendamento/route.ts` (Pedro Pontual) — confirmação de card gerado não verificava qual grupo.** `verificarCardGerado()` checava só `acao LIKE 'card_%'` sem distinguir `card_vip` de `card_elite` (valores reais gravados por `gerar-card.ts`). Como qualquer um dos dois bate no `LIKE`, se o VIP saísse e o Elite falhasse (ou vice-versa) o fiscal via 1 card no período e considerava a janela inteira "ok" — o grupo que realmente falhou nunca gerava alerta de atraso. Fix: `verificarCardsGerados()` agora checa cada grupo esperado (`card_${grupo}`) individualmente e retorna a lista exata dos que faltaram; o alerta passou a nomear o(s) grupo(s) afetado(s) de verdade, não a lista fixa de grupos esperados.
+
+**4. `fiscal-trials/route.ts` (Tereza Trial) — catch vazio no auto-fix de churn.** Quando havia churn confirmado, o fetch que aciona `/api/cron/engajamento` tinha um `catch { /* engajamento pode estar indisponível, seguimos */ }` — sem log, sem alerta, sem checar `res.ok`. Uma falha real no auto-fix de recuperação de churn passava sempre em silêncio. Fix: checa `res.ok` e alerta no Telegram tanto em resposta de erro quanto em exceção de rede.
+
+**5. `gerente-financeiro/route.ts` (Major Financeiro) — score sem teto inferior.** `score` começa em 100 e só é decrementado (ex.: `score -= 5 * n` para Pix pendentes, sem limite em `n`); nada impedia o valor de passar de 0 para negativo quando vários problemas coincidiam, exibindo algo como "Score: -50/100" nos alertas e no log, contradizendo a documentação do próprio arquivo ("Score 0-100"). Fix: `score = Math.max(0, Math.min(100, score))` aplicado antes de qualquer uso (escalonamento, log, resposta).
+
+**6. `revisor-schema/route.ts` — contagem de pendências podia ficar negativa.** `semCorrecao = alertasSchema.length - correcoes.length` — mas o loop interno testa CADA alerta contra TODAS as chaves do dicionário `AUTOCORRECT`, sem `break`; se a mensagem de um único alerta batesse em mais de uma chave (substrings não são mutuamente exclusivas), `correcoes.length` crescia mais de 1 por alerta, podendo superar `alertasSchema.length` e tornar `semCorrecao` negativo no relatório. Fix: passou a contar alertas distintos corrigidos (`Set` de IDs), não o total de correções aplicadas — `semCorrecao` agora não pode ficar negativo.
+
+**Validação:** `tsc --noEmit` sem erro novo em nenhum dos 6 arquivos (único erro reportado continua sendo o pré-existente em `admin/usuarios/[id]/route.ts`, não tocado nesta rodada).
+
+---
+
+### Item 21 — N+1 real em `campanha-recuperacao.ts` + ausência de índice de expressão em `agentes_log.detalhes->>'usuarioId'`
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Performance/Banco): `campanha-recuperacao.ts` (agente "rebeca-recuperacao") busca os usuários cancelados pendentes de recuperação em uma única query e depois, **dentro do loop**, roda um `SELECT` adicional por usuário para checar se já enviou a mensagem daquele dia (`WHERE agente = 'rebeca-recuperacao' AND status = 'sucesso' AND detalhes->>'usuarioId' = ... AND detalhes->>'dia' = ...`) — um N+1 clássico: N usuários pendentes geram N round-trips extras ao banco na mesma execução. Agravando: não existia nenhum índice de expressão sobre `detalhes->>'usuarioId'`/`detalhes->>'dia'`, então cada um desses N SELECTs fazia varredura textual no JSON em toda a tabela `agentes_log` (que cresce continuamente, alimentada por praticamente todos os crons do projeto).
+
+**Fix aplicado:**
+- `campanha-recuperacao.ts`: a checagem "já enviou neste dia?" agora roda **uma única vez**, antes do loop, buscando em lote (`(detalhes->>'usuarioId')::int = ANY(${usuarioIdsCandidatos})`) todos os envios já confirmados para os candidatos da execução atual; o resultado vira um `Set` consultado em memória dentro do loop (`jaEnviadosSet.has(...)`), substituindo o SELECT por usuário.
+- `admin/setup/route.ts`: adicionado `idx_agentes_log_rebeca_usuario_dia`, índice de expressão parcial sobre `(detalhes->>'usuarioId', detalhes->>'dia')` filtrado por `agente = 'rebeca-recuperacao' AND status = 'sucesso'` — mesmo padrão já usado para `idx_agentes_log_fb_comentario` (índice de expressão parcial por agente, sobre uma chave JSON específica).
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/campanha-recuperacao/route.ts` e `admin/setup/route.ts`. O índice em si só passa a existir de fato após rodar `admin/setup` em produção (ação de deploy, não de código) — registrado aqui para constar no checklist de pós-deploy.
+
+---
+
+### Item 22 — N+1 e ausência de índice em `radar-politico.ts` (`COUNT(*) WHERE politico = ...`)
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Performance/Banco), mesma classe de bug do Item 21: para cada uma das 3 pessoas da rodada, `radar-politico.ts` rodava — **dentro do loop** — um `SELECT COUNT(*) FROM radar_politico WHERE politico = ${pessoa.nome} AND processado = true AND ...::date = ...::date` para checar o cap diário de alertas por pessoa. 3 round-trips ao banco por execução do cron (que roda a cada 30min), e nenhum índice sobre a coluna `politico` — cada COUNT(*) varria a tabela inteira.
+
+**Fix aplicado:**
+- A contagem agora roda **uma única vez**, antes do loop, agrupando as 3 pessoas da rodada numa query só (`WHERE politico = ANY(${nomesRodada}) ... GROUP BY politico`); o resultado vira um `Map<string, number>` consultado em memória dentro do loop.
+- `admin/setup/route.ts`: adicionado `idx_radar_politico_politico_created`, índice parcial sobre `(politico, created_at)` filtrado por `processado = true` — espelha exatamente o filtro usado na consulta.
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/radar-politico/route.ts` e `admin/setup/route.ts`. Mesma ressalva do Item 21: o índice só existe de fato em produção depois de rodar `admin/setup`.
+
+---
+
+### Item 23 — Colunas `postada_*_card`/`*_card_at` fora do dicionário do fiscal de schema
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Schema/Auto-fix): `noticias.postada_vip_card`, `postada_elite_card`, `postada_vip_card_at` e `postada_elite_card_at` são criadas exclusivamente em `gerar-card.ts`, via 4 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` encadeados, cada um com `.catch(() => {})` — que engole tanto o caso normal ("coluna já existe") quanto uma falha real do ALTER (permissão, conexão etc.). Confirmei que `admin/setup/route.ts` (fonte canônica do schema em ambiente novo) **não** cria essas 4 colunas no `CREATE TABLE noticias` — elas só passam a existir de fato na primeira execução bem-sucedida de `gerar-card.ts`. O dicionário `SCHEMA_ESPERADO.noticias` em `fiscal-codigo-schema/route.ts` não listava nenhuma das 4, então mesmo que o ALTER falhasse silenciosamente (deixando as colunas ausentes), o fiscal de schema nunca acusaria o problema — e os `SELECT`/`UPDATE` que dependem delas em `gerar-card.ts` quebrariam em runtime sem nenhum alerta prévio.
+
+**Fix aplicado:** adicionadas as 4 colunas (`postada_vip_card`, `postada_elite_card`, `postada_vip_card_at`, `postada_elite_card_at`) ao array `noticias` em `SCHEMA_ESPERADO`, em `fiscal-codigo-schema/route.ts`.
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/fiscal-codigo-schema/route.ts`.
+
+---
+
+### Item 24 — Envio manual de mensagem (`admin/mensagens`) sem confirmação
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria UX/Admin): em `admin/mensagens/page.tsx`, o botão "📲 Enviar Agora" chamava `enviar()` direto, que por sua vez chamava `POST /api/admin/mensagem` sem nenhum passo de confirmação. Confirmei em `api/admin/mensagem/route.ts` que esse endpoint dispara via Evolution API (`message/sendText`) imediatamente para o JID do grupo WhatsApp selecionado (VIP ou Elite) — ou seja, um clique acidental, um template errado deixado no textarea, ou um clique duplo enviaria uma mensagem irreversível para centenas de assinantes pagantes, sem nenhuma chance de cancelar.
+
+**Fix aplicado:** adicionado `window.confirm()` no início de `enviar()` em `admin/mensagens/page.tsx`, mostrando o grupo de destino selecionado e avisando que a ação é imediata e irreversível; o envio só prossegue se o admin confirmar.
+
+**Validação:** `tsc --noEmit` sem erro novo em `admin/mensagens/page.tsx`.
+
+---
+
+### Item 25 — "Publicar agora" tenta publicar nos 2 grupos mesmo se um já publicado
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Lógica/Fila de publicação), mais profundo do que o título sugere. Em `admin/publicar-agora/route.ts`, o botão "▶ Publicar agora" (em `admin/conteudo/page.tsx`, mostrado quando `!postada_vip || !postada_elite`) sempre disparava `GET /api/cron/publicar-noticias` para **os dois** grupos, passando `noticia_id`. Ao ler `publicar-noticias/route.ts` linha a linha, confirmei que o parâmetro `noticia_id` **nunca era lido** pelo handler — a query sempre selecionava "a próxima notícia elegível da fila" (`WHERE postada_x = false ORDER BY urgente DESC, created_at DESC LIMIT 1 FOR UPDATE SKIP LOCKED`), ignorando qual notícia o admin clicou. Consequência real: se a notícia já estava publicada no grupo VIP e faltava só o Elite, clicar "Publicar agora" reacionava o endpoint para o VIP também — que, sem filtro por `noticia_id`, simplesmente publicava a **próxima notícia da fila** nesse grupo, fora do horário programado do cron (7h/13h/19h), só porque o admin queria completar a publicação no Elite.
+
+**Fix aplicado:**
+- `publicar-noticias/route.ts`: passou a ler `noticia_id` da query string e aplicar `AND id = COALESCE(${noticiaId}, id)` nas duas CTEs (VIP e Elite) — quando informado, restringe a seleção a essa notícia específica; quando ausente (chamada normal do cron agendado), o `COALESCE` vira no-op e o comportamento original é preservado.
+- `publicar-agora/route.ts`: antes do loop, busca `postada_vip`/`postada_elite` da notícia e pula a chamada a `publicar-noticias` para qualquer grupo onde ela já estava publicada, em vez de reacionar o endpoint e deixá-lo agora corretamente recusar a notícia (e, antes do fix acima, publicar outra em seu lugar).
+
+**Validação:** `tsc --noEmit` sem erro novo em `cron/publicar-noticias/route.ts` e `admin/publicar-agora/route.ts`.
+
+---
+
+### Item 26 — Rate limit de `leads/registrar` em memória de processo (ineficaz em serverless)
+**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+
+Achado da Fase 30 (categoria Segurança/Infra): `leads/registrar/route.ts` é rota pública (chamada pela landing page, sem autenticação) e usava um `Map<string, number[]>` em memória do processo para limitar a 5 requisições/60s por IP. Em ambiente serverless (Vercel), cada cold start recebe memória zerada e, sob carga, múltiplas instâncias concorrentes da mesma função não compartilham memória entre si — então o limite nunca era de fato global por IP, só "por instância individual, enquanto ela ficar viva". Um abuso distribuído (ou simplesmente várias invocações que caem em instâncias diferentes) furava o limite sem esforço, expondo a rota a flood de inserts em `leads`.
+
+**Fix aplicado:**
+- Nova tabela `leads_rate_limit` (`id`, `ip`, `created_at`) criada em `admin/setup/route.ts`, com índice `(ip, created_at)` — tabela dedicada para não poluir `agentes_log` (usada por dashboards/stats que agregam por agente) com tentativas de rate limit.
+- `leads/registrar/route.ts`: `excedeuLimite()` agora consulta `COUNT(*) WHERE ip = ... AND created_at > NOW() - INTERVAL '60 seconds'` nessa tabela, insere a tentativa atual, e faz limpeza oportunista (`DELETE WHERE created_at < NOW() - INTERVAL '10 minutes'`) para não crescer indefinidamente sem precisar de um cron dedicado.
+- `leads_rate_limit` adicionada ao dicionário `SCHEMA_ESPERADO` em `fiscal-codigo-schema/route.ts`, seguindo a correção do Item 23 (toda tabela nova precisa entrar no fiscal de schema, ou uma falha de criação passa batido).
+
+**Validação:** `tsc --noEmit` sem erro novo em `api/leads/registrar/route.ts`, `admin/setup/route.ts` e `cron/fiscal-codigo-schema/route.ts`.
+
+---
+
 ## CREDENCIAIS E REFERÊNCIAS
 
 | Item | Valor |

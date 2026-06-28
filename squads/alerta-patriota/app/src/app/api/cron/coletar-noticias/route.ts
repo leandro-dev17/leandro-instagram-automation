@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 // Fontes RSS — portais conservadores e de política (sem entretenimento)
 const FONTES_BR = [
@@ -95,13 +96,17 @@ function extrairConteudo(bloco: string): string {
   return maior.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2000);
 }
 
-async function coletarRSS(fonte: typeof FONTES_BR[0]): Promise<Array<{ titulo: string; url: string; fonte: string; categoria: string; conteudo: string }>> {
+// Item 18 (Fase 30): retornava só o array de itens — uma fonte fora do ar (timeout, DNS,
+// URL mudou, HTTP erro) e uma fonte sem nada de novo publicado produziam exatamente o mesmo
+// resultado ([]), então uma fonte quebrada há semanas passava para sempre sem nenhum alerta.
+// Agora distingue "falhou" de "rodou e não achou nada novo".
+async function coletarRSS(fonte: typeof FONTES_BR[0]): Promise<{ itens: Array<{ titulo: string; url: string; fonte: string; categoria: string; conteudo: string }>; falhou: boolean }> {
   try {
     const res = await fetch(fonte.url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; AlertaPatriota/1.0)" },
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { itens: [], falhou: true };
 
     const xml = await res.text();
     const itens: Array<{ titulo: string; url: string; fonte: string; categoria: string; conteudo: string }> = [];
@@ -122,9 +127,9 @@ async function coletarRSS(fonte: typeof FONTES_BR[0]): Promise<Array<{ titulo: s
       }
     }
 
-    return itens;
+    return { itens, falhou: false };
   } catch {
-    return [];
+    return { itens: [], falhou: true };
   }
 }
 
@@ -137,6 +142,7 @@ export async function GET(req: NextRequest) {
   let coletadas = 0;
   let duplicatas = 0;
   let erros = 0;
+  const fontesComFalha: Array<{ nome: string; url: string }> = [];
 
   try {
     // Coleta portais + YouTube dos deputados em paralelo
@@ -146,7 +152,8 @@ export async function GET(req: NextRequest) {
     ];
 
     for (const fonte of todasFontes) {
-      const noticias = await coletarRSS(fonte);
+      const { itens: noticias, falhou } = await coletarRSS(fonte);
+      if (falhou) fontesComFalha.push({ nome: fonte.nome, url: fonte.url });
 
       for (const n of noticias) {
         try {
@@ -172,14 +179,28 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Item 18 (Fase 30): dedup por fonte (6h) — evita alerta repetido a cada execução
+    // (3x/dia) enquanto a mesma fonte continuar fora do ar, mesmo padrão já usado em
+    // fiscal-noticias.ts/criarAlertaDedup.
+    for (const f of fontesComFalha) {
+      const { criado } = await criarAlertaDedup(
+        `coleta_rss_falha:${f.nome}`,
+        "medio",
+        `Fonte RSS "${f.nome}" falhou ao coletar (timeout, erro de rede ou HTTP não-OK) — verifique se a URL ainda é válida: ${f.url}`
+      );
+      if (criado) {
+        await alertarTelegram("🟡", "Fonte RSS com falha", `"${f.nome}" não respondeu — ${f.url}`).catch(() => {});
+      }
+    }
+
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
       VALUES ('neto-noticias', 'coletar_rss', 'sucesso',
-        ${JSON.stringify({ coletadas, duplicatas, erros, fontes: FONTES_BR.length + FONTES_YOUTUBE_DEPUTADOS.length })},
+        ${JSON.stringify({ coletadas, duplicatas, erros, fontes: FONTES_BR.length + FONTES_YOUTUBE_DEPUTADOS.length, fontes_falha: fontesComFalha.map(f => f.nome) })},
         ${Date.now() - inicio})
     `;
 
-    return NextResponse.json({ ok: true, coletadas, duplicatas, erros });
+    return NextResponse.json({ ok: true, coletadas, duplicatas, erros, fontes_falha: fontesComFalha.map(f => f.nome) });
   } catch (err) {
     await alertarTelegram("🔴", "Falha Agente Neto Notícias", String(err));
     return NextResponse.json({ erro: String(err) }, { status: 500 });

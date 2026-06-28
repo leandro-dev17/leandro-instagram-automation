@@ -17,9 +17,15 @@ const CRON = process.env.CRON_SECRET || "";
 const SCHEMA_ESPERADO: Record<string, string[]> = {
   usuarios: ["id", "nome", "email", "senha_hash", "telefone", "plano", "status", "tipo_usuario",
     "mp_subscription_id", "trial_inicio", "trial_fim", "assinatura_inicio", "updated_at", "created_at"],
+  // Item 23 (Fase 30): postada_vip_card/postada_elite_card/*_card_at são criadas só em
+  // gerar-card.ts via ALTER TABLE ADD COLUMN IF NOT EXISTS com .catch(() => {}) — uma falha
+  // real do ALTER (não só "coluna já existe") num ambiente novo passava batido, porque
+  // este dicionário não cobria essas 4 colunas e o fiscal de schema nunca acusava o problema.
   noticias: ["id", "titulo", "fonte", "url", "resumo_braga", "resumo_cavalcanti", "categoria",
     "urgente", "global", "postada_vip", "postada_elite",
-    "postada_vip_at", "postada_elite_at", "created_at"],
+    "postada_vip_at", "postada_elite_at",
+    "postada_vip_card", "postada_elite_card", "postada_vip_card_at", "postada_elite_card_at",
+    "created_at"],
   assinaturas: ["id", "usuario_id", "plano", "valor", "ciclo", "status", "mp_subscription_id", "renovada_em", "created_at"],
   grupos_whatsapp: ["id", "nome", "plano", "link_convite", "group_id_wa", "max_membros", "membros_ativos", "ativo", "created_at"],
   membros_grupos: ["id", "usuario_id", "grupo_id", "data_entrada", "data_saida", "status"],
@@ -27,6 +33,7 @@ const SCHEMA_ESPERADO: Record<string, string[]> = {
   agentes_log: ["id", "agente", "acao", "status", "detalhes", "duracao_ms", "created_at"],
   alertas: ["id", "tipo", "severidade", "mensagem", "resolvido", "resolvido_at", "created_at"],
   whatsapp_fila: ["id", "usuario_id", "tipo", "mensagem", "tentativas", "agendado_para", "processado_em", "created_at"],
+  leads_rate_limit: ["id", "ip", "created_at"],
 };
 
 export async function GET(req: NextRequest) {

@@ -86,13 +86,19 @@ export async function GET(req: NextRequest) {
       }
 
       if (qtdChurn > 0) {
+        // Item 20 (Fase 30): catch vazio — se o fetch falhasse (rede) ou voltasse com
+        // status de erro, o auto-fix de engajamento simplesmente não rodava e ninguém
+        // era avisado; o churn confirmado ficava sem a tentativa de recuperação esperada.
         try {
-          await fetch(`${APP_URL}/api/cron/engajamento`, {
+          const resEngajamento = await fetch(`${APP_URL}/api/cron/engajamento`, {
             method: "GET",
             headers: { Authorization: `Bearer ${CRON_SECRET}` },
           });
-        } catch {
-          // engajamento pode estar indisponível, seguimos
+          if (!resEngajamento.ok) {
+            await alertarTelegram("🟡", "TEREZA TRIAL — auto-fix de engajamento falhou", `engajamento respondeu HTTP ${resEngajamento.status}`);
+          }
+        } catch (e) {
+          await alertarTelegram("🟡", "TEREZA TRIAL — auto-fix de engajamento indisponível", String(e));
         }
       }
     }

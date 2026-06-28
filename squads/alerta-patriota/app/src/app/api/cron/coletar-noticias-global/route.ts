@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
+import { criarAlertaDedup } from "@/lib/alertas";
 
 const FONTES_GLOBAL = [
   { nome: "Breitbart",      url: "https://feeds.feedburner.com/breitbart",                   idioma: "en", regiao: "usa"       },
@@ -59,13 +60,16 @@ function extrairConteudo(bloco: string): string {
     .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2000);
 }
 
-async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<Array<{titulo: string; url: string; fonte: string; categoria: string; global: boolean; conteudo: string}>> {
+// Item 18 (Fase 30): retornava só o array de itens — uma fonte fora do ar (timeout, DNS,
+// URL mudou, HTTP erro) e uma fonte sem nada de novo publicado produziam exatamente o mesmo
+// resultado ([]), então uma fonte quebrada há semanas passava para sempre sem nenhum alerta.
+async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<{ itens: Array<{titulo: string; url: string; fonte: string; categoria: string; global: boolean; conteudo: string}>; falhou: boolean }> {
   try {
     const res = await fetch(fonte.url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; AlertaPatriota/1.0)" },
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { itens: [], falhou: true };
 
     const xml = await res.text();
     const itens: Array<{titulo: string; url: string; fonte: string; categoria: string; global: boolean; conteudo: string}> = [];
@@ -84,9 +88,9 @@ async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<Array<{titu
         count++;
       }
     }
-    return itens;
+    return { itens, falhou: false };
   } catch {
-    return [];
+    return { itens: [], falhou: true };
   }
 }
 
@@ -96,12 +100,14 @@ export async function GET(req: NextRequest) {
   const inicio = Date.now();
   let coletadas = 0;
   let duplicatas = 0;
+  const fontesComFalha: Array<{ nome: string; url: string }> = [];
 
   try {
     const todasFontes = [...FONTES_GLOBAL];
 
     for (const fonte of todasFontes) {
-      const noticias = await coletarFonte(fonte);
+      const { itens: noticias, falhou } = await coletarFonte(fonte);
+      if (falhou) fontesComFalha.push({ nome: fonte.nome, url: fonte.url });
 
       for (const n of noticias) {
         // FASE 23: SELECT+INSERT separados deixavam janela de duplicata entre execuções
@@ -123,7 +129,7 @@ export async function GET(req: NextRequest) {
           headers: { "User-Agent": "Mozilla/5.0 (compatible; AlertaPatriota/1.0)" },
           signal: AbortSignal.timeout(8000),
         });
-        if (!res.ok) continue;
+        if (!res.ok) { fontesComFalha.push({ nome: lider.nome, url: lider.url }); continue; }
 
         const xml = await res.text();
         const regex = /<entry>([\s\S]*?)<\/entry>/g;
@@ -152,17 +158,31 @@ export async function GET(req: NextRequest) {
           if (inserida.length > 0) coletadas++; else duplicatas++;
           count++;
         }
-      } catch { /* ignora falha de canal individual */ }
+      } catch { fontesComFalha.push({ nome: lider.nome, url: lider.url }); }
+    }
+
+    // Item 18 (Fase 30): dedup por fonte (6h) — evita alerta repetido a cada execução
+    // (3x/dia) enquanto a mesma fonte continuar fora do ar, mesmo padrão já usado em
+    // fiscal-noticias.ts/criarAlertaDedup.
+    for (const f of fontesComFalha) {
+      const { criado } = await criarAlertaDedup(
+        `coleta_rss_global_falha:${f.nome}`,
+        "medio",
+        `Fonte "${f.nome}" falhou ao coletar (timeout, erro de rede ou HTTP não-OK) — verifique se a URL ainda é válida: ${f.url}`
+      );
+      if (criado) {
+        await alertarTelegram("🟡", "Fonte RSS global com falha", `"${f.nome}" não respondeu — ${f.url}`).catch(() => {});
+      }
     }
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
       VALUES ('igor-internacional', 'coletar_rss_global', 'sucesso',
-        ${JSON.stringify({ coletadas, duplicatas, fontes: todasFontes.length })},
+        ${JSON.stringify({ coletadas, duplicatas, fontes: todasFontes.length, fontes_falha: fontesComFalha.map(f => f.nome) })},
         ${Date.now() - inicio})
     `;
 
-    return NextResponse.json({ ok: true, coletadas, duplicatas });
+    return NextResponse.json({ ok: true, coletadas, duplicatas, fontes_falha: fontesComFalha.map(f => f.nome) });
   } catch (err) {
     await alertarTelegram("🔴", "Falha Agente Igor Internacional", String(err));
     return NextResponse.json({ erro: String(err) }, { status: 500 });

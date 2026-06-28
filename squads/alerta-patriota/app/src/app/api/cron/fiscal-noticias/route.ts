@@ -4,6 +4,11 @@ import { verificarCronSecret } from "@/lib/auth";
 import { enviarTelegram, alertarTelegram } from "@/lib/telegram";
 import { criarAlertaDedup } from "@/lib/alertas";
 
+// Item 16 (Fase 30): sem maxDuration, a Vercel mata a função em 10s por padrão — chamarAutoFix()
+// soma até 105s no pior caso (3 etapas × até 30s de fetch + 5s de pausa entre cada). 60s é o teto
+// do plano Hobby (mesmo padrão já aplicado em fiscal-pipeline.ts/fiscal-workflow.ts na Fase 32).
+export const maxDuration = 60;
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -18,7 +23,6 @@ async function contarEstoque(): Promise<Estoque> {
       SELECT COUNT(*) as total FROM noticias
       WHERE resumo_braga IS NOT NULL
         AND postada_vip = false
-        AND fonte NOT ILIKE '%metropoles%'
     `,
     sql`
       SELECT COUNT(*) as total FROM noticias

@@ -111,11 +111,17 @@ export async function GET(req: NextRequest) {
         }
 
         try {
-          await fetch(`${APP_URL}/api/cron/dossie-elite`, {
+          // Item 20 (Fase 30): só capturava exceção de rede — uma resposta HTTP de erro
+          // (401 por CRON_SECRET divergente, 500 interno, etc.) não lança exceção no fetch,
+          // então o auto-fix era marcado como "acionado" mesmo quando o dossiê não saiu.
+          const resAutoFix = await fetch(`${APP_URL}/api/cron/dossie-elite`, {
             method: "POST",
             headers: { Authorization: `Bearer ${CRON_SECRET}` },
           });
-          resultado.dossieAutoFix = "acionado";
+          resultado.dossieAutoFix = resAutoFix.ok ? "acionado" : `erro_${resAutoFix.status}`;
+          if (!resAutoFix.ok) {
+            await alertarTelegram("🔴", "VERA VERIFICAÇÃO — auto-fix do Dossiê Elite falhou", `dossie-elite respondeu HTTP ${resAutoFix.status}`);
+          }
         } catch {
           resultado.dossieAutoFix = "falhou";
         }

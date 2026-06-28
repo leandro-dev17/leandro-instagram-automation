@@ -47,6 +47,14 @@ export default function AdminMensagens() {
 
   const enviar = async () => {
     if (!mensagem.trim()) return;
+    // Item 24 (Fase 30): clique disparava direto pro grupo (centenas de assinantes
+    // pagantes) sem nenhuma confirmação — um clique acidental ou template errado
+    // selecionado virava envio irreversível em massa.
+    const grupoLabel = GRUPOS.find(g => g.id === grupo)?.label ?? grupo;
+    const confirmado = window.confirm(
+      `Enviar esta mensagem agora para o grupo ${grupoLabel}?\n\nEssa ação é imediata e irreversível.`
+    );
+    if (!confirmado) return;
     setEnviando(true);
     setResultado(null);
     const res = await fetch("/api/admin/mensagem", {

@@ -64,8 +64,14 @@ export async function GET(req: NextRequest) {
     await new Promise(r => setTimeout(r, 1000));
     const ok = await enviarEnqueteGrupo("vip", enquete.pergunta, enquete.opcoes);
 
-    if (ok) {
-      await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('enquete-dia', 'enviar_enquete', 'sucesso', ${JSON.stringify({ pergunta: enquete.pergunta })})`;
+    // Item 15 (Fase 30): só gravava log no sucesso — uma falha de envio (ex.: env var ausente,
+    // groupId não configurado) ficava sem nenhum rastro em agentes_log e sem alerta explícito
+    // (chamarEvolution só alerta no Telegram se chegou a tentar o fetch, o que não acontece nos
+    // early-returns de enviarEnqueteGrupo). Mesmo padrão de "sucesso ou erro, nunca silêncio" já
+    // usado em enzo-engajamento/route.ts.
+    await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('enquete-dia', 'enviar_enquete', ${ok ? "sucesso" : "erro"}, ${JSON.stringify({ pergunta: enquete.pergunta })})`;
+    if (!ok) {
+      await alertarTelegram("🔴", "Falha Agente Enquete do Dia", "enviarEnqueteGrupo retornou false — ver lib/whatsapp.ts para causa (env var ausente, groupId não configurado, ou falha do Evolution API após retries).");
     }
 
     return NextResponse.json({ ok, enquete });

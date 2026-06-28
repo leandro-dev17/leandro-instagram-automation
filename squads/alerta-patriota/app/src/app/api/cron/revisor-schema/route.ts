@@ -46,6 +46,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Tenta autocorreção para cada problema identificado
+    // Item 20 (Fase 30): semCorrecao = alertasSchema.length - correcoes.length podia ficar
+    // negativo — se a mensagem de UM alerta batesse em mais de uma chave do dicionário
+    // AUTOCORRECT (substrings não são mutuamente exclusivas, ex.: "noticias.global" e
+    // "noticias.urgente" no mesmo texto), correcoes.length crescia mais de 1 por alerta,
+    // superando alertasSchema.length. Agora conta alertas distintos corrigidos, não correções.
+    const alertasCorrigidos = new Set<unknown>();
     for (const alerta of alertasSchema) {
       const msg = alerta.mensagem as string;
 
@@ -58,6 +64,7 @@ export async function GET(req: NextRequest) {
           try {
             await sql(sqlCmd);
             correcoes.push(`✅ Corrigido automaticamente: ${chave}`);
+            alertasCorrigidos.add(alerta.id);
             await sql`UPDATE alertas SET resolvido = true, resolvido_at = NOW() WHERE id = ${alerta.id}`;
           } catch (e) {
             pendentes.push(`❌ Falhou autocorreção ${chave}: ${String(e).substring(0, 80)}`);
@@ -67,7 +74,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Alertas que não puderam ser autocorrigidos
-    const semCorrecao = alertasSchema.length - correcoes.length;
+    const semCorrecao = alertasSchema.length - alertasCorrigidos.size;
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)

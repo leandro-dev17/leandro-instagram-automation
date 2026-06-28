@@ -80,6 +80,12 @@ export async function POST(req: NextRequest) {
     // em usuarios/leads/whatsapp_fila neste arquivo).
     await sql`ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS assinatura_id INT REFERENCES assinaturas(id)`;
 
+    // Item 14 (Fase 30): cupons VOLTA10/15/20 não tinham nenhum rastreamento de uso —
+    // 1 cupom por conta, registrado aqui (ver src/lib/cupons.ts para elegibilidade).
+    await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cupom_usado VARCHAR(20)`;
+    await sql`ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS cupom VARCHAR(20)`;
+    await sql`ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS cupom VARCHAR(20)`;
+
     // ── GRUPOS WHATSAPP ─────────────────────────────────────────────────────
     await sql`
       CREATE TABLE IF NOT EXISTS grupos_whatsapp (
@@ -293,6 +299,22 @@ export async function POST(req: NextRequest) {
       ON leads(telefone) WHERE telefone IS NOT NULL
     `;
 
+    // ── RATE LIMIT (leads/registrar) ────────────────────────────────────────
+    // Item 26 (Fase 30): substitui o rate limit em Map de memória do processo,
+    // ineficaz em serverless (cada cold start/instância concorrente tem memória
+    // isolada). Tabela dedicada para não poluir agentes_log com tentativas.
+    await sql`
+      CREATE TABLE IF NOT EXISTS leads_rate_limit (
+        id SERIAL PRIMARY KEY,
+        ip VARCHAR(64) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_leads_rate_limit_ip_created
+      ON leads_rate_limit (ip, created_at)
+    `;
+
     // ── PROMPTS CUSTOMIZADOS (editor /admin/prompts) ────────────────────────
     // FASE 27.3: o editor de prompts salvava em `alertas` (tipo='prompt_update') só um
     // JSON de metadados ({chave, chars}), nunca o texto do prompt em si, e o GET lia
@@ -341,6 +363,24 @@ export async function POST(req: NextRequest) {
     await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_assinatura_id ON pagamentos(assinatura_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_pagamentos_status ON pagamentos(status)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_usuarios_mp_subscription_id ON usuarios(mp_subscription_id)`;
+
+    // Item 21 (Fase 30): campanha-recuperacao.ts consulta agentes_log filtrando por
+    // agente='rebeca-recuperacao' + detalhes->>'usuarioId' + detalhes->>'dia' — sem
+    // índice de expressão, cada consulta varria o texto do JSON em toda a tabela.
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_agentes_log_rebeca_usuario_dia
+      ON agentes_log ((detalhes->>'usuarioId'), (detalhes->>'dia'))
+      WHERE agente = 'rebeca-recuperacao' AND status = 'sucesso'
+    `;
+
+    // Item 22 (Fase 30): radar-politico.ts conta quantos alertas cada pessoa já gerou
+    // hoje com WHERE politico = X AND processado = true — sem índice, full table scan
+    // a cada execução do cron (roda a cada 30min).
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_radar_politico_politico_created
+      ON radar_politico (politico, created_at)
+      WHERE processado = true
+    `;
 
     // FASE 23: sem isto, duas requisições concorrentes de criação de assinatura
     // (duplo clique, retry, 2 abas) passam ambas pelo SELECT de status antes de

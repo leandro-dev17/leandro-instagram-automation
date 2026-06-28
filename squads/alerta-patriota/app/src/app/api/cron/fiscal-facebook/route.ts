@@ -142,11 +142,16 @@ export async function GET(req: NextRequest) {
       if (novoToken) {
         // Atualiza Vercel automaticamente
         const vercelOk = await atualizarVercel("FB_PAGE_TOKEN", novoToken);
+        // Item 20 (Fase 30): redeploy() existia mas nunca era chamada — a env var nova
+        // ficava salva no Vercel, mas só valeria a partir do próximo deploy natural do
+        // projeto (a Vercel não reaplica env vars em deployments já existentes), deixando
+        // o token antigo prestes a vencer em produção mesmo após uma "renovação bem-sucedida".
+        const redeployOk = vercelOk ? await redeploy() : false;
 
         await sql`
           INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
           VALUES ('fiscal-facebook', 'renovar_token', 'sucesso',
-            ${JSON.stringify({ diasAntes: status.diasRestantes, vercelAtualizado: vercelOk })},
+            ${JSON.stringify({ diasAntes: status.diasRestantes, vercelAtualizado: vercelOk, redeployAcionado: redeployOk })},
             ${Date.now() - inicio})
         `;
 
@@ -156,11 +161,12 @@ export async function GET(req: NextRequest) {
           `O token Facebook/Instagram foi renovado antes de vencer.\n` +
           `Dias restantes antes: ${status.diasRestantes}\n` +
           `Novo token válido por mais 60 dias.\n` +
-          `Vercel atualizado: ${vercelOk ? "✅" : "⚠️ falhou — verifique manualmente"}\n\n` +
+          `Vercel atualizado: ${vercelOk ? "✅" : "⚠️ falhou — verifique manualmente"}\n` +
+          `Redeploy acionado: ${redeployOk ? "✅" : "⚠️ falhou — env var nova só entra em vigor no próximo deploy manual"}\n\n` +
           `_Nenhuma ação necessária._`
         );
 
-        return NextResponse.json({ ok: true, renovado: true, diasRestantes: status.diasRestantes, vercelOk });
+        return NextResponse.json({ ok: true, renovado: true, diasRestantes: status.diasRestantes, vercelOk, redeployOk });
       } else {
         // Tentativa de renovação falhou
         const { criado } = await criarAlertaDedup("fiscal_facebook", "alto", `Token Facebook vence em ${status.diasRestantes} dias — renovação automática falhou`);
