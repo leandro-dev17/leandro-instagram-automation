@@ -2002,9 +2002,9 @@ Implementação (sem alterar comportamento existente do webhook):
 
 Arquivos: `app/src/lib/mp-ativar-acesso.ts` (novo), `app/src/app/api/cron/reconciliador-pix/route.ts` (novo), `app/src/app/api/webhook/mercadopago/route.ts` (refatorado — import em vez de função local), `.github/workflows/alerta-patriota-crons.yml` (novo step).
 
-**Pendente:** commit, push e deploy — aguardando autorização explícita do usuário.
+**Deploy:** autorizado pelo usuário em 28/06/2026. Commit `fe089c8`, merge com 2 commits automáticos do bot `guardian-state` (sem conflitos), push para `origin/main`. `vercel --prod` executado com sucesso (build limpo, 24s) — rota `/api/cron/reconciliador-pix` confirmada presente no build. Deploy `dpl_3VbN6Z8MXfGdxvduyH6bJn76v1qS` promovido a produção e alias `alertapatriota.vercel.app` atualizado.
 
-Próximo item após deploy: item 2 (secret do webhook Evolution via query string).
+Próximo item: item 2 (secret do webhook Evolution via query string).
 
 ---
 
