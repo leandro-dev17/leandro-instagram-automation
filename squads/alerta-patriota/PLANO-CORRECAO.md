@@ -1735,7 +1735,7 @@ Achado da Fase 30 confirmado, leitura completa do arquivo: a rota dispara 6 test
 ---
 
 ### Item 13 — `admin/setup`: nunca terminava em produção (bloqueava os Itens 1, 2 e 10)
-**Status: ✅ CÓDIGO + DADOS CORRIGIDOS — deploy e materialização pendentes nesta mesma sessão**
+**Status: ✅ CONCLUÍDO — código, dados, deploy e materialização confirmados em produção**
 
 Ao tentar materializar os 3 índices novos dos Itens 1, 2 e 10 chamando `/api/admin/setup` em produção, a rota voltou `{"erro":"Erro interno"}` (erro genérico de propósito, Fase 24). Como a rota roda ~30 statements DDL sequenciais dentro de um único `try`, qualquer falha no meio aborta tudo o que vem depois — então isolei e roteiro cada statement individualmente direto contra o Neon de produção (script Node descartável com `@neondatabase/serverless` + `--use-system-ca`, mesmo padrão de debug já usado nas Fases 24/31) para achar exatamente onde a transação real sempre travava. Achados, os dois **pré-existentes, sem relação com os Itens 1/2/10 de hoje**:
 
