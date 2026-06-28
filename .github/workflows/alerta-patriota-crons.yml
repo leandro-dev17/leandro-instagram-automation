@@ -370,6 +370,11 @@ jobs:
           sleep 5
           curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/fiscal-pagamentos" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
+      - name: Reconciliador PIX — Confere PIX pendentes direto no Mercado Pago
+        run: |
+          sleep 5
+          curl -s --max-time 20 "${{ secrets.ALERTA_APP_URL }}/api/cron/reconciliador-pix" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
       - name: Gustavo Guarda — Varredura de segurança
         run: |
           sleep 5

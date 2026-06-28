@@ -1930,6 +1930,84 @@ Achado da Fase 30 (categoria Segurança/Infra): `leads/registrar/route.ts` é ro
 
 ---
 
+## FASE 33 — Lista Consolidada do Backlog Pendente (Fase 30 + Fases 21-27) e Ordem de Correção
+**Status: 🔍 PLANEJAMENTO — ordem aprovada pelo usuário, correções ainda não iniciadas.**
+
+Pedido do usuário: parar de tratar cada auditoria isoladamente e montar **uma lista única** cruzando os achados 🟡 Médio/⚪ Baixo da Fase 30 (16 Alto já fechados na Fase 32, restavam 24 Médio + 19 Baixo) com o backlog historicamente deferido nas Fases 21-27 (itens "decisão pendente do usuário" ou "fase dedicada"), removendo o que já foi corrigido e o que virou decisão de produto já resolvida. Verificação feita lendo o código atual (não só os documentos) — por exemplo, confirmado via `find` que `admin/usuarios/page.tsx` **não existe mais** (foi fundido em `admin/membros/page.tsx` numa consolidação já concluída), então esse item, ainda citado como "🟡 órfã" no texto da Fase 30, já está resolvido e fica fora da lista abaixo.
+
+### Lista consolidada por seção
+
+**1. Pagamentos/Financeiro**
+- 🔴 PIX pendentes nunca reconciliados com o status real no Mercado Pago (Fase 30, categoria 1).
+- 🟡 2 achados adicionais de Pagamentos citados na Fase 30 só como contagem, nunca detalhados no documento — requer re-checagem pontual antes de poder corrigir.
+
+**2. WhatsApp/Comunicação**
+- 🔴 `admin/mensagem.ts` (envio manual pelo painel) ignora `lib/whatsapp.ts` central e usa instância Evolution fixa (Fase 30, categoria 2) — diferente do bug já corrigido na Fase 27.7 em `enviarMensagemPrivada` (usado pelos crons automáticos); este é no envio manual do admin.
+- 🟡 Falta throttle/lock entre crons concorrentes escrevendo no mesmo grupo quase ao mesmo tempo (risco de a Evolution API marcar a instância como spam) — deferido desde a Fase 22, "fase dedicada".
+
+**3. Pipeline de Notícias/Conteúdo**
+- 🔴 `radar-economico.ts` — guarda de "já rodou hoje" não filtra por sucesso, trava 24h após uma única falha de envio (Fase 30, categoria 3 — mesmo bug já achado na Fase 26/Frente C e nunca corrigido, confirmado real por ter sido encontrado de novo, em rodada independente).
+- 🟡 Notícia com resumo do Cavalcanti ruim sendo reprocessada indefinidamente (Fase 30).
+- 🟡 `gerar-card.ts` sem early-exit por tempo decorrido (Fase 30).
+- 🟡 Faltam índices em `posts_whatsapp(grupo_id)` e `(grupo_id, tipo, created_at)` (Fase 30, categoria 5).
+
+**4. Agentes Fiscais/Gestão**
+- 🟠 Dos "11 achados adicionais" citados na Fase 30 categoria 4, só 6 foram nomeados e corrigidos (Item 20 da Fase 32) — 5 nunca foram identificados no documento.
+- 🟡 "9 achados de baixa severidade" da categoria 4 (heurísticas frágeis, gaps de observabilidade) citados só como contagem, nunca listados.
+
+**5. Segurança/Infra**
+- 🔴 Secret do webhook Evolution API trafega via query string da URL (Fase 30, categoria 7) — decisão deliberada por limitação da Evolution API, mas risco residual de aparecer em logs de terceiros vale revisitar.
+- 🟡 `EVOLUTION_WEBHOOK_SECRET` — rotação pendente desde a Fase 23, bloqueada por falta de acesso ao Railway.
+- 🟡 Rate limiting em `Map` na memória em `criar-pix`/`criar-direto` (login removido na Fase 27; `leads/registrar` já migrado para tabela própria na Fase 32 Item 26) — não sobrevive a múltiplas instâncias serverless, deferido desde a Fase 22.
+- 🟡 CSP (Content-Security-Policy) completa — nunca implementada, risco de quebrar produção sem teste prévio.
+- 🟡 Lockfile (`package-lock.json`) ausente — confirmado via `ls` nesta fase, ainda não existe.
+- 🟡 Monitoramento externo do heartbeat (dead man's switch, ex. healthchecks.io) — não implementado.
+- 🟡 Hardening de prompt-injection em notícias de RSS externas — mitigação parcial (só filtra alfabetos não-latinos).
+- 🟡 `vercel.json` com `crons: []` sem redundância nativa — tudo depende 100% do GitHub Actions (Fase 30, categoria 7).
+
+**6. Banco de Dados**
+- Cobertos pelos itens de índice já listados na seção 3 (Pipeline) — achados críticos/altos de schema e N+1 desta categoria já corrigidos nas Fases 27/32.
+
+**7. Admin/Decisões de Produto (não são bugs — exigem escolha do usuário, não fix automático)**
+- `lib/instagram.ts` — integração completa com Instagram (Reels/Stories/DM), paga em desenvolvimento, nunca ativada. Manter, ativar ou remover?
+- `admin/agentes/page.tsx` — mostra só 14 de ~70 agentes reais; decisão já registrada como "não expandir automaticamente" na Fase 27, mantida em aberto.
+- 🟡 2 achados de UX da Fase 30: modal de edição de notícia não mostra resumo já salvo; `modo-crise` sem validação de enum.
+
+### Ordem de correção aprovada pelo usuário (28/06/2026)
+
+1. PIX não reconciliado (Pagamentos) — prioridade máxima por ser dinheiro real.
+2. Secret do webhook Evolution via query string (Segurança) — exposição de credencial, mesmo que de baixo risco prático hoje.
+3. `admin/mensagem.ts` usando instância errada (WhatsApp) — funcionalidade usada manualmente pelo admin, pode estar enviando para o grupo errado.
+4. `radar-economico.ts` trava 24h após uma falha (Pipeline) — baixo impacto (1 mensagem/semana), mas fix rápido (replicar padrão já usado em 8 outros agentes).
+5. Lote dos 🟡 menores da seção 3 (índices `posts_whatsapp`, early-exit `gerar-card`, reprocessamento do resumo Cavalcanti) + UX da seção 7 (modal de edição, enum do `modo-crise`) — agrupados numa única rodada de baixo risco.
+6. Mini-auditoria pontual nos "5 achados não nomeados" (Fiscais) e nos "9 achados de baixa severidade" (Fiscais) antes de decidir se corrige algo.
+7. Decisões de produto da seção 7 (Instagram morto, cobertura do painel de agentes) — sem pressa, para quando o usuário quiser decidir.
+
+Itens de seção 2 (throttle entre crons) e seção 5 (rate limit Map, CSP, lockfile, heartbeat externo, prompt-injection) seguem deliberadamente fora desta rodada — mesma decisão já tomada nas Fases 21-23 ("fase dedicada"), revisitar depois do item 7.
+
+### Andamento item por item
+
+**Item 1 — PIX pendentes nunca reconciliados: ✅ CONCLUÍDO (implementado, aguardando deploy)**
+
+Investigação confirmou que a reconciliação realmente não existia: `criar-pix/route.ts` grava o pagamento como `'pendente'`; só o webhook `webhook/mercadopago/route.ts` muda esse status para `'aprovado'`, e só se o webhook chegar. `fiscal-pagamentos`, `fiscal-inadimplentes` e `gerente-financeiro` apenas alertavam passivamente (+2h pendente), sem nunca consultar a API do MP. Risco real: cliente paga PIX, MP confirma, webhook falha (rede/MP fora do ar/erro de banco) → pagamento fica `'pendente'` para sempre e o cliente nunca entra no grupo do WhatsApp.
+
+Implementação (sem alterar comportamento existente do webhook):
+1. Extraída a função `ativarAcesso()` de `api/webhook/mercadopago/route.ts` para `lib/mp-ativar-acesso.ts` — extração mecânica, sem mudança de lógica — para que o cron novo e o webhook compartilhem exatamente a mesma rotina de ativação (evita duplicar ~110 linhas de lógica crítica que divergiriam com o tempo).
+2. Novo cron `api/cron/reconciliador-pix/route.ts`: busca em `pagamentos` os registros `status='pendente' AND metodo='pix'` com `created_at` entre 3h e 7 dias atrás, consulta `GET /v1/payments/{id}` no Mercado Pago para cada um:
+   - `approved` → chama `ativarAcesso()` (mesma rotina do webhook) e alerta no Telegram que o reconciliador corrigiu um caso que o webhook não pegou.
+   - `rejected`/`cancelled` (PIX expirado sem pagamento) → marca `status='rejeitado'` no banco, parando de poluir os alertas de "+2h pendente".
+   - `pending`/`in_process` → não faz nada, ainda dentro da janela normal.
+3. Agendamento adicionado em `.github/workflows/alerta-patriota-crons.yml`, dentro do job `fiscais-a` (já roda a cada 30min, 8h-2h BRT), logo após o step "Felipe Fiscal — Verifica pagamentos pendentes".
+4. `tsc --noEmit` validado — 0 erros nos arquivos novos/alterados (o único erro pré-existente no projeto, em `admin/usuarios/[id]/route.ts`, é anterior a esta sessão e não relacionado).
+
+Arquivos: `app/src/lib/mp-ativar-acesso.ts` (novo), `app/src/app/api/cron/reconciliador-pix/route.ts` (novo), `app/src/app/api/webhook/mercadopago/route.ts` (refatorado — import em vez de função local), `.github/workflows/alerta-patriota-crons.yml` (novo step).
+
+**Pendente:** commit, push e deploy — aguardando autorização explícita do usuário.
+
+Próximo item após deploy: item 2 (secret do webhook Evolution via query string).
+
+---
+
 ## CREDENCIAIS E REFERÊNCIAS
 
 | Item | Valor |
