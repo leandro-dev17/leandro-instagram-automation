@@ -1749,7 +1749,7 @@ Com os dois bloqueios removidos, rodei a sequência completa dos ~30 statements 
 ---
 
 ### Item 14 — Cupons VOLTA10/15/20: sem limite de uso, sem checagem de elegibilidade, sem rastreamento
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Pagamentos/Assinaturas): os cupons de win-back `VOLTA10`/`VOLTA15`/`VOLTA20` (enviados pelo `enzo-engajamento` nas ondas D20/D25/D30 para reconquistar quem parou de interagir) existiam como um mapa fixo de desconto duplicado em `criar-pix/route.ts` e `criar-direto/route.ts`, sem nenhuma validação real:
 1. **Sem checagem de elegibilidade**: qualquer pessoa que descobrisse o código (compartilhado entre usuários, vazado, ou simplesmente adivinhado — são só 3 strings curtas) conseguia o desconto, mesmo nunca tendo sido alvo da campanha de reengajamento.
@@ -1770,7 +1770,7 @@ Achado da Fase 30 (categoria Pagamentos/Assinaturas): os cupons de win-back `VOL
 ---
 
 ### Item 15 — `enquete-dia`: falha de envio da enquete ficava em silêncio total
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria WhatsApp/Mensagens): `enviarEnqueteGrupo()` (em `lib/whatsapp.ts`) retorna `boolean`, mas a rota só gravava em `agentes_log` quando `ok === true` (`if (ok) { INSERT ... 'sucesso' }`), sem nenhum `else`. Resultado: se o envio falhasse, não sobrava nenhum rastro no banco — nem `status='erro'`, nada. Pior, o alerta no Telegram que `chamarEvolution()` dispara internamente (Fase 21) só acontece se a função chegar a tentar o `fetch` — os 3 early-returns de `enviarEnqueteGrupo()` (env var ausente, `groupId` não configurado, plano fora de `vip`/`elite`) retornam `false` direto, sem nunca chamar `chamarEvolution`, então nem o alerta automático dispara nesses casos. Ou seja: existiam cenários reais (configuração ausente) em que uma falha de envio não gerava log nem alerta — ninguém ficaria sabendo que a enquete do dia não saiu.
 
@@ -1781,7 +1781,7 @@ Achado da Fase 30 (categoria WhatsApp/Mensagens): `enviarEnqueteGrupo()` (em `li
 ---
 
 ### Item 16 — `fiscal-noticias` (Sofia Stoque) sem `maxDuration`
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Pipeline de Notícias): `cron/fiscal-noticias/route.ts` (agente "sofia-stoque") chama `chamarAutoFix()` quando o estoque de notícias prontas fica crítico, que executa 3 etapas sequenciais (`coletar-noticias` → `curar-noticias` → `resumir-noticias`), cada uma com até 30s de timeout de fetch + 5s de pausa fixa depois — até 105s no pior caso. Sem `export const maxDuration`, a Vercel mata a função no limite padrão de 10s do plano Hobby, interrompendo o auto-fix no meio e potencialmente deixando o estoque de notícias sem se recuperar. Mesma classe de bug já corrigida nos arquivos estruturalmente quase idênticos `fiscal-pipeline.ts` e `fiscal-workflow.ts` na própria Fase 32 — só este (`fiscal-noticias.ts`) tinha ficado de fora.
 
@@ -1792,7 +1792,7 @@ Achado da Fase 30 (categoria Pipeline de Notícias): `cron/fiscal-noticias/route
 ---
 
 ### Item 17 — Critério de estoque VIP excluía fonte "Metrópoles" (Elite não) — assimetria sem motivo de negócio
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Pipeline de Notícias), já registrado antes (linha ~942 deste arquivo, achado ⚪ informativo de uma fase anterior) como pendente de confirmação humana — não era um bug "confirmado", por isso ficou de fora das rodadas anteriores. A contagem de estoque VIP em `fiscal-noticias.ts` (`contarEstoque()`) tinha `AND fonte NOT ILIKE '%metropoles%'`, mas a contagem Elite não tinha o filtro equivalente.
 
@@ -1807,7 +1807,7 @@ Achado da Fase 30 (categoria Pipeline de Notícias), já registrado antes (linha
 ---
 
 ### Item 18 — Falha de fonte RSS individual engolida silenciosamente
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Pipeline de Notícias): em `coletar-noticias.ts` (`coletarRSS()`) e `coletar-noticias-global.ts` (`coletarFonte()` + loop de YouTube dos líderes internacionais), qualquer falha ao buscar uma fonte — timeout, erro de rede, HTTP não-OK, URL que mudou ou saiu do ar — retornava silenciosamente `[]`/`continue`, exatamente o mesmo resultado de uma fonte que rodou normalmente mas não tinha nada novo para publicar. Não havia como distinguir os dois casos nos logs (`agentes_log` só registrava `coletadas`/`duplicatas`, nunca por fonte), e nenhum alerta disparava. Uma fonte (ex.: Jovem Pan trocou a URL do feed) podia ficar quebrada por semanas sem ninguém notar — o pipeline simplesmente parecia "sem notícias novas daquela fonte" indefinidamente.
 
@@ -1822,7 +1822,7 @@ Achado da Fase 30 (categoria Pipeline de Notícias): em `coletar-noticias.ts` (`
 ---
 
 ### Item 19 — `radar-politico.ts`: mesmo vídeo encontrado por 2 vias pode gerar alerta duplicado
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Radar Político): para cada pessoa monitorada, `radar-politico.ts` combina os resultados de `buscarVideosCanalProprio()` (busca direta no canal pessoal verificado, URL "limpa" vinda do Atom feed do YouTube) com `buscarMencoesGenericas()` (busca por nome em portais de notícia e canais de mídia genéricos, onde o mesmo vídeo pode aparecer embedado com parâmetros de tracking, ex.: `?si=...`, `&feature=...`, `utm_*`). Tanto o check de "já processado nas últimas 12h" (`SELECT ... WHERE tweet_id = ${mencao.url}`) quanto os `ON CONFLICT (tweet_id)` / `ON CONFLICT (url)` em `radar_politico`/`noticias` comparam a URL como texto exato — então as duas variantes da mesma URL (limpa vs. com tracking) nunca colidiam entre si, e o mesmo vídeo podia gerar 2 análises/alertas distintos (um pela via do canal próprio, outro pela via genérica).
 
@@ -1835,7 +1835,7 @@ Achado da Fase 30 (categoria Radar Político): para cada pessoa monitorada, `rad
 ---
 
 ### Item 20 — 6 achados pontuais em agentes fiscais (Facebook, especiais, agendamento, trials, financeiro, schema)
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Fiscais/Auto-fix): bundle de 6 bugs pontuais, um por agente, todos da mesma classe — uma etapa de auto-correção/auto-fix que parecia funcionar mas na prática não tinha o efeito esperado, por causas distintas em cada arquivo.
 
@@ -1856,7 +1856,7 @@ Achado da Fase 30 (categoria Fiscais/Auto-fix): bundle de 6 bugs pontuais, um po
 ---
 
 ### Item 21 — N+1 real em `campanha-recuperacao.ts` + ausência de índice de expressão em `agentes_log.detalhes->>'usuarioId'`
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Performance/Banco): `campanha-recuperacao.ts` (agente "rebeca-recuperacao") busca os usuários cancelados pendentes de recuperação em uma única query e depois, **dentro do loop**, roda um `SELECT` adicional por usuário para checar se já enviou a mensagem daquele dia (`WHERE agente = 'rebeca-recuperacao' AND status = 'sucesso' AND detalhes->>'usuarioId' = ... AND detalhes->>'dia' = ...`) — um N+1 clássico: N usuários pendentes geram N round-trips extras ao banco na mesma execução. Agravando: não existia nenhum índice de expressão sobre `detalhes->>'usuarioId'`/`detalhes->>'dia'`, então cada um desses N SELECTs fazia varredura textual no JSON em toda a tabela `agentes_log` (que cresce continuamente, alimentada por praticamente todos os crons do projeto).
 
@@ -1869,7 +1869,7 @@ Achado da Fase 30 (categoria Performance/Banco): `campanha-recuperacao.ts` (agen
 ---
 
 ### Item 22 — N+1 e ausência de índice em `radar-politico.ts` (`COUNT(*) WHERE politico = ...`)
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Performance/Banco), mesma classe de bug do Item 21: para cada uma das 3 pessoas da rodada, `radar-politico.ts` rodava — **dentro do loop** — um `SELECT COUNT(*) FROM radar_politico WHERE politico = ${pessoa.nome} AND processado = true AND ...::date = ...::date` para checar o cap diário de alertas por pessoa. 3 round-trips ao banco por execução do cron (que roda a cada 30min), e nenhum índice sobre a coluna `politico` — cada COUNT(*) varria a tabela inteira.
 
@@ -1882,7 +1882,7 @@ Achado da Fase 30 (categoria Performance/Banco), mesma classe de bug do Item 21:
 ---
 
 ### Item 23 — Colunas `postada_*_card`/`*_card_at` fora do dicionário do fiscal de schema
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Schema/Auto-fix): `noticias.postada_vip_card`, `postada_elite_card`, `postada_vip_card_at` e `postada_elite_card_at` são criadas exclusivamente em `gerar-card.ts`, via 4 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` encadeados, cada um com `.catch(() => {})` — que engole tanto o caso normal ("coluna já existe") quanto uma falha real do ALTER (permissão, conexão etc.). Confirmei que `admin/setup/route.ts` (fonte canônica do schema em ambiente novo) **não** cria essas 4 colunas no `CREATE TABLE noticias` — elas só passam a existir de fato na primeira execução bem-sucedida de `gerar-card.ts`. O dicionário `SCHEMA_ESPERADO.noticias` em `fiscal-codigo-schema/route.ts` não listava nenhuma das 4, então mesmo que o ALTER falhasse silenciosamente (deixando as colunas ausentes), o fiscal de schema nunca acusaria o problema — e os `SELECT`/`UPDATE` que dependem delas em `gerar-card.ts` quebrariam em runtime sem nenhum alerta prévio.
 
@@ -1893,7 +1893,7 @@ Achado da Fase 30 (categoria Schema/Auto-fix): `noticias.postada_vip_card`, `pos
 ---
 
 ### Item 24 — Envio manual de mensagem (`admin/mensagens`) sem confirmação
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria UX/Admin): em `admin/mensagens/page.tsx`, o botão "📲 Enviar Agora" chamava `enviar()` direto, que por sua vez chamava `POST /api/admin/mensagem` sem nenhum passo de confirmação. Confirmei em `api/admin/mensagem/route.ts` que esse endpoint dispara via Evolution API (`message/sendText`) imediatamente para o JID do grupo WhatsApp selecionado (VIP ou Elite) — ou seja, um clique acidental, um template errado deixado no textarea, ou um clique duplo enviaria uma mensagem irreversível para centenas de assinantes pagantes, sem nenhuma chance de cancelar.
 
@@ -1904,7 +1904,7 @@ Achado da Fase 30 (categoria UX/Admin): em `admin/mensagens/page.tsx`, o botão 
 ---
 
 ### Item 25 — "Publicar agora" tenta publicar nos 2 grupos mesmo se um já publicado
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Lógica/Fila de publicação), mais profundo do que o título sugere. Em `admin/publicar-agora/route.ts`, o botão "▶ Publicar agora" (em `admin/conteudo/page.tsx`, mostrado quando `!postada_vip || !postada_elite`) sempre disparava `GET /api/cron/publicar-noticias` para **os dois** grupos, passando `noticia_id`. Ao ler `publicar-noticias/route.ts` linha a linha, confirmei que o parâmetro `noticia_id` **nunca era lido** pelo handler — a query sempre selecionava "a próxima notícia elegível da fila" (`WHERE postada_x = false ORDER BY urgente DESC, created_at DESC LIMIT 1 FOR UPDATE SKIP LOCKED`), ignorando qual notícia o admin clicou. Consequência real: se a notícia já estava publicada no grupo VIP e faltava só o Elite, clicar "Publicar agora" reacionava o endpoint para o VIP também — que, sem filtro por `noticia_id`, simplesmente publicava a **próxima notícia da fila** nesse grupo, fora do horário programado do cron (7h/13h/19h), só porque o admin queria completar a publicação no Elite.
 
@@ -1917,7 +1917,7 @@ Achado da Fase 30 (categoria Lógica/Fila de publicação), mais profundo do que
 ---
 
 ### Item 26 — Rate limit de `leads/registrar` em memória de processo (ineficaz em serverless)
-**Status: ✅ CÓDIGO CONCLUÍDO — aguardando autorização para commit/push/deploy**
+**Status: ✅ CONCLUÍDO — commit `f81e4cf`, push e deploy em produção (alertapatriota.vercel.app) em 2026-06-28. `admin/setup` re-executado e `fiscal-codigo-schema` confirmou schema OK (0 problemas) pós-deploy.**
 
 Achado da Fase 30 (categoria Segurança/Infra): `leads/registrar/route.ts` é rota pública (chamada pela landing page, sem autenticação) e usava um `Map<string, number[]>` em memória do processo para limitar a 5 requisições/60s por IP. Em ambiente serverless (Vercel), cada cold start recebe memória zerada e, sob carga, múltiplas instâncias concorrentes da mesma função não compartilham memória entre si — então o limite nunca era de fato global por IP, só "por instância individual, enquanto ela ficar viva". Um abuso distribuído (ou simplesmente várias invocações que caem em instâncias diferentes) furava o limite sem esforço, expondo a rota a flood de inserts em `leads`.
 
