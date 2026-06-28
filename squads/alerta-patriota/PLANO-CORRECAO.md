@@ -1734,6 +1734,20 @@ Achado da Fase 30 confirmado, leitura completa do arquivo: a rota dispara 6 test
 
 ---
 
+### Item 13 — `admin/setup`: nunca terminava em produção (bloqueava os Itens 1, 2 e 10)
+**Status: ✅ CÓDIGO + DADOS CORRIGIDOS — deploy e materialização pendentes nesta mesma sessão**
+
+Ao tentar materializar os 3 índices novos dos Itens 1, 2 e 10 chamando `/api/admin/setup` em produção, a rota voltou `{"erro":"Erro interno"}` (erro genérico de propósito, Fase 24). Como a rota roda ~30 statements DDL sequenciais dentro de um único `try`, qualquer falha no meio aborta tudo o que vem depois — então isolei e roteiro cada statement individualmente direto contra o Neon de produção (script Node descartável com `@neondatabase/serverless` + `--use-system-ca`, mesmo padrão de debug já usado nas Fases 24/31) para achar exatamente onde a transação real sempre travava. Achados, os dois **pré-existentes, sem relação com os Itens 1/2/10 de hoje**:
+
+1. **`posts_whatsapp_rascunho_unique` falhava com "could not create unique index"**: a tabela tinha 7.261 linhas com `status='rascunho'`, das quais 2.532 eram duplicatas reais do mesmo `(grupo_id, noticia_id, tipo)` — Postgres rejeita `CREATE UNIQUE INDEX` quando já existem violações. Isso significa que esse índice (achado e "corrigido" na própria Fase 30) **nunca foi de fato criado em produção** desde então — toda chamada a `admin/setup` sempre abortou exatamente neste ponto, e nenhum statement depois dele (incluindo os índices novos de hoje) chegou a rodar. Autorização explícita do usuário obtida antes de tocar em dados de produção (apresentei as 2.532 linhas e 3 opções; usuário escolheu a limpeza). Apaguei as duplicatas mantendo a linha de maior `id` por grupo/notícia/tipo (a mais recente). `0` duplicatas restantes confirmado após a limpeza.
+2. **`idx_pagamentos_assinatura_id` falhava com "column \"assinatura_id\" does not exist"**: a tabela `pagamentos` em produção foi criada antes da coluna `assinatura_id` existir no `CREATE TABLE` do código — `CREATE TABLE IF NOT EXISTS` não adiciona colunas a uma tabela já existente, e faltava o `ALTER TABLE ADD COLUMN IF NOT EXISTS` correspondente (mesmo padrão de drift já tratado para `usuarios`/`leads`/`whatsapp_fila` neste mesmo arquivo). Tabela com 0 linhas em produção, então a correção é trivial e sem risco de dado. Fix: adicionado `ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS assinatura_id INT REFERENCES assinaturas(id)` logo após o `CREATE TABLE`.
+
+Com os dois bloqueios removidos, rodei a sequência completa dos ~30 statements direto contra produção (script de debug) e todos passaram. Falta repetir a chamada real a `/api/admin/setup` (com o código já deployado) para confirmar `{"ok": true}` em produção e materializar de fato os 3 índices dos Itens 1, 2 e 10.
+
+**Validação:** `tsc --noEmit` limpo (mesmo erro pré-existente fora de escopo, em `admin/usuarios/[id]`).
+
+---
+
 ## CREDENCIAIS E REFERÊNCIAS
 
 | Item | Valor |

@@ -72,6 +72,13 @@ export async function POST(req: NextRequest) {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `;
+    // FASE 32: produção criou a tabela `pagamentos` antes da coluna assinatura_id
+    // existir no CREATE TABLE acima — CREATE TABLE IF NOT EXISTS não adiciona colunas
+    // em tabela já existente, então a coluna nunca chegou em produção. Sem ela,
+    // idx_pagamentos_assinatura_id (abaixo) falhava com "column does not exist" e
+    // abortava todo o restante do script de setup (mesmo padrão de drift já tratado
+    // em usuarios/leads/whatsapp_fila neste arquivo).
+    await sql`ALTER TABLE pagamentos ADD COLUMN IF NOT EXISTS assinatura_id INT REFERENCES assinaturas(id)`;
 
     // ── GRUPOS WHATSAPP ─────────────────────────────────────────────────────
     await sql`
