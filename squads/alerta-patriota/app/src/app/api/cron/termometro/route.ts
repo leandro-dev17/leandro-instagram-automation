@@ -22,7 +22,7 @@ function getSemanaAno(): { semana: number; ano: number } {
 }
 
 async function gerarTermometro(noticias: string[]): Promise<{
-  democracia: number; economia: number; seguranca: number; soberania: number; analise: string;
+  democracia: number; economia: number; seguranca: number; soberania: number; analise: string; parseFalhou: boolean;
 }> {
   const lista = noticias.slice(0, 10).join("\n");
 
@@ -42,14 +42,17 @@ Responda EXATAMENTE neste formato JSON:
     }],
   });
 
+  // Item 6 (Fase 33): os dois fallbacks abaixo eram totalmente mudos — se a IA devolvesse
+  // texto fora do formato esperado, o termômetro postava scores fixos e genéricos para VIP
+  // e Elite todo domingo sem nenhum log ou alerta indicando que a geração real falhou.
   const text = texto || "{}";
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) return { democracia: 4, economia: 4, seguranca: 3, soberania: 5, analise: "Semana difícil para o Brasil patriótico." };
+  if (!match) return { democracia: 4, economia: 4, seguranca: 3, soberania: 5, analise: "Semana difícil para o Brasil patriótico.", parseFalhou: true };
 
   try {
-    return JSON.parse(match[0]);
+    return { ...JSON.parse(match[0]), parseFalhou: false };
   } catch {
-    return { democracia: 4, economia: 4, seguranca: 3, soberania: 5, analise: "Semana difícil para o Brasil patriótico." };
+    return { democracia: 4, economia: 4, seguranca: 3, soberania: 5, analise: "Semana difícil para o Brasil patriótico.", parseFalhou: true };
   }
 }
 
@@ -111,11 +114,14 @@ export async function GET(req: NextRequest) {
     if (!enviadoVip || !enviadoElite) {
       await alertarTelegram("🔴", "Falha ao enviar Termômetro", `vip: ${enviadoVip ? "ok" : "FALHOU"} | elite: ${enviadoElite ? "ok" : "FALHOU"}`);
     }
+    if (t.parseFalhou) {
+      await alertarTelegram("🟡", "Tereza Termômetro — fallback usado", "A IA não retornou JSON válido; scores genéricos foram postados nesta semana.");
+    }
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes, duracao_ms)
-      VALUES ('tereza-termometro', 'gerar_termometro', ${enviadoVip && enviadoElite ? "sucesso" : "erro"},
-        ${JSON.stringify({ semana, ano, scores: t, enviadoVip, enviadoElite })}, 0)
+      VALUES ('tereza-termometro', 'gerar_termometro', ${enviadoVip && enviadoElite && !t.parseFalhou ? "sucesso" : t.parseFalhou ? "aviso" : "erro"},
+        ${JSON.stringify({ semana, ano, scores: t, enviadoVip, enviadoElite, parseFalhou: t.parseFalhou })}, 0)
     `;
 
     return NextResponse.json({ ok: enviadoVip && enviadoElite, semana, scores: t });

@@ -27,9 +27,12 @@ type StatusFonte = {
 };
 
 async function buscarUltimaNoticia(nomeFonte: string): Promise<Date | null> {
+  // Item 6 (Fase 33): `fonte` é gravado com o nome exato (ver FONTES_BR em
+  // coletar-noticias/route.ts) — ILIKE %nome% deixava "Jovem Pan" dar match em notícias
+  // de "Jovem Pan News" (canal do YouTube), escondendo o feed RSS realmente inativo.
   const rows = await sql`
     SELECT created_at FROM noticias
-    WHERE fonte ILIKE ${"%" + nomeFonte + "%"}
+    WHERE fonte = ${nomeFonte}
     ORDER BY created_at DESC
     LIMIT 1
   `;

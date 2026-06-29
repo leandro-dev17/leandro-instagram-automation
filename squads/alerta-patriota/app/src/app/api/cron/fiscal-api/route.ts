@@ -37,10 +37,13 @@ export async function GET(req: NextRequest) {
   }
 
   if (erros.length > 0) {
-    let criado = false;
+    // Item 6 (Fase 33): se `criarAlertaDedup` falhar (banco fora do ar — justo a causa mais
+    // provável de rotas com problema), `criado` ficava `false` por padrão e o alerta real
+    // nunca disparava. Tratado como "não duplicado" para não silenciar o caso mais grave.
+    let criado = true;
     try {
       ({ criado } = await criarAlertaDedup("fiscal_api", "alto", erros.join("; ")));
-    } catch { /* banco pode estar fora */ }
+    } catch { /* banco pode estar fora — alerta mesmo assim */ }
     if (criado) {
       await alertarTelegram("🔴", "Fiscal André API — ROTAS COM PROBLEMA", erros.join("\n"));
     }

@@ -56,7 +56,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, qtdMembros, qtdWebhooks24h: qtdWebhooks, qtdPendentes });
   } catch (err) {
-    const { criado } = await criarAlertaDedup("fiscal_pagamentos_erro", "alto", String(err)).catch(() => ({ criado: false }));
+    // Item 6 (Fase 33): mesmo bug circular do fiscal-banco/fiscal-api — se este catch foi
+    // disparado por banco fora do ar, `criarAlertaDedup` (que também consulta o banco) falha
+    // junto, e o `.catch(() => ({ criado: false }))` calava o alerta justo no cenário mais grave.
+    const { criado } = await criarAlertaDedup("fiscal_pagamentos_erro", "alto", String(err)).catch(() => ({ criado: true }));
     if (criado) {
       await alertarTelegram("🔴", "Fiscal Felipe — ERRO", String(err));
     }

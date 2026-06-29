@@ -82,6 +82,11 @@ export async function GET(req: NextRequest) {
     }
   } catch (err) { problemas.push(`Erro ao verificar Bot Responder: ${String(err)}`); score -= 5; }
 
+  // Item 6 (Fase 33): score só decrementa, sem teto inferior — mesmo bug já corrigido em
+  // gerente-financeiro.ts (Item 20, Fase 32). Sem isso, vários problemas coincidindo geram
+  // "Score: -50/100" nos alertas e no log, contradizendo a escala documentada (0-100).
+  score = Math.max(0, Math.min(100, score));
+
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────
   if (score < 50) {
     await fetch(`${APP_URL}/api/cron/relatorio-ceo?origem=gerente-clientes&score=${score}`, {

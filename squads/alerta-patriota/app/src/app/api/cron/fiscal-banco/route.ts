@@ -51,7 +51,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, latencia_ms: latencia, queries_lengas: qtdLengas });
   } catch (err) {
-    const { criado } = await criarAlertaDedup("fiscal_banco", "critico", "Banco Neon não responde").catch(() => ({ criado: false }));
+    // Item 6 (Fase 33): `criarAlertaDedup` também consulta o banco — se o banco estiver
+    // mesmo fora do ar (o caso que este catch existe para cobrir), o dedup falha junto e
+    // o `.catch` original (`{ criado: false }`) fazia o código achar que já tinha alertado,
+    // silenciando justo o cenário mais crítico. Tratando a falha do dedup como "não duplicado"
+    // (`criado: true`) aceita o risco de Telegram repetido durante a queda em troca de nunca
+    // ficar em silêncio total.
+    const { criado } = await criarAlertaDedup("fiscal_banco", "critico", "Banco Neon não responde").catch(() => ({ criado: true }));
     if (criado) {
       await alertarTelegram("🚨", "Fiscal Bruna Banco — BANCO FORA DO AR", String(err));
     }

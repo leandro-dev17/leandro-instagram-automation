@@ -108,12 +108,16 @@ export async function GET(req: NextRequest) {
   const degradados = resultados.filter((r) => r.status === "degradado");
 
   for (const api of downs) {
+    // Item 6 (Fase 33): ILIKE num `api_down` em texto livre (comma-joined) é frágil — um
+    // nome que seja substring de outro (ex.: "API" dentro de "Evolution API") conta falhas
+    // da API errada. `detalhes->'downs'` é o array jsonb exato já gravado abaixo; `?`
+    // verifica pertencimento exato ao array, sem risco de match parcial.
     const falhasConsecutivas = await sql`
       SELECT COUNT(*) as total FROM agentes_log
       WHERE agente = 'arturo-apis'
         AND acao = 'health_check'
         AND status = 'erro'
-        AND (detalhes->>'api_down')::text ILIKE ${`%${api.nome}%`}
+        AND detalhes->'downs' ? ${api.nome}
         AND created_at >= NOW() - INTERVAL '2 hours'
     `;
     const qtdFalhas = Number(falhasConsecutivas[0].total) + 1;

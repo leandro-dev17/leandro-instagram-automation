@@ -48,7 +48,12 @@ function validarResumoCavalcanti(texto: string): string | null {
   // Prof. Cavalcanti.", e PROMPT_CAVALCANTI_GLOBAL (resumir-noticias-global) termina com
   // "O mundo muda para quem enxerga antes." — só validar a segunda apagava como "inválido"
   // todo resumo bom gerado pela persona normal (lib/personas.ts).
-  if (!/Análise do Prof\.?\s*Cavalcanti|mundo muda|enxerga antes/i.test(texto)) return "sem assinatura esperada";
+  // Item 6 (Fase 33): "mundo muda" e "enxerga antes" soltos (sem o resto da frase) podiam dar
+  // falso positivo de validação em qualquer resumo que mencionasse esses termos no meio do
+  // texto, não só na assinatura real ("O mundo muda para quem enxerga antes."). Exigir a frase
+  // completa e restringir a busca ao fim do texto (onde a assinatura sempre fica) evita isso.
+  const fim = texto.slice(-200);
+  if (!/Análise do Prof\.?\s*Cavalcanti\.?|O mundo muda para quem enxerga antes\.?/i.test(fim)) return "sem assinatura esperada";
   return null;
 }
 

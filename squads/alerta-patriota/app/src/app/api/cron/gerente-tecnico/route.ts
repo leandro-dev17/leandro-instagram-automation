@@ -85,6 +85,10 @@ export async function GET(req: NextRequest) {
     }
   } catch (err) { problemas.push(`Erro ao verificar Agente Médico: ${String(err)}`); score -= 5; }
 
+  // Item 6 (Fase 33): mesmo bug do gerente-clientes/gerente-conteudo/gerente-financeiro —
+  // score só decrementa. Aqui o risco é maior ainda (item 3 sozinho pode tirar até 45).
+  score = Math.max(0, Math.min(100, score));
+
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────
   if (score < 50) {
     // Critico → escala para CEO

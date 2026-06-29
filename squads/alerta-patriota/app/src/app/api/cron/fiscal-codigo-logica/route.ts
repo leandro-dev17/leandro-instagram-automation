@@ -122,9 +122,19 @@ export async function GET(req: NextRequest) {
           problemas.map(p => `• [${p.severidade.toUpperCase()}] ${p.desc}`).join("\n") + "\n\n⚠️ Escalando para Revisor de Lógica..."
         );
       }
-      await fetch(`${APP}/api/cron/revisor-logica`, {
+      // Item 6 (Fase 33): falha nessa escalação (timeout, 5xx) ficava completamente muda —
+      // o problema já tinha sido alertado acima, mas ninguém saberia que o Revisor de
+      // Lógica não chegou a rodar para investigar.
+      const resEscalacao = await fetch(`${APP}/api/cron/revisor-logica`, {
         headers: { Authorization: `Bearer ${CRON}` }, signal: AbortSignal.timeout(5000),
-      }).catch(() => {});
+      }).catch((e) => ({ ok: false, status: 0, erro: String(e) }) as const);
+      if (!resEscalacao.ok) {
+        const detalhe = "erro" in resEscalacao ? resEscalacao.erro : `HTTP ${resEscalacao.status}`;
+        await sql`
+          INSERT INTO agentes_log (agente, acao, status, detalhes)
+          VALUES ('fiscal-codigo-logica', 'escalar_revisor_logica', 'erro', ${JSON.stringify({ erro: detalhe })})
+        `.catch(() => {});
+      }
     }
 
     return NextResponse.json({ ok: problemas.length === 0, problemas, totalColetadas });

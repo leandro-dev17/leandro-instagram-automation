@@ -55,7 +55,11 @@ export async function GET(req: NextRequest) {
     if (parseInt(s.vip) < 1) { problemas.push("Estoque crítico: 0 notícias prontas para VIP"); score -= 20; }
     else if (parseInt(s.vip) < 2) { problemas.push("Estoque baixo: apenas 1 notícia para VIP"); score -= 5; }
     if (parseInt(s.elite) < 1) { problemas.push("Estoque crítico: 0 análises prontas para Elite"); score -= 10; }
-  } catch { /* silencioso */ }
+  } catch (err) {
+    // Item 6 (Fase 33): catch silencioso aqui escondia até falha real de query — a checagem
+    // simplesmente não acontecia e o relatório dizia "tudo ok" por omissão, não por verificação.
+    problemas.push(`Erro ao verificar estoque de notícias: ${String(err)}`); score -= 5;
+  }
 
   // 3. Conteúdo irrelevante publicado recentemente
   try {
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest) {
     `;
     const n = parseInt((alertasConteudo[0] as { total: string }).total);
     if (n > 0) { problemas.push(`${n} alertas de conteúdo irrelevante nas últimas 24h`); score -= 10; }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar alertas de conteúdo irrelevante: ${String(err)}`); score -= 5; }
 
   // 4. Pipeline completou hoje?
   try {
@@ -86,7 +90,10 @@ export async function GET(req: NextRequest) {
       if (!p.curou)   { problemas.push("Curador Carlos não rodou hoje"); score -= 15; }
       if (!p.resumiu) { problemas.push("Bernardo Resumidor não rodou hoje"); score -= 15; }
     }
-  } catch { /* silencioso */ }
+  } catch (err) { problemas.push(`Erro ao verificar pipeline diário: ${String(err)}`); score -= 5; }
+
+  // Item 6 (Fase 33): mesmo bug do gerente-clientes/gerente-financeiro — score só decrementa.
+  score = Math.max(0, Math.min(100, score));
 
   // ── ESCALONAMENTO ────────────────────────────────────────────────────────
   if (score < 50) {

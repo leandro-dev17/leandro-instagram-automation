@@ -48,9 +48,21 @@ const PALAVRAS_PROIBIDAS = [
   "festival de cinema",
 ];
 
+// Item 6 (Fase 33): `.includes()` puro casava substring dentro de palavras não relacionadas —
+// o caso mais grave era "gol" (item da lista, contexto futebol) dando match em "golpe", termo
+// político central ("golpe militar", "ameaça de golpe") que este fiscal existe para NÃO filtrar.
+// Lookaround de letra (incluindo acentuadas) simula \b sem depender da flag `u`/\p{L}.
+const LETRA = "a-zà-úA-ZÀ-Ú";
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 function contemPalavraProibida(texto: string): string | null {
   const lower = texto.toLowerCase();
-  return PALAVRAS_PROIBIDAS.find((p) => lower.includes(p)) ?? null;
+  for (const p of PALAVRAS_PROIBIDAS) {
+    const regex = new RegExp(`(?<![${LETRA}])${escapeRegex(p)}(?![${LETRA}])`, "i");
+    if (regex.test(lower)) return p;
+  }
+  return null;
 }
 
 export async function GET(req: NextRequest) {
