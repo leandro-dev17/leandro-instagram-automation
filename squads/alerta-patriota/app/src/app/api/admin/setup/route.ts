@@ -319,6 +319,24 @@ export async function POST(req: NextRequest) {
       ON leads_rate_limit (ip, created_at)
     `;
 
+    // ── RATE LIMIT (criar-pix / criar-direto) ───────────────────────────────
+    // Fase 34 (backlog seg/infra, item 2): mesmo bug do Item 26/Fase 30 (Map em
+    // memória do processo, ineficaz em serverless) — aqui em 2 rotas de criação
+    // de assinatura, as únicas que ainda não tinham sido migradas. Coluna `rota`
+    // mantém o limite independente entre criar-pix e criar-direto, mesmo padrão.
+    await sql`
+      CREATE TABLE IF NOT EXISTS assinaturas_rate_limit (
+        id SERIAL PRIMARY KEY,
+        ip VARCHAR(64) NOT NULL,
+        rota VARCHAR(30) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_assinaturas_rate_limit_ip_rota_created
+      ON assinaturas_rate_limit (ip, rota, created_at)
+    `;
+
     // ── PROMPTS CUSTOMIZADOS (editor /admin/prompts) ────────────────────────
     // FASE 27.3: o editor de prompts salvava em `alertas` (tipo='prompt_update') só um
     // JSON de metadados ({chave, chars}), nunca o texto do prompt em si, e o GET lia
@@ -401,6 +419,19 @@ export async function POST(req: NextRequest) {
     // `ON CONFLICT (url) DO NOTHING` ao inserir em noticias, o que sem este índice único
     // gera erro em runtime ("no unique or exclusion constraint matching ON CONFLICT").
     await sql`CREATE UNIQUE INDEX IF NOT EXISTS noticias_url_unique ON noticias(url) WHERE url IS NOT NULL`;
+
+    // Fase 34 (backlog seg/infra, item 1): ~19 rotas diferentes chamam enviarMensagemGrupo,
+    // sem nenhum throttle compartilhado entre elas — se 2+ crons disparam quase ao mesmo
+    // tempo, o mesmo grupo do WhatsApp pode receber várias mensagens em rajada, risco real de
+    // bloqueio anti-spam da Meta. Tabela usada por lib/whatsapp.ts para serializar envios por
+    // plano via claim atômico (ON CONFLICT ... WHERE), funciona entre invocações serverless
+    // distintas (Map em memória não serviria, mesma lição do Item 2 desta fase).
+    await sql`
+      CREATE TABLE IF NOT EXISTS whatsapp_throttle (
+        plano VARCHAR(20) PRIMARY KEY,
+        ultimo_envio TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `;
 
     // ── GRUPOS PADRÃO ───────────────────────────────────────────────────────
     await sql`

@@ -14,21 +14,25 @@ const VALORES_ANUAIS: Record<string, number> = {
 
 // Rate limit simples por IP — rota pública, sem login
 const LIMITE_POR_JANELA = 5;
-const JANELA_MS = 10 * 60_000;
-const requisicoesPorIp = new Map<string, number[]>();
 
-function excedeuLimite(ip: string): boolean {
-  const agora = Date.now();
-  const historico = (requisicoesPorIp.get(ip) || []).filter((t) => agora - t < JANELA_MS);
-  historico.push(agora);
-  requisicoesPorIp.set(ip, historico);
-  return historico.length > LIMITE_POR_JANELA;
+// Fase 34 (backlog seg/infra, item 2): Map em memória do processo não funciona em
+// serverless (cada cold start/instância concorrente tem memória isolada) — o limite
+// nunca era de fato global por IP. Persistido em assinaturas_rate_limit (tabela criada
+// em admin/setup/route.ts), mesmo padrão já usado em leads/registrar/route.ts.
+async function excedeuLimite(ip: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS total FROM assinaturas_rate_limit
+    WHERE ip = ${ip} AND rota = 'criar-pix' AND created_at > NOW() - INTERVAL '10 minutes'
+  `;
+  await sql`INSERT INTO assinaturas_rate_limit (ip, rota) VALUES (${ip}, 'criar-pix')`;
+  await sql`DELETE FROM assinaturas_rate_limit WHERE created_at < NOW() - INTERVAL '1 hour'`.catch(() => {});
+  return (rows[0]?.total ?? 0) >= LIMITE_POR_JANELA;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
-    if (excedeuLimite(ip)) {
+    if (await excedeuLimite(ip)) {
       return NextResponse.json({ erro: "Muitas tentativas. Tente novamente em alguns minutos." }, { status: 429 });
     }
 

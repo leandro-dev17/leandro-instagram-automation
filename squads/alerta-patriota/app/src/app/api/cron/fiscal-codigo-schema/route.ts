@@ -35,6 +35,8 @@ const SCHEMA_ESPERADO: Record<string, string[]> = {
   alertas: ["id", "tipo", "severidade", "mensagem", "resolvido", "resolvido_at", "created_at"],
   whatsapp_fila: ["id", "usuario_id", "tipo", "mensagem", "tentativas", "agendado_para", "processado_em", "created_at"],
   leads_rate_limit: ["id", "ip", "created_at"],
+  whatsapp_throttle: ["plano", "ultimo_envio"],
+  assinaturas_rate_limit: ["id", "ip", "rota", "created_at"],
 };
 
 export async function GET(req: NextRequest) {

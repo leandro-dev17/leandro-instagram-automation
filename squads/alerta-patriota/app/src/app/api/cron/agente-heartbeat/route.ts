@@ -31,6 +31,18 @@ function formatarHora(iso: string | null): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
 }
 
+// Fase 34 (backlog seg/infra, item 5): se o próprio GitHub Actions parar de disparar este
+// cron (já aconteceu antes, Fase 15 — job "Fiscais 24/7" cancelado em produção sem ninguém
+// notar), o alerta no Telegram nunca dispara, porque depende deste cron rodar. Um "dead man's
+// switch" externo (ex: healthchecks.io) detecta a AUSÊNCIA do ping, não depende deste código
+// rodar para avisar. DEADMAN_SWITCH_URL fica vazia até o usuário criar a conta e configurar —
+// sem a env var, esta função não faz nada (sem mudança de comportamento até então).
+async function avisarDeadManSwitch(): Promise<void> {
+  const url = process.env.DEADMAN_SWITCH_URL;
+  if (!url) return;
+  await fetch(url, { signal: AbortSignal.timeout(5000) }).catch(() => {});
+}
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
@@ -168,6 +180,7 @@ export async function GET(req: NextRequest) {
       statusGeral;
 
     await enviarTelegram(msg);
+    await avisarDeadManSwitch();
 
     const duracao_ms = Date.now() - inicio;
     await sql`

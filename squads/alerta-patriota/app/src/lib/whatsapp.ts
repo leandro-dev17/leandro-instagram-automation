@@ -1,4 +1,5 @@
 import type { Plano } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { alertarTelegram } from "@/lib/telegram";
 
 const EVO_URL = process.env.EVOLUTION_API_URL;
@@ -68,11 +69,36 @@ export async function enviarMensagemPrivada(telefone: string, texto: string, pla
 // Defesa contra valores de plano fora de "vip"/"elite" vindos de dados externos (ex: webhook MP)
 const GRUPOS_ATIVOS: Plano[] = ["vip", "elite"];
 
+// Fase 34 (backlog seg/infra, item 1): ~19 rotas diferentes chamam esta função sem
+// nenhuma coordenação entre si — se 2+ crons disparam quase ao mesmo tempo, o mesmo
+// grupo recebe várias mensagens em rajada, risco real de bloqueio anti-spam da Meta.
+// Claim atômico via UPDATE condicional (funciona entre invocações serverless distintas,
+// ao contrário de um throttle em memória): só prossegue quem conseguir mover
+// ultimo_envio pra agora; quem perder a corrida espera e tenta de novo, com orçamento
+// curto pra não comprometer o maxDuration da rota chamadora.
+const THROTTLE_MIN_MS = 3000;
+
+async function aguardarThrottleGrupo(plano: Plano): Promise<void> {
+  for (let tentativa = 0; tentativa < 6; tentativa++) {
+    const claimado = await sql`
+      INSERT INTO whatsapp_throttle (plano, ultimo_envio)
+      VALUES (${plano}, NOW())
+      ON CONFLICT (plano) DO UPDATE SET ultimo_envio = NOW()
+      WHERE whatsapp_throttle.ultimo_envio <= NOW() - INTERVAL '3 seconds'
+      RETURNING ultimo_envio
+    `.catch(() => []);
+    if (claimado.length > 0) return;
+    await new Promise((r) => setTimeout(r, THROTTLE_MIN_MS / 4));
+  }
+}
+
 export async function enviarMensagemGrupo(plano: Plano, texto: string): Promise<boolean> {
   if (!GRUPOS_ATIVOS.includes(plano)) return false;
   if (!EVO_URL || !EVO_KEY) return false;
   const groupId = GROUP_IDS[plano];
   if (!groupId) return false;
+
+  await aguardarThrottleGrupo(plano);
 
   return chamarEvolution(`${EVO_URL}/message/sendText/${getInstancia(plano)}`, {
     method: "POST",
