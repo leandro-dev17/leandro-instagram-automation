@@ -2028,6 +2028,8 @@ Correção: removida a duplicação (constantes `EVO_URL`/`EVO_KEY`/`EVO_INST`/`
 
 Arquivos: `app/src/app/api/admin/mensagem/route.ts` (refatorado).
 
+**Deploy:** autorizado pelo usuário em 28/06/2026. Commit `61aa438`, push para `origin/main` sem conflitos. `vercel --prod` executado com sucesso — deploy `dpl_7VSM2aeKYnrhnFxyibZhCWSv3eq9` promovido a produção (`target: production`).
+
 Próximo item: item 4 (`radar-economico.ts` trava 24h após uma falha).
 
 ---
