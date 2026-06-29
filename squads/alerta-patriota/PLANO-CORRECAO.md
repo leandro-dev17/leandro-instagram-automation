@@ -2018,7 +2018,17 @@ Correção aplicada (sem alteração de código, só configuração externa):
 
 Nenhum código foi alterado — só configuração na Evolution API e na Vercel. Validação final pendente: confirmar em alguns dias que `agentes_log` volta a registrar eventos de `messages.upsert`/`group-participants-update` (sinal de que o webhook está realmente recebendo e processando tráfego de novo).
 
-Próximo item: item 3 (`admin/mensagem.ts` usando instância errada do WhatsApp).
+**Item 3 — `admin/mensagem.ts` usando instância errada do WhatsApp: ✅ CONCLUÍDO (implementado, aguardando deploy)**
+
+Confirmado o bug: `admin/mensagem.ts` duplicava a chamada à Evolution API com `fetch` direto, usando só `EVOLUTION_INSTANCIA` fixa (ignorando `getInstancia(plano)`/`EVOLUTION_INSTANCIA_ELITE` para o plano Elite) e sem o retry/alerta de falha que `chamarEvolution()` já dá de graça em `lib/whatsapp.ts`. Mesma classe de bug já corrigida na Fase 27.7 em `enviarMensagemPrivada`, não propagada aqui porque o envio manual do admin foi escrito antes da centralização.
+
+Correção: removida a duplicação (constantes `EVO_URL`/`EVO_KEY`/`EVO_INST`/`GROUP_IDS` e o `fetch` manual); a rota agora chama `enviarMensagemGrupo(plano, mensagem)` de `lib/whatsapp.ts`, ganhando de volta a instância correta por plano, retry (2 tentativas) e alerta no Telegram em caso de falha — sem mudar o contrato da rota (mesmo `POST {grupo, mensagem, tipo}`, mesmas respostas de erro).
+
+`tsc --noEmit`: 0 erros novos (mesmo erro pré-existente de antes da sessão em `admin/usuarios/[id]/route.ts`, não relacionado).
+
+Arquivos: `app/src/app/api/admin/mensagem/route.ts` (refatorado).
+
+Próximo item: item 4 (`radar-economico.ts` trava 24h após uma falha).
 
 ---
 
