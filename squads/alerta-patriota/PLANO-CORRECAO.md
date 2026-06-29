@@ -2060,7 +2060,7 @@ Cinco fixes pequenos e independentes, agrupados numa única rodada por serem tod
 
 Arquivos: `app/src/app/api/admin/setup/route.ts`, `app/src/app/api/cron/gerar-card/route.ts`, `app/src/app/api/cron/resumir-noticias/route.ts`, `app/src/app/api/cron/resumir-noticias-global/route.ts`, `app/src/app/api/cron/fiscal-codigo-schema/route.ts`, `app/src/app/api/admin/noticias/route.ts`, `app/src/app/admin/conteudo/page.tsx`, `app/src/app/api/admin/modo-crise/route.ts`.
 
-**Deploy:** pendente de autorização do usuário. Após o deploy, é necessário invocar manualmente `/api/admin/setup` em produção para materializar os dois índices novos de `posts_whatsapp` (único mecanismo para eles — não há ALTER lazy em nenhum cron) — as colunas `tentativas_resumo_*` já se auto-curam via os ALTER lazy adicionados diretamente nas rotas.
+**Deploy:** autorizado pelo usuário em 28/06/2026. Commit `4096dfd`, push para `origin/main` sem conflitos. `vercel --prod` executado com sucesso — deploy `dpl_823AdRqbsw6DV5WATvqvN8EW7yTt` promovido a produção (`target: production`, `readyState: READY`), alias `alertapatriota.vercel.app` atualizado. `POST /api/admin/setup` invocado manualmente em produção após o deploy (`{"ok":true,"mensagem":"Banco de dados criado com sucesso!"}`) para materializar os dois índices novos de `posts_whatsapp` — as colunas `tentativas_resumo_*` já se auto-curaram via os ALTER lazy nas próprias rotas.
 
 Próximo item: item 6 (mini-auditoria dos achados sem dono da Fase 30) e item 7 (decisões de produto — integração morta do Instagram, cobertura do painel de agentes).
 
