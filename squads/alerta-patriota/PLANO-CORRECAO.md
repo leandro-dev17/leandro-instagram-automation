@@ -2004,7 +2004,21 @@ Arquivos: `app/src/lib/mp-ativar-acesso.ts` (novo), `app/src/app/api/cron/reconc
 
 **Deploy:** autorizado pelo usuário em 28/06/2026. Commit `fe089c8`, merge com 2 commits automáticos do bot `guardian-state` (sem conflitos), push para `origin/main`. `vercel --prod` executado com sucesso (build limpo, 24s) — rota `/api/cron/reconciliador-pix` confirmada presente no build. Deploy `dpl_3VbN6Z8MXfGdxvduyH6bJn76v1qS` promovido a produção e alias `alertapatriota.vercel.app` atualizado.
 
-Próximo item: item 2 (secret do webhook Evolution via query string).
+**Item 2 — Secret do webhook Evolution via query string: ✅ CONCLUÍDO + 🔴 bug crítico não relacionado descoberto e corrigido**
+
+Ao investigar o Item 2 (exposição do secret na URL), descobri que o problema real em produção era muito mais grave do que o item planejado:
+
+1. **Webhook não estava registrado na Evolution API.** `GET /webhook/find/alertapatriota` retornava `null`. A instância do WhatsApp foi recriada em 23/06/2026 (3 dias depois do registro original da Fase 22, em 20/06), o que aparentemente limpou a configuração do webhook. Resultado: mensagens de boas-vindas e bot-responder mortos desde 23/06, sem nenhum alerta — ninguém percebeu.
+2. **Mesmo registrado, o webhook seria rejeitado de qualquer forma.** A variável `EVOLUTION_WEBHOOK_SECRET` na Vercel produção estava com valor **vazio** (`""`) — só `.env.local` tinha o valor correto (64 chars). `validarOrigemEvolution()` em `webhook/whatsapp/route.ts` rejeita automaticamente quando `secret` é falsy (`if (!secret) return false`), então mesmo um webhook bem registrado nunca passaria a validação. Pela data do `vercel env ls` ("5d ago"), isso coincide com a mesma janela da recriação da instância (~23-24/06) — provavelmente a variável foi sobrescrita/limpa nesse processo.
+
+Correção aplicada (sem alteração de código, só configuração externa):
+1. Webhook reregistrado via `POST /webhook/set/alertapatriota` (eventos `MESSAGES_UPSERT` e `GROUP_PARTICIPANTS_UPDATE`, mesma config da Fase 22). Confirmado via `GET /webhook/find` que persistiu, `enabled: true`.
+2. Testado no mesmo passo se a Evolution API v2.3.7 aceita um campo `headers` customizado no payload — **aceita e persiste** (`headers: {"x-webhook-secret": "..."}` aparece de volta no `GET /webhook/find`). O código já validava esse header como fallback (`req.headers.get("x-webhook-secret") === secret`), então isso não exigiu mudança de código. O secret continua também na query string como mecanismo comprovado e principal — a confirmação de que a Evolution realmente *entrega* o header (e não só aceita salvar) ainda depende de tráfego real; por isso a query string não foi removida ainda. Remover o secret da URL fica como item separado, de baixo risco, para quando houver confirmação por log real de que o header chega.
+3. `EVOLUTION_WEBHOOK_SECRET` corrigida na Vercel produção (`vercel env rm` + `vercel env add` com o valor correto de 64 chars) e redeploy (`dpl_6B11rvKwgUgSGJZptpgBnP5tykVX`, `target: production`, alias `alertapatriota.vercel.app` confirmado apontando para o novo deploy).
+
+Nenhum código foi alterado — só configuração na Evolution API e na Vercel. Validação final pendente: confirmar em alguns dias que `agentes_log` volta a registrar eventos de `messages.upsert`/`group-participants-update` (sinal de que o webhook está realmente recebendo e processando tráfego de novo).
+
+Próximo item: item 3 (`admin/mensagem.ts` usando instância errada do WhatsApp).
 
 ---
 
