@@ -2040,6 +2040,8 @@ Correção: adicionado `AND status = 'sucesso'` na query, mesmo padrão já usad
 
 Arquivos: `app/src/app/api/cron/radar-economico/route.ts` (corrigido).
 
+**Deploy:** autorizado pelo usuário em 28/06/2026. Commit `af8666a`, push para `origin/main` sem conflitos. `vercel --prod` executado com sucesso — deploy `dpl_6ZztL3PRdquJJPVbvjFZE6u2JyLf` promovido a produção (`target: production`, `readyState: READY`).
+
 Próximo item: item 5 (lote de fixes menores — índices `posts_whatsapp`, early-exit `gerar-card`, reprocessamento do resumo Cavalcanti, UX modal de edição, enum `modo-crise`).
 
 ---
