@@ -50,9 +50,10 @@ export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
   try {
-    // Verifica se já rodou hoje
+    // Verifica se já rodou hoje com sucesso — filtra por status = 'sucesso' (mesmo padrão
+    // de campanha-recuperacao.ts) para que uma falha de envio não trave o agente por 24h.
     const jaRodou = await sql`
-      SELECT id FROM agentes_log WHERE agente = 'radar-economico'
+      SELECT id FROM agentes_log WHERE agente = 'radar-economico' AND status = 'sucesso'
       AND created_at >= NOW() - INTERVAL '24 hours' LIMIT 1
     `;
     if (jaRodou.length > 0) return NextResponse.json({ ok: true, motivo: "já executado hoje" });

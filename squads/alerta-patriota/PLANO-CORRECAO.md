@@ -2030,7 +2030,17 @@ Arquivos: `app/src/app/api/admin/mensagem/route.ts` (refatorado).
 
 **Deploy:** autorizado pelo usuário em 28/06/2026. Commit `61aa438`, push para `origin/main` sem conflitos. `vercel --prod` executado com sucesso — deploy `dpl_7VSM2aeKYnrhnFxyibZhCWSv3eq9` promovido a produção (`target: production`).
 
-Próximo item: item 4 (`radar-economico.ts` trava 24h após uma falha).
+**Item 4 — `radar-economico.ts` trava 24h após uma falha: ✅ CONCLUÍDO (implementado, aguardando deploy)**
+
+Confirmado o bug: a guarda "já rodou hoje" (`SELECT id FROM agentes_log WHERE agente = 'radar-economico' AND created_at >= NOW() - INTERVAL '24 hours'`) não filtrava por `status = 'sucesso'`. Se o envio falhasse uma vez (`enviarMensagemGrupo` retornando `false`), o log `'erro'` já contava como "rodou hoje" e a análise econômica diária do Elite simplesmente não era reenviada até o dia seguinte — mesmo bug achado de forma independente nas Fases 26 e 30, nunca corrigido até agora.
+
+Correção: adicionado `AND status = 'sucesso'` na query, mesmo padrão já usado em `campanha-recuperacao.ts:61-63` (referência citada na Fase 30). Mudança de 1 linha, sem alterar nenhum outro comportamento da rota.
+
+`tsc --noEmit`: 0 erros novos (mesmo erro pré-existente em `admin/usuarios/[id]/route.ts`, não relacionado).
+
+Arquivos: `app/src/app/api/cron/radar-economico/route.ts` (corrigido).
+
+Próximo item: item 5 (lote de fixes menores — índices `posts_whatsapp`, early-exit `gerar-card`, reprocessamento do resumo Cavalcanti, UX modal de edição, enum `modo-crise`).
 
 ---
 
