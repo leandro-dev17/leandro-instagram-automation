@@ -2083,7 +2083,7 @@ A Fase 30 citava "5 achados adicionais" e "9 achados de baixa severidade" na cat
 
 Arquivos: `app/src/app/api/cron/fiscal-banco/route.ts`, `fiscal-api/route.ts`, `fiscal-pagamentos/route.ts`, `gerente-clientes/route.ts`, `gerente-conteudo/route.ts`, `gerente-tecnico/route.ts`, `fiscal-apis-externas/route.ts`, `fiscal-fontes/route.ts`, `fiscal-conteudo/route.ts`, `fiscal-qualidade-resumo/route.ts`, `fiscal-codigo-logica/route.ts`, `termometro/route.ts`.
 
-**Deploy:** pendente de autorização do usuário.
+**Deploy:** autorizado pelo usuário em 29/06/2026. Commit `f52aba3`, push para `origin/main` sem conflitos (sem commits automáticos de bot na janela). `vercel --prod` executado com sucesso (build 24s) — deploy `dpl_4i9dmD4sv9TfYpbTcPcZGMSoktx8` promovido a produção (`target: production`, `readyState: READY`), alias `alertapatriota.vercel.app` atualizado.
 
 Próximo item: item 7 (decisões de produto — integração morta do Instagram, cobertura do painel de agentes).
 
