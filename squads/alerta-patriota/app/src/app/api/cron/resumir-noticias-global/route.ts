@@ -14,6 +14,11 @@ import { gerarTexto } from "@/lib/ai";
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
 export const maxDuration = 60;
 
+// Acima deste número de falhas, a notícia para de ser reprocessada (e gasta IA à toa) e
+// gera um alerta único — antes disso, uma falha simplesmente resetava o resumo pra NULL e
+// a notícia voltava pro lote pendente até 10h depois, indefinidamente, sem nunca avisar ninguém.
+const MAX_TENTATIVAS_RESUMO = 3;
+
 // Busca og:description na página quando o RSS não trouxe conteúdo (ou trouxe pouco) —
 // mesmo padrão usado em resumir-noticias, aplicado só às ~6 notícias globais pendentes.
 async function buscarConteudoFallback(url: string): Promise<string> {
@@ -56,12 +61,16 @@ export async function GET(req: NextRequest) {
   let erros = 0;
 
   try {
-    // Busca notícias globais sem resumo
+    // Garante a coluna de tentativas (idempotente, mesmo padrão das colunas de card em gerar-card.ts)
+    await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS tentativas_resumo_cavalcanti INT DEFAULT 0`.catch(() => {});
+
+    // Busca notícias globais sem resumo, exceto as que já esgotaram as tentativas
     const pendentes = await sql`
-      SELECT id, titulo, url, conteudo_original
+      SELECT id, titulo, url, conteudo_original, tentativas_resumo_cavalcanti
       FROM noticias
       WHERE global = true
       AND resumo_cavalcanti IS NULL
+      AND tentativas_resumo_cavalcanti < ${MAX_TENTATIVAS_RESUMO}
       AND created_at >= NOW() - INTERVAL '10 hours'
       ORDER BY created_at DESC
       LIMIT 6
@@ -86,7 +95,11 @@ export async function GET(req: NextRequest) {
 
         const resumo = await gerarResumoGlobal(n.titulo, conteudo, n.url);
         if (!resumo) {
-          await sql`UPDATE noticias SET resumo_cavalcanti = NULL WHERE id = ${n.id}`;
+          const novasTentativas = n.tentativas_resumo_cavalcanti + 1;
+          await sql`UPDATE noticias SET resumo_cavalcanti = NULL, tentativas_resumo_cavalcanti = ${novasTentativas} WHERE id = ${n.id}`;
+          if (novasTentativas >= MAX_TENTATIVAS_RESUMO) {
+            await alertarTelegram("🟡", "Resumo Cavalcanti global abandonado após falhas repetidas", `Notícia id ${n.id} ("${n.titulo}") falhou ${novasTentativas}x ao gerar resumo — parando de reprocessar para não gastar IA à toa.`).catch(() => {});
+          }
           erros++;
           continue;
         }

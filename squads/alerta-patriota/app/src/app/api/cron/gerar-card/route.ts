@@ -20,6 +20,11 @@ import { gerarTexto } from "@/lib/ai";
 // deixando a mídia incompleta no WhatsApp — é a causa raiz do card ficar "aguardando carregar".
 export const maxDuration = 60;
 
+// Fase 30, categoria 3: sem isso, em dia de degradação total da Evolution API, o loop
+// gastava o orçamento inteiro de 60s tentando as 5 candidatas e a Vercel matava a função
+// antes do alertarTelegram final (linha ~216) sequer disparar — falha completa e silenciosa.
+const ORCAMENTO_MS = 45_000;
+
 const EVO_URL       = process.env.EVOLUTION_API_URL;
 const EVO_KEY       = process.env.EVOLUTION_API_KEY;
 const EVO_INST_VIP   = process.env.EVOLUTION_INSTANCIA       || "alertapatriota";
@@ -181,6 +186,11 @@ export async function GET(req: NextRequest) {
     const erros: string[] = [];
 
     for (const n of rows) {
+      if (Date.now() - inicio > ORCAMENTO_MS) {
+        erros.push(`Abortado: orçamento de tempo (${ORCAMENTO_MS}ms) esgotado antes de tentar todas as ${rows.length} candidatas`);
+        break;
+      }
+
       const fonte = n.fonte || "Alerta Patriota";
 
       const hook = await gerarHook(n.titulo, plano);

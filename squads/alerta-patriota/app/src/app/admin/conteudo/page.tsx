@@ -11,6 +11,8 @@ type Noticia = {
   global: boolean;
   postada_vip: boolean;
   postada_elite: boolean;
+  resumo_braga: string | null;
+  resumo_cavalcanti: string | null;
   tem_resumo_braga: boolean;
   tem_resumo_cavalcanti: boolean;
   created_at: string;
@@ -221,7 +223,7 @@ export default function AdminConteudo() {
                     {/* Ações */}
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
-                        onClick={() => setEditando({ id: n.id, urgente: n.urgente })}
+                        onClick={() => setEditando({ id: n.id, urgente: n.urgente, resumo_braga: n.resumo_braga || "", resumo_cavalcanti: n.resumo_cavalcanti || "" })}
                         style={{ background: "#1e1e2e", color: "#aaa", border: "1px solid #2e2e4e", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11 }}
                       >
                         ✏️ Editar

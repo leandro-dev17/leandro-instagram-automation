@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     const noticias = await sql`
       SELECT id, titulo, fonte, url, categoria, urgente, global,
              postada_vip, postada_elite,
+             resumo_braga, resumo_cavalcanti,
              resumo_braga IS NOT NULL as tem_resumo_braga,
              resumo_cavalcanti IS NOT NULL as tem_resumo_cavalcanti,
              created_at

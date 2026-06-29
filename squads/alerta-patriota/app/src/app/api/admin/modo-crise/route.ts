@@ -5,6 +5,12 @@ import { requireAdmin } from "@/lib/auth";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
+// Fase 30, categoria 5: `acao` ia direto do body pro query string do cron sem
+// validação — mesmo o cron rejeitando ações desconhecidas com 400, este endpoint
+// repassava qualquer valor recebido (inclusive não-string) sem checar contra a
+// lista de ações que o painel realmente oferece.
+const ACOES_VALIDAS = ["ativar", "desativar", "status", "verificar"];
+
 export async function GET() {
   try {
     await requireAdmin();
@@ -21,6 +27,9 @@ export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdmin();
     const { acao } = await req.json();
+    if (!ACOES_VALIDAS.includes(acao)) {
+      return NextResponse.json({ erro: "Ação inválida" }, { status: 400 });
+    }
 
     const res = await fetch(`${APP_URL}/api/cron/modo-crise?acao=${acao}`, {
       headers: { Authorization: `Bearer ${CRON_SECRET}` },

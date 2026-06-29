@@ -2042,7 +2042,27 @@ Arquivos: `app/src/app/api/cron/radar-economico/route.ts` (corrigido).
 
 **Deploy:** autorizado pelo usuário em 28/06/2026. Commit `af8666a`, push para `origin/main` sem conflitos. `vercel --prod` executado com sucesso — deploy `dpl_6ZztL3PRdquJJPVbvjFZE6u2JyLf` promovido a produção (`target: production`, `readyState: READY`).
 
-Próximo item: item 5 (lote de fixes menores — índices `posts_whatsapp`, early-exit `gerar-card`, reprocessamento do resumo Cavalcanti, UX modal de edição, enum `modo-crise`).
+**Item 5 — Lote de 5 correções menores de baixo risco: ✅ CONCLUÍDO (implementado, aguardando deploy)**
+
+Cinco fixes pequenos e independentes, agrupados numa única rodada por serem todos de baixo risco (achados originais da Fase 30/26).
+
+1. **Índices faltando em `posts_whatsapp`.** `fiscal-duplicatas.ts`/`fiscal-codigo-logica.ts` fazem self-join em `(grupo_id, tipo, enviado_at)` e `agente-heartbeat.ts` faz join em `grupo_id`, ambos sem nenhum índice de apoio — full scan crescente conforme a tabela cresce. Adicionados `idx_posts_whatsapp_grupo` e `idx_posts_whatsapp_grupo_tipo_enviado` em `admin/setup/route.ts` (mesmo padrão idempotente `CREATE INDEX IF NOT EXISTS` já usado nesse arquivo). Confirmado via grep que a coluna real é `enviado_at` (o achado original da Fase 30 citava `created_at`, que não existe nessa tabela).
+
+2. **`gerar-card.ts` sem early-exit por tempo decorrido.** O loop de até 5 candidatas (fallback quando uma notícia falha no envio) não verificava o tempo já gasto contra o `maxDuration = 60` da rota — em dia de degradação total da Evolution API, as 5 tentativas falhando em sequência podiam consumir o orçamento inteiro e a Vercel matava a função antes do `alertarTelegram("🔴", "Falha Gerador Card"...)` final disparar, deixando uma falha completa do card totalmente silenciosa. Adicionado um orçamento de `45_000`ms (`ORCAMENTO_MS`): se excedido no início de qualquer iteração do loop, ele aborta nessa hora (preservando os erros já acumulados) e segue direto para o alerta final, garantindo folga de ~15s antes do timeout.
+
+3. **Reprocessamento infinito dos resumos Braga/Cavalcanti.** Quando a geração de resumo falhava (erro de IA), o código resetava `resumo_braga`/`resumo_cavalcanti` para `NULL` e a notícia voltava para o lote pendente indefinidamente, sem nunca avisar ninguém — podendo gastar IA à toa para sempre numa notícia com conteúdo problemático. Adicionado um contador de tentativas por campo (colunas novas `tentativas_resumo_braga`/`tentativas_resumo_cavalcanti`, idempotentes via `ALTER TABLE ADD COLUMN IF NOT EXISTS` dentro da própria rota, mesmo padrão de `gerar-card.ts`): acima de `MAX_TENTATIVAS_RESUMO = 3` falhas, a notícia para de ser selecionada para reprocessamento e dispara um alerta único no Telegram avisando que foi abandonada. Não foi introduzido nenhum valor-sentinela na coluna de resumo (que poderia ser lido como conteúdo válido por `gerar-card.ts`, `publicar-noticias.ts`, `radar-politico.ts`, fiscais e páginas admin) — o corte é feito só excluindo da `WHERE` as linhas já esgotadas. Aplicado em `resumir-noticias.ts` (Braga + Cavalcanti, fluxo nacional) e `resumir-noticias-global.ts` (Cavalcanti, fluxo internacional); o catch genérico de erro de infra em `resumir-noticias-global.ts` (reset por `'__PROCESSANDO__'` órfão) foi deixado intacto, por ser uma classe de falha diferente. As duas colunas novas foram registradas em `fiscal-codigo-schema/route.ts`'s `SCHEMA_ESPERADO.noticias`, repetindo a lição da Fase 30/Item 23 (colunas criadas só via ALTER lazy ficavam fora do radar do fiscal de schema).
+
+4. **Modal de edição de notícia não mostrava o resumo já salvo.** `admin/conteudo/page.tsx` abria o modal sempre com os campos de resumo vazios, mesmo quando a notícia já tinha `resumo_braga`/`resumo_cavalcanti` gravados — porque o `GET /api/admin/noticias` só retornava os booleanos `tem_resumo_braga`/`tem_resumo_cavalcanti` (existência), nunca o texto. Corrigido: o GET agora também retorna o texto completo das duas colunas, e o botão "Editar" pré-carrega esse texto no estado do modal.
+
+5. **`POST /api/admin/modo-crise` sem validação de enum.** O campo `acao` do body ia direto para a query string do cron (`/api/cron/modo-crise?acao=${acao}`) sem checar contra a lista de ações que o painel realmente oferece (o cron já rejeita ações desconhecidas com 400, mas o endpoint admin repassava qualquer valor recebido sem validação própria — mesmo padrão de validação de enum já usado em `admin/mensagem/route.ts` para o campo `grupo`). Adicionado `ACOES_VALIDAS = ["ativar", "desativar", "status", "verificar"]` com checagem antes do fetch, retornando 400 para qualquer valor fora da lista.
+
+`tsc --noEmit`: 0 erros novos em todos os 5 sub-itens (mesmo erro pré-existente em `admin/usuarios/[id]/route.ts`, não relacionado).
+
+Arquivos: `app/src/app/api/admin/setup/route.ts`, `app/src/app/api/cron/gerar-card/route.ts`, `app/src/app/api/cron/resumir-noticias/route.ts`, `app/src/app/api/cron/resumir-noticias-global/route.ts`, `app/src/app/api/cron/fiscal-codigo-schema/route.ts`, `app/src/app/api/admin/noticias/route.ts`, `app/src/app/admin/conteudo/page.tsx`, `app/src/app/api/admin/modo-crise/route.ts`.
+
+**Deploy:** pendente de autorização do usuário. Após o deploy, é necessário invocar manualmente `/api/admin/setup` em produção para materializar os dois índices novos de `posts_whatsapp` (único mecanismo para eles — não há ALTER lazy em nenhum cron) — as colunas `tentativas_resumo_*` já se auto-curam via os ALTER lazy adicionados diretamente nas rotas.
+
+Próximo item: item 6 (mini-auditoria dos achados sem dono da Fase 30) e item 7 (decisões de produto — integração morta do Instagram, cobertura do painel de agentes).
 
 ---
 

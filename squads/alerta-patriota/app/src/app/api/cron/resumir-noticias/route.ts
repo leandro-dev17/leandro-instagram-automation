@@ -15,7 +15,14 @@ interface Noticia {
   url: string;
   resumo_braga: string | null;
   resumo_cavalcanti: string | null;
+  tentativas_resumo_braga: number;
+  tentativas_resumo_cavalcanti: number;
 }
+
+// Acima deste número de falhas, a notícia para de ser reprocessada (e gasta IA à toa) e
+// gera um alerta único — antes disso, uma falha simplesmente resetava o resumo pra NULL e
+// a notícia voltava pro lote pendente indefinidamente, sem nunca avisar ninguém.
+const MAX_TENTATIVAS_RESUMO = 3;
 
 // Quando o RSS não trouxe descrição (ou trouxe algo curto demais p/ a IA ter
 // substância real pra resumir), busca o og:description direto na página da notícia —
@@ -72,17 +79,22 @@ export async function GET(req: NextRequest) {
   let noticiasDuplicadas = 0;
 
   try {
+    // Garante as colunas de tentativas (idempotente, mesmo padrão das colunas de card em gerar-card.ts)
+    await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS tentativas_resumo_braga INT DEFAULT 0`.catch(() => {});
+    await sql`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS tentativas_resumo_cavalcanti INT DEFAULT 0`.catch(() => {});
+
     const [promptBraga, promptCavalcanti] = await Promise.all([
       obterPromptCustomizado("braga_vip", PROMPT_BRAGA),
       obterPromptCustomizado("cavalcanti", PROMPT_CAVALCANTI),
     ]);
 
     const noticias = (await sql`
-      SELECT id, titulo, conteudo_original, url, resumo_braga, resumo_cavalcanti
+      SELECT id, titulo, conteudo_original, url, resumo_braga, resumo_cavalcanti, tentativas_resumo_braga, tentativas_resumo_cavalcanti
       FROM noticias
       WHERE categoria = 'curada'
         AND (global IS NULL OR global = false)
-        AND (resumo_braga IS NULL OR resumo_cavalcanti IS NULL)
+        AND ((resumo_braga IS NULL AND tentativas_resumo_braga < ${MAX_TENTATIVAS_RESUMO})
+          OR (resumo_cavalcanti IS NULL AND tentativas_resumo_cavalcanti < ${MAX_TENTATIVAS_RESUMO}))
         AND created_at >= NOW() - INTERVAL '6 hours'
       ORDER BY created_at DESC
       LIMIT 100
@@ -122,7 +134,7 @@ export async function GET(req: NextRequest) {
         // WHERE ...IS NULL só afeta a linha se nenhuma outra execução concorrente
         // (ex.: workflow_dispatch manual rodando junto com o cron agendado) já a
         // tiver reservado — evita gerar e pagar pela IA duas vezes para a mesma notícia.
-        if (!resumoBraga) {
+        if (!resumoBraga && noticia.tentativas_resumo_braga < MAX_TENTATIVAS_RESUMO) {
           const claim = await sql`
             UPDATE noticias SET resumo_braga = '__PROCESSANDO__'
             WHERE id = ${noticia.id} AND resumo_braga IS NULL
@@ -133,7 +145,11 @@ export async function GET(req: NextRequest) {
               resumoBraga = await gerarResumo(noticia.titulo, conteudo, noticia.url, promptBraga);
               await sql`UPDATE noticias SET resumo_braga = ${resumoBraga} WHERE id = ${noticia.id}`;
             } catch (e) {
-              await sql`UPDATE noticias SET resumo_braga = NULL WHERE id = ${noticia.id}`;
+              const novasTentativas = noticia.tentativas_resumo_braga + 1;
+              await sql`UPDATE noticias SET resumo_braga = NULL, tentativas_resumo_braga = ${novasTentativas} WHERE id = ${noticia.id}`;
+              if (novasTentativas >= MAX_TENTATIVAS_RESUMO) {
+                await alertarTelegram("🟡", "Resumo Braga abandonado após falhas repetidas", `Notícia id ${noticia.id} ("${noticia.titulo}") falhou ${novasTentativas}x ao gerar resumo Braga — parando de reprocessar para não gastar IA à toa.`).catch(() => {});
+              }
               throw e;
             }
           } else {
@@ -141,7 +157,7 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        if (!resumoCavalcanti) {
+        if (!resumoCavalcanti && noticia.tentativas_resumo_cavalcanti < MAX_TENTATIVAS_RESUMO) {
           const claim = await sql`
             UPDATE noticias SET resumo_cavalcanti = '__PROCESSANDO__'
             WHERE id = ${noticia.id} AND resumo_cavalcanti IS NULL
@@ -152,7 +168,11 @@ export async function GET(req: NextRequest) {
               resumoCavalcanti = await gerarResumo(noticia.titulo, conteudo, noticia.url, promptCavalcanti);
               await sql`UPDATE noticias SET resumo_cavalcanti = ${resumoCavalcanti} WHERE id = ${noticia.id}`;
             } catch (e) {
-              await sql`UPDATE noticias SET resumo_cavalcanti = NULL WHERE id = ${noticia.id}`;
+              const novasTentativas = noticia.tentativas_resumo_cavalcanti + 1;
+              await sql`UPDATE noticias SET resumo_cavalcanti = NULL, tentativas_resumo_cavalcanti = ${novasTentativas} WHERE id = ${noticia.id}`;
+              if (novasTentativas >= MAX_TENTATIVAS_RESUMO) {
+                await alertarTelegram("🟡", "Resumo Cavalcanti abandonado após falhas repetidas", `Notícia id ${noticia.id} ("${noticia.titulo}") falhou ${novasTentativas}x ao gerar resumo Cavalcanti — parando de reprocessar para não gastar IA à toa.`).catch(() => {});
+              }
               throw e;
             }
           } else {

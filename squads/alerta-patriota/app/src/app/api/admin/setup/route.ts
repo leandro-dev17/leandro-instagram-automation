@@ -156,6 +156,10 @@ export async function POST(req: NextRequest) {
       CREATE UNIQUE INDEX IF NOT EXISTS posts_whatsapp_rascunho_unique
       ON posts_whatsapp(grupo_id, noticia_id, tipo) WHERE status = 'rascunho'
     `;
+    // Fase 30, categoria 5: fiscal-duplicatas (self-join em grupo_id+tipo+enviado_at) e
+    // agente-heartbeat (join em grupo_id) faziam essas consultas sem nenhum índice de apoio.
+    await sql`CREATE INDEX IF NOT EXISTS idx_posts_whatsapp_grupo ON posts_whatsapp(grupo_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_posts_whatsapp_grupo_tipo_enviado ON posts_whatsapp(grupo_id, tipo, enviado_at)`;
 
     // ── LISTA DE ESPERA ─────────────────────────────────────────────────────
     await sql`

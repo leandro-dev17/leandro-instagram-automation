@@ -25,6 +25,7 @@ const SCHEMA_ESPERADO: Record<string, string[]> = {
     "urgente", "global", "postada_vip", "postada_elite",
     "postada_vip_at", "postada_elite_at",
     "postada_vip_card", "postada_elite_card", "postada_vip_card_at", "postada_elite_card_at",
+    "tentativas_resumo_braga", "tentativas_resumo_cavalcanti",
     "created_at"],
   assinaturas: ["id", "usuario_id", "plano", "valor", "ciclo", "status", "mp_subscription_id", "renovada_em", "created_at"],
   grupos_whatsapp: ["id", "nome", "plano", "link_convite", "group_id_wa", "max_membros", "membros_ativos", "ativo", "created_at"],
