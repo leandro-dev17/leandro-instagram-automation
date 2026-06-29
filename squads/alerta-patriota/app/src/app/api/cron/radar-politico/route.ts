@@ -1,8 +1,11 @@
 /**
- * AGENTE RAQUEL RADAR + VICTOR VIRAL + FÁBIO FOMO
- * Monitora declarações virais de deputados de direita e empresários conservadores.
- * Quando detecta algo relevante, gera análise urgente do Capitão Braga (políticos,
- * só Brasil) e do Prof. Cavalcanti (políticos e empresários, ângulo global/econômico).
+ * AGENTE RAQUEL RADAR + VICTOR VIRAL
+ * Monitora declarações virais de deputados de direita brasileiros.
+ * Quando detecta algo relevante, gera análise urgente do Capitão Braga e posta no VIP.
+ * Bug (29/06/2026): até aqui também gerava uma análise do Prof. Cavalcanti e postava no
+ * grupo Elite sobre os MESMOS políticos brasileiros — mas o Elite é o grupo de conteúdo
+ * global/internacional (ver resumir-noticias-global.ts); políticos do Brasil não deveriam
+ * aparecer lá. Cavalcanti/Elite removidos deste arquivo.
  * GET /api/cron/radar-politico
  */
 
@@ -16,35 +19,33 @@ import { gerarTexto } from "@/lib/ai";
 // Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
 export const maxDuration = 60;
 
-// Políticos e empresários de direita monitorados.
+// Políticos de direita brasileiros monitorados.
 // canalYoutube = canal pessoal verificado (ver auditoria de 27/06/2026): todo vídeo
 // publicado nele é tratado como relevante automaticamente — sem isso, o filtro por
 // nome-no-título nunca batia, porque o vídeo de alguém no próprio canal raramente
 // tem o nome dela no título. Sem canalYoutube, a pessoa só é encontrada via busca
 // por nome nos portais de notícia e nos canais de mídia genéricos.
-// tipo "empresario": só gera análise do Prof. Cavalcanti (Elite) — Capitão Braga
-// comenta exclusivamente notícias do Brasil sobre política, não sobre empresários.
-// periodos: em quais janelas do dia (BRT) a pessoa é monitorada — evita que os 9
+// periodos: em quais janelas do dia (BRT) a pessoa é monitorada — evita que todos
 // sejam verificados todos de manhã e quase nenhum de noite (pedido do usuário em
-// 27/06/2026). Cada pessoa cobre 2 dos 3 períodos, distribuídos para que cada
-// período tenha ~6 pessoas ativas (balanceado).
+// 27/06/2026). Cada pessoa cobre 2 dos 3 períodos.
+// Bug (29/06/2026): os 3 empresários antes listados aqui (Luciano Hang, Flávio
+// Augusto, Pablo Marçal) só geravam análise do Prof. Cavalcanti — removida nesta
+// correção por postar no Elite (ver topo do arquivo). Sem Cavalcanti, monitorá-los
+// não produzia mais nenhum post (Capitão Braga nunca comenta empresários), então
+// foram removidos junto em vez de ficar como monitoramento morto.
 type Periodo = "manha" | "tarde" | "noite";
-type Pessoa = { nome: string; busca: string; tipo: "politico" | "empresario"; canalYoutube?: string; periodos: Periodo[] };
+type Pessoa = { nome: string; busca: string; canalYoutube?: string; periodos: Periodo[] };
 
 const PESSOAS: Pessoa[] = [
   // Políticos brasileiros — canais verificados em 27/06/2026 (os IDs anteriores
   // aqui não correspondiam a nenhum canal real; o coletor de notícias usa os
   // IDs corretos há mais tempo, daqui replicamos os mesmos)
-  { nome: "Nikolas Ferreira",   busca: "nikolas ferreira", tipo: "politico", canalYoutube: "UCxI9vN6UbxmBt8VIvUKtJaA", periodos: ["tarde", "noite"] },
-  { nome: "Eduardo Bolsonaro",  busca: "eduardo bolsonaro", tipo: "politico", canalYoutube: "UCkR6xPOHhpjq3wnFchVI4sg", periodos: ["manha", "noite"] },
-  { nome: "Marco Feliciano",    busca: "feliciano",        tipo: "politico", canalYoutube: "UCpdI21rGF-U3fMoTMCHotSA", periodos: ["manha", "tarde"] },
-  { nome: "Damares Alves",      busca: "damares",          tipo: "politico", canalYoutube: "UCUygDoaCJVidyeo9dQFQFnA", periodos: ["tarde", "noite"] },
-  { nome: "Sergio Moro",        busca: "sergio moro",       tipo: "politico", periodos: ["manha", "noite"] },
-  { nome: "General Mourão",     busca: "mourão OR mourao",  tipo: "politico", periodos: ["manha", "tarde"] },
-  // Empresários de direita — canais verificados em 27/06/2026
-  { nome: "Luciano Hang",       busca: "luciano hang",     tipo: "empresario", canalYoutube: "UCQVGpvqkT_VI_qKg6MYqeWA", periodos: ["tarde", "noite"] },
-  { nome: "Flávio Augusto",     busca: "flávio augusto",   tipo: "empresario", canalYoutube: "UCP3PkxfP6A_KqbaCOBEQQuA", periodos: ["manha", "noite"] },
-  { nome: "Pablo Marçal",       busca: "pablo marçal",     tipo: "empresario", canalYoutube: "UCbroBIg8zvIH8-F4631wJhA", periodos: ["manha", "tarde"] },
+  { nome: "Nikolas Ferreira",   busca: "nikolas ferreira",  canalYoutube: "UCxI9vN6UbxmBt8VIvUKtJaA", periodos: ["tarde", "noite"] },
+  { nome: "Eduardo Bolsonaro",  busca: "eduardo bolsonaro", canalYoutube: "UCkR6xPOHhpjq3wnFchVI4sg", periodos: ["manha", "noite"] },
+  { nome: "Marco Feliciano",    busca: "feliciano",         canalYoutube: "UCpdI21rGF-U3fMoTMCHotSA", periodos: ["manha", "tarde"] },
+  { nome: "Damares Alves",      busca: "damares",           canalYoutube: "UCUygDoaCJVidyeo9dQFQFnA", periodos: ["tarde", "noite"] },
+  { nome: "Sergio Moro",        busca: "sergio moro",       periodos: ["manha", "noite"] },
+  { nome: "General Mourão",     busca: "mourão OR mourao",  periodos: ["manha", "tarde"] },
 ];
 
 // Limite de alertas gerados por pessoa por dia — evita inundar os grupos quando
@@ -199,25 +200,6 @@ Responda APENAS com o texto.`,
   return texto;
 }
 
-async function gerarAlertaCavalcanti(pessoa: string, titulo: string): Promise<string> {
-  const texto = await gerarTexto({
-    model: "claude-haiku-4-5-20251001",
-    agente: "raquel-radar",
-    max_tokens: 350,
-    messages: [{
-      role: "user",
-      content: `Você é o Prof. Bernardo Cavalcanti, analista político global, frio e analítico.
-${pessoa} disse ou fez algo relevante: "${titulo}"
-
-Escreva uma análise em 5-6 linhas: conecte este evento ao cenário político e econômico mais amplo (nacional e internacional).
-Seja preciso, mostre o que isso significa estrategicamente. Sem emoção excessiva — use dados e contexto.
-Termine com: "O mundo muda para quem enxerga antes."
-Responda APENAS com o texto.`,
-    }],
-  });
-  return texto;
-}
-
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) {
     return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
@@ -230,7 +212,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Rotaciona 3 pessoas por rodada para evitar timeout
-    // A cada 30min (48 rodadas/dia), todas as 9 são cobertas ~16x/dia
+    // A cada 30min (48 rodadas/dia), todas as 6 são cobertas ~24x/dia
     const minuto = new Date().getMinutes();
     const hora = parseInt(
       new Date().toLocaleString("pt-BR", { hour: "numeric", timeZone: "America/Sao_Paulo" })
@@ -258,6 +240,22 @@ export async function GET(req: NextRequest) {
     `;
     const contagensPorPessoa = new Map(contagensRows.map(r => [r.politico as string, r.total as number]));
 
+    // Bug duplicação (relatado pelo usuário em 29/06/2026): a mesma declaração podia chegar
+    // como duas URLs diferentes — vídeo no canal próprio da pessoa + matéria de portal sobre
+    // o mesmo vídeo — e o dedup por URL exata (mais abaixo) não pega isso, porque as URLs são
+    // de fato diferentes. Cada URL gerava sua própria análise e postava a "mesma" notícia duas
+    // vezes seguidas. Bloqueia uma 2ª análise da MESMA pessoa numa janela curta, mesmo com URL
+    // diferente, sem afetar o cap diário (que continua permitindo eventos genuinamente novos
+    // mais tarde no mesmo dia).
+    const recentesRows = await sql`
+      SELECT politico FROM radar_politico
+      WHERE politico = ANY(${nomesRodada})
+      AND processado = true
+      AND created_at >= NOW() - INTERVAL '3 hours'
+      GROUP BY politico
+    `;
+    const analisadoRecentePorPessoa = new Set(recentesRows.map(r => r.politico as string));
+
     for (const pessoa of rodada) {
       // Para se ultrapassou o tempo limite
       if (Date.now() - inicio > LIMITE_MS) break;
@@ -268,6 +266,8 @@ export async function GET(req: NextRequest) {
       // Conta quantos alertas essa pessoa já gerou hoje (BRT) — para respeitar o cap diário
       let alertasHojePessoa = contagensPorPessoa.get(pessoa.nome) ?? 0;
       if (alertasHojePessoa >= CAP_DIARIO_POR_PESSOA) continue;
+
+      if (analisadoRecentePorPessoa.has(pessoa.nome)) continue;
 
       const mencoes = [
         ...(await buscarVideosCanalProprio(pessoa)),
@@ -298,19 +298,14 @@ export async function GET(req: NextRequest) {
           ? `${pessoa.nome} publicou um vídeo: "${mencao.titulo}"`
           : mencao.titulo;
 
-        // Capitão Braga só comenta política do Brasil — empresários ficam só com
-        // a análise do Prof. Cavalcanti (ângulo global/econômico)
-        const [alertaBraga, alertaCavalcanti] = await Promise.all([
-          pessoa.tipo === "empresario" ? Promise.resolve("") : gerarAlertaBraga(pessoa.nome, contexto),
-          gerarAlertaCavalcanti(pessoa.nome, contexto),
-        ]);
+        const alertaBraga = await gerarAlertaBraga(pessoa.nome, contexto);
 
-        if (!alertaBraga && !alertaCavalcanti) continue;
+        if (!alertaBraga) continue;
 
-        // Salva como notícia urgente com ambos os resumos
+        // Salva como notícia urgente
         const novaNoticia = await sql`
-          INSERT INTO noticias (titulo, fonte, url, resumo_braga, resumo_cavalcanti, categoria, urgente, created_at)
-          VALUES (${mencao.titulo}, ${pessoa.nome}, ${mencao.url}, ${alertaBraga || null}, ${alertaCavalcanti}, 'urgente', true, NOW())
+          INSERT INTO noticias (titulo, fonte, url, resumo_braga, categoria, urgente, created_at)
+          VALUES (${mencao.titulo}, ${pessoa.nome}, ${mencao.url}, ${alertaBraga}, 'urgente', true, NOW())
           ON CONFLICT (url) WHERE url IS NOT NULL DO NOTHING
           RETURNING id
         `;
@@ -330,19 +325,6 @@ export async function GET(req: NextRequest) {
           const grupoVIP = await sql`SELECT id FROM grupos_whatsapp WHERE plano = 'vip' LIMIT 1`;
           if (grupoVIP.length > 0) {
             await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoVIP[0].id}, ${noticiaId}, ${msgVIP}, 'urgente', ${enviadoVip ? "enviado" : "erro"})`.catch(() => {});
-          }
-        }
-
-        // Victor Viral — Prof. Cavalcanti posta SOMENTE no Elite
-        if (alertaCavalcanti) {
-          const msgElite = `📊 *ANÁLISE URGENTE — ${pessoa.nome.toUpperCase()}*\n\n${alertaCavalcanti}`;
-          const enviadoElite = await enviarMensagemGrupo("elite", msgElite);
-          if (!enviadoElite) {
-            await alertarTelegram("🔴", "Radar Político — falha ao enviar análise urgente no Elite", `pessoa: ${pessoa.nome} | url: ${mencao.url}`);
-          }
-          const grupoElite = await sql`SELECT id FROM grupos_whatsapp WHERE plano = 'elite' LIMIT 1`;
-          if (grupoElite.length > 0) {
-            await sql`INSERT INTO posts_whatsapp (grupo_id, noticia_id, conteudo, tipo, status) VALUES (${grupoElite[0].id}, ${noticiaId}, ${msgElite}, 'urgente', ${enviadoElite ? "enviado" : "erro"})`.catch(() => {});
           }
         }
 
