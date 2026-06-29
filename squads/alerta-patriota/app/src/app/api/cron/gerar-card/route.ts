@@ -172,9 +172,14 @@ export async function GET(req: NextRequest) {
     // Busca notícias não publicadas como CARD (flag separada da publicação de texto).
     // Pega várias candidatas (não só LIMIT 1): se a mais nova falhar no envio, tenta as
     // seguintes na mesma execução em vez de travar a fila inteira nela indefinidamente.
+    // Fase 36: gerar-card e publicar-noticias usam flags independentes (postada_vip_card vs
+    // postada_vip), então a mesma história podia sair como texto às 19h17 e como card às 19h34
+    // no mesmo grupo — o pipeline de notícias atrasa por causa dos sleep 30 entre steps, caindo
+    // dentro de uma janela de 30min do gerar-card. Fix: só pegar histórias publicadas como texto
+    // há mais de 60 minutos (ou que ainda não saíram como texto) — evita duplicata no mesmo round.
     const rows = (plano === "vip"
-      ? await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip_card = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) ORDER BY urgente DESC, created_at DESC LIMIT 5`
-      : await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite_card = false AND resumo_cavalcanti IS NOT NULL ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 5`) as unknown as {
+      ? await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_vip_card = false AND resumo_braga IS NOT NULL AND (global IS NULL OR global = false) AND (postada_vip = false OR postada_vip_at IS NULL OR postada_vip_at < NOW() - INTERVAL '60 minutes') ORDER BY urgente DESC, created_at DESC LIMIT 5`
+      : await sql`SELECT id, titulo, url, fonte, urgente, resumo_braga, resumo_cavalcanti FROM noticias WHERE postada_elite_card = false AND resumo_cavalcanti IS NOT NULL AND (postada_elite = false OR postada_elite_at IS NULL OR postada_elite_at < NOW() - INTERVAL '60 minutes') ORDER BY urgente DESC, global DESC, created_at DESC LIMIT 5`) as unknown as {
       id: number; titulo: string; url: string | null; fonte: string | null; urgente: boolean | string; resumo_braga: string | null; resumo_cavalcanti: string | null;
     }[];
 
