@@ -2085,7 +2085,16 @@ Arquivos: `app/src/app/api/cron/fiscal-banco/route.ts`, `fiscal-api/route.ts`, `
 
 **Deploy:** autorizado pelo usuário em 29/06/2026. Commit `f52aba3`, push para `origin/main` sem conflitos (sem commits automáticos de bot na janela). `vercel --prod` executado com sucesso (build 24s) — deploy `dpl_4i9dmD4sv9TfYpbTcPcZGMSoktx8` promovido a produção (`target: production`, `readyState: READY`), alias `alertapatriota.vercel.app` atualizado.
 
-Próximo item: item 7 (decisões de produto — integração morta do Instagram, cobertura do painel de agentes).
+**Item 7 — Decisões de produto: integração do Instagram e cobertura do painel de agentes: ✅ CONCLUÍDO (decisão do usuário, sem alteração de código)**
+
+Investigados os dois pontos antes de perguntar, para a decisão ser informada:
+
+1. **`lib/instagram.ts`** — não é código morto no sentido de "nunca foi levado a sério": tem credenciais reais (`IG_USER_ID`, `IG_ACCESS_TOKEN` — System User Token da conta @roberto.braga.alerta.patriota, App Meta já criado) configuradas em `.env.local`. Porém confirmado via grep que **nenhum arquivo do projeto importa esse módulo** — `publicarReel`, `publicarStory`, `responderComentarioIG`, `enviarDMInstagram` etc. nunca são chamados por nenhum cron ou rota. **Decisão do usuário: manter como está** — não ativa agora (seria um projeto novo, não um fix) nem remove (não descarta o investimento já feito em credenciais/App Meta).
+2. **`admin/agentes/page.tsx`** — confirmado que a lista `AGENTES` é hardcoded com 14 entradas, cobrindo só o pipeline principal de conteúdo (coleta, curadoria, resumo, cards, radar, dossiê, CEO) + 4 fiscais; os ~56 agentes restantes (a maioria dos fiscais técnicos e gerentes consolidadores corrigidos nas Fases 32/33) não aparecem no painel, mesma decisão já registrada na Fase 27. **Decisão do usuário: manter como está** (recomendado) — os agentes fora da lista já têm alertas próprios no Telegram, não dependem de um botão manual no painel admin para serem monitorados.
+
+Nenhum arquivo alterado. Ambos os pontos ficam formalmente decididos (não é mais "decisão pendente").
+
+**Fase 33 — Backlog consolidado encerrado.** Todos os 7 itens da ordem aprovada em 28/06/2026 estão concluídos (Itens 1-4 e 6 com deploy em produção confirmado; Item 5 com deploy confirmado; Item 7 resolvido por decisão de produto sem necessidade de deploy).
 
 ---
 
