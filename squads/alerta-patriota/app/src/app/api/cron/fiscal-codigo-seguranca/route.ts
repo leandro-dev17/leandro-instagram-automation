@@ -92,15 +92,9 @@ export async function GET(req: NextRequest) {
     return { nome: "cron_com_secret_funciona", ok, detalhe: `status=${r.status} (esperado 200)`, severidade: "alto" };
   }));
 
-  // 6. Assinatura sem auth deve rejeitar
-  checks.push(await testar("assinatura_sem_auth", async () => {
-    const r = await fetch(`${APP}/api/assinaturas/criar`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plano: "vip" }), signal: AbortSignal.timeout(8000),
-    });
-    const ok = r.status === 401;
-    return { nome: "assinatura_sem_auth", ok, detalhe: `status=${r.status} (esperado 401)`, severidade: "critico" };
-  }));
+  // FASE 39: check "assinatura_sem_auth" removido — testava /api/assinaturas/criar, rota
+  // órfã excluída (nenhum fluxo do produto chamava; cadastro/cobrança real de cliente é via
+  // /api/assinaturas/criar-direto e /api/assinaturas/criar-pix, ambas públicas por design).
 
   const falhas = checks.filter(c => !c.ok);
   const criticos = falhas.filter(c => c.severidade === "critico");
