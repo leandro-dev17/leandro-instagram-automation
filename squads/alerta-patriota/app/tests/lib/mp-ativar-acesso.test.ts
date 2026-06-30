@@ -64,8 +64,9 @@ describe("ativarAcesso", () => {
     adicionarMembroGrupoMock.mockResolvedValue(true);
     enviarMensagemPrivadaMock.mockResolvedValue(true);
 
-    await ativarAcesso(1, "vip", "sub_1", 29.9, "mensal");
+    const resultado = await ativarAcesso(1, "vip", "sub_1", 29.9, "mensal");
 
+    expect(resultado).toBe(true);
     expect(transactionMock).toHaveBeenCalledTimes(1);
     expect(adicionarMembroGrupoMock).toHaveBeenCalledWith("5511999999999", "vip");
     expect(enviarMensagemPrivadaMock).toHaveBeenCalledWith("5511999999999", "mensagem de boas-vindas", "vip");
@@ -102,11 +103,12 @@ describe("ativarAcesso", () => {
     expect(enviarMensagemPrivadaMock).not.toHaveBeenCalled();
   });
 
-  it("assinatura duplicada (23505): alerta, loga 'duplicado' e não faz mais nada", async () => {
+  it("assinatura duplicada (23505): alerta, loga 'duplicado', retorna false e não faz mais nada", async () => {
     transactionMock.mockRejectedValueOnce({ code: "23505" });
 
-    await ativarAcesso(4, "vip", "sub_4", 29.9, "mensal");
+    const resultado = await ativarAcesso(4, "vip", "sub_4", 29.9, "mensal");
 
+    expect(resultado).toBe(false);
     expect(alertarTelegramMock).toHaveBeenCalledWith(
       "🔴",
       "Assinatura duplicada detectada — estorno manual necessário",

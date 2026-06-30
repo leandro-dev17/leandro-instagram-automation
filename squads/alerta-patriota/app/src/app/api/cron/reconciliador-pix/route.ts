@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     let reconciliados = 0;
     let expirados = 0;
     let erros = 0;
+    let duplicados = 0;
 
     for (const p of pendentes) {
       try {
@@ -49,13 +50,22 @@ export async function GET(req: NextRequest) {
           const ciclo: "mensal" | "anual" = meta?.ciclo === "anual" ? "anual" : "mensal";
 
           if (["vip", "elite"].includes(plano)) {
-            await ativarAcesso(p.usuario_id, plano, p.mp_payment_id, Number(p.valor), ciclo, p.mp_payment_id, "pix", p.cupom || undefined);
-            reconciliados++;
-            await alertarTelegram(
-              "🟢",
-              "PIX reconciliado — webhook não tinha confirmado",
-              `usuarioId: ${p.usuario_id} | mp_payment_id: ${p.mp_payment_id} | valor: R$ ${p.valor}\nO Mercado Pago já tinha aprovado este pagamento, mas o webhook nunca chegou ou falhou. Acesso ativado agora pelo reconciliador.`
-            );
+            // FASE 40 (achado da auditoria Categoria 1): ativarAcesso retorna false quando a
+            // transação é abortada por assinatura duplicada (23505) — ela mesma já envia um
+            // alerta 🔴 "estorno manual necessário" nesse caso. Sem checar o retorno, este
+            // bloco somava reconciliados++ e mandava um 🟢 "reconciliado" por cima do 🔴,
+            // dando a entender (incorretamente) que o caso estava resolvido.
+            const ativou = await ativarAcesso(p.usuario_id, plano, p.mp_payment_id, Number(p.valor), ciclo, p.mp_payment_id, "pix", p.cupom || undefined);
+            if (ativou) {
+              reconciliados++;
+              await alertarTelegram(
+                "🟢",
+                "PIX reconciliado — webhook não tinha confirmado",
+                `usuarioId: ${p.usuario_id} | mp_payment_id: ${p.mp_payment_id} | valor: R$ ${p.valor}\nO Mercado Pago já tinha aprovado este pagamento, mas o webhook nunca chegou ou falhou. Acesso ativado agora pelo reconciliador.`
+              );
+            } else {
+              duplicados++;
+            }
           } else {
             erros++;
             await alertarTelegram("🔴", "PIX aprovado mas sem plano válido no metadata", `usuarioId: ${p.usuario_id} | mp_payment_id: ${p.mp_payment_id} — verifique manualmente.`);
@@ -75,14 +85,14 @@ export async function GET(req: NextRequest) {
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes)
       VALUES ('reconciliador-pix', 'reconciliar', 'sucesso',
-        ${JSON.stringify({ total: pendentes.length, reconciliados, expirados, erros })})
+        ${JSON.stringify({ total: pendentes.length, reconciliados, expirados, erros, duplicados })})
     `;
 
     if (erros > 0) {
       await alertarTelegram("🟡", "Reconciliador PIX — erros ao consultar MP", `${erros} pagamento(s) com erro na consulta — ver logs.`);
     }
 
-    return NextResponse.json({ ok: true, total: pendentes.length, reconciliados, expirados, erros });
+    return NextResponse.json({ ok: true, total: pendentes.length, reconciliados, expirados, erros, duplicados });
   } catch (err) {
     console.error("reconciliador-pix error:", err);
     await alertarTelegram("🔴", "Reconciliador PIX — ERRO", String(err)).catch(() => {});

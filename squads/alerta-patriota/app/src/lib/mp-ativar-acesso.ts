@@ -9,7 +9,10 @@ import { enviarMensagemPrivada, adicionarMembroGrupo, buildBoasVindas, getLinkGr
 import { alertarTelegram } from "@/lib/telegram";
 import type { Plano } from "@/lib/db";
 
-export async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: string, valor: number, ciclo: "mensal" | "anual" = "mensal", mpPaymentId?: string, metodo: string = "desconhecido", cupom?: string) {
+// Retorna true se o acesso foi de fato ativado, false se a transação foi
+// abortada por assinatura duplicada (23505) — usado pelo reconciliador-pix
+// (FASE 40) para não reportar sucesso num caso que na verdade exige estorno manual.
+export async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscriptionId: string, valor: number, ciclo: "mensal" | "anual" = "mensal", mpPaymentId?: string, metodo: string = "desconhecido", cupom?: string): Promise<boolean> {
   // FASE 21: as 3 escritas abaixo (usuarios/assinaturas/pagamentos) iam cada uma em sua
   // própria requisição HTTP ao Neon — uma falha de rede entre elas podia deixar o cliente
   // "ativo" sem assinatura registrada, ou pagamento sem assinatura associada. O driver
@@ -64,14 +67,14 @@ export async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscripti
         INSERT INTO agentes_log (agente, acao, status, detalhes)
         VALUES ('augusto-assinaturas', 'ativar_acesso', 'duplicado', ${JSON.stringify({ usuarioId, plano, mpSubscriptionId, dataId: mpSubscriptionId })})
       `.catch(() => {});
-      return;
+      return false;
     }
     throw err;
   }
 
   // Busca dados do usuário
   const rows = await sql`SELECT nome, email, telefone FROM usuarios WHERE id = ${usuarioId} LIMIT 1`;
-  if (rows.length === 0) return;
+  if (rows.length === 0) return true;
   const { nome, email, telefone } = rows[0];
 
   // Adiciona ao grupo WhatsApp
@@ -118,4 +121,5 @@ export async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscripti
     INSERT INTO agentes_log (agente, acao, status, detalhes)
     VALUES ('augusto-assinaturas', 'ativar_acesso', 'sucesso', ${JSON.stringify({ usuarioId, plano, mpSubscriptionId, dataId: mpSubscriptionId })})
   `;
+  return true;
 }
