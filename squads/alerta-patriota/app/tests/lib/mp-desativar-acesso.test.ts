@@ -114,7 +114,9 @@ describe("renovarAcesso", () => {
     expect(transactionMock).toHaveBeenCalledTimes(1);
     const queries = transactionMock.mock.calls[0][0] as string[];
     expect(queries).toHaveLength(3);
-    expect(queries[0]).toContain("UPDATE assinaturas SET renovada_em");
+    // FASE 41: renovarAcesso deve restaurar status='ativa' além de atualizar renovada_em
+    expect(queries[0]).toContain("UPDATE assinaturas SET status = 'ativa'");
+    expect(queries[0]).toContain("renovada_em");
     expect(queries[1]).toContain("UPDATE usuarios SET status = 'ativo'");
     expect(queries[2]).toContain("INSERT INTO pagamentos");
   });

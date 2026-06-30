@@ -113,11 +113,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Erro ao processar cadastro", detalhe: dbErro || "usuarioId indefinido" }, { status: 500 });
     }
 
-    // FASE 17: nenhuma rota de criação de assinatura checava se o usuário já
-    // tinha uma assinatura ativa, permitindo criar uma 2ª cobrança recorrente
-    // em cima da 1ª (duplicidade de cobrança).
-    const statusAtual = await sql`SELECT status FROM usuarios WHERE id = ${usuarioId} LIMIT 1`;
-    if (statusAtual[0]?.status === "ativo") {
+    // FASE 41 (bug 2 + bug 3 da auditoria aprofundada):
+    // Bug 2 — admin/reativar seta usuarios.status='ativo' sem recriar a assinatura no MP.
+    //   Checar só usuarios.status bloqueava o usuário de refazer a assinatura com 409.
+    // Bug 3 — PIX anual nunca expira automaticamente (não há webhook de renovação para PIX).
+    //   Após 360 dias, o assinante não conseguia refazer a assinatura porque a linha
+    //   no banco ainda constava como 'ativa'.
+    // Solução: bloquear apenas quando há de fato uma assinatura 'ativa' que não seja
+    // um PIX anual expirado (ciclo='anual', sem renovações, criada há mais de 360 dias).
+    const assinaturaAtiva = await sql`
+      SELECT 1 FROM assinaturas
+      WHERE usuario_id = ${usuarioId} AND status = 'ativa'
+        AND NOT (ciclo = 'anual' AND renovada_em IS NULL AND created_at < NOW() - INTERVAL '360 days')
+      LIMIT 1
+    `;
+    if (assinaturaAtiva.length > 0) {
       return NextResponse.json({ erro: "Você já tem uma assinatura ativa nesse telefone/e-mail. Para alterar seu plano, contate o suporte." }, { status: 409 });
     }
 

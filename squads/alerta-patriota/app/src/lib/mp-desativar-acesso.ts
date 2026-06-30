@@ -16,8 +16,12 @@ export async function renovarAcesso(mpSubscriptionId: string, mpPaymentId: strin
   // do SELECT), preservando o comportamento condicional original sem depender do
   // resultado de uma query anterior dentro do mesmo lote.
   await sql.transaction([
+    // FASE 41 (bug 1 da auditoria aprofundada): renovarAcesso só atualizava renovada_em —
+    // assinaturas.status ficava 'inadimplente' para sempre após qualquer ciclo de cobrança
+    // reprovada+recuperada. calcularMRR() filtra WHERE status='ativa', então esses
+    // assinantes saíam do MRR mesmo continuando a pagar normalmente.
     sql`
-      UPDATE assinaturas SET renovada_em = NOW() WHERE mp_subscription_id = ${mpSubscriptionId}
+      UPDATE assinaturas SET status = 'ativa', renovada_em = NOW() WHERE mp_subscription_id = ${mpSubscriptionId}
     `,
     sql`
       UPDATE usuarios SET status = 'ativo', updated_at = NOW()
