@@ -46,6 +46,21 @@ export async function ativarAcesso(usuarioId: number, plano: Plano, mpSubscripti
     `);
   }
 
+  // FASE 41b: fix incompleto do Bug 3 da auditoria aprofundada.
+  // criar-pix/criar-direto agora permitem o início de nova assinatura quando o usuário
+  // tem um PIX anual expirado (>360 dias, sem renovada_em). Mas idx_assinaturas_usuario_ativa
+  // (UNIQUE usuario_id WHERE status='ativa') ainda dispara 23505 quando o webhook chama
+  // ativarAcesso — a assinatura PIX antiga continua com status='ativa' no banco.
+  // Esta UPDATE cancela o PIX expirado ANTES da transaction, liberando o slot para o novo INSERT.
+  // .catch(() => {}) — não-fatal: se a limpeza falhar, o 23505 da transaction dispara o alerta
+  // padrão "estorno manual" como fallback, sem deixar o banco inconsistente.
+  await sql`
+    UPDATE assinaturas SET status = 'cancelada'
+    WHERE usuario_id = ${usuarioId} AND status = 'ativa'
+      AND ciclo = 'anual' AND renovada_em IS NULL
+      AND created_at < NOW() - INTERVAL '360 days'
+  `.catch(() => {});
+
   try {
     await sql.transaction(queries);
   } catch (err: unknown) {

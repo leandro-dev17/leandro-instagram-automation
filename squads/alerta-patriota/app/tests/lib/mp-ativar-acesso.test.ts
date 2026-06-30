@@ -118,4 +118,27 @@ describe("ativarAcesso", () => {
     expect(adicionarMembroGrupoMock).not.toHaveBeenCalled();
     expect(enviarEmailBoasVindasMock).not.toHaveBeenCalled();
   });
+
+  // FASE 41b: antes da transaction, cancela PIX anual expirado para liberar
+  // idx_assinaturas_usuario_ativa e evitar 23505 no caminho de renovação.
+  it("cancela PIX anual expirado antes da transaction (evita 23505 na renovação)", async () => {
+    mockSqlPorTexto({
+      "SELECT nome, email, telefone": [{ nome: "Pedro", email: "pedro@x.com", telefone: "5511977777777" }],
+      "SELECT id FROM grupos_whatsapp": [{ id: 5 }],
+    });
+    adicionarMembroGrupoMock.mockResolvedValue(true);
+    enviarMensagemPrivadaMock.mockResolvedValue(true);
+
+    await ativarAcesso(5, "vip", "sub_pix_novo", 99, "anual");
+
+    // Deve ter tentado cancelar PIX anual expirado antes da transaction
+    expect(
+      sqlMock.mock.calls.some((c) =>
+        (c[0] as TemplateStringsArray).join(" ").includes("UPDATE assinaturas SET status = 'cancelada'") &&
+        (c[0] as TemplateStringsArray).join(" ").includes("ciclo = 'anual'") &&
+        (c[0] as TemplateStringsArray).join(" ").includes("360 days")
+      )
+    ).toBe(true);
+    expect(transactionMock).toHaveBeenCalledTimes(1);
+  });
 });
