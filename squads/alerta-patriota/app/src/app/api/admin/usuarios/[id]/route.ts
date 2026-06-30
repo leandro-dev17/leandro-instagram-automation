@@ -75,8 +75,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           `;
         }
       }
-      await sql`UPDATE usuarios SET status = 'cancelado', updated_at = NOW() WHERE id = ${id}`;
-      await sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`;
+      // FASE 40: mesmo padrão atômico de mp-desativar-acesso.ts — sem transaction, se
+      // a 1ª UPDATE suceder e a 2ª falhar, usuario fica 'cancelado' mas assinatura
+      // permanece 'ativa', inflando o MRR e bloqueando re-assinatura (23505 no idx_assinaturas_usuario_ativa).
+      await sql.transaction([
+        sql`UPDATE usuarios SET status = 'cancelado', updated_at = NOW() WHERE id = ${id}`,
+        sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`,
+      ]);
     } else if (acao === "reativar") {
       const u = await sql`SELECT telefone, plano FROM usuarios WHERE id = ${id} LIMIT 1`;
       if (!u.length) return NextResponse.json({ erro: "Usuário não encontrado" }, { status: 404 });
