@@ -12,6 +12,7 @@ import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram } from "@/lib/telegram";
 import { gerarCardElement, getCardFonts } from "@/lib/card-generator";
 import { gerarTexto } from "@/lib/ai";
+import { cortarNoFimDeFrase } from "@/lib/texto";
 
 // Plano Hobby da Vercel mata funções sem aviso em 10s por padrão — este endpoint faz 2 chamadas
 // de IA em paralelo (cadeia de fallback Groq→Cerebras→Anthropic, cada uma pode levar 30s+ em
@@ -59,27 +60,7 @@ async function gerarHook(titulo: string, plano: string): Promise<string> {
 // fica presa em "carregando" para quem recebe mesmo com o upload da imagem OK.
 const LEGENDA_MAX = 990;
 
-// FASE 31: cortar em "." real (fim de frase) em vez de espaço genérico — texto cortado
-// no meio de uma frase lê como quebrado mesmo com "…". Pula pontos de abreviação comuns
-// ("Prof.", "Dr.", etc.) para não cortar logo depois deles, retrocedendo até achar um
-// ponto final de verdade. Só cai no corte genérico se não houver ponto real no trecho.
-const ABREVIACOES = new Set(["prof", "dr", "dra", "sr", "sra", "srta", "eng", "exa", "av", "art", "min", "gen", "cap", "cel", "ed"]);
-function cortarNoFimDeFrase(texto: string, max: number): string {
-  if (texto.length <= max) return texto;
-  let limite = max;
-  while (limite > max * 0.4) {
-    const cortado = texto.slice(0, limite);
-    const pontoIdx = Math.max(cortado.lastIndexOf(". "), cortado.lastIndexOf(".\n"), cortado.lastIndexOf("! "), cortado.lastIndexOf("? "));
-    if (pontoIdx <= 0) break;
-    const antes = cortado.slice(0, pontoIdx);
-    const ultimaPalavra = (antes.match(/(\w+)$/) || [""])[0].toLowerCase();
-    if (!ABREVIACOES.has(ultimaPalavra)) return cortado.slice(0, pontoIdx + 1);
-    limite = pontoIdx; // ponto era abreviação — tenta achar um ponto real antes dele
-  }
-  const cortado = texto.slice(0, max);
-  const ultimoEspaco = cortado.lastIndexOf(" ");
-  return `${cortado.slice(0, ultimoEspaco > 0 ? ultimoEspaco : max)}…`;
-}
+// cortarNoFimDeFrase movida para lib/texto.ts (Fase 37 — testabilidade)
 
 // FASE 24c/29 tentaram fazer uma IA reescrever a notícia em 3 frases curtas
 // (até 20, depois 35-45 palavras) — mesmo recebendo a análise completa como base, a IA

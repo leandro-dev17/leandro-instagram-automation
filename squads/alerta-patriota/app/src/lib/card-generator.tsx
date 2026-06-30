@@ -20,7 +20,7 @@ function b64(nome: string): string {
 // caíam na mesma foto, só mudando no dia seguinte. Agora a foto é escolhida
 // por um seed único por notícia (o próprio id da linha em `noticias`), então
 // cada card publicado varia mesmo que sejam vários no mesmo dia.
-function pick(fotos: string[], seed: number): string {
+export function pick(fotos: string[], seed: number): string {
   return fotos[((seed % fotos.length) + fotos.length) % fotos.length];
 }
 

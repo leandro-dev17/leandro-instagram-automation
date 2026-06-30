@@ -36,7 +36,7 @@ const MODELO_FALLBACK: Record<string, string> = {
 // e cair para o próximo provedor da cadeia antes que o texto chegue ao WhatsApp.
 const REGEX_SCRIPT_NAO_PORTUGUES = /[一-鿿぀-ヿ가-힯Ѐ-ӿ؀-ۿ֐-׿ऀ-ॿ฀-๿]/;
 
-function contemScriptNaoPortugues(texto: string): boolean {
+export function contemScriptNaoPortugues(texto: string): boolean {
   return REGEX_SCRIPT_NAO_PORTUGUES.test(texto);
 }
 
