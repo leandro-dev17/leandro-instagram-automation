@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import { validarCupom } from "@/lib/cupons";
 
@@ -66,8 +66,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Esta rota aceita apenas ciclo anual" }, { status: 400 });
     }
 
-    const idempotencyKey = randomUUID();
-
     // Busca usuário existente ou cria um novo (necessário para ativar acesso após o pagamento)
     let usuarioId: number;
     const usuarios = await sql`SELECT id, status FROM usuarios WHERE email = ${email.toLowerCase()} LIMIT 1`;
@@ -99,6 +97,19 @@ export async function POST(req: NextRequest) {
 
     const { desconto, codigo: cupomAplicado } = await validarCupom(cupom, plano, usuarioId);
     const valor = Math.round(VALORES_ANUAIS[plano] * (1 - desconto) * 100) / 100;
+
+    // FASE 39 (achado 2 da re-checagem da Fase 30): antes, idempotencyKey = randomUUID() era
+    // gerada a cada requisição HTTP — retry de rede ou duplo-clique no botão "Gerar PIX" virava
+    // uma chave nova a cada vez, então o Mercado Pago nunca via a "mesma" tentativa duas vezes e
+    // cada clique gerava um PIX pendente novo (não cobra duplicado, já que só cobra se pago, mas
+    // polui `pagamentos` com pendentes órfãos e confunde o reconciliador da Fase 33). Chave
+    // determinística por usuário+plano, num bucket de 10min (mesma janela do rate limit acima):
+    // retries dentro da janela reusam a mesma chave e o MP devolve a cobrança já criada em vez de
+    // criar outra. Se o corpo da chamada mudar dentro da janela (ex.: cupom só aplicado na 1ª
+    // tentativa), o MP recusa por segurança em vez de misturar dados — o usuário só precisa
+    // tentar de novo, fora da janela.
+    const bucket = Math.floor(Date.now() / (10 * 60 * 1000));
+    const idempotencyKey = createHash("sha256").update(`${usuarioId}|${plano}|criar-pix|${bucket}`).digest("hex");
 
     const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
