@@ -78,3 +78,59 @@ export function isPremium(tipo: string, trial_fim: string | null, plano?: string
 export function isBasico(tipo: string, plano?: string | null): boolean {
   return tipo === "premium" && plano === "caderninho";
 }
+
+export class WebhookValidationError extends Error {
+  constructor(
+    public code: string,
+    public statusCode: number
+  ) {
+    super(code);
+    this.name = "WebhookValidationError";
+  }
+}
+
+export function validateMercadoPagoWebhook(payload: unknown): payload is Record<string, unknown> {
+  if (!payload || typeof payload !== "object") {
+    throw new WebhookValidationError("webhook_mp_payload_required", 400);
+  }
+  if (!("id" in payload || "type" in payload || "data" in payload)) {
+    throw new WebhookValidationError("webhook_mp_invalid_structure", 400);
+  }
+  return true;
+}
+
+export function extractMercadoPagoSignature(headers: Record<string, string | string[]>): string {
+  const signature = headers["x-signature"] || headers["X-Signature"];
+
+  if (!signature) {
+    throw new WebhookValidationError("webhook_mp_signature_missing", 401);
+  }
+
+  if (typeof signature === "string") {
+    return signature;
+  }
+
+  if (Array.isArray(signature) && signature.length > 0) {
+    return signature[0];
+  }
+
+  throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
+}
+
+export function extractMercadoPagoRequestId(headers: Record<string, string | string[]>): string {
+  const requestId = headers["x-request-id"] || headers["X-Request-Id"];
+
+  if (!requestId) {
+    throw new WebhookValidationError("webhook_mp_request_id_missing", 401);
+  }
+
+  if (typeof requestId === "string") {
+    return requestId;
+  }
+
+  if (Array.isArray(requestId) && requestId.length > 0) {
+    return requestId[0];
+  }
+
+  throw new WebhookValidationError("webhook_mp_request_id_invalid", 401);
+}
