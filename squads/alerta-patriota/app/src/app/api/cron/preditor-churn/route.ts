@@ -9,6 +9,10 @@ import { verificarCronSecret } from "@/lib/auth";
 import { enviarMensagemPrivada } from "@/lib/whatsapp";
 import { alertarTelegram } from "@/lib/telegram";
 
+// Sem maxDuration, Vercel mata em 10s — com 2s de sleep por usuário de alto risco
+// e N usuários ativos no loop, o pior caso excede 10s com apenas 5 alertas enviados.
+export const maxDuration = 60;
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
 function calcularScore(u: {
