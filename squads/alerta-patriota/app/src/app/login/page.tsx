@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 import { gerarToken } from "@/lib/auth";
@@ -9,12 +9,30 @@ async function fazerLogin(formData: FormData) {
   const email = formData.get("email") as string;
   const senha = formData.get("senha") as string;
   if (!email || !senha) return;
+
+  // Rate limit: 5 tentativas por IP em 10 minutos (reutiliza assinaturas_rate_limit).
+  // Falha silenciosa — mesmo comportamento de credencial errada, sem revelar ao atacante.
+  const headerStore = await headers();
+  const ip = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
+  const tentativas = await sql`
+    SELECT COUNT(*)::int AS total FROM assinaturas_rate_limit
+    WHERE ip = ${ip} AND rota = 'login' AND created_at > NOW() - INTERVAL '10 minutes'
+  `.catch(() => [{ total: 0 }]);
+  await sql`INSERT INTO assinaturas_rate_limit (ip, rota) VALUES (${ip}, 'login')`.catch(() => {});
+  if ((tentativas[0]?.total ?? 0) >= 5) return;
+
   try {
     const rows = await sql`SELECT * FROM usuarios WHERE email = ${email.toLowerCase()} LIMIT 1`;
-    if (rows.length === 0) return;
+    if (rows.length === 0) {
+      await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('lisa-login', 'tentativa_login', 'erro', ${JSON.stringify({ ip, motivo: "email_nao_encontrado" })})`.catch(() => {});
+      return;
+    }
     const usuario = rows[0];
     const ok = await bcrypt.compare(senha, usuario.senha_hash);
-    if (!ok || usuario.tipo_usuario !== "admin") return;
+    if (!ok || usuario.tipo_usuario !== "admin") {
+      await sql`INSERT INTO agentes_log (agente, acao, status, detalhes) VALUES ('lisa-login', 'tentativa_login', 'erro', ${JSON.stringify({ ip, motivo: ok ? "nao_e_admin" : "senha_incorreta" })})`.catch(() => {});
+      return;
+    }
     const token = gerarToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo_usuario });
     const cookieName = process.env.COOKIE_NAME || "alerta-patriota-session";
     const cookieStore = await cookies();

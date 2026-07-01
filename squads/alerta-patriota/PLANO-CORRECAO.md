@@ -2202,15 +2202,31 @@ Pedido do usuário: criar um plano permanente para trabalhar as 7 categorias de 
 
 | Categoria | Status |
 |-----------|--------|
-| 1. Pagamentos/Assinaturas | 🔄 Em correção — Fase 41b (Bug 3 completado: limpeza de PIX expirado em ativarAcesso antes da transaction, aguardando deploy) |
-| 2. Infra/Segurança/LGPD | 🔲 Bloqueada (aguarda 1) |
+| 1. Pagamentos/Assinaturas | ✅ Concluída — 4 bugs corrigidos (Fases 41 + 41b), 4 auditorias consecutivas sem 🔴/🟠/🟡 |
+| 2. Infra/Segurança/LGPD | 🔄 Em andamento |
 | 3. WhatsApp/Mensagens | 🔲 Bloqueada (aguarda 2) |
-| 4. Banco de Dados | 🔲 Bloqueada (aguarda 3) |
+| 4. Banco de Dados | 🔲 Bloqueada (aguarda 3) — ⚠️ 1 achado pré-registrado (ver abaixo) |
 | 5. Agentes de Gestão/Crons Fiscais | 🔲 Bloqueada (aguarda 4) |
 | 6. Pipeline de Notícias | 🔲 Bloqueada (aguarda 5) |
 | 7. Admin/Painel | 🔲 Bloqueada (aguarda 6) |
 
-**Próximo passo:** após deploy da Fase 41b, re-checagem final da Categoria 1 para confirmar zero 🔴/🟠/🟡 em aberto. Se confirmado limpo, avança para a Categoria 2 (Infra/Segurança/LGPD) com autorização do usuário.
+**Próximo passo:** Categoria 2 em correção — Fase 42 (2 bugs corrigidos: login sem rate limit + limit sem cap). Aguardando tsc + testes + deploy.
+
+---
+
+### Achados pré-registrados — Categoria 4 (Banco de Dados)
+
+**Tipos TypeScript desatualizados em `src/lib/db.ts`** — descoberto durante auditoria da Categoria 1
+
+Esses são bugs de documentação (não causam erro em runtime porque nenhum código faz cast explícito dos resultados SQL para esses tipos), mas enganam o compilador e qualquer desenvolvedor que confie nos tipos para entender o schema real.
+
+| Tipo | Linha (aprox.) | Problema |
+|------|----------------|----------|
+| `Assinatura` | 34 | Faltam `renovada_em: string \| null` e `cupom: string \| null` |
+| `Pagamento` | 45 | Falta `cupom: string \| null`; `metodo: "cartao" \| "pix" \| null` errado — código armazena `'cartao_recorrente'` |
+| `AgenteLog` | 104 | `status` não inclui `'duplicado'` (inserido no path 23505 de `ativarAcesso`) |
+
+Ação na Categoria 4: corrigir os três tipos contra `admin/setup/route.ts` como fonte de verdade do schema.
 
 ---
 

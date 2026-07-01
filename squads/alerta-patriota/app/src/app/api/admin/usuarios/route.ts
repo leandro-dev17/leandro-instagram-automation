@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const pagina = parseInt(searchParams.get("pagina") || "1");
-    const limite = parseInt(searchParams.get("limite") || "50");
+    const limite = Math.min(parseInt(searchParams.get("limite") || "50"), 500);
     const plano = searchParams.get("plano");
     const status = searchParams.get("status");
     const busca = searchParams.get("busca");
