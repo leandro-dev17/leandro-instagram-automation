@@ -90,43 +90,50 @@ export class WebhookValidationError extends Error {
 }
 
 export function validateMercadoPagoWebhook(payload: unknown): payload is Record<string, unknown> {
-  if (!payload || typeof payload !== "object") {
+  if (payload === null || payload === undefined) {
     throw new WebhookValidationError("webhook_mp_payload_required", 400);
   }
-  if (!("id" in payload || "type" in payload || "data" in payload)) {
+  
+  if (typeof payload !== "object") {
+    throw new WebhookValidationError("webhook_mp_payload_required", 400);
+  }
+  
+  const obj = payload as Record<string, unknown>;
+  
+  if (!("id" in obj || "type" in obj || "data" in obj)) {
     throw new WebhookValidationError("webhook_mp_invalid_structure", 400);
   }
+  
   return true;
 }
 
-export function extractMercadoPagoSignature(headers: Record<string, string | string[]>): string {
-  const signature = headers["x-signature"] || headers["X-Signature"];
-
+export function extractMercadoPagoSignature(headers: Record<string, string | string[] | undefined>): string {
+  const signature = headers["x-signature"];
+  
   if (!signature) {
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
-
-  const signatureStr = Array.isArray(signature) ? signature[0] : signature;
-
-  if (typeof signatureStr !== "string" || signatureStr.trim().length === 0) {
+  
+  if (Array.isArray(signature)) {
+    if (signature.length === 0) {
+      throw new WebhookValidationError("webhook_mp_signature_missing", 401);
+    }
+    return signature[0];
+  }
+  
+  if (typeof signature !== "string" || signature.trim() === "") {
     throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
   }
-
-  return signatureStr.trim();
+  
+  return signature;
 }
 
-export function validateMercadoPagoSignature(
-  signature: string,
-  requestId: string,
-  secret: string
-): boolean {
-  if (!signature || !requestId || !secret) {
-    throw new WebhookValidationError("webhook_mp_validation_params_missing", 403);
+export function validateMercadoPagoSignature(signature: string, payload: string, secret: string): boolean {
+  if (!signature || !payload || !secret) {
+    throw new WebhookValidationError("webhook_mp_validation_incomplete", 403);
   }
-
+  
   const crypto = require("crypto");
-  const data = `id=${requestId}`;
-  const hash = crypto.createHmac("sha256", secret).update(data).digest("hex");
-
+  const hash = crypto.createHmac("sha256", secret).update(payload).digest("hex");
   return signature === hash;
 }
