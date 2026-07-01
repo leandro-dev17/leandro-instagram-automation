@@ -36,7 +36,7 @@ async function fazerLogin(formData: FormData) {
     const token = gerarToken({ id: usuario.id, email: usuario.email, tipo: usuario.tipo_usuario });
     const cookieName = process.env.COOKIE_NAME || "alerta-patriota-session";
     const cookieStore = await cookies();
-    cookieStore.set(cookieName, token, { httpOnly: true, sameSite: "lax", maxAge: 30 * 24 * 60 * 60, path: "/" });
+    cookieStore.set(cookieName, token, { httpOnly: true, sameSite: "lax", maxAge: 30 * 24 * 60 * 60, path: "/", secure: process.env.NODE_ENV === "production" });
   } catch { return; }
   redirect("/admin");
 }
