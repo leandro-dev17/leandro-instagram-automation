@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { sql } from "@/lib/db";
 import { enviarMensagemGrupo, buildBoasVindasGrupo } from "@/lib/whatsapp";
 import type { Plano } from "@/lib/db";
@@ -51,14 +52,21 @@ function deveBotResponder(texto: string): boolean {
 // O secret é enviado via query string na própria URL do webhook (mais confiável do
 // que depender de header customizado — nem toda versão da Evolution API garante isso),
 // com fallback para o header x-webhook-secret caso ele seja enviado também.
+// Comparação em tempo constante (timingSafeEqual) — mesmo padrão de verificarCronSecret().
 function validarOrigemEvolution(req: NextRequest): boolean {
   const secret = process.env.EVOLUTION_WEBHOOK_SECRET;
   if (!secret) {
     console.error("EVOLUTION_WEBHOOK_SECRET não configurada — rejeitando webhook");
     return false;
   }
+  const secretBuf = Buffer.from(secret);
+  const comparar = (v: string | null): boolean => {
+    if (!v) return false;
+    const buf = Buffer.from(v);
+    return buf.length === secretBuf.length && timingSafeEqual(buf, secretBuf);
+  };
   const secretQuery = new URL(req.url).searchParams.get("secret");
-  return secretQuery === secret || req.headers.get("x-webhook-secret") === secret;
+  return comparar(secretQuery) || comparar(req.headers.get("x-webhook-secret"));
 }
 
 export async function POST(req: NextRequest) {
