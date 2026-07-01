@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
     const { searchParams } = new URL(req.url);
-    const limite = parseInt(searchParams.get("limite") || "20");
+    const limite = Math.min(parseInt(searchParams.get("limite") || "20"), 200);
     const status = searchParams.get("status"); // pendente | publicada
 
     const noticias = await sql`

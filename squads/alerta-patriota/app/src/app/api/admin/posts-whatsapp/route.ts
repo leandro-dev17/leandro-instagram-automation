@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
     const { searchParams } = new URL(req.url);
-    const limite = parseInt(searchParams.get("limite") || "30");
+    const limite = Math.min(parseInt(searchParams.get("limite") || "30"), 200);
 
     const posts = await sql`
       SELECT id, grupo_id, noticia_id, conteudo, tipo, status, enviado_at

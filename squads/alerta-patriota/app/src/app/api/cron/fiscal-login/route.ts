@@ -1,9 +1,5 @@
 /**
  * FISCAL LISA LOGIN — Testa rota de sessão (/api/auth/me) a cada 5 min.
- * FASE 27 (item 1): /api/auth/login e /api/auth/cadastro foram removidas
- * (rotas mortas — login real do admin é via Server Action em /login,
- * cadastro real de cliente é via /api/assinaturas/criar-direto). O teste
- * dessas rotas foi removido junto para não gerar falso alarme de 404.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -23,17 +19,6 @@ export async function GET(req: NextRequest) {
     const testeMe = await fetch(`${APP_URL}/api/auth/me`, { signal: AbortSignal.timeout(5000) });
     if (testeMe.status !== 200 && testeMe.status !== 401) {
       problemas.push(`/api/auth/me retornou ${testeMe.status}`);
-    }
-
-    // Testa rota de login (POST vazio deve retornar 400, não 500)
-    const testeLogin = await fetch(`${APP_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (testeLogin.status === 500) {
-      problemas.push(`/api/auth/login retornou 500`);
     }
 
     if (problemas.length > 0) {
