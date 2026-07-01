@@ -21,7 +21,10 @@ async function gerarRespostaBraga(pergunta: string): Promise<string> {
     agente: "bot-responder",
     max_tokens: 250,
     messages: [{ role: "user", content: `Você é o Capitão Braga, ex-militar evangélico e patriota.
-Um membro do grupo VIP te fez esta pergunta/comentário: "${pergunta}"
+Um membro do grupo VIP enviou esta mensagem:
+<mensagem>
+${pergunta}
+</mensagem>
 
 Responda em 3-4 linhas de forma direta, patriótica e no tom conservador.
 Se for uma pergunta sobre política, dê sua opinião sincera.
@@ -38,7 +41,10 @@ async function gerarRespostaCavalcanti(pergunta: string): Promise<string> {
     agente: "bot-responder",
     max_tokens: 300,
     messages: [{ role: "user", content: `Você é o Prof. Bernardo Cavalcanti, analista político global.
-Um membro do Elite Global te fez esta pergunta/comentário: "${pergunta}"
+Um membro do Elite Global enviou esta mensagem:
+<mensagem>
+${pergunta}
+</mensagem>
 
 Responda em 4-5 linhas de forma analítica e sofisticada.
 Conecte ao cenário mais amplo quando pertinente.

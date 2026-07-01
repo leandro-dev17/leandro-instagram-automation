@@ -2,6 +2,10 @@ const BREVO_KEY = process.env.BREVO_API_KEY;
 const SENDER_NAME = process.env.BREVO_SENDER_NAME || "Alerta Patriota";
 const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "noreply@alertapatriota.com.br";
 
+function escaparHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 async function enviarEmail(to: string, nome: string, subject: string, html: string): Promise<boolean> {
   if (!BREVO_KEY) return false;
   try {
@@ -25,11 +29,12 @@ async function enviarEmail(to: string, nome: string, subject: string, html: stri
 }
 
 export async function enviarEmailBoasVindas(email: string, nome: string, plano: string, linkGrupo: string): Promise<boolean> {
+  const nomeSeguro = escaparHtml(nome);
   const subject = "🇧🇷 Bem-vindo ao Alerta Patriota!";
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1a1a2e;color:white;padding:40px;border-radius:12px">
       <h1 style="color:#ffd700">🇧🇷 Alerta Patriota</h1>
-      <p>Olá, <strong>${nome}</strong>!</p>
+      <p>Olá, <strong>${nomeSeguro}</strong>!</p>
       <p>Sua assinatura do plano <strong>${plano.toUpperCase()}</strong> foi ativada com sucesso.</p>
       <p>Acesse seu grupo exclusivo pelo link abaixo:</p>
       <a href="${linkGrupo}" style="display:inline-block;background:#ffd700;color:#1a1a2e;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
@@ -42,10 +47,11 @@ export async function enviarEmailBoasVindas(email: string, nome: string, plano: 
 }
 
 export async function enviarEmailCancelamento(email: string, nome: string): Promise<boolean> {
+  const nomeSeguro = escaparHtml(nome);
   const subject = "Sua assinatura foi cancelada";
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:40px">
-      <h2>Olá, ${nome}</h2>
+      <h2>Olá, ${nomeSeguro}</h2>
       <p>Sua assinatura do Alerta Patriota foi cancelada.</p>
       <p>Sentiremos sua falta. Se quiser voltar a qualquer momento, acesse:</p>
       <a href="${process.env.NEXT_PUBLIC_APP_URL}/assinar" style="color:#1a1a2e;font-weight:bold">alertapatriota.com.br/assinar</a>
@@ -56,10 +62,11 @@ export async function enviarEmailCancelamento(email: string, nome: string): Prom
 }
 
 export async function enviarEmailInadimplente(email: string, nome: string): Promise<boolean> {
+  const nomeSeguro = escaparHtml(nome);
   const subject = "⚠️ Problema com seu pagamento — Alerta Patriota";
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:40px">
-      <h2>⚠️ Olá, ${nome}</h2>
+      <h2>⚠️ Olá, ${nomeSeguro}</h2>
       <p>Identificamos um problema com o pagamento da sua assinatura do Alerta Patriota.</p>
       <p>Para não perder acesso ao grupo, regularize agora:</p>
       <a href="${process.env.NEXT_PUBLIC_APP_URL}/assinar" style="display:inline-block;background:#c53030;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">
@@ -72,10 +79,11 @@ export async function enviarEmailInadimplente(email: string, nome: string): Prom
 }
 
 export async function enviarEmailRecuperacao(email: string, nome: string, dia: number): Promise<boolean> {
+  const nomeSeguro = escaparHtml(nome);
   const subject = `${nome}, o Capitão Braga está com saudade`;
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1a1a2e;color:white;padding:40px;border-radius:12px">
-      <h2 style="color:#ffd700">🇧🇷 Volte para o grupo, ${nome}!</h2>
+      <h2 style="color:#ffd700">🇧🇷 Volte para o grupo, ${nomeSeguro}!</h2>
       <p>Faz ${dia} dia${dia > 1 ? "s" : ""} que você saiu do Alerta Patriota.</p>
       <p>Enquanto isso, muita coisa aconteceu e os patriotas do grupo ficaram sabendo antes de todo mundo.</p>
       <a href="${process.env.NEXT_PUBLIC_APP_URL}/assinar" style="display:inline-block;background:#ffd700;color:#1a1a2e;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
@@ -105,7 +113,7 @@ function htmlBaseReengajamento(titulo: string, corpo: string, ctaTexto: string, 
 }
 
 export async function enviarEmailReengajamento(email: string, nome: string, onda: 5 | 10 | 15 | 20 | 25 | 30): Promise<boolean> {
-  const firstName = nome ? nome.split(" ")[0] : "Patriota";
+  const firstName = escaparHtml(nome ? nome.split(" ")[0] : "Patriota");
 
   let subject = "";
   let html = "";

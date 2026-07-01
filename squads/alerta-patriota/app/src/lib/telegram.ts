@@ -8,6 +8,7 @@ export async function enviarTelegram(mensagem: string): Promise<boolean> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: CHAT_ID, text: mensagem, parse_mode: "HTML" }),
+      signal: AbortSignal.timeout(5000),
     });
     return res.ok;
   } catch {

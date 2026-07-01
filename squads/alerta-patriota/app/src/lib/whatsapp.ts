@@ -33,7 +33,7 @@ async function chamarEvolution(url: string, options: RequestInit, contexto: stri
   let ultimoErro: unknown = null;
   for (let i = 1; i <= tentativas; i++) {
     try {
-      const res = await fetch(url, options);
+      const res = await fetch(url, { ...options, signal: AbortSignal.timeout(8000) });
       if (res.ok) return true;
       ultimoErro = `HTTP ${res.status}`;
     } catch (e) {
@@ -126,6 +126,7 @@ async function resolverJid(telefone: string, instancia: string): Promise<string 
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY! },
       body: JSON.stringify({ numbers: [comDDI] }),
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const data = await res.json();
