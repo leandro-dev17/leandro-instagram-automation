@@ -100,12 +100,13 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
   if (!signature) {
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
-  
-  if (Array.isArray(signature)) {
-    return signature[0];
+
+  const signatureValue = Array.isArray(signature) ? signature[0] : signature;
+  if (!signatureValue || signatureValue.trim() === "") {
+    throw new WebhookValidationError("webhook_mp_signature_empty", 401);
   }
-  
-  return signature;
+
+  return signatureValue;
 }
 
 export function validateMercadoPagoSignature(
@@ -114,27 +115,49 @@ export function validateMercadoPagoSignature(
   secret: string
 ): boolean {
   if (!signature || !requestId || !secret) {
-    throw new WebhookValidationError("webhook_mp_validation_params_missing", 403);
+    throw new WebhookValidationError("webhook_mp_validation_params_missing", 401);
   }
-  
-  const parts = signature.split(",");
-  if (parts.length < 2) {
-    throw new WebhookValidationError("webhook_mp_signature_format_invalid", 403);
-  }
-  
-  const ts = parts[0].split("=")[1];
-  const hash = parts[1].split("=")[1];
-  
-  if (!ts || !hash) {
-    throw new WebhookValidationError("webhook_mp_signature_components_missing", 403);
-  }
-  
-  const data = `id=${requestId};request-id=${requestId};ts=${ts}`;
+
   const crypto = require("crypto");
-  const computedHash = crypto
+  const data = `id=${requestId};`;
+  const hash = crypto
     .createHmac("sha256", secret)
     .update(data)
     .digest("hex");
-  
-  return computedHash === hash;
+
+  return signature === hash;
+}
+
+export function getMercadoPagoSecret(): string {
+  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new WebhookValidationError("webhook_mp_secret_not_configured", 403);
+  }
+  return secret;
+}
+
+export function parseMercadoPagoWebhookPayload(body: unknown): Record<string, unknown> {
+  if (!body) {
+    throw new WebhookValidationError("webhook_mp_payload_required", 400);
+  }
+
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body);
+      validateMercadoPagoWebhook(parsed);
+      return parsed;
+    } catch (error) {
+      if (error instanceof WebhookValidationError) {
+        throw error;
+      }
+      throw new WebhookValidationError("webhook_mp_invalid_json", 400);
+    }
+  }
+
+  if (typeof body === "object" && body !== null) {
+    validateMercadoPagoWebhook(body);
+    return body as Record<string, unknown>;
+  }
+
+  throw new WebhookValidationError("webhook_mp_invalid_structure", 400);
 }
