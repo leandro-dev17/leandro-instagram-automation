@@ -24,7 +24,7 @@ async function analisarMercado(
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-haiku-4-5",
       max_tokens: 600,
       messages: [{
         role: "user",
@@ -46,7 +46,7 @@ Faça uma análise semanal de mercado concisa (máx. 4 parágrafos):
 Seja direto e prático. Foque no que é acionável.`,
       }],
     }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(45000), // era 20000ms — insuficiente para análise de 4 parágrafos; aumentado para 45s (seguro dentro do limite de 60s da Vercel)
   });
 
   if (!res.ok) return null;
