@@ -106,31 +106,27 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
 
-  if (typeof signature === "string") {
-    return signature;
+  const signatureStr = Array.isArray(signature) ? signature[0] : signature;
+
+  if (typeof signatureStr !== "string" || signatureStr.trim().length === 0) {
+    throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
   }
 
-  if (Array.isArray(signature) && signature.length > 0) {
-    return signature[0];
-  }
-
-  throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
+  return signatureStr.trim();
 }
 
-export function extractMercadoPagoRequestId(headers: Record<string, string | string[]>): string {
-  const requestId = headers["x-request-id"] || headers["X-Request-Id"];
-
-  if (!requestId) {
-    throw new WebhookValidationError("webhook_mp_request_id_missing", 401);
+export function validateMercadoPagoSignature(
+  signature: string,
+  requestId: string,
+  secret: string
+): boolean {
+  if (!signature || !requestId || !secret) {
+    throw new WebhookValidationError("webhook_mp_validation_params_missing", 403);
   }
 
-  if (typeof requestId === "string") {
-    return requestId;
-  }
+  const crypto = require("crypto");
+  const data = `id=${requestId}`;
+  const hash = crypto.createHmac("sha256", secret).update(data).digest("hex");
 
-  if (Array.isArray(requestId) && requestId.length > 0) {
-    return requestId[0];
-  }
-
-  throw new WebhookValidationError("webhook_mp_request_id_invalid", 401);
+  return signature === hash;
 }
