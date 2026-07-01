@@ -1,0 +1,98 @@
+{
+  "mes": "agosto 2026",
+  "estacao": "inverno",
+  "contexto_geral": "Agosto marca o fim do inverno em SC com temperaturas ainda baixas, mas com dias mais longos. É período pós-férias escolares, volta à rotina, com foco em preparação para primavera/verão. Mulheres buscam intensificar treinos para resultados antes da estação quente. Contexto de retomada de hábitos e metas pós-julho.",
+  "datas_especiais": [
+    {
+      "data": "2026-08-01",
+      "nome": "Primeiro dia de agosto / Reset mensal",
+      "relevancia": "alta",
+      "sugestao_conteudo": "Motivacional 'Agosto é seu mês' - desafio 30 dias, meta clara, transformação possível. Foco em mulheres que querem recomeçar.",
+      "formato_ideal": "reel",
+      "criar_com_antecedencia": 3
+    },
+    {
+      "data": "2026-08-08",
+      "nome": "Dia Internacional da Mulher (segunda observância)",
+      "relevancia": "media",
+      "sugestao_conteudo": "Empoderamento feminino no fitness - histórias de alunas, força feminina, quebrando limites. Celebrar conquistas das clientes.",
+      "formato_ideal": "carousel",
+      "criar_com_antecedencia": 7
+    },
+    {
+      "data": "2026-08-12",
+      "nome": "Dia Nacional da Juventude",
+      "relevancia": "baixa",
+      "sugestao_conteudo": "Conteúdo para público mais jovem (25-30) sobre energia, vitalidade, treino high-performance.",
+      "formato_ideal": "story",
+      "criar_com_antecedencia": 5
+    },
+    {
+      "data": "2026-08-13",
+      "nome": "Dia do Fisioterapeuta",
+      "relevancia": "media",
+      "sugestao_conteudo": "Parcerias com fisioterapeutas locais, conteúdo sobre prevenção de lesões, importância da recuperação, mobilidade feminina.",
+      "formato_ideal": "reel",
+      "criar_com_antecedencia": 7
+    },
+    {
+      "data": "2026-08-22",
+      "nome": "Dia do Folclore",
+      "relevancia": "baixa",
+      "sugestao_conteudo": "Curiosidade: danças folclóricas como treino, ritmo e movimento feminino. Formato leve e cultural.",
+      "formato_ideal": "story",
+      "criar_com_antecedencia": 5
+    },
+    {
+      "data": "2026-08-29",
+      "nome": "Dia Nacional de Combate ao Fumo",
+      "relevancia": "media",
+      "sugestao_conteudo": "Saúde pulmonar, resistência respiratória, benefícios do treino para deixar o cigarro. Conteúdo de bem-estar.",
+      "formato_ideal": "carousel",
+      "criar_com_antecedencia": 7
+    }
+  ],
+  "temas_do_mes": [
+    {
+      "tema": "Desafio 30 Dias de Agosto",
+      "descricao": "Aproveitar o início de mês para lançar desafio de transformação com resultados visíveis até final do mês. Mulheres estão motivadas pós-férias.",
+      "frequencia_sugerida": "4-5x por semana (segunda a sexta)"
+    },
+    {
+      "tema": "Alimentação + Treino no Inverno",
+      "descricao": "Inverno intensifica fome, cravings e sedentarismo. Foco em nutrição inteligente + treino que acelera metabolismo.",
+      "frequencia_sugerida": "2x por semana"
+    },
+    {
+      "tema": "Preparação Primavera/Verão",
+      "descricao": "Mulheres começam planejamento corporal para estações quentes. Agosto é ideal para intensificar e ver resultados em setembro.",
+      "frequencia_sugerida": "3x por semana"
+    },
+    {
+      "tema": "Rotina pós-férias escolares",
+      "descricao": "Mães retomam rotina com filhos na escola. Conteúdo sobre treinos rápidos, eficiência, conciliação vida/treino.",
+      "frequencia_sugerida": "2x por semana"
+    },
+    {
+      "tema": "Autoestima e saúde mental",
+      "descricao": "Inverno associado à depressão sazonal. Fitness como ferramenta para saúde mental, endorfina, confiança feminina.",
+      "frequencia_sugerida": "1x por semana"
+    },
+    {
+      "tema": "Força e musculatura feminina",
+      "descricao": "Mulheres 25-45 anos buscam definição e força. Agosto é mês ideal para intensificar musculação com resultados até verão.",
+      "frequencia_sugerida": "3x por semana"
+    }
+  ],
+  "alertas": [
+    "⚠️ CRIAR COM 15 DIAS DE ANTECEDÊNCIA: Campanha de Desafio 30 Dias (lançar em 01/08) - precisa de artes, vídeos de teaser, regras claras e prêmios/incentivos.",
+    "⚠️ PAUSAR CONTEÚDO DE FÉRIAS/PRAIA: Agosto não é época de férias escolares de verão - evitar conteúdo sobre viagens/férias. Foco em retomada.",
+    "⚠️ CLIMA FRIO AUMENTA SEDENTARISMO: Criar conteúdo motivacional forte para combater resistência ao treino em dias frios. Stories de clientes treinando no frio.",
+    "⚠️ PARCERIAS ESTRATÉGICAS: Agosto é mês para firmar parcerias com nutricionistas, fisioterapeutas e dermatologistas locais em Jaraguá do Sul para ampliar conteúdo.",
+    "⚠️ PREPARAR CONTEÚDO DE SETEMBRO: Agosto é o mês para criar antecipadamente conteúdo sobre equinócio, início da primavera e preparação para primavera/verão.",
+    "⚠️ COLETA DE DEPOIMENTOS: Pedir para alunas que tiveram resultados em julho para gravar depoimentos em vídeo curto - usar como social proof em August.",
+    "⚠️ DIAS MAIS LONGOS: A partir de meados de agosto, dias ficam mais longos. Aproveitar para promover treinos ao ar livre/outdoor como diferencial.",
+    "⚠️ PÚBLICO FEMININO 40-45 ANOS: Foco especial em conteúdo sobre menopausa, hormônios, treino adaptado. Muito buscado nessa faixa etária em inverno.",
+    "⚠️ EVITAR DIAS 07-10, 14-17, 21-24, 28-31: Dias com ciclo menstrual provável para parte da audiência - considerar conteúdo menos intenso nesses períodos (orientação geral)."
+  ]
+}

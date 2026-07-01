@@ -1,97 +1,86 @@
 {
-  "geradoEm": "2026-06-30T14:32:31.707Z",
+  "geradoEm": "2026-07-01T14:49:37.337Z",
   "janela28d": [
     {
-      "data": "2026-06-02",
+      "data": "2026-06-03",
       "tipo": "carousel",
-      "tema": "O que acontece com sua força ao longo do ciclo e como aproveitar cada fase",
-      "keywords": [
-        "força",
-        "ciclo",
-        "fase"
-      ]
-    },
-    {
-      "data": "2026-06-02",
-      "tipo": "kling",
-      "tema": "A semana em que você fica SUPER forte (e a maioria não aproveita)",
+      "tema": "Por que mulheres que treinam pesado emagrecedem 3x mais rápido (e como a biologia feminina funciona diferente do marketing)",
       "keywords": []
     },
     {
       "data": "2026-06-03",
-      "tipo": "carousel",
-      "tema": "Como ajustar sua ingestão de proteína e macros em cada fase do ciclo",
-      "keywords": [
-        "proteína",
-        "proteina",
-        "ciclo",
-        "fase"
-      ]
-    },
-    {
-      "data": "2026-06-03",
       "tipo": "kling",
-      "tema": "Você está comendo proteína demais e por isso não consegue emagrecer",
-      "keywords": [
-        "emagrecer",
-        "proteína",
-        "proteina"
-      ]
-    },
-    {
-      "data": "2026-06-04",
-      "tipo": "carousel",
-      "tema": "Como seu gasto calórico varia até 500kcal entre as fases do ciclo — e por que ignorar isso sabota seu emagrecimento",
-      "keywords": [
-        "emagrecimento",
-        "ciclo",
-        "fase"
-      ]
-    },
-    {
-      "data": "2026-06-04",
-      "tipo": "kling",
-      "tema": "Cintura, quadril e como os hormônios do ciclo redimensionam seu corpo",
-      "keywords": [
-        "ciclo",
-        "hormônio",
-        "hormonio",
-        "cintura"
-      ]
-    },
-    {
-      "data": "2026-06-05",
-      "tipo": "carousel",
-      "tema": "5 mitos sobre emagrecimento feminino que estão te prendendo no mesmo peso há anos",
-      "keywords": [
-        "emagrecimento"
-      ]
-    },
-    {
-      "data": "2026-06-05",
-      "tipo": "kling",
-      "tema": "Caminhada para emagrecimento — por que muita gente treina errado",
-      "keywords": [
-        "emagrecimento",
-        "caminhada"
-      ]
-    },
-    {
-      "data": "2026-06-06",
-      "tipo": "carousel",
-      "tema": "O guia científico para crescimento de glúteo — por que volume e frequência não são suficientes",
-      "keywords": [
-        "glúteo",
-        "gluteo"
-      ]
-    },
-    {
-      "data": "2026-06-06",
-      "tipo": "kling",
-      "tema": "Superação e força — por que mulher evita treino pesado",
+      "tema": "Força, braços tonificados e superação feminina no treino pesado",
       "keywords": [
         "treino pesado",
-        "força"
+        "força",
+        "braço"
+      ]
+    },
+    {
+      "data": "2026-06-04",
+      "tipo": "carousel",
+      "tema": "Macro cycling por ciclo menstrual: como aumentar carbos e gorduras sem ganhar peso (e emagrecer mais rápido)",
+      "keywords": [
+        "emagrecer",
+        "gordura",
+        "ciclo",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-06-04",
+      "tipo": "kling",
+      "tema": "Close no rosto: motivação real sobre parar de culpar comida e começar a entender o próprio corpo",
+      "keywords": [
+        "motivação"
+      ]
+    },
+    {
+      "data": "2026-06-05",
+      "tipo": "carousel",
+      "tema": "O mapa completo de treino de glúteo por ciclo menstrual: quando fazer hipertrofia, quando fazer força, quando recuperar",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "força",
+        "ciclo",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-06-05",
+      "tipo": "kling",
+      "tema": "Glúteo em movimento, rotação 360, pernas e poder feminino",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "perna"
+      ]
+    },
+    {
+      "data": "2026-06-06",
+      "tipo": "carousel",
+      "tema": "O Guia Científico: Como Seus Hormônios Controlam a Queima de Gordura em Cada Fase do Ciclo",
+      "keywords": [
+        "gordura",
+        "ciclo",
+        "fase",
+        "hormônio",
+        "hormonio"
+      ]
+    },
+    {
+      "data": "2026-06-06",
+      "tipo": "kling",
+      "tema": "Abdômen, Cintura e Hormônios: Por que seu abdômen incha em uma fase do ciclo",
+      "keywords": [
+        "ciclo",
+        "fase",
+        "hormônio",
+        "hormonio",
+        "abdômen",
+        "cintura"
       ]
     },
     {
@@ -312,6 +301,137 @@
       "keywords": [
         "emagrecimento",
         "motivação"
+      ]
+    },
+    {
+      "data": "2026-07-02",
+      "tipo": "carousel",
+      "tema": "O guia científico: como seu metabolismo muda a cada fase do ciclo menstrual",
+      "keywords": [
+        "metabolismo",
+        "ciclo",
+        "fase",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-07-02",
+      "tipo": "kling",
+      "tema": "Cintura, hormônios e por que sua barriguinha muda ao longo do mês",
+      "keywords": [
+        "hormônio",
+        "hormonio",
+        "cintura"
+      ]
+    },
+    {
+      "data": "2026-07-03",
+      "tipo": "carousel",
+      "tema": "Os 5 maiores mitos sobre emagrecimento feminino (e por que você não emagrece acreditando neles)",
+      "keywords": [
+        "emagrecimento"
+      ]
+    },
+    {
+      "data": "2026-07-03",
+      "tipo": "kling",
+      "tema": "Treino de força feminino: quebrando o mito do 'ficar grande'",
+      "keywords": [
+        "força"
+      ]
+    },
+    {
+      "data": "2026-07-04",
+      "tipo": "carousel",
+      "tema": "Os 3 erros que impedem seu glúteo de crescer (e como treinar pra ter bumbum de verdade)",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "bumbum"
+      ]
+    },
+    {
+      "data": "2026-07-04",
+      "tipo": "kling",
+      "tema": "Rotação 360º: o exercício que REALMENTE faz glúteo crescer",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-07-05",
+      "tipo": "carousel",
+      "tema": "Guia nutricional completo: o que comer em cada fase do seu ciclo menstrual",
+      "keywords": [
+        "ciclo",
+        "fase",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-07-05",
+      "tipo": "kling",
+      "tema": "Proteína e nutrição: o segredo que ninguém fala sobre mulheres que emagrecem",
+      "keywords": [
+        "proteína",
+        "proteina",
+        "nutrição"
+      ]
+    },
+    {
+      "data": "2026-07-06",
+      "tipo": "carousel",
+      "tema": "O guia científico do metabolismo feminino ao longo do ciclo menstrual",
+      "keywords": [
+        "metabolismo",
+        "ciclo",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-07-06",
+      "tipo": "kling",
+      "tema": "Mito: mulher que caminha muito emagrece mais rápido",
+      "keywords": []
+    },
+    {
+      "data": "2026-07-07",
+      "tipo": "carousel",
+      "tema": "Por que seu glúteo não cresce: o guia de treino por fase do ciclo",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "ciclo",
+        "fase"
+      ]
+    },
+    {
+      "data": "2026-07-07",
+      "tipo": "kling",
+      "tema": "Treino de glúteo por ângulo: rotação completa de 360°",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-07-08",
+      "tipo": "carousel",
+      "tema": "O guia completo de proteína para emagrecimento feminino sem passar fome",
+      "keywords": [
+        "emagrecimento",
+        "proteína",
+        "proteina"
+      ]
+    },
+    {
+      "data": "2026-07-08",
+      "tipo": "kling",
+      "tema": "Postura feminina, proteína e confiança: a tríade que ninguém fala",
+      "keywords": [
+        "proteína",
+        "proteina"
       ]
     }
   ],
