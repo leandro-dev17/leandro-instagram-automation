@@ -100,35 +100,44 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
   if (!signature) {
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
-
-  if (typeof signature === "string" && signature.trim().length === 0) {
-    throw new WebhookValidationError("webhook_mp_signature_empty", 401);
-  }
   
-  return typeof signature === "string" ? signature : signature[0];
+  return Array.isArray(signature) ? signature[0] : signature;
 }
 
 export function validateMercadoPagoSignature(
-  payload: string,
   signature: string,
-  secret: string
+  requestId: string,
+  timestamp: string,
+  body: string
 ): boolean {
-  if (!payload || typeof payload !== "string" || payload.trim().length === 0) {
-    throw new WebhookValidationError("webhook_mp_payload_malformed", 400);
+  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+  
+  if (!secret) {
+    throw new WebhookValidationError("webhook_mp_secret_not_configured", 500);
   }
+  
+  const manifest = `id=${requestId};request-id=${requestId};ts=${timestamp}`;
+  const hmac = require("crypto").createHmac("sha256", secret).update(manifest).digest("hex");
+  
+  return signature === hmac;
+}
 
-  if (!signature || typeof signature !== "string" || signature.trim().length === 0) {
-    throw new WebhookValidationError("webhook_mp_signature_empty", 401);
+export function getMercadoPagoRequestId(headers: Record<string, string | string[]>): string {
+  const requestId = headers["x-request-id"] || headers["X-Request-Id"];
+  
+  if (!requestId) {
+    throw new WebhookValidationError("webhook_mp_request_id_missing", 401);
   }
+  
+  return Array.isArray(requestId) ? requestId[0] : requestId;
+}
 
-  if (!secret || typeof secret !== "string") {
-    throw new WebhookValidationError("webhook_mp_secret_invalid", 403);
+export function getMercadoPagoTimestamp(headers: Record<string, string | string[]>): string {
+  const timestamp = headers["x-timestamp"] || headers["X-Timestamp"];
+  
+  if (!timestamp) {
+    throw new WebhookValidationError("webhook_mp_timestamp_missing", 401);
   }
-
-  const crypto = require("crypto");
-  const hmac = crypto.createHmac("sha256", secret);
-  hmac.update(payload);
-  const computed = hmac.digest("hex");
-
-  return computed === signature;
+  
+  return Array.isArray(timestamp) ? timestamp[0] : timestamp;
 }
