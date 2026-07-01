@@ -13,7 +13,7 @@ async function enviarOferta(numero: string, nome: string, diasAtivo: number): Pr
   const mensagem =
     `Oi, ${nome}! Aqui é a Vovó Teresinha. 🌿\n\n` +
     `Você já está há ${diasAtivo} dias conosco e tenho uma surpresa especial pra você!\n\n` +
-    `🎁 *Oferta exclusiva:* Assine o plano anual por apenas *R$79,90* (menos de R$7/mês) e tenha acesso a TODAS as receitas premium da vovó!\n\n` +
+    `🎁 *Oferta exclusiva:* Conheça o Livro de Receitas por apenas *R$19,90/mês* (7 dias grátis!) e tenha acesso a TODAS as receitas premium da vovó!\n\n` +
     `✅ +500 receitas saudáveis\n` +
     `✅ Planos personalizados\n` +
     `✅ Novidades toda semana\n\n` +
@@ -43,13 +43,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Usuários gratuitos ativos há 7+ dias com telefone que ainda não receberam oferta WPP
+    // Usuários gratuitos ativos há 7+ dias com WhatsApp que ainda não receberam oferta
     const candidatos = await sql`
-      SELECT u.id, u.nome, u.telefone,
-             30 as dias_ativo
+      SELECT u.id, u.nome, u.whatsapp,
+             EXTRACT(DAY FROM NOW() - u.criado_em)::int as dias_ativo
       FROM usuarios u
       WHERE u.tipo_usuario = 'free'
-        AND u.telefone IS NOT NULL AND u.telefone != ''
+        AND u.whatsapp IS NOT NULL AND u.whatsapp != ''
+        AND u.aceita_whatsapp = true
+        AND u.criado_em < NOW() - INTERVAL '7 days'
         AND NOT EXISTS (
           SELECT 1 FROM app_configuracoes ac
           WHERE ac.chave = CONCAT('wpp_oferta_', u.id::text)
@@ -65,7 +67,7 @@ export async function GET(req: NextRequest) {
     const convertidos: string[] = [];
 
     for (const u of candidatos) {
-      const numero = String(u.telefone).replace(/\D/g, "");
+      const numero = String(u.whatsapp).replace(/\D/g, "");
       if (numero.length < 10) continue;
 
       const enviado = await enviarOferta(numero, u.nome || "querida", u.dias_ativo);

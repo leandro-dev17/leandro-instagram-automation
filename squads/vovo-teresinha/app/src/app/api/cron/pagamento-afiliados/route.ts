@@ -47,7 +47,8 @@ export async function GET(req: NextRequest) {
       `${resumo.length} afiliado(s) aguardando pagamento:\n\n` +
       linhas.join("\n\n") +
       `\n\n💰 Total geral: R$${totalGeral.toFixed(2)}\n\n` +
-      `⚠️ <b>Ação necessária:</b> Realize os pagamentos via PIX e depois confirme manualmente em /api/cron/pagamento-afiliados?confirmar=true&secret=...`
+      `⚠️ <b>Ação necessária:</b> Realize os pagamentos via PIX e depois confirme manualmente com:\n` +
+      `curl "https://receitinhas-vovo-teresinha.vercel.app/api/cron/pagamento-afiliados?confirmar=true" -H "Authorization: Bearer $CRON_SECRET"`
     );
 
     // Se o parâmetro confirmar=true estiver presente, marca as comissões como pagas
@@ -59,18 +60,14 @@ export async function GET(req: NextRequest) {
         WHERE afiliado_id = ANY(${ids}) AND status = 'aprovada'
       `;
 
-      await sql`
-        UPDATE afiliados SET
-          total_comissao_paga = total_comissao_paga + subq.total,
-          atualizado_em = NOW()
-        FROM (
-          SELECT afiliado_id, SUM(valor_comissao) as total
-          FROM comissoes
-          WHERE status = 'paga' AND pago_em > NOW() - INTERVAL '1 minute'
-          GROUP BY afiliado_id
-        ) subq
-        WHERE afiliados.id = subq.afiliado_id
-      `;
+      for (const r of resumo) {
+        await sql`
+          UPDATE afiliados SET
+            total_comissao_paga = total_comissao_paga + ${Number(r.total_a_pagar)},
+            atualizado_em = NOW()
+          WHERE id = ${r.id}
+        `;
+      }
 
       await enviarTelegram(
         `✅ <b>Pagamentos confirmados!</b>\n\n` +

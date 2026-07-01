@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const pushInativas = await sql`
       DELETE FROM push_subscriptions
       WHERE ativo = false
-        AND criado_em < NOW() - INTERVAL '90 days'
+        AND created_at < NOW() - INTERVAL '90 days'
       RETURNING id
     `;
     if (pushInativas.length > 0) {
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     // 3. Remove itens da fila WhatsApp já enviados há mais de 15 dias
     const filaAntiga = await sql`
       DELETE FROM whatsapp_fila
-      WHERE status = 'enviado'
+      WHERE enviado = true
         AND enviado_em < NOW() - INTERVAL '15 days'
       RETURNING id
     `.catch(() => ({ length: 0 }));
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     // 5. Remove planos semanais com mais de 8 semanas
     const planosAntigos = await sql`
       DELETE FROM planos_semanais
-      WHERE semana < (CURRENT_DATE - INTERVAL '56 days')::text
+      WHERE semana < CURRENT_DATE - INTERVAL '56 days'
       RETURNING id
     `;
     if (planosAntigos.length > 0) {

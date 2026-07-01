@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { MercadoPagoConfig, PreApproval } from "mercadopago";
+import { criarCheckoutMP } from "@/lib/mercadopago";
 import { PLANOS } from "@/lib/planos";
-import type { PreApprovalRequest } from "mercadopago/dist/clients/preApproval/commonTypes";
-
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
-});
 
 async function queryWithRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   for (let i = 0; i <= retries; i++) {
@@ -34,7 +29,7 @@ export async function POST(req: NextRequest) {
     const { plano, codigo_afiliado } = await req.json();
 
     if (!plano || !PLANOS[plano as keyof typeof PLANOS]) {
-      return NextResponse.json({ erro: "Plano inválido. Use: mensal, trimestral ou anual" }, { status: 400 });
+      return NextResponse.json({ erro: "Plano inválido. Use: caderninho ou livro_receitas" }, { status: 400 });
     }
 
     const uRows = await queryWithRetry(() => sql`SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`);
@@ -48,6 +43,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Você já tem acesso premium como aluna do Leandro!" }, { status: 400 });
     }
 
+    if (uRows[0].tipo_usuario === "premium") {
+      return NextResponse.json({
+        erro: "Você já tem uma assinatura ativa. Cancele a atual antes de assinar outro plano.",
+      }, { status: 400 });
+    }
+
     const info = PLANOS[plano as keyof typeof PLANOS];
 
     // Bloqueia segundo trial: se o plano tem período grátis e o usuário já usou trial antes
@@ -56,31 +57,16 @@ export async function POST(req: NextRequest) {
         erro: "Você já utilizou seu período de teste gratuito. Assine normalmente para continuar tendo acesso.",
       }, { status: 400 });
     }
-    const preApprovalClient = new PreApproval(client);
 
-    // external_reference codifica: userId|plano|codigoAfiliado
-    const extRef = `${session.id}|${plano}|${codigo_afiliado || ""}`;
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://receitinhas-vovo-teresinha.vercel.app";
-
-    const result = await preApprovalClient.create({
-      body: {
-        preapproval_plan_id: info.mpPlanId,
-        reason: info.titulo,
-        payer_email: session.email,
-        external_reference: extRef,
-        back_url: `${appUrl}/pagamento/sucesso`,
-        notification_url: `${appUrl}/api/webhook/mercadopago`,
-        status: "pending",
-      } as PreApprovalRequest & { notification_url?: string },
-    });
-
-    if (!result.init_point) {
-      console.error("assinaturas/criar: init_point ausente", result);
+    let initPoint: string;
+    try {
+      initPoint = await criarCheckoutMP(session.id, session.email, plano as keyof typeof PLANOS, codigo_afiliado);
+    } catch (err) {
+      console.error("assinaturas/criar: erro ao criar checkout MP", err);
       return NextResponse.json({ erro: "Erro ao gerar link de pagamento. Tente novamente." }, { status: 500 });
     }
 
-    return NextResponse.json({ dados: { init_point: result.init_point, id: result.id } });
+    return NextResponse.json({ dados: { init_point: initPoint } });
   } catch (err) {
     console.error("assinaturas/criar error", err);
     const msg = err instanceof Error ? err.message : "Erro interno";

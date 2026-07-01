@@ -44,12 +44,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { key, action } = body;
-
-  // tag_receitas action only needs admin session (already verified above)
-  if (action !== "tag_receitas" && key !== process.env.JWT_SECRET) {
-    return NextResponse.json({ erro: "Chave inválida" }, { status: 403 });
-  }
+  const { action } = body;
 
   try {
     // action=tag_receitas: auto-tag vegano/vegetariano by ingredient analysis

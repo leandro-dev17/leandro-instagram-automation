@@ -21,9 +21,7 @@ export async function GET(req: NextRequest) {
     const [assinaturas] = await sql`
       SELECT
         COUNT(*) FILTER (WHERE status = 'ativo') as ativos,
-        SUM(CASE WHEN status = 'ativo' AND plano = 'anual' THEN valor / 12
-                 WHEN status = 'ativo' AND plano = 'trimestral' THEN valor / 3
-                 ELSE 0 END) as mrr,
+        COALESCE(SUM(CASE WHEN status = 'ativo' THEN valor ELSE 0 END), 0) as mrr,
         COUNT(*) FILTER (WHERE status = 'ativo' AND renovada_em > NOW() - INTERVAL '24 hours') as novos_hoje,
         COUNT(*) FILTER (WHERE status IN ('cancelado', 'paused') AND renovada_em > NOW() - INTERVAL '24 hours') as cancelados_hoje
       FROM assinaturas

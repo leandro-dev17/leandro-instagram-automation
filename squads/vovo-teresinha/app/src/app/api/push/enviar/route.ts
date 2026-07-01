@@ -45,9 +45,12 @@ export async function POST(req: NextRequest) {
           payload
         );
         sucesso++;
-      } catch {
+      } catch (e: unknown) {
         falha++;
-        await sql`DELETE FROM push_subscriptions WHERE endpoint = ${sub.endpoint}`;
+        const status = (e as { statusCode?: number })?.statusCode;
+        if (status === 410 || status === 404) {
+          await sql`DELETE FROM push_subscriptions WHERE endpoint = ${sub.endpoint}`;
+        }
       }
     }
 

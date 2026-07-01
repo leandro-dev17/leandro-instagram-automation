@@ -324,10 +324,10 @@ export default function ReceitaDetalhe() {
             >
               <div className="text-4xl mb-3">🔒</div>
               <h3 className="font-bold mb-2" style={{ color: "var(--vovo-marrom)" }}>
-                Receita exclusiva premium
+                Receita exclusiva do Livro de Receitas
               </h3>
               <p className="text-sm mb-4" style={{ color: "var(--vovo-marrom-mid)" }}>
-                Assine e acesse mais de 200 receitas saudáveis por apenas R$12,90/mês!
+                Essa receita não está nas 80 do Caderninho. Assine o Livro de Receitas completo por R$19,90/mês para desbloquear!
               </p>
               <Link href="/assinar" className="btn-primary">
                 Ver planos 💕

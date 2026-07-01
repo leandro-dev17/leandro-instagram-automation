@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
+import { cronAutorizado } from "@/lib/auth-cron";
 
 // Limpeza mensal de segurança: remove push subscriptions expiradas (>90 dias)
 // e identifica usuários inativos há mais de 180 dias para análise de retenção.
 // Tokens JWT expiram automaticamente — não há tokens no banco para rotacionar.
 export async function GET(req: NextRequest) {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronAutorizado(req)) {
     return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   }
 

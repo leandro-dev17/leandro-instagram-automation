@@ -72,8 +72,8 @@ export async function GET(req: NextRequest) {
 
   // ── 4. Plano semanal query ───────────────────────────────────────────────
   try {
-    await sql`SELECT * FROM information_schema.tables WHERE table_name = 'plano_semanal' LIMIT 1`;
-    checks.push({ nome: "plano-semanal-tabela", ok: true });
+    const rows = await sql`SELECT * FROM information_schema.tables WHERE table_name = 'planos_semanais' LIMIT 1`;
+    checks.push({ nome: "plano-semanal-tabela", ok: rows.length > 0 });
   } catch (e: any) {
     checks.push({ nome: "plano-semanal-tabela", ok: false, erro: e.message });
   }

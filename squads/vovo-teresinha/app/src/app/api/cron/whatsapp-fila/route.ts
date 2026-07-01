@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { enviarViaEvolution, buildMensagem } from "@/lib/whatsapp";
+import { cronAutorizado } from "@/lib/auth-cron";
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronAutorizado(req)) {
     return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   }
 
@@ -28,7 +28,6 @@ export async function GET(req: NextRequest) {
     await sql`ALTER TABLE whatsapp_fila ADD COLUMN IF NOT EXISTS enviado_em TIMESTAMPTZ`;
     await sql`ALTER TABLE whatsapp_fila ADD COLUMN IF NOT EXISTS agendado_para TIMESTAMPTZ DEFAULT NOW()`;
     await sql`ALTER TABLE whatsapp_fila ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
-    await sql`ALTER TABLE alunas_leandro ADD COLUMN IF NOT EXISTS sexo TEXT DEFAULT 'F'`;
     await sql`
       CREATE TABLE IF NOT EXISTS alunas_leandro (
         id SERIAL PRIMARY KEY,
@@ -39,6 +38,7 @@ export async function GET(req: NextRequest) {
         last_access_at TIMESTAMPTZ
       )
     `;
+    await sql`ALTER TABLE alunas_leandro ADD COLUMN IF NOT EXISTS sexo TEXT DEFAULT 'F'`;
 
     // Busca mensagens pendentes prontas para envio (máx 3 tentativas)
     const pendentes = await sql`

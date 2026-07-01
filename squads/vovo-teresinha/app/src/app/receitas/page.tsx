@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
@@ -81,7 +81,10 @@ export default function ReceitasPage() {
   const [destaque, setDestaque] = useState<ReceitaDestaque | null | undefined>(undefined);
   const boasVindas = BOAS_VINDAS[new Date().getDay()];
 
+  const requisicaoAtualRef = useRef(0);
+
   const carregarReceitas = useCallback(async (reset = false) => {
+    const idRequisicao = ++requisicaoAtualRef.current;
     setCarregando(true);
     const pag = reset ? 1 : pagina;
     const params = new URLSearchParams({ pagina: String(pag), limite: "20" });
@@ -92,6 +95,7 @@ export default function ReceitasPage() {
     try {
       const res = await fetch(`/api/receitas?${params}`);
       const data = await res.json();
+      if (idRequisicao !== requisicaoAtualRef.current) return; // resposta desatualizada, ignorar
       const novas = data.dados || [];
       setPremium(data.premium);
       setTrialFim(data.trial_fim);
@@ -100,7 +104,7 @@ export default function ReceitasPage() {
       if (reset) setPagina(2);
       else setPagina((p) => p + 1);
     } finally {
-      setCarregando(false);
+      if (idRequisicao === requisicaoAtualRef.current) setCarregando(false);
     }
   }, [categoria, busca, tagsSelecionadas, pagina]);
 
@@ -177,7 +181,7 @@ export default function ReceitasPage() {
                     ⭐ Receita do Dia
                   </span>
                   {destaque.locked && (
-                    <span className="text-xs text-white opacity-80">🔒 Premium</span>
+                    <span className="text-xs text-white opacity-80">🔒 Livro de Receitas</span>
                   )}
                 </div>
                 <h2 className="text-white font-bold text-base leading-tight">{destaque.titulo}</h2>
@@ -187,23 +191,25 @@ export default function ReceitasPage() {
           </Link>
         )}
 
-        {/* Quick access: Geladeira + Lista */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => router.push("/geladeira")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
-            style={{ backgroundColor: "white", color: "var(--vovo-marrom)", border: "1.5px solid #e5e0da" }}
-          >
-            🥦 Geladeira
-          </button>
-          <button
-            onClick={() => router.push("/lista-compras")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
-            style={{ backgroundColor: "white", color: "var(--vovo-marrom)", border: "1.5px solid #e5e0da" }}
-          >
-            🛒 Lista de Compras
-          </button>
-        </div>
+        {/* Quick access: Geladeira + Lista — exclusivo Livro de Receitas */}
+        {premium && (
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => router.push("/geladeira")}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              style={{ backgroundColor: "white", color: "var(--vovo-marrom)", border: "1.5px solid #e5e0da" }}
+            >
+              🥦 Geladeira
+            </button>
+            <button
+              onClick={() => router.push("/lista-compras")}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              style={{ backgroundColor: "white", color: "var(--vovo-marrom)", border: "1.5px solid #e5e0da" }}
+            >
+              🛒 Lista de Compras
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleBusca} className="flex gap-2 mb-3">
           <input
@@ -243,7 +249,7 @@ export default function ReceitasPage() {
             style={{ backgroundColor: "rgba(200,128,106,0.1)", color: "var(--vovo-rosa)" }}
           >
             <span>🔒</span>
-            <span>Filtros por restrição disponíveis no Premium</span>
+            <span>Filtros por restrição disponíveis no Livro de Receitas</span>
             <span className="ml-auto font-semibold">Ver planos →</span>
           </Link>
         )}

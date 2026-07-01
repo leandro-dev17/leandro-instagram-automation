@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { getSession } from "@/lib/auth";
 
-// Rota de setup/migração protegida por chave secreta via query param
-// Uso: GET /api/admin/setup?key=JWT_SECRET_VALUE
-export async function GET(req: NextRequest) {
-  const key = req.nextUrl.searchParams.get("key");
-  if (!key || key !== process.env.JWT_SECRET) {
+export async function GET() {
+  const session = await getSession();
+  if (!session || session.tipo_usuario !== "admin") {
     return NextResponse.json({ erro: "Não autorizado" }, { status: 403 });
   }
 

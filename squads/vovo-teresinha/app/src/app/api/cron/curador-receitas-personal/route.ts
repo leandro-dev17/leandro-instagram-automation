@@ -59,17 +59,17 @@ export async function GET(req: NextRequest) {
     }
 
     // Buscar 3 por período
-    let manha      = await candidatas("Café da Manhã", idsUsados);
-    let lanches    = await candidatas("Lanches", idsUsados);
-    let sobremesas = await candidatas("Sobremesas", idsUsados);
+    let manha      = await candidatas("cafe_manha", idsUsados);
+    let lanches    = await candidatas("lanches_snacks", idsUsados);
+    let sobremesas = await candidatas("doces_sobremesas", idsUsados);
 
     // Fallback sem filtro de tags se não atingir 3
     if (manha.length < 3)
-      manha = [...manha, ...await candidatasSemFiltro("Café da Manhã", idsUsados, 3 - manha.length)];
+      manha = [...manha, ...await candidatasSemFiltro("cafe_manha", idsUsados, 3 - manha.length)];
     if (lanches.length < 3)
-      lanches = [...lanches, ...await candidatasSemFiltro("Lanches", idsUsados, 3 - lanches.length)];
+      lanches = [...lanches, ...await candidatasSemFiltro("lanches_snacks", idsUsados, 3 - lanches.length)];
     if (sobremesas.length < 3)
-      sobremesas = [...sobremesas, ...await candidatasSemFiltro("Sobremesas", idsUsados, 3 - sobremesas.length)];
+      sobremesas = [...sobremesas, ...await candidatasSemFiltro("doces_sobremesas", idsUsados, 3 - sobremesas.length)];
 
     const selecionados = [...manha, ...lanches, ...sobremesas];
     const ids = selecionados.map(r => r.id);

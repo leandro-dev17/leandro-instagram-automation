@@ -34,7 +34,7 @@ Contexto do nosso app "Vovó Teresinha" (receitas saudáveis brasileiras):
 - Total de receitas no banco: ${totalReceitas}
 - Total de usuários: ${totalUsuarios}
 - MRR atual: R$${mrr.toFixed(2)}
-- Planos: trimestral R$29,90 / anual R$79,90
+- Planos: Caderninho R$9,90/mês (80 receitas) / Livro de Receitas R$19,90/mês (400+ receitas, 7 dias grátis)
 - Diferenciais: receitas saudáveis, curadoria da Vovó Teresinha, PWA com push, grupo WhatsApp
 
 Faça uma análise semanal de mercado concisa (máx. 4 parágrafos):

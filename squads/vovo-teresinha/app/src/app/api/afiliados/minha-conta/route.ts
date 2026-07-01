@@ -8,7 +8,7 @@ export async function GET() {
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
 
     const afiRows = await sql`
-      SELECT id, codigo, cpf, pix_chave, tier, created_at
+      SELECT id, codigo, cpf, pix_chave, tier, criado_em
       FROM afiliados WHERE usuario_id = ${session.id} LIMIT 1
     `;
 
@@ -31,7 +31,9 @@ export async function GET() {
     `;
 
     const saldoPendente = comissoes.find((c: { status: string }) => c.status === "pendente")?.total || 0;
-    const saldoDisponivel = comissoes.find((c: { status: string }) => c.status === "liberado")?.total || 0;
+    const saldoDisponivel = comissoes
+      .filter((c: { status: string }) => c.status === "liberado" || c.status === "aprovada")
+      .reduce((soma: number, c: { total: string }) => soma + parseFloat(c.total), 0);
     const totalSacado = saques.find((s: { status: string }) => s.status === "aprovado")?.total || 0;
     const totalConversoes = comissoes.reduce((a: number, c: { count: string }) => a + parseInt(c.count), 0);
 
@@ -39,7 +41,7 @@ export async function GET() {
       dados: {
         ...afiliado,
         saldo_pendente: parseFloat(saldoPendente),
-        saldo_disponivel: parseFloat(saldoDisponivel),
+        saldo_disponivel: saldoDisponivel,
         total_sacado: parseFloat(totalSacado),
         total_conversoes: totalConversoes,
       },

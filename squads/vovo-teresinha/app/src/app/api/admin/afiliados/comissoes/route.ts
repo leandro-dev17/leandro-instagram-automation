@@ -10,12 +10,12 @@ export async function GET() {
     }
 
     const rows = await sql`
-      SELECT c.id, c.valor, c.status, c.created_at, c.liberado_em,
+      SELECT c.id, c.valor, c.status, c.criado_em, c.liberado_em,
              a.codigo, u.nome, u.email
       FROM comissoes c
       JOIN afiliados a ON a.id = c.afiliado_id
       JOIN usuarios u ON u.id = a.usuario_id
-      ORDER BY c.created_at DESC
+      ORDER BY c.criado_em DESC
       LIMIT 100
     `;
 

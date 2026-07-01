@@ -37,7 +37,7 @@ export async function POST() {
     }
 
     await sql`
-      UPDATE assinaturas SET status = 'paused'
+      UPDATE assinaturas SET status = 'paused', cancelado_em = NOW()
       WHERE usuario_id = ${session.id} AND mp_preapproval_id = ${preapprovalId}
     `;
 
@@ -79,7 +79,7 @@ export async function DELETE() {
     }
 
     await sql`
-      UPDATE assinaturas SET status = 'cancelled'
+      UPDATE assinaturas SET status = 'cancelado', cancelado_em = NOW()
       WHERE usuario_id = ${session.id} AND mp_preapproval_id = ${preapprovalId}
     `;
 

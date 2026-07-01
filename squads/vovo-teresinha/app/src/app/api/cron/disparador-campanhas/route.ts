@@ -7,7 +7,7 @@ import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL;
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY;
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || "vovoapp";
+const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCIA;
 
 async function enviarEmailBrevo(email: string, nome: string, tipo: "reativacao" | "recuperacao") {
   if (!BREVO_API_KEY) return false;
@@ -111,9 +111,12 @@ export async function GET(req: NextRequest) {
         else resultados.wpp_falha++;
       }
 
-      if (!disparou) resultados.sem_canal++;
+      if (!disparou) {
+        resultados.sem_canal++;
+        continue;
+      }
 
-      // Marca como disparado
+      // Marca como disparado (só quando algum canal teve sucesso, senão retenta na próxima execução)
       await sql`
         UPDATE app_configuracoes SET valor = 'disparado_' || NOW()::TEXT
         WHERE chave = ${contato.chave}
@@ -123,14 +126,22 @@ export async function GET(req: NextRequest) {
     // Dispara para recuperação
     for (const contato of recuperacao) {
       const tipo = "recuperacao" as const;
+      let disparou = false;
+
       if (BREVO_API_KEY && contato.email) {
         const ok = await enviarEmailBrevo(contato.email, contato.nome, tipo);
-        if (ok) resultados.email_ok++; else resultados.email_falha++;
+        if (ok) { resultados.email_ok++; disparou = true; } else resultados.email_falha++;
       }
       if (EVOLUTION_URL && contato.whatsapp) {
         const ok = await enviarWhatsApp(contato.whatsapp, contato.nome, tipo);
-        if (ok) resultados.wpp_ok++; else resultados.wpp_falha++;
+        if (ok) { resultados.wpp_ok++; disparou = true; } else resultados.wpp_falha++;
       }
+
+      if (!disparou) {
+        resultados.sem_canal++;
+        continue;
+      }
+
       await sql`
         UPDATE app_configuracoes SET valor = 'disparado_' || NOW()::TEXT
         WHERE chave = ${contato.chave}

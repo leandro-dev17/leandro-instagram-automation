@@ -16,8 +16,8 @@ export async function enviarViaEvolution(telefone: string, texto: string): Promi
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY },
       body: JSON.stringify({
-        number: `${numero}@s.whatsapp.net`,
-        textMessage: { text: texto },
+        number: numero,
+        text: texto,
       }),
     });
     return res.ok;
@@ -39,11 +39,20 @@ export function buildMensagem(tipo: string, nome: string, sexo: "M" | "F" = "F",
   const aluno = sexo === "M" ? "aluno" : "aluna";
 
   switch (tipo) {
-    case "boas_vindas_premium":
+    case "boas_vindas_livro":
       return (
-        `🎉 *Parabéns! Você agora é Premium!*\n\n` +
+        `🎉 *Parabéns! Sua assinatura do Livro de Receitas foi ativada!*\n\n` +
         `Olá ${nome}! A Vovó Teresinha ficou tão feliz! 👵❤️\n\n` +
-        `Você tem acesso a todas as receitinhas deliciosas, plano semanal, geladeira inteligente e muito mais!\n\n` +
+        `Você tem acesso a mais de 400 receitinhas, plano semanal automático, geladeira inteligente e lista de compras integrada!\n\n` +
+        `👉 ${APP_URL}/receitas\n\n` +
+        `Com carinho, Vovó Teresinha 🌸`
+      );
+
+    case "boas_vindas_caderninho":
+      return (
+        `🎉 *Parabéns! Seu Caderninho foi ativado!*\n\n` +
+        `Olá ${nome}! A Vovó Teresinha ficou tão feliz! 👵❤️\n\n` +
+        `Você já tem acesso às 80 receitinhas selecionadas pela Vovó, com novidades toda semana!\n\n` +
         `👉 ${APP_URL}/receitas\n\n` +
         `Com carinho, Vovó Teresinha 🌸`
       );
@@ -77,22 +86,22 @@ export function buildMensagem(tipo: string, nome: string, sexo: "M" | "F" = "F",
 
     case "trial_expirando_3":
       return (
-        `⏰ *Seu trial expira em 3 dias!*\n\n` +
+        `⏰ *Seu teste grátis expira em 3 dias!*\n\n` +
         `Olá ${nome}! A Vovó fica triste de te ver ir embora... 😢\n\n` +
-        `Não perca o acesso às suas receitinhas! Assine agora:\n` +
-        `💎 Trimestral: R$29,90 (só R$9,97/mês)\n` +
-        `⭐ Anual: R$79,90 (só R$6,65/mês!)\n\n` +
+        `Não perca o acesso às suas receitinhas! Venha fazer parte:\n` +
+        `📒 Caderninho: R$9,90/mês (80 receitas)\n` +
+        `📖 Livro de Receitas: R$19,90/mês (400+ receitas)\n\n` +
         `👉 ${APP_URL}/assinar\n\n` +
         `Com carinho, Vovó Teresinha 🌸`
       );
 
     case "trial_expirando_1":
       return (
-        `⚠️ *Último dia do seu trial!*\n\n` +
+        `⚠️ *Último dia do seu teste grátis!*\n\n` +
         `Olá ${nome}! Hoje é o último dia do seu acesso premium gratuito!\n\n` +
-        `A Vovó não quer que você fique sem suas receitinhas! Assine agora:\n` +
-        `💎 Trimestral: R$29,90\n` +
-        `⭐ Anual: R$79,90\n\n` +
+        `A Vovó não quer que você fique sem suas receitinhas! Venha fazer parte:\n` +
+        `📒 Caderninho: R$9,90/mês\n` +
+        `📖 Livro de Receitas: R$19,90/mês\n\n` +
         `👉 ${APP_URL}/assinar\n\n` +
         `Com carinho, Vovó Teresinha 🌸`
       );
@@ -104,6 +113,14 @@ export function buildMensagem(tipo: string, nome: string, sexo: "M" | "F" = "F",
         `Salvei umas receitinhas novas especialmente pensando em você! Vem ver agora? 🍲✨\n\n` +
         `👉 ${APP_URL}/receitas\n\n` +
         `A vovó ama você! 🌸`
+      );
+
+    case "novidades_semana":
+      return (
+        `🍲 *Novidades da Vovó Teresinha!*\n\n` +
+        `${extra}\n\n` +
+        `Acesse o app e confira! 💜\n\n` +
+        `👉 ${APP_URL}/receitas`
       );
 
     case "convite_fim_de_semana":

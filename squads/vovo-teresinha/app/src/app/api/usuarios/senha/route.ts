@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest) {
     if (!valid) return NextResponse.json({ erro: "Senha atual incorreta" }, { status: 400 });
 
     const hash = await hashPassword(nova_senha);
-    await sql`UPDATE usuarios SET senha_hash = ${hash} WHERE id = ${session.id}`;
+    await sql`UPDATE usuarios SET senha_hash = ${hash}, senha_alterada_em = NOW() WHERE id = ${session.id}`;
 
     return NextResponse.json({ dados: { ok: true } });
   } catch (err) {

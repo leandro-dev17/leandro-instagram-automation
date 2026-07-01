@@ -31,15 +31,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (acao === "aprovar") {
       await sql`UPDATE saques SET status = 'aprovado' WHERE id = ${parseInt(id)}`;
-      await sql`
-        UPDATE comissoes SET status = 'pago'
-        WHERE afiliado_id = ${saque.afiliado_id} AND status = 'liberado'
-        AND id IN (
-          SELECT id FROM comissoes WHERE afiliado_id = ${saque.afiliado_id} AND status = 'liberado'
-          ORDER BY created_at ASC
-          LIMIT (SELECT CEIL(${saque.valor}::numeric / 20))
-        )
+
+      // Marca como pagas as comissões disponíveis mais antigas primeiro (FIFO),
+      // somando o valor real de cada uma (20/25/30, conforme tier) até cobrir o
+      // valor do saque — antes assumia incorretamente R$20 fixo por comissão.
+      const disponiveis = await sql`
+        SELECT id, COALESCE(valor_comissao, valor, 0) as valor
+        FROM comissoes
+        WHERE afiliado_id = ${saque.afiliado_id} AND status IN ('liberado', 'aprovada')
+        ORDER BY criado_em ASC
       `;
+
+      const idsParaPagar: number[] = [];
+      let acumulado = 0;
+      for (const c of disponiveis) {
+        if (acumulado >= saque.valor) break;
+        idsParaPagar.push(c.id);
+        acumulado += parseFloat(c.valor);
+      }
+
+      if (idsParaPagar.length > 0) {
+        await sql`UPDATE comissoes SET status = 'pago' WHERE id = ANY(${idsParaPagar})`;
+      }
     } else {
       await sql`UPDATE saques SET status = 'rejeitado' WHERE id = ${parseInt(id)}`;
     }

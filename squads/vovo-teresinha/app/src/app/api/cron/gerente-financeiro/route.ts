@@ -61,9 +61,9 @@ export async function GET(req: NextRequest) {
 
     // Escala para Claude se crítico
     if (scoreFin < 50 && CRON_SECRET) {
-      fetch(`${APP_URL}/api/webhooks/claude-resolver?secret=${CRON_SECRET}`, {
+      fetch(`${APP_URL}/api/webhooks/claude-resolver`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${CRON_SECRET}` },
         body: JSON.stringify({
           agente: "gerente-financeiro",
           erro: alertas.join("; "),

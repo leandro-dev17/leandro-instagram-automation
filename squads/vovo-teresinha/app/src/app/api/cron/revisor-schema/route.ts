@@ -23,13 +23,10 @@ const AUTOCORRECT: Record<string, string> = {
   "falhas_agentes.tentativas":    "ALTER TABLE falhas_agentes ADD COLUMN IF NOT EXISTS tentativas INTEGER DEFAULT 1",
   "falhas_agentes.resolvido_em":  "ALTER TABLE falhas_agentes ADD COLUMN IF NOT EXISTS resolvido_em TIMESTAMPTZ",
   "push_subscriptions.ativo":     "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS ativo BOOLEAN DEFAULT true",
-  "push_subscriptions.criado_em": "ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ DEFAULT NOW()",
   "whatsapp_fila.enviado_em":     "ALTER TABLE whatsapp_fila ADD COLUMN IF NOT EXISTS enviado_em TIMESTAMPTZ",
   "whatsapp_fila.criado_em":      "ALTER TABLE whatsapp_fila ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ DEFAULT NOW()",
   "receitas.foto_url":            "ALTER TABLE receitas ADD COLUMN IF NOT EXISTS foto_url TEXT",
   "receitas.tempo_preparo":       "ALTER TABLE receitas ADD COLUMN IF NOT EXISTS tempo_preparo INTEGER DEFAULT 30",
-  "lista_compras.comprado":       "ALTER TABLE lista_compras ADD COLUMN IF NOT EXISTS comprado BOOLEAN DEFAULT false",
-  "geladeira_ingredientes.unidade":"ALTER TABLE geladeira_ingredientes ADD COLUMN IF NOT EXISTS unidade VARCHAR(50) DEFAULT 'unidade'",
   "afiliados.codigo":             "ALTER TABLE afiliados ADD COLUMN IF NOT EXISTS codigo VARCHAR(20) UNIQUE",
   "comissoes.status":             "ALTER TABLE comissoes ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pendente'",
 };

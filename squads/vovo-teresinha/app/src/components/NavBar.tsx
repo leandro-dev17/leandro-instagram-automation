@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type TipoUsuario = "free" | "premium" | "trial" | "aluna_leandro" | "admin" | null;
+type Plano = "caderninho" | "livro_receitas" | null;
 
 const NAV_PADRAO = [
   { href: "/receitas", label: "Receitas", icon: "🍳" },
@@ -14,11 +15,20 @@ const NAV_PADRAO = [
   { href: "/perfil", label: "Perfil", icon: "👤" },
 ];
 
-const NAV_PREMIUM = [
+// Caderninho (R$9,90): acesso às 80 receitas selecionadas, sem os recursos exclusivos do Livro de Receitas
+const NAV_CADERNINHO = [
   { href: "/receitas", label: "Receitas", icon: "🍳" },
   { href: "/favoritos", label: "Favoritos", icon: "❤️" },
-  { href: "/plano-semanal", label: "Plano", icon: "📅" },
   { href: "/renda-extra", label: "Renda Extra", icon: "💰" },
+  { href: "/perfil", label: "Perfil", icon: "👤" },
+];
+
+// Livro de Receitas (R$19,90): acesso completo, inclui Plano Semanal, Geladeira Inteligente e Lista de Compras
+const NAV_LIVRO = [
+  { href: "/receitas", label: "Receitas", icon: "🍳" },
+  { href: "/plano-semanal", label: "Plano", icon: "📅" },
+  { href: "/geladeira", label: "Geladeira", icon: "🥕" },
+  { href: "/lista-compras", label: "Compras", icon: "🛒" },
   { href: "/perfil", label: "Perfil", icon: "👤" },
 ];
 
@@ -33,17 +43,22 @@ export default function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>(null);
+  const [plano, setPlano] = useState<Plano>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => setTipoUsuario(d.dados?.tipo_usuario ?? null))
+      .then((d) => {
+        setTipoUsuario(d.dados?.tipo_usuario ?? null);
+        setPlano(d.dados?.plano ?? null);
+      })
       .catch(() => {});
   }, []);
 
   const navItems =
     tipoUsuario === "aluna_leandro" ? NAV_ALUNA :
-    (tipoUsuario === "premium" || tipoUsuario === "admin") ? NAV_PREMIUM :
+    (tipoUsuario === "admin" || (tipoUsuario === "premium" && plano !== "caderninho")) ? NAV_LIVRO :
+    tipoUsuario === "premium" ? NAV_CADERNINHO :
     NAV_PADRAO;
 
   async function handleLogout() {

@@ -25,11 +25,13 @@ export async function GET() {
 
     const receita = rows[0];
     let trialFim: string | null = null;
+    let plano: string | null = null;
     if (session) {
-      const userRows = await sql`SELECT trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`;
+      const userRows = await sql`SELECT trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1`;
       trialFim = userRows[0]?.trial_fim ?? null;
+      plano = userRows[0]?.plano ?? null;
     }
-    const userIsPremium = session ? isPremium(session.tipo_usuario, trialFim) : false;
+    const userIsPremium = session ? isPremium(session.tipo_usuario, trialFim, plano) : false;
     const locked = receita.is_premium && !userIsPremium && !receita.is_free_rotativa;
 
     return NextResponse.json({ dados: { ...receita, locked } });

@@ -50,9 +50,9 @@ export async function GET(req: NextRequest) {
   // Se há problemas graves, escala para Claude
   if (scoresTecnico < 50 && CRON_SECRET) {
     const erroConsolidado = problemas.join("; ");
-    fetch(`${APP_URL}/api/webhooks/claude-resolver?secret=${CRON_SECRET}`, {
+    fetch(`${APP_URL}/api/webhooks/claude-resolver`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${CRON_SECRET}` },
       body: JSON.stringify({
         agente: "gerente-tecnico",
         erro: erroConsolidado,

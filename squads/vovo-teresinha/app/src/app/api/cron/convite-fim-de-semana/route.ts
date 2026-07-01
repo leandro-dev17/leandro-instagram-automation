@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     let convidados = 0;
     for (const u of usuarios) {
       const chave = `convite_fds_${u.id}_${semanaAtual}`;
-      const existente = await sql`SELECT id FROM app_configuracoes WHERE chave = ${chave}`;
+      const existente = await sql`SELECT chave FROM app_configuracoes WHERE chave = ${chave}`;
       if (existente.length > 0) continue;
 
       await sql`

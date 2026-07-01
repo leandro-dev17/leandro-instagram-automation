@@ -14,8 +14,23 @@ const NOMES_PLANO: Record<string, string> = {
   elite: "Elite Global (R$19,90/mês ou R$199/ano)",
 };
 
+async function excedeuLimite(ip: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS total FROM assinaturas_rate_limit
+    WHERE ip = ${ip} AND rota = 'lista-espera' AND created_at > NOW() - INTERVAL '10 minutes'
+  `;
+  await sql`INSERT INTO assinaturas_rate_limit (ip, rota) VALUES (${ip}, 'lista-espera')`;
+  await sql`DELETE FROM assinaturas_rate_limit WHERE created_at < NOW() - INTERVAL '1 hour'`.catch(() => {});
+  return (rows[0]?.total ?? 0) >= 5;
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
+    if (await excedeuLimite(ip)) {
+      return NextResponse.json({ erro: "Muitas tentativas. Tente novamente em alguns minutos." }, { status: 429 });
+    }
+
     const body = await req.json() as {
       nome: string;
       email: string;

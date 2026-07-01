@@ -25,29 +25,31 @@ export async function POST(req: NextRequest) {
 
     const afiliado = afiRows[0];
 
-    const liberadas = await sql`
-      SELECT COALESCE(SUM(valor), 0) as total
-      FROM comissoes
-      WHERE afiliado_id = ${afiliado.id} AND status = 'liberado'
-    `;
-
-    const sacadosEmAnalise = await sql`
-      SELECT COALESCE(SUM(valor), 0) as total
-      FROM saques
-      WHERE afiliado_id = ${afiliado.id} AND status = 'pendente'
-    `;
-
-    const disponivel = parseFloat(liberadas[0].total) - parseFloat(sacadosEmAnalise[0].total);
-
-    if (valor > disponivel) {
-      return NextResponse.json({ erro: `Saldo disponível insuficiente. Disponível: R$${disponivel.toFixed(2)}` }, { status: 400 });
-    }
-
+    // INSERT...SELECT...WHERE faz a checagem de saldo e a gravação num único
+    // statement, evitando a janela de corrida entre "consultar saldo" e "inserir
+    // saque" que existia com 3 round-trips separados (duas requisições simultâneas
+    // podiam ler o mesmo saldo disponível e ambas passar a validação).
     const result = await sql`
       INSERT INTO saques (afiliado_id, valor, status, pix_destino)
-      VALUES (${afiliado.id}, ${valor}, 'pendente', ${afiliado.pix_chave})
+      SELECT ${afiliado.id}, ${valor}, 'pendente', ${afiliado.pix_chave}
+      WHERE ${valor} <= (
+        (SELECT COALESCE(SUM(valor), 0) FROM comissoes WHERE afiliado_id = ${afiliado.id} AND status IN ('liberado', 'aprovada'))
+        -
+        (SELECT COALESCE(SUM(valor), 0) FROM saques WHERE afiliado_id = ${afiliado.id} AND status = 'pendente')
+      )
       RETURNING id, valor, status, created_at
     `;
+
+    if (result.length === 0) {
+      const liberadas = await sql`
+        SELECT COALESCE(SUM(valor), 0) as total FROM comissoes WHERE afiliado_id = ${afiliado.id} AND status IN ('liberado', 'aprovada')
+      `;
+      const sacadosEmAnalise = await sql`
+        SELECT COALESCE(SUM(valor), 0) as total FROM saques WHERE afiliado_id = ${afiliado.id} AND status = 'pendente'
+      `;
+      const disponivel = parseFloat(liberadas[0].total) - parseFloat(sacadosEmAnalise[0].total);
+      return NextResponse.json({ erro: `Saldo disponível insuficiente. Disponível: R$${disponivel.toFixed(2)}` }, { status: 400 });
+    }
 
     return NextResponse.json({ dados: result[0] }, { status: 201 });
   } catch (err) {

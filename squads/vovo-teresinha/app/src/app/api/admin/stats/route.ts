@@ -28,15 +28,12 @@ export async function GET() {
         safeCount(sql`SELECT COUNT(*) as count FROM push_subscriptions`),
       ]);
 
-    // Queries com colunas que podem ter nome diferente — fallback seguro
     const novosUsuarios7d = await safeCount(
-      sql`SELECT COUNT(*) as count FROM usuarios WHERE criada_em >= NOW() - INTERVAL '7 days'`
-        .catch(() => sql`SELECT COUNT(*) as count FROM usuarios WHERE created_at >= NOW() - INTERVAL '7 days'`)
+      sql`SELECT COUNT(*) as count FROM usuarios WHERE criado_em >= NOW() - INTERVAL '7 days'`
     );
 
     const receita30d = await safeSum(
-      sql`SELECT COALESCE(SUM(valor),0) as total FROM assinaturas WHERE status IN ('active','ativo') AND created_at >= NOW() - INTERVAL '30 days'`
-        .catch(() => sql`SELECT COALESCE(SUM(valor),0) as total FROM assinaturas WHERE status IN ('active','ativo')`)
+      sql`SELECT COALESCE(SUM(valor),0) as total FROM assinaturas WHERE status IN ('active','ativo') AND criado_em >= NOW() - INTERVAL '30 days'`
     );
 
     const receitasLivres = await safeCount(

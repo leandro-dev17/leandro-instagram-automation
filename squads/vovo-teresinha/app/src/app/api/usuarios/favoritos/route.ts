@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
 
     // Free users can only save up to 5 favorites
     const userRows = await sql`
-      SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1
+      SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1
     `;
     const user = userRows[0];
-    const userIsPremium = isPremium(user.tipo_usuario, user.trial_fim);
+    const userIsPremium = isPremium(user.tipo_usuario, user.trial_fim, user.plano);
 
     if (!userIsPremium) {
       const countRows = await sql`

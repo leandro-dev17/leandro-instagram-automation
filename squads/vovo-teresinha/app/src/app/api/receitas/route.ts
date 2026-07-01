@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { getSession, isPremium } from "@/lib/auth";
+import { getSession, isPremium, isBasico } from "@/lib/auth";
 
 const VALID_TAGS = new Set(["sem_gluten", "sem_lactose", "low_carb", "sem_acucar", "vegano", "vegetariano", "proteica"]);
 const VALID_CATS = new Set(["cafe_manha", "pratos_principais", "lanches_snacks", "doces_sobremesas", "saladas", "sopas_caldos", "sucos_molhos", "bolos_tortas"]);
@@ -23,77 +23,79 @@ export async function GET(req: NextRequest) {
     const hasTags = validTags.length > 0;
     const b = busca ? "%" + busca + "%" : "";
 
+    if (!session) {
+      return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+    }
+
     let userIsPremium = false;
+    let userIsBasico = false;
     let userTrial: string | null = null;
 
-    if (session) {
-      const uRows = await sql`SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`;
-      if (uRows.length > 0) {
-        userIsPremium = isPremium(uRows[0].tipo_usuario, uRows[0].trial_fim);
-        userTrial = uRows[0].trial_fim;
-      }
+    const uRows = await sql`SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1`;
+    if (uRows.length > 0) {
+      userIsPremium = isPremium(uRows[0].tipo_usuario, uRows[0].trial_fim, uRows[0].plano);
+      userIsBasico = isBasico(uRows[0].tipo_usuario, uRows[0].plano);
+      userTrial = uRows[0].trial_fim;
+    }
+
+    // Sem assinatura ativa (Caderninho ou Livro de Receitas): sem acesso ao catálogo
+    if (!userIsPremium && !userIsBasico) {
+      return NextResponse.json(
+        { erro: "Assine um plano para ver as receitas", premium: false, basico: false },
+        { status: 403 }
+      );
     }
 
     let rows;
 
-    if (!userIsPremium) {
-      // ── FREE USERS ────────────────────────────────────────────
-      // Com categoria: 10 abertas (is_free_rotativa=true no retorno) + até 10 com cadeado
-      // Sem categoria: apenas pool rotativo (is_free_rotativa=true no banco)
-      const FREE_CAT = 10;   // receitas totalmente abertas por categoria
-      const LOCK_CAT = 30;   // receitas com cadeado logo abaixo (isca para assinar)
-
+    if (userIsBasico) {
+      // ── CADERNINHO (BÁSICO) ───────────────────────────────────
+      // Acesso completo às 80 receitas do pool (is_free_rotativa=true), em qualquer categoria
       if (categoria) {
-        // Busca as receitas da categoria (20 no total: 10 livres + 10 com cadeado)
-        let catRows;
         if (busca && hasTags && t1) {
-          catRows = await sql`
+          rows = await sql`
             SELECT id, titulo, descricao, categoria, tags_restricao, tempo_preparo, calorias,
                    porcoes, foto_url, is_premium, is_free_rotativa, is_personal, created_at
-            FROM receitas WHERE is_personal=false AND categoria=${categoria}
+            FROM receitas WHERE is_personal=false AND is_free_rotativa=true AND categoria=${categoria}
               AND (titulo ILIKE ${b} OR descricao ILIKE ${b})
               AND tags_restricao::text ILIKE ${t0} AND tags_restricao::text ILIKE ${t1}
-            ORDER BY created_at DESC LIMIT ${FREE_CAT + LOCK_CAT}`;
+            ORDER BY created_at DESC LIMIT ${limite} OFFSET ${offset}`;
         } else if (busca && hasTags) {
-          catRows = await sql`
+          rows = await sql`
             SELECT id, titulo, descricao, categoria, tags_restricao, tempo_preparo, calorias,
                    porcoes, foto_url, is_premium, is_free_rotativa, is_personal, created_at
-            FROM receitas WHERE is_personal=false AND categoria=${categoria}
+            FROM receitas WHERE is_personal=false AND is_free_rotativa=true AND categoria=${categoria}
               AND (titulo ILIKE ${b} OR descricao ILIKE ${b})
               AND tags_restricao::text ILIKE ${t0}
-            ORDER BY created_at DESC LIMIT ${FREE_CAT + LOCK_CAT}`;
+            ORDER BY created_at DESC LIMIT ${limite} OFFSET ${offset}`;
         } else if (busca) {
-          catRows = await sql`
+          rows = await sql`
             SELECT id, titulo, descricao, categoria, tags_restricao, tempo_preparo, calorias,
                    porcoes, foto_url, is_premium, is_free_rotativa, is_personal, created_at
-            FROM receitas WHERE is_personal=false AND categoria=${categoria}
+            FROM receitas WHERE is_personal=false AND is_free_rotativa=true AND categoria=${categoria}
               AND (titulo ILIKE ${b} OR descricao ILIKE ${b})
-            ORDER BY created_at DESC LIMIT ${FREE_CAT + LOCK_CAT}`;
+            ORDER BY created_at DESC LIMIT ${limite} OFFSET ${offset}`;
         } else if (hasTags && t1) {
-          catRows = await sql`
+          rows = await sql`
             SELECT id, titulo, descricao, categoria, tags_restricao, tempo_preparo, calorias,
                    porcoes, foto_url, is_premium, is_free_rotativa, is_personal, created_at
-            FROM receitas WHERE is_personal=false AND categoria=${categoria}
+            FROM receitas WHERE is_personal=false AND is_free_rotativa=true AND categoria=${categoria}
               AND tags_restricao::text ILIKE ${t0} AND tags_restricao::text ILIKE ${t1}
-            ORDER BY created_at DESC LIMIT ${FREE_CAT + LOCK_CAT}`;
+            ORDER BY created_at DESC LIMIT ${limite} OFFSET ${offset}`;
         } else if (hasTags) {
-          catRows = await sql`
+          rows = await sql`
             SELECT id, titulo, descricao, categoria, tags_restricao, tempo_preparo, calorias,
                    porcoes, foto_url, is_premium, is_free_rotativa, is_personal, created_at
-            FROM receitas WHERE is_personal=false AND categoria=${categoria}
+            FROM receitas WHERE is_personal=false AND is_free_rotativa=true AND categoria=${categoria}
               AND tags_restricao::text ILIKE ${t0}
-            ORDER BY created_at DESC LIMIT ${FREE_CAT + LOCK_CAT}`;
+            ORDER BY created_at DESC LIMIT ${limite} OFFSET ${offset}`;
         } else {
-          catRows = await sql`
+          rows = await sql`
             SELECT id, titulo, descricao, categoria, tags_restricao, tempo_preparo, calorias,
                    porcoes, foto_url, is_premium, is_free_rotativa, is_personal, created_at
-            FROM receitas WHERE is_personal=false AND categoria=${categoria}
-            ORDER BY created_at DESC LIMIT ${FREE_CAT + LOCK_CAT}`;
+            FROM receitas WHERE is_personal=false AND is_free_rotativa=true AND categoria=${categoria}
+            ORDER BY created_at DESC LIMIT ${limite} OFFSET ${offset}`;
         }
-        // Primeiras 10: totalmente abertas — demais: mantêm flags originais (cadeado se is_premium)
-        rows = catRows.map((r, i) =>
-          i < FREE_CAT ? { ...r, is_free_rotativa: true, is_premium: false } : r
-        );
       } else if (busca && hasTags && t1) {
         rows = await sql`
           SELECT id, titulo, descricao, categoria, tags_restricao, tempo_preparo, calorias,
@@ -232,6 +234,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       dados: rows,
       premium: userIsPremium,
+      basico: userIsBasico,
       trial_fim: userTrial,
     });
   } catch (err) {

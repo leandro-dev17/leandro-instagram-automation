@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     // 4. Fila WhatsApp represada (>50 mensagens pendentes há mais de 2h)
     const [filaPresa] = await sql`
       SELECT COUNT(*)::int AS total FROM whatsapp_fila
-      WHERE status = 'pendente' AND criado_em < NOW() - INTERVAL '2 hours'
+      WHERE enviado = false AND criado_em < NOW() - INTERVAL '2 hours'
     `;
     if (Number(filaPresa.total) > 50) {
       falhas.push(`Fila WhatsApp represada: ${filaPresa.total} mensagens pendentes há >2h`);

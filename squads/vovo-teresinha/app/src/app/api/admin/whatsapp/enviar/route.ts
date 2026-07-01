@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-const EVO_URL = process.env.EVOLUTION_API_URL!;
-const EVO_KEY = process.env.EVOLUTION_API_KEY!;
-const EVO_INST = process.env.EVOLUTION_INSTANCIA!;
+const EVO_URL = process.env.EVOLUTION_API_URL;
+const EVO_KEY = process.env.EVOLUTION_API_KEY;
+const EVO_INST = process.env.EVOLUTION_INSTANCIA;
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +17,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Telefone e mensagem são obrigatórios" }, { status: 400 });
     }
 
+    if (!EVO_URL || !EVO_KEY || !EVO_INST) {
+      return NextResponse.json({ erro: "Evolution API não configurada (EVOLUTION_API_URL/EVOLUTION_API_KEY/EVOLUTION_INSTANCIA vazias)" }, { status: 500 });
+    }
+
     const numero = telefone.replace(/\D/g, "");
 
     const res = await fetch(`${EVO_URL}/message/sendText/${EVO_INST}`, {
@@ -27,8 +30,8 @@ export async function POST(req: NextRequest) {
         "apikey": EVO_KEY,
       },
       body: JSON.stringify({
-        number: `${numero}@s.whatsapp.net`,
-        textMessage: { text: mensagem },
+        number: numero,
+        text: mensagem,
       }),
     });
 
@@ -37,12 +40,6 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       return NextResponse.json({ erro: data?.message || "Falha ao enviar" }, { status: 500 });
     }
-
-    // Registra na fila
-    await sql`
-      INSERT INTO whatsapp_queue (telefone, mensagem, status, enviado_em)
-      VALUES (${numero}, ${mensagem}, 'enviado', NOW())
-    `.catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (err) {

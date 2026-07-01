@@ -50,6 +50,11 @@ export async function register() {
       `;
       await sql`ALTER TABLE lista_compras ADD COLUMN IF NOT EXISTS receita_id INTEGER REFERENCES receitas(id) ON DELETE SET NULL`;
       await sql`ALTER TABLE lista_compras ADD COLUMN IF NOT EXISTS receita_titulo TEXT`;
+      // item/checked/created_at: a CREATE TABLE acima é no-op se a tabela já existia
+      // de uma versão anterior do schema sem essas colunas — garante via ALTER.
+      await sql`ALTER TABLE lista_compras ADD COLUMN IF NOT EXISTS item TEXT NOT NULL DEFAULT ''`;
+      await sql`ALTER TABLE lista_compras ADD COLUMN IF NOT EXISTS checked BOOLEAN DEFAULT false`;
+      await sql`ALTER TABLE lista_compras ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
 
       // App settings table
       await sql`
@@ -67,6 +72,7 @@ export async function register() {
       // Assinaturas recorrentes (PreApproval)
       await sql`ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS mp_preapproval_id TEXT`;
       await sql`ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS renovada_em TIMESTAMPTZ`;
+      await sql`ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS cancelado_em TIMESTAMPTZ`;
       await sql`
         CREATE UNIQUE INDEX IF NOT EXISTS assinaturas_preapproval_unique
         ON assinaturas(mp_preapproval_id)
@@ -117,6 +123,10 @@ export async function register() {
           criada_em TIMESTAMPTZ DEFAULT NOW()
         )
       `;
+
+      // Invalida tokens de redefinição de senha emitidos antes da última troca
+      // (impede reuso do mesmo link de "esqueci minha senha" mais de uma vez)
+      await sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS senha_alterada_em TIMESTAMPTZ`;
     } catch (err) {
       console.error("[instrumentation] migration error:", err);
     }

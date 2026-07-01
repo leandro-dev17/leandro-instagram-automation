@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     ` as { agente: string; total: number }[];
 
     // ── Filas ───────────────────────────────────────────────────
-    const [filaWpp] = await sql`SELECT COUNT(*)::int AS total FROM whatsapp_fila WHERE status = 'pendente'`;
+    const [filaWpp] = await sql`SELECT COUNT(*)::int AS total FROM whatsapp_fila WHERE enviado = false`;
 
     // ── Indicador de saúde ──────────────────────────────────────
     const saudePct = Math.max(0, 100 - (Number(falhasAbertas.total) * 2));

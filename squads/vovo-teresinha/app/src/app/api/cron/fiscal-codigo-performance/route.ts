@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Fila WhatsApp represada
     const [filaWpp] = await sql`
-      SELECT COUNT(*)::int AS total FROM whatsapp_fila WHERE status = 'pendente'
+      SELECT COUNT(*)::int AS total FROM whatsapp_fila WHERE enviado = false
     `;
     if (Number(filaWpp.total) > 200) {
       alertas.push(`Fila WhatsApp crítica: ${filaWpp.total} mensagens pendentes`);

@@ -47,12 +47,12 @@ export default function PagamentoSucesso() {
       <div className="text-6xl mb-4 transition-all">{premium ? "🎉" : "⏳"}</div>
 
       <h1 className="text-2xl font-bold mb-3" style={{ color: "var(--vovo-marrom)" }}>
-        {premium ? "Bem-vinda ao Premium! 💕" : "Processando seu pagamento..."}
+        {premium ? "Assinatura ativada! 💕" : "Processando seu pagamento..."}
       </h1>
 
       <p className="text-sm mb-6 max-w-xs" style={{ color: "var(--vovo-marrom-mid)" }}>
         {premium
-          ? "Sua assinatura foi ativada! Aproveite todas as receitas da Vovó Teresinha."
+          ? "Sua assinatura foi ativada! Aproveite as receitinhas da Vovó Teresinha."
           : "Recebemos seu pagamento! Estamos ativando seu acesso. Isso leva apenas alguns segundinhos 💕"}
       </p>
 

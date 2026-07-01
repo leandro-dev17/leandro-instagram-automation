@@ -16,6 +16,17 @@ export async function POST(req: NextRequest) {
       "desconhecido";
     const emailNormalizado = email.toLowerCase().trim();
 
+    const tentativas = await sql`
+      SELECT COUNT(*) as total FROM logs_login
+      WHERE email = ${emailNormalizado} AND sucesso = false AND criada_em > NOW() - INTERVAL '15 minutes'
+    `.catch(() => [{ total: 0 }]);
+    if (parseInt(tentativas[0].total) >= 5) {
+      return NextResponse.json(
+        { erro: "Muitas tentativas de login. Tente novamente em alguns minutos." },
+        { status: 429 }
+      );
+    }
+
     const rows = await sql`
       SELECT id, nome, email, senha_hash, tipo_usuario, trial_fim
       FROM usuarios

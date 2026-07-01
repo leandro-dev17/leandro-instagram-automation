@@ -12,12 +12,15 @@ export async function GET(req: NextRequest) {
 
   try {
     // Busca cancelados/pausados nos últimos 30 dias
+    // cancelado_em é setado no momento do cancelamento (webhook MP, pausar,
+    // admin cancelar). Para linhas antigas sem cancelado_em (cancelamentos
+    // anteriores a essa coluna existir), cai pra renovada_em como antes.
     const cancelados = await sql`
       SELECT a.usuario_id, u.email, u.nome
       FROM assinaturas a
       JOIN usuarios u ON u.id = a.usuario_id
       WHERE a.status IN ('cancelado', 'paused')
-        AND a.renovada_em > NOW() - INTERVAL '30 days'
+        AND COALESCE(a.cancelado_em, a.renovada_em) > NOW() - INTERVAL '30 days'
     ` as { usuario_id: number; email: string; nome: string }[];
 
     const total_cancelados = cancelados.length;
@@ -29,7 +32,7 @@ export async function GET(req: NextRequest) {
 
       const chave = `desistente_contatado_${user.usuario_id}`;
       const jaContatado = await sql`
-        SELECT id FROM app_configuracoes WHERE chave = ${chave}
+        SELECT chave FROM app_configuracoes WHERE chave = ${chave}
       `;
 
       if (jaContatado.length === 0) {

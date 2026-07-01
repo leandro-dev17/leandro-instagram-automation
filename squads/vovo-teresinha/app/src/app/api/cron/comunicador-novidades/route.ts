@@ -8,6 +8,7 @@ import { sql } from "@/lib/db";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { enviarTelegram } from "@/lib/telegram";
 import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
+import { enfileirarMensagem } from "@/lib/whatsapp";
 
 export async function GET(req: NextRequest) {
   if (!cronAutorizado(req)) {
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     // Verifica se já notificou sobre estas receitas esta semana
     const chave = `novidades_semana_${new Date().toISOString().slice(0, 10)}`;
-    const jaNotificou = await sql`SELECT id FROM app_configuracoes WHERE chave = ${chave}`;
+    const jaNotificou = await sql`SELECT chave FROM app_configuracoes WHERE chave = ${chave}`;
     if (jaNotificou.length > 0) {
       return NextResponse.json({ ok: true, motivo: "Notificação já enviada esta semana", enviados: 0 });
     }
@@ -47,15 +48,18 @@ export async function GET(req: NextRequest) {
 
     // Enfileira mensagem WhatsApp para premium
     const listaReceitas = novasReceitas.slice(0, 3).map(r => r.titulo).join(", ");
-    const msg = `🍲 *Novidades da Vovó Teresinha!*\n\n${novasReceitas.length} receita(s) nova(s) essa semana!\nDestaques: ${listaReceitas}.\n\nAcesse o app e confira! 💜`;
+    const resumo = `${novasReceitas.length} receita(s) nova(s) essa semana!\nDestaques: ${listaReceitas}.`;
 
-    await sql`
-      INSERT INTO whatsapp_fila (numero, mensagem, status)
-      SELECT u.telefone, ${msg}, 'pendente'
-      FROM usuarios u
-      WHERE u.tipo_usuario IN ('premium', 'trial')
-        AND u.telefone IS NOT NULL
-    `.catch(() => {}); // silencioso se não houver coluna telefone
+    const destinatariosWpp = await sql`
+      SELECT id FROM usuarios
+      WHERE tipo_usuario IN ('premium', 'trial')
+        AND whatsapp IS NOT NULL
+        AND aceita_whatsapp = true
+    ` as { id: number }[];
+
+    for (const u of destinatariosWpp) {
+      await enfileirarMensagem(u.id, "novidades_semana", resumo);
+    }
 
     // Marca como notificado esta semana
     await sql`
@@ -69,7 +73,7 @@ export async function GET(req: NextRequest) {
       `📖 Receitas novas esta semana: ${novasReceitas.length}\n` +
       `  Destaques: ${listaReceitas}\n\n` +
       `📱 Push enviado para: ${pushDestinatarios.length} usuário(s)\n` +
-      `💬 WhatsApp enfileirado para usuários com telefone`
+      `💬 WhatsApp enfileirado para: ${destinatariosWpp.length} usuário(s)`
     );
 
     await resolverFalhas("comunicador-novidades");
@@ -77,6 +81,7 @@ export async function GET(req: NextRequest) {
       ok: true,
       novas_receitas: novasReceitas.length,
       push_destinatarios: pushDestinatarios.length,
+      whatsapp_enfileirados: destinatariosWpp.length,
     });
   } catch (err) {
     await reportarFalha("comunicador-novidades", String(err));

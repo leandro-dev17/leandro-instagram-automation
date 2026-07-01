@@ -33,19 +33,22 @@ export async function GET(req: NextRequest) {
       GROUP BY usuario_id
     ` as { usuario_id: number; total: number }[];
 
-    // Plano semanal mais recente por aluna (semana = 'YYYY-WNN')
+    // Plano semanal mais recente por aluna (semana = data da segunda-feira, 'YYYY-MM-DD')
     const planosRecentes = await sql`
       SELECT DISTINCT ON (usuario_id) usuario_id, semana
-      FROM plano_semanal
+      FROM planos_semanais
       ORDER BY usuario_id, semana DESC
     `.catch(() => [] as { usuario_id: number; semana: string }[]);
 
     const mapFavs  = new Map<number, number>(favsTotais.map(r => [r.usuario_id, Number(r.total)] as [number, number]));
     const mapPlano = new Map<number, string>(planosRecentes.map(r => [r.usuario_id, r.semana] as [number, string]));
 
-    const semanaAtual = `${new Date().getFullYear()}-W${String(
-      Math.ceil((new Date().getTime() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 604800000)
-    ).padStart(2, "0")}`;
+    const hoje = new Date();
+    const diaSemana = hoje.getDay();
+    const diffSegunda = diaSemana === 0 ? -6 : 1 - diaSemana;
+    const segundaFeira = new Date(hoje);
+    segundaFeira.setDate(hoje.getDate() + diffSegunda);
+    const semanaAtual = segundaFeira.toISOString().slice(0, 10);
 
     const ativas:     string[] = [];
     const poucoAtiva: string[] = [];

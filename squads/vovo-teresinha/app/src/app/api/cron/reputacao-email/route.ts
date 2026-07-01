@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enviarTelegram } from "@/lib/telegram";
+import { cronAutorizado } from "@/lib/auth-cron";
 
 export async function GET(req: NextRequest) {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronAutorizado(req)) {
     return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   }
 

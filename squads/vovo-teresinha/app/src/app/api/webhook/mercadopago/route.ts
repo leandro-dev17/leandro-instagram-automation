@@ -24,12 +24,19 @@ function calcularComissao(conversoes: number): number {
 
 async function registrarComissaoAfiliado(usuarioId: number, codigoAfiliado: string, plano: string) {
   if (!codigoAfiliado) return;
-  if (plano === "mensal") return;
+  if (plano === "caderninho") return;
 
   const afiRows = await sql`SELECT id FROM afiliados WHERE codigo = ${codigoAfiliado} LIMIT 1`;
   if (afiRows.length === 0) return;
 
   const afiliadoId = afiRows[0].id;
+
+  // Evita comissão duplicada em caso de reentrega do webhook pelo MP (at-least-once delivery)
+  const jaExiste = await sql`
+    SELECT id FROM comissoes WHERE afiliado_id = ${afiliadoId} AND usuario_id = ${usuarioId} LIMIT 1
+  `;
+  if (jaExiste.length > 0) return;
+
   const convRows = await sql`
     SELECT COUNT(*) as total FROM comissoes WHERE afiliado_id = ${afiliadoId} AND status != 'rejeitado'
   `;
@@ -49,7 +56,7 @@ async function registrarComissaoAfiliado(usuarioId: number, codigoAfiliado: stri
   await sql`UPDATE afiliados SET tier = ${tierNovo} WHERE id = ${afiliadoId}`;
 }
 
-async function enfileirarWhatsApp(usuarioId: number) {
+async function enfileirarWhatsApp(usuarioId: number, plano: string) {
   if (!process.env.EVOLUTION_API_URL || !process.env.EVOLUTION_API_KEY) return;
 
   const uRows = await sql`
@@ -62,14 +69,15 @@ async function enfileirarWhatsApp(usuarioId: number) {
   const u = uRows[0];
   if (!u?.whatsapp || !u?.aceita_whatsapp) return;
 
-  const mensagem = buildMensagem("boas_vindas_premium", u.nome, u.sexo as "M" | "F");
+  const tipoMsg = plano === "livro_receitas" ? "boas_vindas_livro" : "boas_vindas_caderninho";
+  const mensagem = buildMensagem(tipoMsg, u.nome, u.sexo as "M" | "F");
   const enviado = await enviarViaEvolution(u.whatsapp, mensagem);
 
   if (!enviado) {
     // Envio falhou — enfileira para o cron tentar novamente
     await sql`
       INSERT INTO whatsapp_fila (usuario_id, tipo, mensagem, agendado_para)
-      VALUES (${usuarioId}, 'boas_vindas_premium', 'boas_vindas_premium', NOW())
+      VALUES (${usuarioId}, ${tipoMsg}, ${tipoMsg}, NOW())
       ON CONFLICT DO NOTHING
     `.catch(() => {});
   }
@@ -85,7 +93,7 @@ async function processarAssinaturaAutorizada(preapprovalId: string) {
   // external_reference: "userId|plano|codigoAfiliado"
   const partes = (preapproval.external_reference || "").split("|");
   const usuarioId = parseInt(partes[0]);
-  const plano = partes[1] || "trimestral";
+  const plano = partes[1] || "caderninho";
   const codigoAfiliado = partes[2] || "";
 
   if (!usuarioId || isNaN(usuarioId)) return;
@@ -111,7 +119,7 @@ async function processarAssinaturaAutorizada(preapprovalId: string) {
   `;
 
   await enviarEmailPremiumAtivado(userRows[0].email, userRows[0].nome, plano).catch(() => {});
-  await enfileirarWhatsApp(usuarioId);
+  await enfileirarWhatsApp(usuarioId, plano);
   await registrarComissaoAfiliado(usuarioId, codigoAfiliado, plano);
 }
 
@@ -150,7 +158,7 @@ async function processarPagamentoAprovado(paymentId: string) {
   };
 
   const usuarioId = meta?.usuario_id;
-  const plano = meta?.plano || "trimestral";
+  const plano = meta?.plano || "caderninho";
   const codigoAfiliado = meta?.codigo_afiliado || "";
 
   if (!usuarioId) return;
@@ -171,7 +179,7 @@ async function processarPagamentoAprovado(paymentId: string) {
   `;
 
   await enviarEmailPremiumAtivado(userRows[0].email, userRows[0].nome, plano).catch(() => {});
-  await enfileirarWhatsApp(usuarioId);
+  await enfileirarWhatsApp(usuarioId, plano);
   await registrarComissaoAfiliado(usuarioId, codigoAfiliado, plano);
 }
 
@@ -195,7 +203,7 @@ async function processarCancelamento(preapprovalId: string) {
   const { usuario_id, email, nome } = rows[0];
 
   await sql`
-    UPDATE assinaturas SET status = 'cancelado'
+    UPDATE assinaturas SET status = 'cancelado', cancelado_em = NOW()
     WHERE mp_preapproval_id = ${preapprovalId}
   `;
 
@@ -215,12 +223,23 @@ async function processarCancelamento(preapprovalId: string) {
   }
 }
 
+async function hmacSha256(secret: string, data: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const buf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function validarAssinaturaMP(req: NextRequest, rawBody: string): Promise<boolean> {
   const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   const xSignature = req.headers.get("x-signature");
 
   if (!webhookSecret) {
-    // Secret não configurado — aceita mas loga erro crítico
     console.error(
       "[webhook/mercadopago] 🚨 MERCADOPAGO_WEBHOOK_SECRET ausente. " +
       "Aceito temporariamente, mas configure no Vercel e no painel MP para ativar HMAC."
@@ -229,89 +248,109 @@ async function validarAssinaturaMP(req: NextRequest, rawBody: string): Promise<b
   }
 
   if (!xSignature) {
-    // Secret configurado na Vercel mas MP ainda não enviando x-signature.
-    // Estado transitório enquanto o secret não é configurado no painel MP.
-    // Aceita para não bloquear pagamentos durante a migração.
-    console.warn(
-      "[webhook/mercadopago] ⚠️ MERCADOPAGO_WEBHOOK_SECRET configurado mas MP não envia " +
-      "x-signature. Acesse mercadopago.com.br > Suas Integrações > Notificações > " +
-      "configure o secret para ativar validação HMAC completa."
-    );
+    // MP ainda não está enviando x-signature neste evento — aceita sem validação HMAC
+    console.log("[webhook/mercadopago] Sem x-signature — aceitando sem validação HMAC");
     return true;
   }
 
-  const xRequestId = req.headers.get("x-request-id");
-
+  const xRequestId = req.headers.get("x-request-id") || "";
   const ts = xSignature.match(/ts=([^,]+)/)?.[1];
   const v1 = xSignature.match(/v1=([^,]+)/)?.[1];
-  if (!ts || !v1) return false;
 
-  const url = new URL(req.url);
-  const dataId = url.searchParams.get("data.id") || "";
-  const manifest = `id:${dataId};request-id:${xRequestId || ""};ts:${ts};`;
+  if (!ts || !v1) {
+    console.error("[webhook/mercadopago] x-signature malformado:", xSignature);
+    return false;
+  }
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(webhookSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
+  const dataId = new URL(req.url).searchParams.get("data.id") || "";
+
+  // Tenta manifests alternativos (MP varia o formato dependendo da versão)
+  const manifests = [
+    `id:${dataId};request-id:${xRequestId};ts:${ts};`,
+    `id:${dataId};request-id:;ts:${ts};`,
+    `id:${dataId};ts:${ts};`,
+  ];
+
+  for (const manifest of manifests) {
+    const computed = await hmacSha256(webhookSecret, manifest);
+    if (computed === v1) {
+      console.log("[webhook/mercadopago] HMAC válido ✓ manifest:", manifest);
+      return true;
+    }
+  }
+
+  console.error(
+    "[webhook/mercadopago] HMAC inválido. v1 esperado:", v1,
+    "| dataId:", dataId, "| ts:", ts, "| x-request-id:", xRequestId
   );
-  const signatureBuffer = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest));
-  const computed = Array.from(new Uint8Array(signatureBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
-
-  return computed === v1;
+  return false;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
+    console.log(
+      "[webhook/mercadopago] Recebido — url:", req.url,
+      "| x-signature:", req.headers.get("x-signature")?.substring(0, 40) || "AUSENTE"
+    );
+
     const valid = await validarAssinaturaMP(req, rawBody);
     if (!valid) {
-      console.warn("webhook/mercadopago: assinatura inválida");
+      console.error("[webhook/mercadopago] Validação falhou — descartando evento");
       return NextResponse.json({ ok: true }); // retorna 200 para o MP não retentar
     }
 
     const body = JSON.parse(rawBody);
     const tipo = body.type as string;
     const dataId = body.data?.id as string | undefined;
+    console.log("[webhook/mercadopago] tipo:", tipo, "| dataId:", dataId);
 
     if (!dataId) return NextResponse.json({ ok: true });
 
     if (tipo === "subscription_preapproval") {
       const preApprovalClient = new PreApproval(client);
       const preapproval = await preApprovalClient.get({ id: dataId });
+      console.log("[webhook/mercadopago] preapproval status:", preapproval.status, "| external_reference:", preapproval.external_reference);
 
       if (preapproval.status === "authorized") {
         await processarAssinaturaAutorizada(dataId);
+        console.log("[webhook/mercadopago] processarAssinaturaAutorizada concluído — dataId:", dataId);
       } else if (["cancelled", "paused"].includes(preapproval.status || "")) {
         await processarCancelamento(dataId);
+        console.log("[webhook/mercadopago] processarCancelamento concluído — dataId:", dataId);
       }
     } else if (tipo === "subscription_authorized_payment") {
       // Evento de cobrança recorrente processada — busca o preapproval_id via API de payment
       const paymentClient = new Payment(client);
       const payment = await paymentClient.get({ id: dataId });
       const preapprovalId = (payment as unknown as Record<string, unknown>).preapproval_id as string | undefined;
+      console.log("[webhook/mercadopago] subscription_authorized_payment status:", payment.status, "| preapprovalId:", preapprovalId);
 
       if (payment.status === "approved" && preapprovalId) {
         await processarRenovacao(preapprovalId);
+        console.log("[webhook/mercadopago] processarRenovacao concluído — preapprovalId:", preapprovalId);
       } else if (["rejected", "cancelled"].includes(payment.status || "") && preapprovalId) {
         // Pagamento falhou — cancelar assinatura
         await processarCancelamento(preapprovalId);
+        console.log("[webhook/mercadopago] processarCancelamento (falha de pagamento) concluído — preapprovalId:", preapprovalId);
       }
     } else if (tipo === "payment") {
       // Pagamento pontual (legado ou pagamento manual)
       const paymentClient = new Payment(client);
       const payment = await paymentClient.get({ id: dataId });
+      console.log("[webhook/mercadopago] payment status:", payment.status);
 
       if (payment.status === "approved") {
         await processarPagamentoAprovado(dataId);
+        console.log("[webhook/mercadopago] processarPagamentoAprovado concluído — dataId:", dataId);
       }
+    } else {
+      console.log("[webhook/mercadopago] tipo de evento não tratado:", tipo);
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("webhook/mercadopago error", err);
+    console.error("[webhook/mercadopago] error", err);
     return NextResponse.json({ ok: true });
   }
 }

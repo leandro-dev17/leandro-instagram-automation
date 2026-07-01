@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { getSession, isPremium } from "@/lib/auth";
+import { getSession, isPremium, isBasico } from "@/lib/auth";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const session = await getSession();
+
+    if (!session) {
+      return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+    }
 
     const rows = await sql`SELECT * FROM receitas WHERE id = ${parseInt(id)} LIMIT 1`;
 
@@ -16,29 +20,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const receita = rows[0];
 
     let userIsPremium = false;
-    if (session) {
-      const uRows = await sql`SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`;
-      if (uRows.length > 0) {
-        userIsPremium = isPremium(uRows[0].tipo_usuario, uRows[0].trial_fim);
-      }
+    let userIsBasico = false;
+    const uRows = await sql`SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1`;
+    if (uRows.length > 0) {
+      userIsPremium = isPremium(uRows[0].tipo_usuario, uRows[0].trial_fim, uRows[0].plano);
+      userIsBasico = isBasico(uRows[0].tipo_usuario, uRows[0].plano);
     }
 
-    // Free users: check if recipe is among the top 10 of its category (those are unlocked)
-    let isCategoryFreeUnlocked = false;
-    if (!userIsPremium && receita.is_premium && !receita.is_free_rotativa) {
-      const top10 = await sql`
-        SELECT id FROM receitas
-        WHERE is_personal=false AND categoria=${receita.categoria}
-        ORDER BY created_at DESC LIMIT 10
-      `;
-      const freeIds = new Set(top10.map((r) => r.id));
-      if (freeIds.has(receita.id)) {
-        isCategoryFreeUnlocked = true;
-      }
+    // Sem assinatura ativa (Caderninho ou Livro de Receitas): sem acesso a receitas
+    if (!userIsPremium && !userIsBasico) {
+      return NextResponse.json({ erro: "Assine um plano para ver as receitas" }, { status: 403 });
     }
+
+    const fullUnlock = userIsPremium || (userIsBasico && receita.is_free_rotativa);
 
     // Recipe is locked — return only teaser data
-    if (receita.is_premium && !receita.is_free_rotativa && !userIsPremium && !isCategoryFreeUnlocked) {
+    if (receita.is_premium && !receita.is_free_rotativa && !userIsPremium) {
       return NextResponse.json({
         dados: {
           id: receita.id,
@@ -97,7 +94,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       gordura: receita.gordura ?? receita.gorduras ?? null,
     };
 
-    if (!userIsPremium) {
+    if (!fullUnlock) {
       dados.proteina = null;
       dados.carboidratos = null;
       dados.gordura = null;

@@ -24,12 +24,7 @@ export async function GET(req: NextRequest) {
       SET status = 'expirada'
       WHERE status = 'ativo'
         AND renovada_em IS NOT NULL
-        AND (
-          (plano = 'mensal'     AND renovada_em < NOW() - INTERVAL '45 days')
-          OR (plano = 'trimestral' AND renovada_em < NOW() - INTERVAL '105 days')
-          OR (plano = 'anual'      AND renovada_em < NOW() - INTERVAL '380 days')
-          OR (plano IS NULL        AND renovada_em < NOW() - INTERVAL '45 days')
-        )
+        AND renovada_em < NOW() - INTERVAL '45 days'
       RETURNING id, usuario_id, renovada_em
     `;
 

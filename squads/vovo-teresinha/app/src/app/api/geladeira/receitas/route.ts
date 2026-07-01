@@ -1,14 +1,36 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { getSession } from "@/lib/auth";
-import Anthropic from "@anthropic-ai/sdk";
+import { getSession, isPremium } from "@/lib/auth";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+async function gerarComGroq(prompt: string): Promise<string> {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1024,
+      response_format: { type: "json_object" },
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content || "").trim();
+}
 
 export async function GET() {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+
+    const uRows = await sql`SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1`;
+    if (uRows.length === 0 || !isPremium(uRows[0].tipo_usuario, uRows[0].trial_fim, uRows[0].plano)) {
+      return NextResponse.json(
+        { erro: "Geladeira Inteligente é exclusiva do plano Livro de Receitas", premium: false },
+        { status: 403 }
+      );
+    }
 
     const ingredientes = await sql`
       SELECT ingrediente FROM geladeira_ingredientes WHERE usuario_id = ${session.id}
@@ -33,30 +55,16 @@ export async function GET() {
       `ID:${r.id} | ${r.titulo} | Ingredientes: ${r.ingredientes}`
     ).join("\n");
 
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: `Tenho estes ingredientes na geladeira: ${lista}
+    const content = await gerarComGroq(`Tenho estes ingredientes na geladeira: ${lista}
 
 Aqui estão receitas disponíveis (ID | Título | Ingredientes):
 ${receitasTexto}
 
-Para cada receita que pode ser feita (totalmente ou em sua maioria) com os ingredientes disponíveis, retorne o ID e a porcentagem de ingredientes que o usuário já tem (0-100). Retorne em formato JSON: {"receitas": [{"id": 1, "porcentagem": 85}, {"id": 2, "porcentagem": 60}]}. Máximo 10 receitas, ordenadas por porcentagem decrescente. Só retorne o JSON, nada mais.`,
-        },
-      ],
-    });
-
-    const content = response.content[0];
-    if (content.type !== "text") {
-      return NextResponse.json({ dados: [], mensagem: "Não encontrei receitas para esses ingredientes 😅" });
-    }
+Para cada receita que pode ser feita (totalmente ou em sua maioria) com os ingredientes disponíveis, retorne o ID e a porcentagem de ingredientes que o usuário já tem (0-100). Retorne em formato JSON: {"receitas": [{"id": 1, "porcentagem": 85}, {"id": 2, "porcentagem": 60}]}. Máximo 10 receitas, ordenadas por porcentagem decrescente. Só retorne o JSON, nada mais.`);
 
     let matches: Array<{ id: number; porcentagem: number }> = [];
     try {
-      const parsed = JSON.parse(content.text.trim());
+      const parsed = JSON.parse(content);
       matches = parsed.receitas || [];
     } catch {
       return NextResponse.json({ dados: [], mensagem: "Não encontrei receitas para esses ingredientes 😅" });

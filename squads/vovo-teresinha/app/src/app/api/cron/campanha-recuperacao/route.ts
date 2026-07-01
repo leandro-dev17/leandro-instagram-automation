@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       SELECT u.id, u.email, u.nome
       FROM usuarios u
       WHERE u.tipo_usuario = 'free'
-        AND u.id < (SELECT MAX(id) - 50 FROM usuarios)
+        AND u.criado_em < NOW() - INTERVAL '7 days'
         AND NOT EXISTS (
           SELECT 1 FROM assinaturas a WHERE a.usuario_id = u.id
         )
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     for (const user of usuarios) {
       const chave = `campanha_recuperacao_${user.id}`;
       const existente = await sql`
-        SELECT id FROM app_configuracoes WHERE chave = ${chave}
+        SELECT chave FROM app_configuracoes WHERE chave = ${chave}
       `;
 
       if (existente.length === 0) {

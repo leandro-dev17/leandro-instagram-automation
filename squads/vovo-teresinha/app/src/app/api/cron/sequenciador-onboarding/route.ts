@@ -40,9 +40,9 @@ const ETAPAS: Etapa[] = [
     dia: 6,
     assunto: "Seu acesso trial vai acabar em breve — continue conosco! 🌸",
     corpo: (nome) => `<p>Querida ${nome},</p>
-    <p>Seu período de avaliação está quase acabando! Não perca acesso às mais de 200 receitas, plano semanal e geladeira inteligente.</p>
-    <p>Assine por apenas <strong>R$29,90 a cada 3 meses</strong> (menos de R$10/mês!) 🎉</p>
-    <a href="${APP_URL}/assinar" style="display:inline-block;background:#c0392b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Garantir Acesso Premium 🌸</a>`,
+    <p>Seu período de avaliação está quase acabando! Não perca o acesso às suas receitinhas.</p>
+    <p>Assine o Caderninho por apenas <strong>R$9,90/mês</strong> e tenha as 80 receitas selecionadas pela Vovó, ou o Livro de Receitas completo por <strong>R$19,90/mês</strong> com mais de 400 receitas, plano semanal automático e geladeira inteligente 🎉</p>
+    <a href="${APP_URL}/assinar" style="display:inline-block;background:#c0392b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Garantir Acesso 🌸</a>`,
   },
 ];
 
@@ -69,19 +69,25 @@ export async function GET(req: NextRequest) {
     let totalEnviados = 0;
 
     for (const etapa of ETAPAS) {
-      // Busca usuários cadastrados nesse dia usando trial_fim como proxy
-      // (trial_fim = data_cadastro + 7 dias, então data_cadastro = trial_fim - 7 dias)
-      const de7 = new Date(Date.now() - (etapa.dia + 0.5 + 7) * 86400000).toISOString();
-      const ate7 = new Date(Date.now() - (etapa.dia - 0.5 + 7) * 86400000).toISOString();
+      // Busca usuários cuja assinatura foi criada D dias atrás (data da 1ª
+      // assinatura = proxy de data de cadastro, funciona tanto pra quem tem
+      // trial (Livro de Receitas) quanto pra quem não tem (Caderninho) —
+      // trial_fim como proxy só existia pra quem tinha trial e excluía
+      // 100% dos assinantes do Caderninho da sequência de onboarding
+      const de = new Date(Date.now() - (etapa.dia + 0.5) * 86400000).toISOString();
+      const ate = new Date(Date.now() - (etapa.dia - 0.5) * 86400000).toISOString();
       const usuarios = await sql`
-        SELECT id, email, nome FROM usuarios
-        WHERE trial_fim BETWEEN ${de7}::timestamptz AND ${ate7}::timestamptz
-          AND tipo_usuario != 'admin'
+        SELECT u.id, u.email, u.nome
+        FROM usuarios u
+        JOIN assinaturas a ON a.usuario_id = u.id
+        WHERE u.tipo_usuario != 'admin'
+        GROUP BY u.id, u.email, u.nome
+        HAVING MIN(a.criado_em) BETWEEN ${de}::timestamptz AND ${ate}::timestamptz
       ` as { id: number; email: string; nome: string }[];
 
       for (const u of usuarios) {
         const chave = `onboarding_d${etapa.dia}_${u.id}`;
-        const jaEnviou = await sql`SELECT id FROM app_configuracoes WHERE chave = ${chave}`;
+        const jaEnviou = await sql`SELECT chave FROM app_configuracoes WHERE chave = ${chave}`;
         if (jaEnviou.length > 0) continue;
 
         try {

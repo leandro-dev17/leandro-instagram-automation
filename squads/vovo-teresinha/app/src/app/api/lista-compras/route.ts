@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession, isPremium } from "@/lib/auth";
+
+async function checarPremium(usuarioId: number): Promise<boolean> {
+  const rows = await sql`SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${usuarioId} LIMIT 1`;
+  if (rows.length === 0) return false;
+  return isPremium(rows[0].tipo_usuario, rows[0].trial_fim, rows[0].plano);
+}
 
 export async function GET() {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+    if (!(await checarPremium(session.id))) {
+      return NextResponse.json(
+        { erro: "Lista de compras é exclusiva do plano Livro de Receitas", premium: false },
+        { status: 403 }
+      );
+    }
 
     const rows = await sql`
       SELECT id, item, checked, receita_id, receita_titulo, created_at
@@ -25,6 +37,12 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+    if (!(await checarPremium(session.id))) {
+      return NextResponse.json(
+        { erro: "Lista de compras é exclusiva do plano Livro de Receitas", premium: false },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json();
 
@@ -78,6 +96,12 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
+    if (!(await checarPremium(session.id))) {
+      return NextResponse.json(
+        { erro: "Lista de compras é exclusiva do plano Livro de Receitas", premium: false },
+        { status: 403 }
+      );
+    }
 
     const { id, receita_id } = await req.json();
 

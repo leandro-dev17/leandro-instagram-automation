@@ -227,8 +227,8 @@ export default function AdminUsuariosPage() {
                 <label className="block text-xs font-medium mb-1" style={{ color: "var(--vovo-marrom)" }}>Plano</label>
                 <select value={form.plano} onChange={(e) => setForm(f => ({ ...f, plano: e.target.value }))} className="input-field">
                   <option value="">Nenhum</option>
-                  <option value="mensal">Mensal</option>
-                  <option value="anual">Anual</option>
+                  <option value="caderninho">Caderninho</option>
+                  <option value="livro_receitas">Livro de Receitas</option>
                 </select>
               </div>
               <div>

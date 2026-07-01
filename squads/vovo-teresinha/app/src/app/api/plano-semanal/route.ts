@@ -97,10 +97,10 @@ export async function GET(req: Request) {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
 
-    const uRows = await sql`SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`;
+    const uRows = await sql`SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1`;
     if (uRows.length === 0) return NextResponse.json({ erro: "Usuário não encontrado" }, { status: 404 });
 
-    if (!isPremium(uRows[0].tipo_usuario, uRows[0].trial_fim)) {
+    if (!isPremium(uRows[0].tipo_usuario, uRows[0].trial_fim, uRows[0].plano)) {
       return NextResponse.json({ premium: false }, { status: 403 });
     }
 
@@ -141,8 +141,8 @@ export async function POST() {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
 
-    const uRows = await sql`SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`;
-    if (!isPremium(uRows[0]?.tipo_usuario, uRows[0]?.trial_fim)) {
+    const uRows = await sql`SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1`;
+    if (!isPremium(uRows[0]?.tipo_usuario, uRows[0]?.trial_fim, uRows[0]?.plano)) {
       return NextResponse.json({ premium: false }, { status: 403 });
     }
 

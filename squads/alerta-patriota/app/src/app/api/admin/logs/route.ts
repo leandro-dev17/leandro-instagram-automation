@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const agente = searchParams.get("agente");
     const status = searchParams.get("status");
-    const limite = parseInt(searchParams.get("limite") || "100");
+    const limite = Math.min(parseInt(searchParams.get("limite") || "100"), 500);
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const logs = await sql`

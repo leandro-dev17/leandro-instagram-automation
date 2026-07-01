@@ -42,10 +42,11 @@ export async function GET(req: NextRequest) {
   try {
     // Busca usuários criados nas últimas 24h que ainda não receberam boas-vindas WPP
     const novos = await sql`
-      SELECT u.id, u.nome, u.telefone
+      SELECT u.id, u.nome, u.whatsapp
       FROM usuarios u
-      WHERE u.telefone IS NOT NULL
-        AND u.telefone != ''
+      WHERE u.whatsapp IS NOT NULL
+        AND u.whatsapp != ''
+        AND u.aceita_whatsapp = true
         AND NOT EXISTS (
           SELECT 1 FROM app_configuracoes ac
           WHERE ac.chave = CONCAT('wpp_boas_vindas_', u.id::text)
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     const enviados: string[] = [];
 
     for (const usuario of novos) {
-      const numero = String(usuario.telefone).replace(/\D/g, "");
+      const numero = String(usuario.whatsapp).replace(/\D/g, "");
       if (numero.length < 10) continue;
 
       const enviado = await enviarBoasVindas(numero, usuario.nome || "querida");

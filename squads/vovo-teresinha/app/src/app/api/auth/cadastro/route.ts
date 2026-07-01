@@ -1,18 +1,46 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { hashPassword, signToken, cookieOptions } from "@/lib/auth";
-import { enviarEmailBoasVindas } from "@/lib/brevo";
+import { criarCheckoutMP } from "@/lib/mercadopago";
+import { PLANOS } from "@/lib/planos";
 
 export async function POST(req: NextRequest) {
   try {
-    const { nome, email, senha, whatsapp, aceita_whatsapp } = await req.json();
+    const { nome, email, senha, whatsapp, aceita_whatsapp, plano, ref } = await req.json();
 
     if (!nome || !email || !senha) {
       return NextResponse.json({ erro: "Nome, email e senha são obrigatórios" }, { status: 400 });
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ erro: "Email inválido" }, { status: 400 });
+    }
+
     if (senha.length < 8) {
       return NextResponse.json({ erro: "Senha deve ter ao menos 8 caracteres" }, { status: 400 });
+    }
+
+    if (!whatsapp) {
+      return NextResponse.json({ erro: "WhatsApp é obrigatório" }, { status: 400 });
+    }
+
+    if (!plano || !PLANOS[plano as keyof typeof PLANOS]) {
+      return NextResponse.json({ erro: "Selecione um plano: Caderninho ou Livro de Receitas" }, { status: 400 });
+    }
+
+    const digits = whatsapp.replace(/\D/g, "");
+    const otpRows = await sql`
+      SELECT id FROM otp_verificacoes
+      WHERE numero = ${digits}
+        AND verificado = TRUE
+        AND criado_em > NOW() - INTERVAL '30 minutes'
+      LIMIT 1
+    `;
+    if (otpRows.length === 0) {
+      return NextResponse.json(
+        { erro: "Número de WhatsApp não verificado. Solicite o código e tente novamente." },
+        { status: 400 }
+      );
     }
 
     const existing = await sql`
@@ -41,10 +69,23 @@ export async function POST(req: NextRequest) {
       nome: user.nome,
     });
 
-    // Enviar boas-vindas sem bloquear a resposta
-    enviarEmailBoasVindas(user.email, user.nome).catch(() => {});
+    let initPoint: string;
+    try {
+      initPoint = await criarCheckoutMP(user.id, user.email, plano, ref);
+    } catch (err) {
+      console.error("cadastro: erro ao criar checkout MP", err);
+      // Conta já foi criada — loga o usuário mesmo assim para que ele consiga
+      // retentar o checkout em /assinar em vez de ficar travado (email já
+      // cadastrado, sem sessão e sem link de pagamento).
+      const res = NextResponse.json(
+        { erro: "Conta criada, mas houve um erro ao gerar o link de pagamento.", redirecionarParaAssinar: true },
+        { status: 500 }
+      );
+      res.cookies.set({ ...cookieOptions(), value: token });
+      return res;
+    }
 
-    const res = NextResponse.json({ dados: { nome: user.nome, tipo_usuario: user.tipo_usuario } }, { status: 201 });
+    const res = NextResponse.json({ dados: { init_point: initPoint } }, { status: 201 });
     res.cookies.set({ ...cookieOptions(), value: token });
     return res;
   } catch (err) {

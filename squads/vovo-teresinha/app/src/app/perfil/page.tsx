@@ -125,9 +125,17 @@ export default function PerfilPage() {
     }
   }
 
+  const planoLabel: Record<string, string> = {
+    caderninho: "Caderninho",
+    livro_receitas: "Livro de Receitas",
+  };
+
+  // Contas antigas (premium sem plano definido) equivalem ao Livro de Receitas completo
+  const planoAtualLabel = planoLabel[usuario?.plano || ""] || "Livro de Receitas";
+
   const tipoLabel: Record<string, string> = {
     free: "Gratuito",
-    premium: "Premium",
+    premium: planoAtualLabel,
     aluna_leandro: "Aluna do Personal",
     admin: "Administrador",
   };
@@ -213,7 +221,7 @@ export default function PerfilPage() {
               ) : usuario.tipo_usuario === "premium" ? (
                 <div className="space-y-3">
                   <p className="text-sm" style={{ color: "var(--vovo-verde)" }}>
-                    ✅ Assinatura {usuario.plano || "Premium"} ativa
+                    ✅ Assinatura {planoAtualLabel} ativa
                   </p>
                   <div className="flex gap-2 flex-wrap">
                     <button
@@ -265,7 +273,7 @@ export default function PerfilPage() {
               ) : (
                 <div>
                   <p className="text-sm mb-3" style={{ color: "var(--vovo-marrom-mid)" }}>
-                    Plano gratuito — acesso limitado a receitas free.
+                    Sem assinatura ativa — assine para ter acesso às receitas.
                   </p>
                   <Link href="/assinar" className="btn-primary text-sm py-2">
                     {!usuario.trial_inicio ? "Experimentar 7 dias grátis 🎁" : "Ver planos premium 💕"}

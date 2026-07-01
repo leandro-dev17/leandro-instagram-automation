@@ -18,7 +18,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     `;
 
     await sql`
-      UPDATE assinaturas SET status = 'cancelado'
+      UPDATE assinaturas SET status = 'cancelado', cancelado_em = NOW()
       WHERE usuario_id = ${parseInt(id)} AND status = 'ativo'
     `;
 

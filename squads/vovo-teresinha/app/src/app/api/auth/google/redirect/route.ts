@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PLANOS } from "@/lib/planos";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
 export async function GET(req: NextRequest) {
   const redirectAfter = req.nextUrl.searchParams.get("redirect") || "/receitas";
+  const planoParam = req.nextUrl.searchParams.get("plano");
+  const plano = planoParam && PLANOS[planoParam as keyof typeof PLANOS] ? planoParam : "";
+  const ref = req.nextUrl.searchParams.get("ref") || "";
 
   const state = crypto.randomUUID();
 
@@ -28,6 +32,20 @@ export async function GET(req: NextRequest) {
     path: "/",
   });
   response.cookies.set("google_oauth_redirect", redirectAfter, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 600,
+    path: "/",
+  });
+  response.cookies.set("google_oauth_plano", plano, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 600,
+    path: "/",
+  });
+  response.cookies.set("google_oauth_ref", ref, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

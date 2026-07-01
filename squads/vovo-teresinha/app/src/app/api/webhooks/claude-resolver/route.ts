@@ -137,6 +137,7 @@ export async function POST(req: NextRequest) {
 
   const { agente, erro, tentativas, dados } = await req.json();
 
+  try {
   const contexto = `
 Você é o Agente de Recuperação Autônomo do app "Receitinhas da Vovó Teresinha".
 
@@ -245,7 +246,7 @@ Comece com diagnose_sistema e verificar_falhas_recentes, depois decida o que cor
 
   for (let i = 0; i < 12; i++) {
     const response = await client.messages.create({
-      model: "claude-opus-4-7",
+      model: "claude-opus-4-8",
       max_tokens: 4096,
       tools,
       messages,
@@ -354,4 +355,11 @@ Comece com diagnose_sistema e verificar_falhas_recentes, depois decida o que cor
   }
 
   return NextResponse.json({ ok: true, acoesTomadas, relatorio: relatorioFinal });
+  } catch (err) {
+    console.error("claude-resolver crashed", err);
+    await enviarTelegram(
+      `🚨 <b>Claude Resolver — CRASH</b>\n\nAgente: ${agente}\nErro: ${String(err).slice(0, 500)}`
+    ).catch(() => {});
+    return NextResponse.json({ erro: "Erro interno no resolver", detalhe: String(err).slice(0, 300) }, { status: 500 });
+  }
 }

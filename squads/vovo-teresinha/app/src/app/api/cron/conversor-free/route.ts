@@ -47,16 +47,15 @@ export async function GET(req: NextRequest) {
 
     for (const u of usuariosD10) {
       const chave = `conversor_d10_${u.id}`;
-      const jaEnviou = await sql`SELECT id FROM app_configuracoes WHERE chave = ${chave}`;
+      const jaEnviou = await sql`SELECT chave FROM app_configuracoes WHERE chave = ${chave}`;
       if (jaEnviou.length > 0) continue;
       try {
         await enviarEmail(
           u.email,
-          "Psiu... você ainda não é Premium! 🌸",
-          `<p>Oi ${u.nome}! Já faz 10 dias que você está explorando as Receitinhas da Vovó. 😊</p>
-          <p>Você sabia que tem mais de 200 receitas exclusivas esperando por você? Plano semanal, geladeira inteligente, tudo isso é Premium!</p>
-          <p>Experimente por <strong>R$29,90 a cada 3 meses</strong> — menos de um cafezinho por semana! ☕</p>
-          <a href="${APP_URL}/assinar" style="display:inline-block;background:#c0392b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Quero ser Premium! 🌸</a>`
+          "Psiu... você ainda não assinou! 🌸",
+          `<p>Oi ${u.nome}! Já faz 10 dias que você se cadastrou nas Receitinhas da Vovó. 😊</p>
+          <p>Assine o Caderninho por <strong>R$9,90/mês</strong> e tenha acesso às 80 receitinhas selecionadas pela Vovó, ou o Livro de Receitas completo por <strong>R$19,90/mês</strong> e tenha mais de 400 receitas, plano semanal automático e geladeira inteligente com IA!</p>
+          <a href="${APP_URL}/assinar" style="display:inline-block;background:#c0392b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Quero assinar! 🌸</a>`
         );
         await sql`INSERT INTO app_configuracoes (chave, valor) VALUES (${chave}, ${new Date().toISOString()}) ON CONFLICT (chave) DO NOTHING`;
         totalEnviados++;
@@ -75,16 +74,16 @@ export async function GET(req: NextRequest) {
 
     for (const u of usuariosD30) {
       const chave = `conversor_d30_${u.id}`;
-      const jaEnviou = await sql`SELECT id FROM app_configuracoes WHERE chave = ${chave}`;
+      const jaEnviou = await sql`SELECT chave FROM app_configuracoes WHERE chave = ${chave}`;
       if (jaEnviou.length > 0) continue;
       try {
         await enviarEmail(
           u.email,
           "Último aviso: oferta especial pra você! 🎁",
           `<p>Querida ${u.nome},</p>
-          <p>Já faz 30 dias desde que você se cadastrou e ainda não aproveitou o plano Premium da Vovó. 😢</p>
-          <p>Que tal uma última chance? Assine o plano <strong>Anual por apenas R$79,90</strong> — equivale a R$6,65 por mês! Isso é menos do que um pão de queijo! 🧀</p>
-          <a href="${APP_URL}/assinar" style="display:inline-block;background:#c0392b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Aproveitar Oferta Anual 🎁</a>`
+          <p>Já faz 30 dias desde que você se cadastrou e ainda não assinou nenhum dos planos da Vovó. 😢</p>
+          <p>Que tal uma última chance? Assine o Livro de Receitas por apenas <strong>R$19,90/mês</strong> (7 dias grátis) ou o Caderninho por <strong>R$9,90/mês</strong>! Isso é menos do que um pão de queijo! 🧀</p>
+          <a href="${APP_URL}/assinar" style="display:inline-block;background:#c0392b;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;">Aproveitar Oferta 🎁</a>`
         );
         await sql`INSERT INTO app_configuracoes (chave, valor) VALUES (${chave}, ${new Date().toISOString()}) ON CONFLICT (chave) DO NOTHING`;
         totalEnviados++;

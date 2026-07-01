@@ -45,19 +45,19 @@ async function getSessionFromRequest(req: NextRequest) {
   }
 }
 
-const PROTECTED_ROUTES = [
+// Conteúdo do app: só para quem assinou (tipo_usuario diferente de "free")
+const PAID_ROUTES = [
   "/receitas",
   "/favoritos",
   "/geladeira",
   "/lista-compras",
   "/personal",
-  "/perfil",
   "/renda-extra",
-  "/bem-vinda",
-  "/alterar-senha",
   "/plano-semanal",
-  "/assinar",
 ];
+
+// Precisa estar logado, mas não precisa ter pago ainda (é a própria tela de pagamento / conta)
+const LOGIN_ONLY_ROUTES = ["/perfil", "/bem-vinda", "/alterar-senha", "/assinar"];
 
 const ADMIN_ROUTES = ["/admin"];
 
@@ -67,7 +67,8 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const session = await getSessionFromRequest(req);
 
-  const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
+  const isPaid = PAID_ROUTES.some((r) => pathname.startsWith(r));
+  const isLoginOnly = LOGIN_ONLY_ROUTES.some((r) => pathname.startsWith(r));
   const isAdmin = ADMIN_ROUTES.some((r) => pathname.startsWith(r));
   const isAuth = AUTH_ROUTES.some((r) => pathname.startsWith(r));
 
@@ -81,7 +82,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isProtected) {
+  if (isPaid) {
+    if (!session) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (session.tipo_usuario === "free") {
+      return NextResponse.redirect(new URL("/assinar", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (isLoginOnly) {
     if (!session) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("redirect", pathname);
@@ -91,7 +104,9 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isAuth && session) {
-    return NextResponse.redirect(new URL("/receitas", req.url));
+    return NextResponse.redirect(
+      new URL(session.tipo_usuario === "free" ? "/assinar" : "/receitas", req.url)
+    );
   }
 
   return NextResponse.next();
@@ -110,7 +125,6 @@ export const config = {
     "/alterar-senha",
     "/plano-semanal/:path*",
     "/assinar",
-    "/onboarding/:path*",
     "/admin/:path*",
     "/login",
     "/cadastro",

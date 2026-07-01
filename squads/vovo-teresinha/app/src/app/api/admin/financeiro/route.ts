@@ -25,33 +25,26 @@ export async function GET(req: NextRequest) {
       ORDER BY id DESC
     `;
 
-    // Tentar buscar dados financeiros da tabela assinaturas com fallbacks
+    // Dados financeiros da tabela assinaturas (coluna real: criado_em)
     const receitaTotal = await safe(
       sql`SELECT COALESCE(SUM(valor),0) as total FROM assinaturas
           WHERE status IN ('ativo','active','approved')
-          AND created_at >= NOW() - INTERVAL '1 day' * ${periodo}`.then(r => parseFloat(r[0]?.total ?? "0")),
+          AND criado_em >= NOW() - INTERVAL '1 day' * ${periodo}`.then(r => parseFloat(r[0]?.total ?? "0")),
       0
-    ).catch(() =>
-      safe(
-        sql`SELECT COALESCE(SUM(valor),0) as total FROM assinaturas
-            WHERE status IN ('ativo','active','approved')
-            AND criada_em >= NOW() - INTERVAL '1 day' * ${periodo}`.then(r => parseFloat(r[0]?.total ?? "0")),
-        0
-      )
     );
 
     const pagamentos = await safe(
       sql`SELECT COUNT(*) as count FROM assinaturas
           WHERE status IN ('ativo','active','approved')
-          AND created_at >= NOW() - INTERVAL '1 day' * ${periodo}`.then(r => parseInt(r[0]?.count ?? "0")),
+          AND criado_em >= NOW() - INTERVAL '1 day' * ${periodo}`.then(r => parseInt(r[0]?.count ?? "0")),
       0
-    ).catch(() => 0);
+    );
 
     const assinaturasPorPlano = await safe(
       sql`SELECT plano, COUNT(*) as count, COALESCE(SUM(valor),0) as total
           FROM assinaturas WHERE status IN ('ativo','active','approved') GROUP BY plano`,
       [] as Record<string, unknown>[]
-    ).catch(() => []);
+    );
 
     return NextResponse.json({
       dados: {

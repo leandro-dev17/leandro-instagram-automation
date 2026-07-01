@@ -110,7 +110,7 @@ export default function RendaExtraPage() {
           💰 Programa de Afiliados
         </h1>
         <p className="text-sm mb-4" style={{ color: "var(--vovo-marrom-mid)" }}>
-          Indique o app e ganhe comissões por cada assinatura anual!
+          Indique o app e ganhe comissões por cada assinatura!
         </p>
 
         {carregando ? (
@@ -121,7 +121,7 @@ export default function RendaExtraPage() {
               <h3 className="font-bold mb-3" style={{ color: "var(--vovo-marrom)" }}>Como funciona</h3>
               <div className="space-y-2 text-sm" style={{ color: "var(--vovo-marrom-mid)" }}>
                 <p>✅ Compartilhe seu link de afiliado</p>
-                <p>✅ Ganhe por cada assinatura anual (R$79,90)</p>
+                <p>✅ Ganhe por cada assinatura (Caderninho ou Livro de Receitas)</p>
                 <p>✅ 1-4 conversões: R$20/venda</p>
                 <p>✅ 5-9 conversões: R$25/venda</p>
                 <p>✅ 10+ conversões: R$30/venda</p>

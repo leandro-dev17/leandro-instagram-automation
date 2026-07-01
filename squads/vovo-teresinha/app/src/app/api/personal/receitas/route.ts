@@ -7,11 +7,11 @@ export async function GET() {
     const session = await getSession();
     if (!session) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
 
-    const uRows = await sql`SELECT tipo_usuario, trial_fim FROM usuarios WHERE id = ${session.id} LIMIT 1`;
+    const uRows = await sql`SELECT tipo_usuario, trial_fim, plano FROM usuarios WHERE id = ${session.id} LIMIT 1`;
     if (uRows.length === 0) return NextResponse.json({ erro: "Usuário não encontrado" }, { status: 404 });
 
     const user = uRows[0];
-    const premium = isPremium(user.tipo_usuario, user.trial_fim);
+    const premium = isPremium(user.tipo_usuario, user.trial_fim, user.plano);
 
     if (!premium) {
       return NextResponse.json({ erro: "Acesso exclusivo para membros premium", premium: false }, { status: 403 });
