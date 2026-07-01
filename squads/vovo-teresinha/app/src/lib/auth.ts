@@ -102,54 +102,29 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
   }
 
   if (Array.isArray(signature)) {
-    if (signature.length === 0 || !signature[0]) {
-      throw new WebhookValidationError("webhook_mp_signature_empty", 401);
+    if (signature.length === 0) {
+      throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
     }
     return signature[0];
   }
 
-  if (typeof signature === "string" && signature.trim().length === 0) {
-    throw new WebhookValidationError("webhook_mp_signature_empty", 401);
+  if (typeof signature !== "string" || signature.trim().length === 0) {
+    throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
   }
 
-  return signature as string;
+  return signature;
 }
 
-export function extractMercadoPagoRequestId(headers: Record<string, string | string[]>): string {
-  const requestId = headers["x-request-id"] || headers["X-Request-Id"];
-  
-  if (!requestId) {
-    throw new WebhookValidationError("webhook_mp_request_id_missing", 401);
+export function validateMercadoPagoRequest(
+  body: unknown,
+  headers: Record<string, string | string[]>
+): Record<string, unknown> {
+  if (!body) {
+    throw new WebhookValidationError("webhook_mp_payload_required", 400);
   }
 
-  if (Array.isArray(requestId)) {
-    if (requestId.length === 0 || !requestId[0]) {
-      throw new WebhookValidationError("webhook_mp_request_id_empty", 401);
-    }
-    return requestId[0];
-  }
+  validateMercadoPagoWebhook(body);
+  extractMercadoPagoSignature(headers);
 
-  if (typeof requestId === "string" && requestId.trim().length === 0) {
-    throw new WebhookValidationError("webhook_mp_request_id_empty", 401);
-  }
-
-  return requestId as string;
-}
-
-export function validateMercadoPagoSignature(
-  signature: string,
-  requestId: string,
-  payload: string
-): boolean {
-  const mpSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  
-  if (!mpSecret) {
-    throw new WebhookValidationError("webhook_mp_secret_not_configured", 403);
-  }
-
-  const expectedSignature = `${requestId}:${payload}:${mpSecret}`;
-  const crypto = require("crypto");
-  const digest = crypto.createHash("sha256").update(expectedSignature).digest("hex");
-
-  return signature === digest;
+  return body as Record<string, unknown>;
 }
