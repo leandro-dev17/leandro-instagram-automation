@@ -101,7 +101,7 @@ export function extractMercadoPagoSignature(headers: Record<string, string | str
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
   
-  return Array.isArray(signature) ? signature[0] : signature;
+  return typeof signature === "string" ? signature : signature[0];
 }
 
 export function validateMercadoPagoSignature(
@@ -110,34 +110,56 @@ export function validateMercadoPagoSignature(
   timestamp: string,
   body: string
 ): boolean {
-  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
-  
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   if (!secret) {
     throw new WebhookValidationError("webhook_mp_secret_not_configured", 500);
   }
-  
+
   const manifest = `id=${requestId};request-id=${requestId};ts=${timestamp}`;
-  const hmac = require("crypto").createHmac("sha256", secret).update(manifest).digest("hex");
-  
-  return signature === hmac;
+  const crypto = require("crypto");
+  const hash = crypto
+    .createHmac("sha256", secret)
+    .update(manifest)
+    .digest("hex");
+
+  return hash === signature;
 }
 
-export function getMercadoPagoRequestId(headers: Record<string, string | string[]>): string {
-  const requestId = headers["x-request-id"] || headers["X-Request-Id"];
+export async function validateWebhookRequest(req: NextRequest): Promise<Record<string, unknown>> {
+  const contentType = req.headers.get("content-type");
   
-  if (!requestId) {
-    throw new WebhookValidationError("webhook_mp_request_id_missing", 401);
+  if (!contentType?.includes("application/json")) {
+    throw new WebhookValidationError("webhook_mp_invalid_content_type", 400);
   }
-  
-  return Array.isArray(requestId) ? requestId[0] : requestId;
-}
 
-export function getMercadoPagoTimestamp(headers: Record<string, string | string[]>): string {
-  const timestamp = headers["x-timestamp"] || headers["X-Timestamp"];
-  
-  if (!timestamp) {
-    throw new WebhookValidationError("webhook_mp_timestamp_missing", 401);
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    throw new WebhookValidationError("webhook_mp_invalid_json", 400);
   }
-  
-  return Array.isArray(timestamp) ? timestamp[0] : timestamp;
+
+  validateMercadoPagoWebhook(body);
+
+  const headers: Record<string, string | string[]> = {};
+  req.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+
+  const signature = extractMercadoPagoSignature(headers);
+  const requestId = headers["x-request-id"] as string;
+  const timestamp = headers["x-timestamp"] as string;
+
+  if (!requestId || !timestamp) {
+    throw new WebhookValidationError("webhook_mp_missing_headers", 403);
+  }
+
+  const bodyString = JSON.stringify(body);
+  const isValid = validateMercadoPagoSignature(signature, requestId, timestamp, bodyString);
+
+  if (!isValid) {
+    throw new WebhookValidationError("webhook_mp_invalid_signature", 403);
+  }
+
+  return body as Record<string, unknown>;
 }
