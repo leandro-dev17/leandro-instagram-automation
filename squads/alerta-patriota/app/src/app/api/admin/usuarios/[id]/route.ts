@@ -9,6 +9,9 @@ import type { Plano } from "@/lib/db";
 const mpClient = new MercadoPagoConfig({ accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN! });
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 
+// cancelar/excluir_dados fazem MP API + resolverJid (8s) + chamarEvolution (8s × 2 tentativas) — pior caso ~20s
+export const maxDuration = 60;
+
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await requireAdmin();
@@ -58,15 +61,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       // grupo na tabela membros_grupos, membros_ativos nunca era decrementado e o
       // status do membro ficava 'ativo' para sempre, mesmo após a remoção real do
       // WhatsApp ter funcionado.
+      // FASE 49: grupoId coletado aqui e usado dentro da transaction — antes,
+      // UPDATE membros_grupos e grupos_whatsapp aconteciam fora da transaction: se ela
+      // falhasse, o membro ficava 'removido' nos grupos mas usuarios.status = 'ativo'.
+      let grupoIdParaCancelar: number | null = null;
       if (u[0]?.telefone && u[0]?.plano) {
         const removido = await removerMembroGrupo(u[0].telefone, u[0].plano as Plano);
         const grupoRows = await sql`SELECT id FROM grupos_whatsapp WHERE plano = ${u[0].plano} LIMIT 1`;
         if (removido && grupoRows.length > 0) {
-          await sql`
-            UPDATE membros_grupos SET status = 'removido', data_saida = NOW()
-            WHERE usuario_id = ${id} AND grupo_id = ${grupoRows[0].id}
-          `;
-          await sql`UPDATE grupos_whatsapp SET membros_ativos = GREATEST(0, membros_ativos - 1) WHERE id = ${grupoRows[0].id}`;
+          grupoIdParaCancelar = grupoRows[0].id;
         } else if (!removido) {
           await sql`
             INSERT INTO agentes_log (agente, acao, status, detalhes)
@@ -78,10 +81,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       // FASE 40: mesmo padrão atômico de mp-desativar-acesso.ts — sem transaction, se
       // a 1ª UPDATE suceder e a 2ª falhar, usuario fica 'cancelado' mas assinatura
       // permanece 'ativa', inflando o MRR e bloqueando re-assinatura (23505 no idx_assinaturas_usuario_ativa).
-      await sql.transaction([
+      const queriesCancelar = [
         sql`UPDATE usuarios SET status = 'cancelado', updated_at = NOW() WHERE id = ${id}`,
         sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`,
-      ]);
+      ];
+      if (grupoIdParaCancelar !== null) {
+        queriesCancelar.push(
+          sql`UPDATE membros_grupos SET status = 'removido', data_saida = NOW() WHERE usuario_id = ${id} AND grupo_id = ${grupoIdParaCancelar}`,
+          sql`UPDATE grupos_whatsapp SET membros_ativos = GREATEST(0, membros_ativos - 1) WHERE id = ${grupoIdParaCancelar}`
+        );
+      }
+      await sql.transaction(queriesCancelar);
     } else if (acao === "reativar") {
       const u = await sql`SELECT telefone, plano FROM usuarios WHERE id = ${id} LIMIT 1`;
       if (!u.length) return NextResponse.json({ erro: "Usuário não encontrado" }, { status: 404 });
@@ -164,14 +174,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       // (identificador vinculável à pessoa no Mercado Pago) e aceite_termos_ip (dado pessoal,
       // LGPD Art. 5º III) ficavam retidos indefinidamente sem justificativa de retenção
       // (diferente de pagamentos/assinaturas, que têm retenção fiscal documentada).
-      await sql`
-        UPDATE usuarios SET
-          nome = 'Usuário excluído', email = ${`excluido-${id}@anonimizado.invalid`},
-          telefone = NULL, senha_hash = ${`excluido-${id}`}, status = 'excluido',
-          mp_customer_id = NULL, aceite_termos_ip = NULL, updated_at = NOW()
-        WHERE id = ${id}
-      `;
-      await sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`;
+      // FASE 49: anonimização e cancelamento de assinatura em transaction — sem isso,
+      // se UPDATE assinaturas falhar, usuário fica anonimizado mas assinatura permanece
+      // 'ativa', bloqueando re-assinatura via idx_assinaturas_usuario_ativa.
+      await sql.transaction([
+        sql`
+          UPDATE usuarios SET
+            nome = 'Usuário excluído', email = ${`excluido-${id}@anonimizado.invalid`},
+            telefone = NULL, senha_hash = ${`excluido-${id}`}, status = 'excluido',
+            mp_customer_id = NULL, aceite_termos_ip = NULL, updated_at = NOW()
+          WHERE id = ${id}
+        `,
+        sql`UPDATE assinaturas SET status = 'cancelada' WHERE usuario_id = ${id} AND status = 'ativa'`,
+      ]);
       // Apaga também o registro de captura de lead vinculado ao e-mail original (fora de usuarios)
       if (u[0].email) await sql`DELETE FROM leads WHERE email = ${u[0].email}`.catch(() => {});
 

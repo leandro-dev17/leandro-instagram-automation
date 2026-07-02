@@ -80,7 +80,7 @@ export async function enviarEmailInadimplente(email: string, nome: string): Prom
 
 export async function enviarEmailRecuperacao(email: string, nome: string, dia: number): Promise<boolean> {
   const nomeSeguro = escaparHtml(nome);
-  const subject = `${nome}, o Capitão Braga está com saudade`;
+  const subject = `${nome.replace(/[\r\n]/g, '')}, o Capitão Braga está com saudade`;
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1a1a2e;color:white;padding:40px;border-radius:12px">
       <h2 style="color:#ffd700">🇧🇷 Volte para o grupo, ${nomeSeguro}!</h2>
