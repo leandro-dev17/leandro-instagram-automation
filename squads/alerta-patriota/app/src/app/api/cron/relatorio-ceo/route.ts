@@ -14,6 +14,8 @@ function emoji(n: number, max: number) {
   return pct > 0.7 ? "🟢" : pct > 0.3 ? "🟡" : "🔴";
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

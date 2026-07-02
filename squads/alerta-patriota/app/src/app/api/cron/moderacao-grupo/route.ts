@@ -9,6 +9,8 @@ import { alertarTelegram } from "@/lib/telegram";
 import { removerMembroGrupo } from "@/lib/whatsapp";
 import type { Plano } from "@/lib/db";
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

@@ -31,6 +31,8 @@ const MSGS_WPP: Record<string, (nome: string) => string> = {
   "30": (nome: string) => `💛 *${nome}, sentimos sua falta.*\n\nSe um dia quiser voltar, estaremos aqui. O Alerta Patriota continua de pé, firme e sem filtro.\n\n${APP_URL}/assinar`,
 };
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

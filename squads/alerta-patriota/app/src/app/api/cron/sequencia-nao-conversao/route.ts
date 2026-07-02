@@ -23,6 +23,7 @@ async function enviarEmail(to: string, subject: string, html: string): Promise<b
         subject,
         htmlContent: html,
       }),
+      signal: AbortSignal.timeout(10000),
     });
     return res.ok;
   } catch {
@@ -138,6 +139,8 @@ function msgWhatsApp3(nome: string, plano: string): string {
   const preco = precos[plano] || "R$9,90";
   return `🏆 *${firstName}, é hoje — preço fundador acaba à meia-noite*\n\nDe R$49,90 por apenas ${preco}/mês + 7 dias grátis.\n\n👉 ${APP_URL}/assinar?plano=${plano || "vip"}&utm_source=whatsapp3`;
 }
+
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) {

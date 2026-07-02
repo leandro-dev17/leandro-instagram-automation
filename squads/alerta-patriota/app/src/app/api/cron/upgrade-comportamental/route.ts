@@ -15,6 +15,8 @@ const MSGS_UPGRADE: Record<string, (nome: string) => string> = {
   vip: (nome: string) => `🎖️ *${nome}, convidamos você para o Elite Global!*\n\nCom sua dedicação ao grupo, você merece o melhor: análises globais do Prof. Bernardo Cavalcanti, Radar Econômico diário, notícias do mundo conservador (Milei, Trump, Elon) e muito mais.\n\nElite Global por R$19,90/mês: ${APP_URL}/assinar\n\n_O mundo muda para quem enxerga antes._`,
 };
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
