@@ -9,6 +9,8 @@ const CRON_SECRET = process.env.CRON_SECRET || "";
 // validação — mesmo o cron rejeitando ações desconhecidas com 400, este endpoint
 // repassava qualquer valor recebido (inclusive não-string) sem checar contra a
 // lista de ações que o painel realmente oferece.
+export const maxDuration = 60;
+
 const ACOES_VALIDAS = ["ativar", "desativar", "status", "verificar"];
 
 export async function GET() {
@@ -33,6 +35,7 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${APP_URL}/api/cron/modo-crise?acao=${acao}`, {
       headers: { Authorization: `Bearer ${CRON_SECRET}` },
+      signal: AbortSignal.timeout(15000),
     });
     const data = await res.json();
 

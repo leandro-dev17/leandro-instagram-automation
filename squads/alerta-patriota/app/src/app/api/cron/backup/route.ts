@@ -44,6 +44,8 @@ async function limparBackupsAntigos(neonKey: string, neonProject: string): Promi
   return { apagados, falhas };
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
@@ -87,6 +89,7 @@ export async function GET(req: NextRequest) {
           method: "POST",
           headers: { "Authorization": `Bearer ${neonKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({ branch: { name: `backup-${hoje}` } }),
+          signal: AbortSignal.timeout(15000),
         });
         if (!res.ok) {
           const corpo = await res.text().catch(() => "");

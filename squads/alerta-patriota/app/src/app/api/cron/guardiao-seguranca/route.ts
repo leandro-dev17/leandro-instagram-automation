@@ -12,6 +12,8 @@ import { sql } from "@/lib/db";
 import { verificarCronSecret } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
 
+export const maxDuration = 60;
+
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
 

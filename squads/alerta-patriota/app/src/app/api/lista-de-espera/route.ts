@@ -24,6 +24,8 @@ async function excedeuLimite(ip: string): Promise<boolean> {
   return (rows[0]?.total ?? 0) >= 5;
 }
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
@@ -104,6 +106,7 @@ export async function POST(req: NextRequest) {
 </html>
         `,
       }),
+      signal: AbortSignal.timeout(10000),
     }).catch((err) => console.error("Brevo erro lista-espera:", err));
 
     await sql`

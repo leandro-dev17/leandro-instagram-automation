@@ -21,6 +21,7 @@ async function enviarEmail(to: string, nome: string, subject: string, html: stri
         subject,
         htmlContent: html,
       }),
+      signal: AbortSignal.timeout(10000),
     });
     return res.ok;
   } catch {

@@ -20,7 +20,11 @@ function PreviewWPP({ texto }: { texto: string }) {
       <div style={{ background:"#2a4a2a", borderRadius:8, padding:"10px 12px", position:"relative" }}>
         {linhas.map((l, i) => {
           if (!l) return <br key={i} />;
-          let texto = l;
+          let texto = l
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
           // Bold
           texto = texto.replace(/\*([^*]+)\*/g, "<strong>$1</strong>");
           // Italic

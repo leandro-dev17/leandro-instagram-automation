@@ -26,6 +26,7 @@ export async function publicarReel(videoUrl: string, legenda: string): Promise<{
         share_to_feed: true,
         access_token: IG_TOKEN,
       }),
+      signal: AbortSignal.timeout(30000),
     });
     const c = await container.json();
     if (c.error) return { erro: c.error.message };
@@ -38,6 +39,7 @@ export async function publicarReel(videoUrl: string, legenda: string): Promise<{
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ creation_id: c.id, access_token: IG_TOKEN }),
+      signal: AbortSignal.timeout(15000),
     });
     const p = await pub.json();
     if (p.error) return { erro: p.error.message };
@@ -62,6 +64,7 @@ export async function publicarStory(videoUrl: string): Promise<{ id?: string; er
         media_category: "STORIES",
         access_token: IG_TOKEN,
       }),
+      signal: AbortSignal.timeout(30000),
     });
     const c = await container.json();
     if (c.error) return { erro: c.error.message };
@@ -72,6 +75,7 @@ export async function publicarStory(videoUrl: string): Promise<{ id?: string; er
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ creation_id: c.id, access_token: IG_TOKEN }),
+      signal: AbortSignal.timeout(15000),
     });
     const p = await pub.json();
     if (p.error) return { erro: p.error.message };
@@ -91,7 +95,8 @@ export async function buscarComentariosIG(): Promise<Array<{
   try {
     // Busca mídias recentes
     const midiasRes = await fetch(
-      `${IG_API}/${IG_USER_ID}/media?fields=id,timestamp&limit=5&access_token=${IG_TOKEN}`
+      `${IG_API}/${IG_USER_ID}/media?fields=id,timestamp&limit=5&access_token=${IG_TOKEN}`,
+      { signal: AbortSignal.timeout(15000) }
     );
     const midias = await midiasRes.json();
     if (!midias.data) return [];
@@ -100,7 +105,8 @@ export async function buscarComentariosIG(): Promise<Array<{
 
     for (const m of midias.data) {
       const comRes = await fetch(
-        `${IG_API}/${m.id}/comments?fields=id,text,username,timestamp&access_token=${IG_TOKEN}`
+        `${IG_API}/${m.id}/comments?fields=id,text,username,timestamp&access_token=${IG_TOKEN}`,
+        { signal: AbortSignal.timeout(15000) }
       );
       const coms = await comRes.json();
       if (!coms.data) continue;
@@ -125,6 +131,7 @@ export async function responderComentarioIG(comentarioId: string, mediaId: strin
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: resposta, access_token: IG_TOKEN }),
+      signal: AbortSignal.timeout(15000),
     });
     const d = await res.json();
     return !d.error;
@@ -146,6 +153,7 @@ export async function enviarDMInstagram(recipientId: string, mensagem: string): 
         message:   { text: mensagem },
         access_token: IG_TOKEN,
       }),
+      signal: AbortSignal.timeout(15000),
     });
     const d = await res.json();
     return !d.error;
@@ -163,6 +171,7 @@ export async function atualizarBioLink(novoLink: string): Promise<boolean> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ website: novoLink, access_token: IG_TOKEN }),
+      signal: AbortSignal.timeout(15000),
     });
     const d = await res.json();
     return !d.error;
@@ -176,7 +185,7 @@ export async function atualizarBioLink(novoLink: string): Promise<boolean> {
 export async function verificarTokenIG(): Promise<{ valido: boolean; expira?: string; usuario?: string }> {
   if (!IG_TOKEN) return { valido: false };
   try {
-    const res = await fetch(`${IG_API}/debug_token?input_token=${IG_TOKEN}&access_token=${IG_TOKEN}`);
+    const res = await fetch(`${IG_API}/debug_token?input_token=${IG_TOKEN}&access_token=${IG_TOKEN}`, { signal: AbortSignal.timeout(15000) });
     const d = await res.json();
     if (d.data?.is_valid) {
       const expira = d.data.expires_at
@@ -195,7 +204,7 @@ export async function verificarTokenIG(): Promise<{ valido: boolean; expira?: st
 async function aguardarProcessamento(containerId: string, tentativas = 12): Promise<void> {
   for (let i = 0; i < tentativas; i++) {
     await new Promise(r => setTimeout(r, 5000));
-    const res = await fetch(`${IG_API}/${containerId}?fields=status_code&access_token=${IG_TOKEN}`);
+    const res = await fetch(`${IG_API}/${containerId}?fields=status_code&access_token=${IG_TOKEN}`, { signal: AbortSignal.timeout(15000) });
     const d = await res.json();
     if (d.status_code === "FINISHED") return;
     if (d.status_code === "ERROR")    throw new Error("Instagram rejeitou o vídeo");
