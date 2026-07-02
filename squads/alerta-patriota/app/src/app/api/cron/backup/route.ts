@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
     const neonKey = process.env.NEON_API_KEY;
     const neonProject = process.env.NEON_PROJECT_ID;
     let branchCriado = false;
+    let branchErro: string | null = null;
 
     if (neonKey && neonProject) {
       const hoje = new Date().toISOString().split("T")[0];
@@ -97,18 +98,17 @@ export async function GET(req: NextRequest) {
         }
         branchCriado = true;
       } catch (e) {
-        // FASE 21: antes o erro era engolido (.catch(() => {})) — o backup "logico" (contagens)
-        // sempre marcava sucesso mesmo se o branch de backup real no Neon nunca fosse criado,
-        // deixando o sistema sem snapshot de recuperação sem que ninguém soubesse.
-        await alertarTelegram("🔴", "Bruno Backup — falha ao criar branch de backup no Neon", String(e));
+        branchErro = String(e);
+        await alertarTelegram("🔴", "Bruno Backup — falha ao criar branch de backup no Neon", branchErro);
       }
     } else {
-      await alertarTelegram("🟡", "Bruno Backup — branch de backup não criado", "NEON_API_KEY ou NEON_PROJECT_ID não configurados.");
+      branchErro = "NEON_API_KEY ou NEON_PROJECT_ID não configurados nas env vars de produção";
+      await alertarTelegram("🟡", "Bruno Backup — branch de backup não criado", branchErro);
     }
 
     await sql`
       INSERT INTO agentes_log (agente, acao, status, detalhes)
-      VALUES ('bruno-backup', 'criar_branch_neon', ${branchCriado ? "sucesso" : "erro"}, ${JSON.stringify({ branchCriado })})
+      VALUES ('bruno-backup', 'criar_branch_neon', ${branchCriado ? "sucesso" : "erro"}, ${JSON.stringify({ branchCriado, erro: branchErro })})
     `.catch(() => {});
 
     // Limpeza de branches de backup com mais de RETENCAO_DIAS dias
