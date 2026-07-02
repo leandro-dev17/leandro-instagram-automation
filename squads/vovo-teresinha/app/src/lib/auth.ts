@@ -1,4 +1,3 @@
-```typescript
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
@@ -98,9 +97,8 @@ export function validateMercadoPagoWebhook(payload: unknown): payload is Record<
     throw new WebhookValidationError("webhook_mp_payload_required", 400);
   }
   const record = payload as Record<string, unknown>;
-  if (!("id" in record || "type" in record || "data" in record)) {
-    throw new WebhookValidationError("webhook_mp_invalid_format", 400);
+  if (!("id" in record) && !("type" in record)) {
+    throw new WebhookValidationError("webhook_mp_payload_invalid", 400);
   }
   return true;
 }
-```
