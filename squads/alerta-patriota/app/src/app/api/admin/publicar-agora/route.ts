@@ -5,6 +5,10 @@ import { sql } from "@/lib/db";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON_SECRET = process.env.CRON_SECRET;
 
+// 2 self-fetch sequenciais com AbortSignal.timeout(15s) cada — sem maxDuration a Vercel
+// mata a função em 10s antes do AbortSignal disparar, resultando em 502 para o admin.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     await requireAdmin();
@@ -35,7 +39,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
       const res = await fetch(
-        `${APP_URL}/api/cron/publicar-noticias?grupo=${grupo}${noticia_id ? `&noticia_id=${noticia_id}` : ""}`,
+        `${APP_URL}/api/cron/publicar-noticias?grupo=${grupo}${noticia_id ? `&noticia_id=${encodeURIComponent(noticia_id)}` : ""}`,
         { headers, signal: AbortSignal.timeout(15000) }
       );
       const data = await res.json().catch(() => ({}));
