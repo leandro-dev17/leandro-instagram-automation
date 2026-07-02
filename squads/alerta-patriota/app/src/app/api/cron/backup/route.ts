@@ -78,8 +78,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Usa Neon API para criar branch de backup
-    const neonKey = process.env.NEON_API_KEY;
-    const neonProject = process.env.NEON_PROJECT_ID;
+    const neonKey = process.env.NEON_API_KEY?.replace(/^﻿/, '').trim();
+    const neonProject = process.env.NEON_PROJECT_ID?.replace(/^﻿/, '').trim();
     let branchCriado = false;
     let branchErro: string | null = null;
 
