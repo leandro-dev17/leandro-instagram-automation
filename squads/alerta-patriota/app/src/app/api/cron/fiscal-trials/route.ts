@@ -10,6 +10,8 @@ import { criarAlertaDedup } from "@/lib/alertas";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!;
 const CRON_SECRET = process.env.CRON_SECRET!;
 
+export const maxDuration = 60;
+
 function formatarHora(isoString: string): string {
   return new Date(isoString).toLocaleTimeString("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -93,6 +95,7 @@ export async function GET(req: NextRequest) {
           const resEngajamento = await fetch(`${APP_URL}/api/cron/engajamento`, {
             method: "GET",
             headers: { Authorization: `Bearer ${CRON_SECRET}` },
+            signal: AbortSignal.timeout(30000),
           });
           if (!resEngajamento.ok) {
             await alertarTelegram("🟡", "TEREZA TRIAL — auto-fix de engajamento falhou", `engajamento respondeu HTTP ${resEngajamento.status}`);

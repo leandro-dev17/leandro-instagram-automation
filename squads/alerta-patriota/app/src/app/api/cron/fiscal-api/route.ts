@@ -15,6 +15,8 @@ const ROTAS = [
   { path: "/",                   esperado: [200] },
 ];
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

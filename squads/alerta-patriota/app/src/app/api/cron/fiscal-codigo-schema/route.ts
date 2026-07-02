@@ -39,6 +39,8 @@ const SCHEMA_ESPERADO: Record<string, string[]> = {
   assinaturas_rate_limit: ["id", "ip", "rota", "created_at"],
 };
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

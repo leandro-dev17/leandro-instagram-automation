@@ -43,6 +43,8 @@ async function avisarDeadManSwitch(): Promise<void> {
   await fetch(url, { signal: AbortSignal.timeout(5000) }).catch(() => {});
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

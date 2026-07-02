@@ -73,6 +73,8 @@ async function buscarFalhasConsecutivas(nomeFonte: string): Promise<number> {
   return consecutivas;
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

@@ -35,6 +35,8 @@ const ROTAS_CRON_PERMITIDAS = new Set([
 ]);
 
 // GET — status e últimas execuções de todos os agentes
+export const maxDuration = 60;
+
 export async function GET() {
   try {
     await requireAdmin();

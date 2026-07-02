@@ -15,6 +15,8 @@ function agora(): { brt: Date; diaSemana: number; hora: number } {
   return { brt, diaSemana: brt.getDay(), hora: brt.getHours() };
 }
 
+export const maxDuration = 60;
+
 function inicioHojeBRT(brt: Date): string {
   const d = new Date(brt);
   d.setHours(0, 0, 0, 0);
@@ -117,6 +119,7 @@ export async function GET(req: NextRequest) {
           const resAutoFix = await fetch(`${APP_URL}/api/cron/dossie-elite`, {
             method: "POST",
             headers: { Authorization: `Bearer ${CRON_SECRET}` },
+            signal: AbortSignal.timeout(30000),
           });
           resultado.dossieAutoFix = resAutoFix.ok ? "acionado" : `erro_${resAutoFix.status}`;
           if (!resAutoFix.ok) {

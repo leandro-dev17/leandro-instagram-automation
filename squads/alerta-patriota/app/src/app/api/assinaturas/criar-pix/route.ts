@@ -29,6 +29,8 @@ async function excedeuLimite(ip: string): Promise<boolean> {
   return (rows[0]?.total ?? 0) >= LIMITE_POR_JANELA;
 }
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconhecido";
@@ -145,6 +147,7 @@ export async function POST(req: NextRequest) {
         notification_url: `${APP_URL}/api/webhook/mercadopago`,
         metadata: { usuario_id: usuarioId, plano, ciclo: "anual", email },
       }),
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!mpRes.ok) {
