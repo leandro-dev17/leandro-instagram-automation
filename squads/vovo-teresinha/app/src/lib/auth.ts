@@ -98,46 +98,7 @@ export function validateMercadoPagoWebhook(payload: unknown): payload is Record<
   }
   const record = payload as Record<string, unknown>;
   if (!("id" in record || "type" in record || "data" in record)) {
-    throw new WebhookValidationError("webhook_mp_invalid_structure", 400);
+    throw new WebhookValidationError("webhook_mp_payload_invalid", 400);
   }
   return true;
-}
-
-export function extractMercadoPagoSignature(headers: Record<string, string | string[] | undefined>): string {
-  const signature = headers["x-signature"];
-  
-  if (!signature) {
-    throw new WebhookValidationError("webhook_mp_signature_missing", 401);
-  }
-  
-  if (Array.isArray(signature)) {
-    if (signature.length === 0) {
-      throw new WebhookValidationError("webhook_mp_signature_missing", 401);
-    }
-    return signature[0];
-  }
-  
-  if (typeof signature !== "string" || signature.trim() === "") {
-    throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
-  }
-  
-  return signature;
-}
-
-export function validateMercadoPagoSignature(
-  signature: string,
-  body: string,
-  secret: string
-): boolean {
-  if (!signature || !body || !secret) {
-    throw new WebhookValidationError("webhook_mp_signature_validation_failed", 403);
-  }
-
-  const crypto = require("crypto");
-  const hash = crypto
-    .createHmac("sha256", secret)
-    .update(body)
-    .digest("hex");
-
-  return signature === hash;
 }
