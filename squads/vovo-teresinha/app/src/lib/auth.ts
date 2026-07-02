@@ -90,10 +90,14 @@ export class WebhookValidationError extends Error {
 }
 
 export function validateMercadoPagoWebhook(payload: unknown): payload is Record<string, unknown> {
-  if (!payload || typeof payload !== "object") {
+  if (payload === null || payload === undefined) {
     throw new WebhookValidationError("webhook_mp_payload_required", 400);
   }
-  if (!("id" in payload || "type" in payload || "data" in payload)) {
+  if (typeof payload !== "object") {
+    throw new WebhookValidationError("webhook_mp_payload_required", 400);
+  }
+  const record = payload as Record<string, unknown>;
+  if (!("id" in record || "type" in record || "data" in record)) {
     throw new WebhookValidationError("webhook_mp_invalid_structure", 400);
   }
   return true;
@@ -101,44 +105,39 @@ export function validateMercadoPagoWebhook(payload: unknown): payload is Record<
 
 export function extractMercadoPagoSignature(headers: Record<string, string | string[] | undefined>): string {
   const signature = headers["x-signature"];
-  if (!signature || typeof signature !== "string") {
+  
+  if (!signature) {
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
+  
+  if (Array.isArray(signature)) {
+    if (signature.length === 0) {
+      throw new WebhookValidationError("webhook_mp_signature_missing", 401);
+    }
+    return signature[0];
+  }
+  
+  if (typeof signature !== "string" || signature.trim() === "") {
+    throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
+  }
+  
   return signature;
 }
 
 export function validateMercadoPagoSignature(
-  payload: string,
   signature: string,
-  requestId: string
+  body: string,
+  secret: string
 ): boolean {
-  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
-  if (!secret) {
-    throw new WebhookValidationError("webhook_mp_secret_not_configured", 500);
+  if (!signature || !body || !secret) {
+    throw new WebhookValidationError("webhook_mp_signature_validation_failed", 403);
   }
 
-  try {
-    const parts = signature.split(",");
-    const tsValue = parts.find((p) => p.startsWith("ts="))?.replace("ts=", "");
-    const hashValue = parts.find((p) => p.startsWith("v1="))?.replace("v1=", "");
+  const crypto = require("crypto");
+  const hash = crypto
+    .createHmac("sha256", secret)
+    .update(body)
+    .digest("hex");
 
-    if (!tsValue || !hashValue) {
-      throw new WebhookValidationError("webhook_mp_signature_invalid_format", 403);
-    }
-
-    const crypto = require("crypto");
-    const manifest = `${requestId}.${tsValue}.${payload}`;
-    const expectedHash = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
-
-    if (expectedHash !== hashValue) {
-      throw new WebhookValidationError("webhook_mp_signature_mismatch", 403);
-    }
-
-    return true;
-  } catch (error) {
-    if (error instanceof WebhookValidationError) {
-      throw error;
-    }
-    throw new WebhookValidationError("webhook_mp_signature_validation_error", 403);
-  }
+  return signature === hash;
 }
