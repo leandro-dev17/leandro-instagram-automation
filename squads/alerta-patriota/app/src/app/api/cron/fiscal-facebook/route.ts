@@ -109,6 +109,8 @@ async function atualizarVercel(key: string, value: string): Promise<boolean> {
   } catch { return false; }
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   const inicio = Date.now();

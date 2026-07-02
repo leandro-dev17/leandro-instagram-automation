@@ -94,6 +94,8 @@ async function coletarFonte(fonte: typeof FONTES_GLOBAL[0]): Promise<{ itens: Ar
   }
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

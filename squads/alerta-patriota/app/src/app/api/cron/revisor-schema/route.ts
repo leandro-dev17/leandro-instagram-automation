@@ -26,6 +26,8 @@ const AUTOCORRECT: Record<string, string> = {
 // RENAME etc.) que venha a ser adicionado ao dicionário acima no futuro.
 const SAFE_DDL_PATTERN = /^ALTER TABLE \w+ ADD COLUMN IF NOT EXISTS \w+ .+$/i;
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 
