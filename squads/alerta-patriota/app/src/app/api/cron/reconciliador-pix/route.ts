@@ -17,6 +17,9 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
 });
 
+// Loop de até 50 chamadas sequenciais ao SDK do Mercado Pago sem timeout individual
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   if (!verificarCronSecret(req)) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
 

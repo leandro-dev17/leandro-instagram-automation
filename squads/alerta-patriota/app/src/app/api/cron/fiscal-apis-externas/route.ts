@@ -9,6 +9,10 @@ import { criarAlertaDedup } from "@/lib/alertas";
 
 const TIMEOUT_MS = 8000;
 
+// Promise.all de 5 health checks com timeout de 8s cada — sem maxDuration, Vercel
+// mataria a função em 10s antes de todos resolverem em casos de API lenta.
+export const maxDuration = 60;
+
 interface ResultadoApi {
   nome: string;
   status: "ok" | "degradado" | "down";
@@ -16,30 +20,19 @@ interface ResultadoApi {
   erro?: string;
 }
 
+// Fase 51: fn() era () => Promise<Response> — AbortController criado aqui mas signal
+// nunca passado para fn(), tornando o timeout de 8s completamente ineficaz.
+// Agora fn aceita o signal e cada fetch o recebe diretamente.
 async function testarApi(
   nome: string,
-  fn: () => Promise<Response>
+  fn: (signal: AbortSignal) => Promise<Response>
 ): Promise<ResultadoApi> {
   const t = Date.now();
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    let res: Response;
-    try {
-      res = await fn();
-    } finally {
-      clearTimeout(timeout);
-    }
-
+    const res = await fn(AbortSignal.timeout(TIMEOUT_MS));
     const ms = Date.now() - t;
-
-    if (!res.ok) {
-      return { nome, status: "down", ms, erro: `HTTP ${res.status}` };
-    }
-    if (ms > 3000) {
-      return { nome, status: "degradado", ms };
-    }
+    if (!res.ok) return { nome, status: "down", ms, erro: `HTTP ${res.status}` };
+    if (ms > 3000) return { nome, status: "degradado", ms };
     return { nome, status: "ok", ms };
   } catch (err) {
     const ms = Date.now() - t;
@@ -61,28 +54,31 @@ export async function GET(req: NextRequest) {
   const BREVO_API_KEY = process.env.BREVO_API_KEY!;
 
   const resultados: ResultadoApi[] = await Promise.all([
-    testarApi("Cloudinary", () =>
+    testarApi("Cloudinary", (signal) =>
       // Ping público — não requer autenticação
-      fetch(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/sample.jpg`, { method: "HEAD" })
+      fetch(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/sample.jpg`, { method: "HEAD", signal })
     ),
 
-    testarApi("Evolution API", () =>
+    testarApi("Evolution API", (signal) =>
       // connectionState usa a chave da instância (não a global)
       fetch(`${EVOLUTION_API_URL}/instance/connectionState/${process.env.EVOLUTION_INSTANCIA || "alertapatriota"}`, {
         headers: { apikey: EVOLUTION_API_KEY },
+        signal,
       })
     ),
 
-    testarApi("Mercado Pago", () =>
+    testarApi("Mercado Pago", (signal) =>
       // /v1/users/me funciona com qualquer access_token válido
       fetch("https://api.mercadopago.com/v1/users/me", {
         headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
+        signal,
       })
     ),
 
-    testarApi("Brevo", () =>
+    testarApi("Brevo", (signal) =>
       fetch("https://api.brevo.com/v3/account", {
         headers: { "api-key": BREVO_API_KEY },
+        signal,
       })
     ),
 

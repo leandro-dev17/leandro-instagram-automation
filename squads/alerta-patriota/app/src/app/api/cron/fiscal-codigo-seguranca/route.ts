@@ -12,6 +12,9 @@ import { criarAlertaDedup } from "@/lib/alertas";
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://alertapatriota.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
 
+// 5 checks sequenciais com AbortSignal.timeout até 10s cada — pior caso ~50s
+export const maxDuration = 60;
+
 interface CheckResult { nome: string; ok: boolean; detalhe: string; severidade: "critico" | "alto" | "medio" }
 
 async function testar(nome: string, fn: () => Promise<CheckResult>): Promise<CheckResult> {

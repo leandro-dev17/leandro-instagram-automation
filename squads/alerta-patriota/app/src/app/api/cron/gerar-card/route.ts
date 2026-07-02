@@ -118,6 +118,7 @@ async function renderizarEEnviar(plano: string, hook: string, corpo: string | un
       caption: legenda,
       fileName: "alerta-patriota.jpg",
     }),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) {
