@@ -1,4 +1,3 @@
-```typescript
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
@@ -101,42 +100,45 @@ export function validateMercadoPagoWebhook(payload: unknown): payload is Record<
 }
 
 export function extractMercadoPagoSignature(headers: Record<string, string | string[] | undefined>): string {
-  const signature = headers["x-signature"] || headers["x-wp-signature"];
-  
-  if (!signature) {
+  const signature = headers["x-signature"];
+  if (!signature || typeof signature !== "string") {
     throw new WebhookValidationError("webhook_mp_signature_missing", 401);
   }
-  
-  if (typeof signature !== "string") {
-    throw new WebhookValidationError("webhook_mp_signature_invalid_format", 400);
-  }
-  
   return signature;
 }
 
 export function validateMercadoPagoSignature(
   payload: string,
   signature: string,
-  secret: string
+  requestId: string
 ): boolean {
-  if (!payload || typeof payload !== "string") {
-    throw new WebhookValidationError("webhook_mp_payload_invalid", 400);
+  const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new WebhookValidationError("webhook_mp_secret_not_configured", 500);
   }
-  
-  if (!signature || typeof signature !== "string") {
-    throw new WebhookValidationError("webhook_mp_signature_invalid", 401);
-  }
-  
-  if (!secret || typeof secret !== "string") {
-    throw new WebhookValidationError("webhook_mp_secret_missing", 403);
-  }
-  
+
   try {
+    const parts = signature.split(",");
+    const tsValue = parts.find((p) => p.startsWith("ts="))?.replace("ts=", "");
+    const hashValue = parts.find((p) => p.startsWith("v1="))?.replace("v1=", "");
+
+    if (!tsValue || !hashValue) {
+      throw new WebhookValidationError("webhook_mp_signature_invalid_format", 403);
+    }
+
     const crypto = require("crypto");
-    const hash = crypto.createHmac("sha256", secret).update(payload).digest("hex");
-    return hash === signature;
+    const manifest = `${requestId}.${tsValue}.${payload}`;
+    const expectedHash = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+    if (expectedHash !== hashValue) {
+      throw new WebhookValidationError("webhook_mp_signature_mismatch", 403);
+    }
+
+    return true;
   } catch (error) {
-    throw new WebhookValidationError("webhook_mp_verification_failed", 403);
+    if (error instanceof WebhookValidationError) {
+      throw error;
+    }
+    throw new WebhookValidationError("webhook_mp_signature_validation_error", 403);
   }
 }
-```
