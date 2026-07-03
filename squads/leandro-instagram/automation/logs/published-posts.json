@@ -2036,5 +2036,37 @@
       ],
       "publishedAt": "2026-07-02T16:44:05.241Z"
     }
+  },
+  "2026-07-03": {
+    "kling-reel": {
+      "postId": "18085996688212195",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Treino de força feminino: quebrando o mito do 'ficar grande'",
+      "videoId": "13-loira-curta-azul-angulo-baixo",
+      "hook": [
+        {
+          "l1": "Você tem medo",
+          "l2": "de ficar grande",
+          "l3": "e por isso não"
+        },
+        {
+          "l1": "Sua amiga treina",
+          "l2": "e fica cada vez",
+          "l3": "linda e definida."
+        },
+        {
+          "l1": "O segredo não é",
+          "l2": "é progressão",
+          "l3": "com método"
+        },
+        {
+          "l1": "Já tentou treinar",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-03T16:18:31.413Z"
+    }
   }
 }
