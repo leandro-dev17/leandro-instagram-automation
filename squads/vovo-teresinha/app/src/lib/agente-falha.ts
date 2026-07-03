@@ -34,7 +34,7 @@ export async function reportarFalha(
             AND resolvido = FALSE
             AND criado_em > NOW() - INTERVAL '2 hours'
         ` as unknown as Promise<FalhaResult[]>,
-        new Promise((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
         ),
       ]);
@@ -96,72 +96,55 @@ export async function reportarFalha(
       return;
     }
 
-    const especialista = getEspecialistaResponsavel(agente);
-    if (especialista) {
+    if (consecutivas >= LIMITE_ESPECIALISTA) {
+      const especialista = getEspecialistaResponsavel(agente);
       await enviarTelegram(
-        `🔧 <b>Especialista acionado: ${especialista}</b>\n\n` +
-        `Agente <b>${agente}</b> falhou ${consecutivas}x.\n` +
-        `Erro: <code>${erro.slice(0, 200)}</code>`
+        `👨‍💼 <b>${especialista.replace(/-/g, " ")} notificado</b>\n\n` +
+        `Agente <b>${agente}</b> reportou ${consecutivas} falhas.\n` +
+        `Especialista investigando...`
       );
 
       fetch(`${APP_URL}/api/cron/${especialista}?secret=${CRON_SECRET}`, {
         signal: AbortSignal.timeout(HTTP_TIMEOUT),
       }).catch(() => {});
-    } else {
-      await enviarTelegram(
-        `⚠️ <b>Atenção — ${agente}</b>\n\n` +
-        `Falha detectada ${consecutivas}x nas últimas 2h.\n` +
-        `Erro: <code>${erro.slice(0, 200)}</code>\n\n` +
-        `<a href="${APP_URL}/admin/falhas">Ver detalhes</a>`
-      );
     }
   } catch {
     //
   }
 }
 
-export async function validarWebhookMercadoPago(payload: unknown): Promise<boolean> {
+export async function limparFalhasAntigos(): Promise<void> {
+  try {
+    const resultado = await sql`
+      DELETE FROM falhas_agentes
+      WHERE criado_em < NOW() - INTERVAL '7 days'
+        OR (resolvido = TRUE AND criado_em < NOW() - INTERVAL '24 hours')
+    `;
+
+    await enviarTelegram(`🧹 <b>Limpeza de Falhas Concluída</b>\n\nRegistros removidos do backlog histórico.`);
+  } catch (erro) {
+    await enviarTelegram(`❌ <b>Erro na Limpeza</b>\n\nFalha ao limpar registros antigos.`);
+  }
+}
+
+export async function validarWebhookMP(payload: Record<string, unknown> | null): Promise<{ valido: boolean; statusCode: number }> {
   if (!payload) {
     await reportarFalha(
       "webhook_mp_valida_assinatura",
-      "Payload vazio recebido",
-      { statusCode: 400, esperado: "400/401/403", recebido: "404" }
+      "Payload vazio ou inválido na requisição",
+      { statusCode: 400, motivo: "payload_ausente" }
     );
-    return false;
+    return { valido: false, statusCode: 400 };
   }
 
-  if (typeof payload !== "object" || !("id" in payload)) {
+  if (!payload.data || !payload.action) {
     await reportarFalha(
       "webhook_mp_valida_assinatura",
-      "Payload inválido",
-      { payload, statusCode: 400 }
+      "Estrutura de payload inválida",
+      { statusCode: 400, motivo: "estrutura_invalida", payload }
     );
-    return false;
+    return { valido: false, statusCode: 400 };
   }
 
-  return true;
+  return { valido: true, statusCode: 200 };
 }
-
-export async function marcarFalhaResolvida(agente: string): Promise<void> {
-  try {
-    await sql`
-      UPDATE falhas_agentes
-      SET resolvido = TRUE, resolvido_em = NOW()
-      WHERE agente = ${agente} AND resolvido = FALSE
-    `;
-
-    await enviarTelegram(
-      `✅ <b>Falha resolvida</b>\n\n` +
-      `Agente: <b>${agente}</b>\n` +
-      `Status: Normalizado`
-    );
-  } catch {
-    await enviarTelegram(
-      `❌ <b>Erro ao marcar falha como resolvida</b>\n\n` +
-      `Agente: ${agente}`
-    );
-  }
-}
-
-// Alias usado pelos crons (commits anteriores referenciam resolverFalhas)
-export const resolverFalhas = marcarFalhaResolvida;
