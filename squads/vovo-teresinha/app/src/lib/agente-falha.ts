@@ -100,51 +100,68 @@ export async function reportarFalha(
       const especialista = getEspecialistaResponsavel(agente);
       await enviarTelegram(
         `👨‍💼 <b>${especialista.replace(/-/g, " ")} notificado</b>\n\n` +
-        `Agente <b>${agente}</b> reportou ${consecutivas} falhas.\n` +
-        `Especialista investigando...`
+        `Agente <b>${agente}</b> com ${consecutivas} falhas consecutivas.\n` +
+        `Especialista revisando...`
       );
 
       fetch(`${APP_URL}/api/cron/${especialista}?secret=${CRON_SECRET}`, {
         signal: AbortSignal.timeout(HTTP_TIMEOUT),
       }).catch(() => {});
+
+      return;
     }
   } catch {
-    //
+    await enviarTelegram(`⚠️ <b>Erro ao processar falha</b>\n\nAgente: ${agente}\nErro: ${erro}`);
   }
 }
 
-export async function limparFalhasAntigos(): Promise<void> {
-  try {
-    const resultado = await sql`
-      DELETE FROM falhas_agentes
-      WHERE criado_em < NOW() - INTERVAL '7 days'
-        OR (resolvido = TRUE AND criado_em < NOW() - INTERVAL '24 hours')
-    `;
-
-    await enviarTelegram(`🧹 <b>Limpeza de Falhas Concluída</b>\n\nRegistros removidos do backlog histórico.`);
-  } catch (erro) {
-    await enviarTelegram(`❌ <b>Erro na Limpeza</b>\n\nFalha ao limpar registros antigos.`);
-  }
-}
-
-export async function validarWebhookMP(payload: Record<string, unknown> | null): Promise<{ valido: boolean; statusCode: number }> {
+export async function validarPayloadWebhook(
+  payload: unknown,
+  tipo: string
+): Promise<{ valido: boolean; status: number }> {
   if (!payload) {
     await reportarFalha(
       "webhook_mp_valida_assinatura",
-      "Payload vazio ou inválido na requisição",
-      { statusCode: 400, motivo: "payload_ausente" }
+      "Payload vazio ou inválido",
+      { tipo, payload: null }
     );
-    return { valido: false, statusCode: 400 };
+    return { valido: false, status: 400 };
   }
 
-  if (!payload.data || !payload.action) {
+  if (typeof payload !== "object") {
     await reportarFalha(
       "webhook_mp_valida_assinatura",
-      "Estrutura de payload inválida",
-      { statusCode: 400, motivo: "estrutura_invalida", payload }
+      "Payload não é um objeto",
+      { tipo, payloadType: typeof payload }
     );
-    return { valido: false, statusCode: 400 };
+    return { valido: false, status: 400 };
   }
 
-  return { valido: true, statusCode: 200 };
+  return { valido: true, status: 200 };
+}
+
+export async function verificarSaudeAgentes(): Promise<void> {
+  try {
+    const falhasNaUltimaHora = await sql`
+      SELECT agente, COUNT(*) as total
+      FROM falhas_agentes
+      WHERE resolvido = FALSE
+        AND criado_em > NOW() - INTERVAL '1 hour'
+      GROUP BY agente
+      ORDER BY total DESC
+      LIMIT 10
+    ` as unknown as Array<{ agente: string; total: number }>;
+
+    if (Array.isArray(falhasNaUltimaHora) && falhasNaUltimaHora.length > 0) {
+      const resumo = falhasNaUltimaHora
+        .map(f => `${f.agente}: ${f.total} falhas`)
+        .join("\n");
+
+      await enviarTelegram(
+        `📈 <b>Relatório de Saúde - Últimas 1h</b>\n\n${resumo}`
+      );
+    }
+  } catch {
+    await enviarTelegram(`⚠️ <b>Erro ao verificar saúde dos agentes</b>`);
+  }
 }
