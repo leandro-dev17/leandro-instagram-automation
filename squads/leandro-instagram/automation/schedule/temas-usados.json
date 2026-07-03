@@ -1,25 +1,6 @@
 {
-  "geradoEm": "2026-07-02T14:18:18.376Z",
+  "geradoEm": "2026-07-03T14:22:49.863Z",
   "janela28d": [
-    {
-      "data": "2026-06-04",
-      "tipo": "carousel",
-      "tema": "Macro cycling por ciclo menstrual: como aumentar carbos e gorduras sem ganhar peso (e emagrecer mais rápido)",
-      "keywords": [
-        "emagrecer",
-        "gordura",
-        "ciclo",
-        "menstrual"
-      ]
-    },
-    {
-      "data": "2026-06-04",
-      "tipo": "kling",
-      "tema": "Close no rosto: motivação real sobre parar de culpar comida e começar a entender o próprio corpo",
-      "keywords": [
-        "motivação"
-      ]
-    },
     {
       "data": "2026-06-05",
       "tipo": "carousel",
@@ -419,5 +400,5 @@
       ]
     }
   ],
-  "repeticoesDetectadas": 0
+  "repeticoesDetectadas": 2
 }
