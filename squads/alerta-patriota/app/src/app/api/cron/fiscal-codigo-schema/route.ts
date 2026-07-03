@@ -92,6 +92,14 @@ export async function GET(req: NextRequest) {
         ${Date.now() - inicio})
     `;
 
+    // Resolve alertas antigos de schema quando não há mais problemas
+    if (problemas.length === 0) {
+      await sql`
+        UPDATE alertas SET resolvido = true, resolvido_at = NOW()
+        WHERE tipo = 'codigo_schema' AND resolvido = false
+      `.catch(() => {});
+    }
+
     if (problemas.length > 0) {
       const { criado } = await criarAlertaDedup("codigo_schema", "critico", `Schema divergente: ${problemas.join("; ")}`);
       if (criado) {
