@@ -1,3 +1,4 @@
+```typescript
 import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { getGerenteResponsavel, getEspecialistaResponsavel } from "@/lib/hierarquia";
@@ -20,6 +21,41 @@ interface WebhookValidacaoPayload {
   erro: string;
   dados?: Record<string, unknown>;
   statusCode?: number;
+}
+
+interface WebhookMercadoPagoPayload {
+  type?: string;
+  data?: {
+    id?: string;
+  };
+}
+
+export async function validarAssinaturaMercadoPago(
+  payload: unknown
+): Promise<{ valid: boolean; statusCode: number; message: string }> {
+  if (!payload || typeof payload !== "object") {
+    return {
+      valid: false,
+      statusCode: 400,
+      message: "Payload inválido ou vazio",
+    };
+  }
+
+  const webhookPayload = payload as WebhookMercadoPagoPayload;
+
+  if (!webhookPayload.type || !webhookPayload.data?.id) {
+    return {
+      valid: false,
+      statusCode: 400,
+      message: "Campos obrigatórios ausentes",
+    };
+  }
+
+  return {
+    valid: true,
+    statusCode: 200,
+    message: "Validação bem-sucedida",
+  };
 }
 
 export async function reportarFalha(
@@ -97,6 +133,9 @@ export async function reportarFalha(
       );
 
       fetch(`${APP_URL}/api/cron/${gerente}?secret=${CRON_SECRET}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agente, erro, tentativas: consecutivas, dados }),
         signal: AbortSignal.timeout(HTTP_TIMEOUT),
       }).catch(() => {});
 
@@ -106,12 +145,15 @@ export async function reportarFalha(
     if (consecutivas >= LIMITE_ESPECIALISTA) {
       const especialista = getEspecialistaResponsavel(agente);
       await enviarTelegram(
-        `👨‍💼 <b>${especialista.replace(/-/g, " ")} acionado</b>\n\n` +
-        `Agente <b>${agente}</b> com ${consecutivas} falhas consecutivas.\n` +
+        `🔧 <b>${especialista.replace(/-/g, " ")} acionado</b>\n\n` +
+        `Agente <b>${agente}</b> apresentando ${consecutivas} falhas consecutivas.\n` +
         `Especialista investigando...`
       );
 
       fetch(`${APP_URL}/api/cron/${especialista}?secret=${CRON_SECRET}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agente, erro, tentativas: consecutivas, dados }),
         signal: AbortSignal.timeout(HTTP_TIMEOUT),
       }).catch(() => {});
 
@@ -122,86 +164,26 @@ export async function reportarFalha(
   }
 }
 
-export async function validarPayloadWebhook(payload: unknown, tipo: string): Promise<boolean> {
-  if (!payload) {
-    const erro = `Webhook ${tipo} recebido sem payload`;
-    await reportarFalha(`webhook_${tipo}`, erro, { tipo, timestamp: new Date().toISOString() });
-    return false;
-  }
-
-  if (typeof payload !== "object") {
-    const erro = `Webhook ${tipo} payload inválido (tipo: ${typeof payload})`;
-    await reportarFalha(`webhook_${tipo}`, erro, { tipo, payloadType: typeof payload });
-    return false;
-  }
-
-  return true;
-}
-
-export async function tratarErroWebhookMP(
-  statusCode: number,
-  erro: string,
-  dados?: Record<string, unknown>
-): Promise<Response> {
-  const codigosValidos = [400, 401, 403];
-
-  if (statusCode === 404) {
-    await reportarFalha(
-      "webhook_mp_valida_assinatura",
-      `Payload ausente - retornando ${statusCode} em vez de ${codigosValidos[0]}`,
-      { statusCode, erro, dados }
-    );
-
-    return new Response(
-      JSON.stringify({ erro: "Payload inválido ou ausente" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  if (!codigosValidos.includes(statusCode)) {
-    await reportarFalha(
-      "webhook_mp_valida_assinatura",
-      `Status code inesperado: ${statusCode}`,
-      { statusCode, erro, dados }
-    );
-
-    return new Response(
-      JSON.stringify({ erro: "Requisição inválida" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  return new Response(
-    JSON.stringify({ erro }),
-    { status: statusCode, headers: { "Content-Type": "application/json" } }
-  );
-}
-
-export async function monitarSaude(): Promise<void> {
+export async function verificarStatusAgentes(): Promise<void> {
   try {
     const resultado = await sql`
-      SELECT 
-        agente,
-        COUNT(*) as total,
-        COUNT(CASE WHEN resolvido = TRUE THEN 1 END) as resolvidas
+      SELECT agente, COUNT(*) as total
       FROM falhas_agentes
-      WHERE criado_em > NOW() - INTERVAL '2 hours'
+      WHERE resolvido = FALSE
+        AND criado_em > NOW() - INTERVAL '1 hour'
       GROUP BY agente
-      HAVING COUNT(*) >= 5
       ORDER BY total DESC
-      LIMIT 5
-    ` as unknown as Array<{ agente: string; total: number; resolvidas: number }>;
+    ` as unknown as Array<{ agente: string; total: number }>;
 
     if (Array.isArray(resultado) && resultado.length > 0) {
-      const mensagem = resultado
-        .map(r => `<b>${r.agente}</b>: ${r.total} falhas (${r.resolvidas} resolvidas)`)
-        .join("\n");
-
-      await enviarTelegram(
-        `🔴 <b>Alerta de Saúde - Agentes Críticos</b>\n\n${mensagem}\n\nInvestigar imediatamente.`
-      );
+      let mensagem = "📈 <b>Relatório de Falhas (Última Hora)</b>\n\n";
+      resultado.forEach((item) => {
+        mensagem += `• ${item.agente}: ${item.total} falha(s)\n`;
+      });
+      await enviarTelegram(mensagem);
     }
   } catch {
-    await enviarTelegram(`⚠️ <b>Erro ao monitorar saúde dos agentes</b>`);
+    await enviarTelegram("⚠️ <b>Erro ao verificar status dos agentes</b>");
   }
 }
+```
