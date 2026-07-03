@@ -15,6 +15,13 @@ interface FalhaResult {
   total: number;
 }
 
+interface WebhookValidacaoPayload {
+  agente: string;
+  erro: string;
+  dados?: Record<string, unknown>;
+  statusCode?: number;
+}
+
 export async function reportarFalha(
   agente: string,
   erro: string,
@@ -99,9 +106,9 @@ export async function reportarFalha(
     if (consecutivas >= LIMITE_ESPECIALISTA) {
       const especialista = getEspecialistaResponsavel(agente);
       await enviarTelegram(
-        `👨‍💼 <b>${especialista.replace(/-/g, " ")} notificado</b>\n\n` +
+        `👨‍💼 <b>${especialista.replace(/-/g, " ")} acionado</b>\n\n` +
         `Agente <b>${agente}</b> com ${consecutivas} falhas consecutivas.\n` +
-        `Especialista revisando...`
+        `Especialista investigando...`
       );
 
       fetch(`${APP_URL}/api/cron/${especialista}?secret=${CRON_SECRET}`, {
@@ -111,57 +118,90 @@ export async function reportarFalha(
       return;
     }
   } catch {
-    await enviarTelegram(`⚠️ <b>Erro ao processar falha</b>\n\nAgente: ${agente}\nErro: ${erro}`);
+    //
   }
 }
 
-export async function validarPayloadWebhook(
-  payload: unknown,
-  tipo: string
-): Promise<{ valido: boolean; status: number }> {
+export async function validarPayloadWebhook(payload: unknown, tipo: string): Promise<boolean> {
   if (!payload) {
-    await reportarFalha(
-      "webhook_mp_valida_assinatura",
-      "Payload vazio ou inválido",
-      { tipo, payload: null }
-    );
-    return { valido: false, status: 400 };
+    const erro = `Webhook ${tipo} recebido sem payload`;
+    await reportarFalha(`webhook_${tipo}`, erro, { tipo, timestamp: new Date().toISOString() });
+    return false;
   }
 
   if (typeof payload !== "object") {
-    await reportarFalha(
-      "webhook_mp_valida_assinatura",
-      "Payload não é um objeto",
-      { tipo, payloadType: typeof payload }
-    );
-    return { valido: false, status: 400 };
+    const erro = `Webhook ${tipo} payload inválido (tipo: ${typeof payload})`;
+    await reportarFalha(`webhook_${tipo}`, erro, { tipo, payloadType: typeof payload });
+    return false;
   }
 
-  return { valido: true, status: 200 };
+  return true;
 }
 
-export async function verificarSaudeAgentes(): Promise<void> {
-  try {
-    const falhasNaUltimaHora = await sql`
-      SELECT agente, COUNT(*) as total
-      FROM falhas_agentes
-      WHERE resolvido = FALSE
-        AND criado_em > NOW() - INTERVAL '1 hour'
-      GROUP BY agente
-      ORDER BY total DESC
-      LIMIT 10
-    ` as unknown as Array<{ agente: string; total: number }>;
+export async function tratarErroWebhookMP(
+  statusCode: number,
+  erro: string,
+  dados?: Record<string, unknown>
+): Promise<Response> {
+  const codigosValidos = [400, 401, 403];
 
-    if (Array.isArray(falhasNaUltimaHora) && falhasNaUltimaHora.length > 0) {
-      const resumo = falhasNaUltimaHora
-        .map(f => `${f.agente}: ${f.total} falhas`)
+  if (statusCode === 404) {
+    await reportarFalha(
+      "webhook_mp_valida_assinatura",
+      `Payload ausente - retornando ${statusCode} em vez de ${codigosValidos[0]}`,
+      { statusCode, erro, dados }
+    );
+
+    return new Response(
+      JSON.stringify({ erro: "Payload inválido ou ausente" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (!codigosValidos.includes(statusCode)) {
+    await reportarFalha(
+      "webhook_mp_valida_assinatura",
+      `Status code inesperado: ${statusCode}`,
+      { statusCode, erro, dados }
+    );
+
+    return new Response(
+      JSON.stringify({ erro: "Requisição inválida" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ erro }),
+    { status: statusCode, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+export async function monitarSaude(): Promise<void> {
+  try {
+    const resultado = await sql`
+      SELECT 
+        agente,
+        COUNT(*) as total,
+        COUNT(CASE WHEN resolvido = TRUE THEN 1 END) as resolvidas
+      FROM falhas_agentes
+      WHERE criado_em > NOW() - INTERVAL '2 hours'
+      GROUP BY agente
+      HAVING COUNT(*) >= 5
+      ORDER BY total DESC
+      LIMIT 5
+    ` as unknown as Array<{ agente: string; total: number; resolvidas: number }>;
+
+    if (Array.isArray(resultado) && resultado.length > 0) {
+      const mensagem = resultado
+        .map(r => `<b>${r.agente}</b>: ${r.total} falhas (${r.resolvidas} resolvidas)`)
         .join("\n");
 
       await enviarTelegram(
-        `📈 <b>Relatório de Saúde - Últimas 1h</b>\n\n${resumo}`
+        `🔴 <b>Alerta de Saúde - Agentes Críticos</b>\n\n${mensagem}\n\nInvestigar imediatamente.`
       );
     }
   } catch {
-    await enviarTelegram(`⚠️ <b>Erro ao verificar saúde dos agentes</b>`);
+    await enviarTelegram(`⚠️ <b>Erro ao monitorar saúde dos agentes</b>`);
   }
 }
