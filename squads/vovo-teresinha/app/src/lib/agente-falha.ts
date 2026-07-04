@@ -1,4 +1,3 @@
-```typescript
 import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { getGerenteResponsavel, getEspecialistaResponsavel } from "@/lib/hierarquia";
@@ -117,7 +116,7 @@ export async function limparBacklogFalhas(): Promise<void> {
         await enviarTelegram(
           `🧹 <b>Limpeza de Backlog Executada</b>\n` +
           `Registros removidos: ${ids.length}\n` +
-          `Retenção: ${TEMPO_RETENCAO_FALHAS}h`
+          `Timestamp: ${new Date().toISOString()}`
         );
       }
     } catch (dbError) {
@@ -126,8 +125,12 @@ export async function limparBacklogFalhas(): Promise<void> {
     }
   } catch (error) {
     if (timeoutId) clearTimeout(timeoutId);
-    const mensagemErro = error instanceof Error ? error.message : "Desconhecido";
-    await enviarTelegram(`❌ Erro ao limpar backlog: ${mensagemErro}`);
+    console.error("Erro ao limpar backlog:", error);
+    await enviarTelegram(
+      `❌ <b>Erro na Limpeza de Backlog</b>\n` +
+      `Erro: ${error instanceof Error ? error.message : "Desconhecido"}\n` +
+      `Timestamp: ${new Date().toISOString()}`
+    );
   }
 }
 
@@ -136,161 +139,181 @@ export async function registrarFalha(
   erro: string,
   dados?: Record<string, unknown>
 ): Promise<void> {
+  let timeoutId: NodeJS.Timeout | null = null;
+
   try {
-    await sql`
-      INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
-      VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, FALSE, NOW())
-    `;
+    timeoutId = setTimeout(() => {
+      throw new Error("DB_TIMEOUT");
+    }, DB_TIMEOUT);
+
+    try {
+      await Promise.race([
+        sql`
+          INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
+          VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, FALSE, NOW())
+        `,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+        ),
+      ]);
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      const contagem = (await sql`
+        SELECT COUNT(*) as total FROM falhas_agentes
+        WHERE agente = ${agente}
+        AND resolvido = FALSE
+      `) as Array<FalhaResult>;
+
+      const totalFalhas = contagem[0]?.total || 0;
+
+      if (totalFalhas >= LIMITE_ESPECIALISTA) {
+        const especialista = await getEspecialistaResponsavel(agente);
+        await enviarTelegram(
+          `⚠️ <b>Falha Detectada - Especialista</b>\n` +
+          `Agente: ${agente}\n` +
+          `Falhas: ${totalFalhas}\n` +
+          `Responsável: ${especialista}\n` +
+          `Erro: ${erro}`
+        );
+      }
+
+      if (totalFalhas >= LIMITE_GERENTE) {
+        const gerente = await getGerenteResponsavel(agente);
+        await enviarTelegram(
+          `🔴 <b>Falha Detectada - Gerente</b>\n` +
+          `Agente: ${agente}\n` +
+          `Falhas: ${totalFalhas}\n` +
+          `Responsável: ${gerente}\n` +
+          `Erro: ${erro}`
+        );
+      }
+
+      if (totalFalhas >= LIMITE_CLAUDE) {
+        await enviarTelegram(
+          `🚨 <b>Falha Crítica - Claude</b>\n` +
+          `Agente: ${agente}\n` +
+          `Falhas: ${totalFalhas}\n` +
+          `Erro: ${erro}\n` +
+          `URL: ${APP_URL}/dashboard/falhas`
+        );
+      }
+    } catch (dbError) {
+      if (timeoutId) clearTimeout(timeoutId);
+      throw dbError;
+    }
   } catch (error) {
-    const mensagemErro = error instanceof Error ? error.message : "Desconhecido";
-    await enviarTelegram(`⚠️ Erro ao registrar falha do agente ${agente}: ${mensagemErro}`);
+    if (timeoutId) clearTimeout(timeoutId);
+    console.error("Erro ao registrar falha:", error);
+  }
+}
+
+export async function resolverFalha(
+  id: number,
+  solucao: string
+): Promise<void> {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  try {
+    timeoutId = setTimeout(() => {
+      throw new Error("DB_TIMEOUT");
+    }, DB_TIMEOUT);
+
+    try {
+      const falha = (await Promise.race([
+        sql`
+          SELECT agente FROM falhas_agentes WHERE id = ${id}
+        `,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+        ),
+      ])) as Array<{ agente: string }>;
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (falha.length === 0) {
+        throw new Error("Falha não encontrada");
+      }
+
+      await sql`
+        UPDATE falhas_agentes
+        SET resolvido = TRUE, solucao = ${solucao}
+        WHERE id = ${id}
+      `;
+
+      await enviarTelegram(
+        `✅ <b>Falha Resolvida</b>\n` +
+        `Agente: ${falha[0].agente}\n` +
+        `Solução: ${solucao}`
+      );
+    } catch (dbError) {
+      if (timeoutId) clearTimeout(timeoutId);
+      throw dbError;
+    }
+  } catch (error) {
+    if (timeoutId) clearTimeout(timeoutId);
+    console.error("Erro ao resolver falha:", error);
+    throw error;
   }
 }
 
 export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
-  try {
-    const falhas = (await sql`
-      SELECT id, agente, erro, resolvido, criado_em
-      FROM falhas_agentes
-      WHERE resolvido = FALSE
-      ORDER BY criado_em DESC
-      LIMIT ${LIMITE_BACKLOG}
-    `) as FalhaRegistro[];
+  let timeoutId: NodeJS.Timeout | null = null;
 
-    return falhas;
+  try {
+    timeoutId = setTimeout(() => {
+      throw new Error("DB_TIMEOUT");
+    }, DB_TIMEOUT);
+
+    try {
+      const falhas = (await Promise.race([
+        sql`
+          SELECT id, agente, erro, resolvido, criado_em
+          FROM falhas_agentes
+          WHERE resolvido = FALSE
+          ORDER BY criado_em DESC
+          LIMIT ${LIMITE_BACKLOG}
+        `,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+        ),
+      ])) as FalhaRegistro[];
+
+      if (timeoutId) clearTimeout(timeoutId);
+
+      return falhas;
+    } catch (dbError) {
+      if (timeoutId) clearTimeout(timeoutId);
+      throw dbError;
+    }
   } catch (error) {
-    const mensagemErro = error instanceof Error ? error.message : "Desconhecido";
-    await enviarTelegram(`⚠️ Erro ao obter falhas não resolvidas: ${mensagemErro}`);
+    if (timeoutId) clearTimeout(timeoutId);
+    console.error("Erro ao obter falhas não resolvidas:", error);
     return [];
   }
 }
 
-export async function resolverFalha(falhaId: number): Promise<boolean> {
+export async function handleWebhookValidacao(
+  payload: WebhookValidacaoPayload
+): Promise<{ statusCode: number; message: string }> {
   try {
-    await sql`
-      UPDATE falhas_agentes
-      SET resolvido = TRUE
-      WHERE id = ${falhaId}
-    `;
-    return true;
+    if (!payload.agente || !payload.erro) {
+      return {
+        statusCode: 400,
+        message: "Campos obrigatórios ausentes",
+      };
+    }
+
+    await registrarFalha(payload.agente, payload.erro, payload.dados);
+
+    return {
+      statusCode: 200,
+      message: "Falha registrada com sucesso",
+    };
   } catch (error) {
-    const mensagemErro = error instanceof Error ? error.message : "Desconhecido";
-    await enviarTelegram(`⚠️ Erro ao resolver falha ${falhaId}: ${mensagemErro}`);
-    return false;
+    return {
+      statusCode: 500,
+      message: `Erro ao processar webhook: ${error instanceof Error ? error.message : "Desconhecido"}`,
+    };
   }
 }
-
-export async function processarFalhasComEscalacao(): Promise<void> {
-  try {
-    const falhas = await obterFalhasNaoResolvidas();
-
-    if (falhas.length === 0) {
-      return;
-    }
-
-    for (const falha of falhas) {
-      const tentativas = falhas.filter(
-        (f) => f.agente === falha.agente && !f.resolvido
-      ).length;
-
-      if (tentativas >= LIMITE_ESPECIALISTA && tentativas < LIMITE_GERENTE) {
-        const especialista = await getEspecialistaResponsavel(falha.agente);
-        if (especialista) {
-          await enviarTelegram(
-            `🚨 <b>Escalação para Especialista</b>\n` +
-            `Agente: ${falha.agente}\n` +
-            `Erro: ${falha.erro}\n` +
-            `Responsável: ${especialista}`
-          );
-        }
-      } else if (tentativas >= LIMITE_GERENTE && tentativas < LIMITE_CLAUDE) {
-        const gerente = await getGerenteResponsavel(falha.agente);
-        if (gerente) {
-          await enviarTelegram(
-            `🚨 <b>Escalação para Gerente</b>\n` +
-            `Agente: ${falha.agente}\n` +
-            `Erro: ${falha.erro}\n` +
-            `Responsável: ${gerente}`
-          );
-        }
-      } else if (tentativas >= LIMITE_CLAUDE) {
-        await enviarTelegram(
-          `🔴 <b>Falha Crítica - Claude Necessário</b>\n` +
-          `Agente: ${falha.agente}\n` +
-          `Erro: ${falha.erro}\n` +
-          `Tentativas: ${tentativas}`
-        );
-      }
-    }
-  } catch (error) {
-    const mensagemErro = error instanceof Error ? error.message : "Desconhecido";
-    await enviarTelegram(`❌ Erro ao processar falhas com escalação: ${mensagemErro}`);
-  }
-}
-
-export async function verificarSaudePorcentagemErros(): Promise<{
-  saudavel: boolean;
-  porcentagem: number;
-}> {
-  try {
-    const resultado = (await sql`
-      SELECT 
-        COUNT(*) FILTER (WHERE resolvido = FALSE) as nao_resolvidas,
-        COUNT(*) as total
-      FROM falhas_agentes
-      WHERE criado_em > NOW() - INTERVAL '2 hours'
-    `) as Array<{ nao_resolvidas: number; total: number }>;
-
-    if (resultado.length === 0 || resultado[0].total === 0) {
-      return { saudavel: true, porcentagem: 0 };
-    }
-
-    const porcentagem = (resultado[0].nao_resolvidas / resultado[0].total) * 100;
-    const saudavel = porcentagem < 10;
-
-    if (!saudavel) {
-      await enviarTelegram(
-        `⚠️ <b>Taxa de Erros Crítica</b>\n` +
-        `Porcentagem: ${porcentagem.toFixed(2)}%\n` +
-        `Erros: ${resultado[0].nao_resolvidas}/${resultado[0].total}`
-      );
-    }
-
-    return { saudavel, porcentagem };
-  } catch (error) {
-    const mensagemErro = error instanceof Error ? error.message : "Desconhecido";
-    await enviarTelegram(`❌ Erro ao verificar saúde: ${mensagemErro}`);
-    return { saudavel: false, porcentagem: 100 };
-  }
-}
-
-export async function executarVerificacaoAgendada(): Promise<void> {
-  const tokenValido = CRON_SECRET && process.env.CRON_SECRET === CRON_SECRET;
-
-  if (!tokenValido) {
-    await enviarTelegram("❌ Token CRON inválido");
-    return;
-  }
-
-  try {
-    await limparBacklogFalhas();
-    await processarFalhasComEscalacao();
-    const saude = await verificarSaudePorcentagemErros();
-
-    if (!saude.saudavel) {
-      await enviarTelegram(
-        `🔔 <b>Verificação de Saúde Concluída</b>\n` +
-        `Status: ⚠️ Taxa de erros elevada (${saude.porcentagem.toFixed(2)}%)`
-      );
-    } else {
-      await enviarTelegram(
-        `✅ <b>Verificação de Saúde Concluída</b>\n` +
-        `Status: Saudável`
-      );
-    }
-  } catch (error) {
-    const mensagemErro = error instanceof Error ? error.message : "Desconhecido";
-    await enviarTelegram(`❌ Erro na verificação agendada: ${mensagemErro}`);
-  }
-}
-```
