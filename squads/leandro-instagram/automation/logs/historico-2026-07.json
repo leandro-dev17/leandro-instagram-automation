@@ -72,6 +72,30 @@
           "runId": 28615087449
         }
       }
+    },
+    "2026-07-04": {
+      "data": "2026-07-04",
+      "geradoEm": "2026-07-04T01:22:04.039Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "success",
+          "concluiuEm": "2026-07-03T11:58:58Z",
+          "runId": 28658993565
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "success",
+          "concluiuEm": "2026-07-03T16:18:35Z",
+          "runId": 28672153312
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "success",
+          "concluiuEm": "2026-07-03T19:03:01Z",
+          "runId": 28678789623
+        }
+      }
     }
   }
 }
