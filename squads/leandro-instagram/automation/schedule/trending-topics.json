@@ -1,91 +1,90 @@
 {
-  "semana": "2026-06-01 a 2026-06-07",
-  "estacao": "outono",
+  "semana": "2026-07-04",
+  "estacao": "inverno",
   "datas_especiais": [
-    "Dia das Mães (14 de junho)",
-    "Inverno chegando — bulking fit",
-    "Transição outono/inverno"
+    "Férias escolares — treino em casa",
+    "Meio do ano — revisão de metas"
   ],
   "temas": [
     {
       "rank": 1,
-      "tema": "Treino pré-Dia das Mães: Presenteie-se com resultados visíveis",
-      "angulo": "Mulheres querem se sentir bonitas e confiantes para celebrar. Mostrar que 2 semanas de treino consistente traz mudanças visuais (inchaço reduz, postura melhora, energia sobe). Conectar autocuidado com amor próprio.",
+      "tema": "Treino de 15min em casa para mães em férias escolares",
+      "angulo": "Mães com filhos em casa não têm tempo de academia. Mostrar que consistência com pouco tempo supera abandono. Criar identificação + solução prática.",
       "formato_ideal": "reel",
       "urgencia": "alta",
-      "hook_sugerido": "Você merecia esse presente muito antes do Dia das Mães — vem treinar comigo?"
+      "hook_sugerido": "Não precisa de 1h de academia: 15min em casa vale mais que zero dias na semana"
     },
     {
       "rank": 2,
-      "tema": "Bulking feminino no inverno: ganho de massa SEM ficar 'inchada'",
-      "angulo": "Maior dúvida nesta época: como ganhar músculo sem engordar? Demistificar bulking para mulheres, mostrar diferença entre ganho de massa e ganho de gordura. Gera FOMO de quem quer começar antes do frio piorar.",
+      "tema": "Revisão de metas — meio do ano: emagreci?",
+      "angulo": "Psicologia de urgência: quem não emagrecer até agora quer resultado RÁPIDO até dezembro. Comparar antes/depois, análise de progresso, motivação.",
       "formato_ideal": "carousel",
       "urgencia": "alta",
-      "hook_sugerido": "Bulking feminino não é ficar gorda — é assim que funciona"
+      "hook_sugerido": "Metade do ano passou: você está no caminho ou precisa mudar de estratégia?"
     },
     {
       "rank": 3,
-      "tema": "Roupa de treino para inverno: estilo + performance",
-      "angulo": "Com chegada do frio, mulheres buscam roupas quentinhas mas que não 'disfarçam' o progresso. Tendência: layers, cores escuras, looks cozy que motivam treinar em casa ou ao ar livre.",
-      "formato_ideal": "kling",
-      "urgencia": "media",
-      "hook_sugerido": "Frio não é desculpa — vem ver essas 5 looks que as meninas estão usando"
+      "tema": "Por que você não emagrece no inverno (+ a solução)",
+      "angulo": "Inverno = menos movimento, mais frio, menos vontade. Validar a luta do público + dar ferramentas científicas. Alto potencial de identificação.",
+      "formato_ideal": "reel",
+      "urgencia": "alta",
+      "hook_sugerido": "Inverno sabotagemm seu emagrecimento: aqui está o porquê (e como combater)"
     },
     {
       "rank": 4,
-      "tema": "Síndrome do pós-férias: Como retomar consistência após pausa",
-      "angulo": "Muitas mulheres se motivaram nas férias de maio, mas agora desistem. Abordar culpa, como voltar SEM exagero, primeiras 2 semanas (psicológico > físico). Dor real: 'Perdi o progresso, não consigo começar de novo'.",
-      "formato_ideal": "story + reel",
-      "urgencia": "alta",
-      "hook_sugerido": "Você parou por 1 semana? Descobre o que realmente aconteceu com seu corpo"
+      "tema": "Roupas de treino quentinhas para motivar a se mexer",
+      "angulo": "Inverno gera resistência. Roupas certas = barreira psicológica reduzida. Dica prática + estilo. Gera engajamento e pode incluir parcerias.",
+      "formato_ideal": "story",
+      "urgencia": "media",
+      "hook_sugerido": "Roupinha quentinha = desculpa a menos para não treinar (e você fica linda)"
     },
     {
       "rank": 5,
-      "tema": "Exercícios para combater a queda de energia no outono/inverno",
-      "angulo": "Frio e dias nublados causam depressão sazonal leve. Mulheres reclamam de falta de energia. Mostrar treinos que AUMENTAM disposição (HIIT, treinos curtos explosivos, treino ao ar livre). Conexão com saúde mental.",
+      "tema": "Termogênese: como queimar mais calorias no frio",
+      "angulo": "Frio acelera metabolismo (curiosidade científica). Aproveitar para educar + gerar FOMO de quem não sabe. Alto potencial viral.",
       "formato_ideal": "reel",
-      "urgencia": "alta",
-      "hook_sugerido": "Você sente mais preguiça quando esfria? Esse treino tira você do sofá em 20 min"
+      "urgencia": "media",
+      "hook_sugerido": "Seu corpo queima MAIS caloria no inverno: sabia? Aqui está como potencializar"
     },
     {
       "rank": 6,
-      "tema": "Transformação de 30 dias: desafio visual antes do inverno",
-      "angulo": "FOMO máximo. Mostrar case real ou simulação de transformação em 1 mês (postura, definição, confiança). Urgência: 'Mês que vem já esfria mais, quanto mais você espera, menos motivação tem'.",
-      "formato_ideal": "carousel + reel",
+      "tema": "Bloqueio mental das férias: como não ganhar peso durante recesso",
+      "angulo": "Férias = tentação + rotina quebrada. Validar medo do ganho de peso, dar estratégia realista (não é restrição total). Empatia + ação.",
+      "formato_ideal": "carousel",
       "urgencia": "alta",
-      "hook_sugerido": "Essas 4 mulheres mudaram em 30 dias — a próxima pode ser você"
+      "hook_sugerido": "Férias não é 'tudo liberado': veja como outras mães mantêm progresso com filhos em casa"
     },
     {
       "rank": 7,
-      "tema": "Mitos sobre treino feminino que te impedem de começar",
-      "angulo": "Identificação máxima. 'Vou ficar muscuda?', 'Vou ficar grande?', 'Treino pesado é perigoso?'. Desconstruir mitos = remove barreiras mentais. Formato educativo que viraliza.",
+      "tema": "Mulheres que transformaram em 6 meses: depoimento + mérito",
+      "angulo": "FOMO puro: se ela conseguiu, por que eu não? Estamos no meio do ano = tempo ainda para transformação até dezembro. Urgência + inspiração.",
       "formato_ideal": "reel",
-      "urgencia": "media",
-      "hook_sugerido": "Se você acredita em um desses 5 mitos, você NUNCA vai conseguir seu corpo"
+      "urgencia": "alta",
+      "hook_sugerido": "Ela perdeu 8kg em 6 meses sendo mãe: você viu como fez?"
     },
     {
       "rank": 8,
-      "tema": "Alimentação no frio: como não ganhar peso enquanto treina",
-      "angulo": "Frio = vontade de comer pesado. Mulheres com medo de 'descontrolar'. Receitas quentes, nutritivas, que combinam com bulking leve. Prático, viral, soluciona dor real.",
+      "tema": "Série 'Meu inverno não vai ser desculpa': desafio de consistência",
+      "angulo": "Criar comunidade + accountability. Desafios geram salvação de stories, compartilhamentos, retenção. Aproveitar férias para viralizar.",
       "formato_ideal": "kling",
       "urgencia": "media",
-      "hook_sugerido": "Frio quer te engordar? Essas 3 receitas quentinhas não deixam"
+      "hook_sugerido": "Você entra nesse desafio de 7 dias ou vai deixar o inverno vencer?"
     },
     {
       "rank": 9,
-      "tema": "Autocuidado no Dia das Mães: treino é também autoamor",
-      "angulo": "Emocional + motivacional. Mulheres 35-45 anos frequentemente negligenciam a si mesmas. Mensagem: dedicar 1h por semana ao treino é um ato de amor próprio. Timing perfeito para Dia das Mães.",
-      "formato_ideal": "story",
+      "tema": "Alimentação inteligente em julho: receitas quentinhas + saudáveis",
+      "angulo": "Inverno + férias = comida pesada/calórica. Oferecer alternativas que saciam, aquecem e não sabotam. Prático + desejável = alto salvamento.",
+      "formato_ideal": "carousel",
       "urgencia": "media",
-      "hook_sugerido": "Mãe, esse é seu sinal para parar de colocar você em último lugar"
+      "hook_sugerido": "Sopa que emagrece: você vai querer fazer agora (receita completa)"
     },
     {
       "rank": 10,
-      "tema": "Antes/Depois com foco em bem-estar, não só estética",
-      "angulo": "Tendência 2026: transformações que falam sobre energia, postura, confiança, saúde mental. Não apenas 'perdi 5kg'. Respeita pluralidade de corpos e resultados. Mais humanizado = mais engajamento.",
-      "formato_ideal": "carousel",
-      "urgencia": "media",
-      "hook_sugerido": "Olha só a transformação que ninguém vê, mas ela sente todos os dias"
+      "tema": "Diferença entre 'treinar em casa' vs 'não treinar': custo real do adiamento",
+      "angulo": "Guilt reversal: quem diz que não tem tempo está escolhendo não ter. Duro mas motivador. Gera comentários + debate = algoritmo adora.",
+      "formato_ideal": "reel",
+      "urgencia": "alta",
+      "hook_sugerido": "Você não treina porque não tem tempo ou porque não faz ser prioridade? (responda nos comentários)"
     }
   ]
 }
