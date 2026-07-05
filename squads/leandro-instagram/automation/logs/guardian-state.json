@@ -2,11 +2,11 @@
   "falhas": {
     "kling-reel-20h": {
       "data": "2026-07-05",
-      "count": 2,
-      "ultimaFalha": "2026-07-05T18:43:21.506Z"
+      "count": 3,
+      "ultimaFalha": "2026-07-05T19:56:42.339Z"
     }
   },
-  "ultimaVerificacao": "2026-07-05T18:43:22.405Z",
+  "ultimaVerificacao": "2026-07-05T19:56:43.957Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
