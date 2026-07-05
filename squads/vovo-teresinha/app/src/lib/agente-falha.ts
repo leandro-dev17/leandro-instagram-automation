@@ -1,4 +1,3 @@
-```typescript
 import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { getGerenteResponsavel, getEspecialistaResponsavel } from "@/lib/hierarquia";
@@ -119,7 +118,7 @@ export async function limparBacklogFalhas(): Promise<void> {
     } else {
       await enviarTelegram(
         `❌ <b>Erro na Limpeza de Backlog</b>\n` +
-        `Erro: ${error instanceof Error ? error.message : "Desconhecido"}\n`
+        `${error instanceof Error ? error.message : "Erro desconhecido"}\n`
       );
     }
   }
@@ -128,169 +127,185 @@ export async function limparBacklogFalhas(): Promise<void> {
 export async function registrarFalha(
   agente: string,
   erro: string,
-  dados?: Record<string, unknown>
+  statusCode?: number
 ): Promise<void> {
   try {
-    await sql`
-      INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
-      VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, FALSE, NOW())
-    `;
+    const resultado = await Promise.race<FalhaResult>([
+      sql<Array<FalhaResult>>`
+        INSERT INTO falhas_agentes (agente, erro, status_code, resolvido, criado_em)
+        VALUES (${agente}, ${erro}, ${statusCode || 500}, FALSE, NOW())
+        RETURNING id
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+
+    if (Array.isArray(resultado) && resultado.length > 0) {
+      await enviarTelegram(
+        `⚠️ <b>Falha Registrada</b>\n` +
+        `Agente: ${agente}\n` +
+        `Erro: ${erro}\n` +
+        `Status: ${statusCode || 500}\n`
+      );
+    }
   } catch (error) {
-    console.error("Erro ao registrar falha:", error);
+    if (error instanceof Error && error.message === "DB_TIMEOUT") {
+      console.error(`[${agente}] Timeout ao registrar falha`);
+    } else {
+      console.error(`[${agente}] Erro ao registrar falha:`, error);
+    }
   }
 }
 
 export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
   try {
-    const falhas = await sql<FalhaRegistro[]>`
-      SELECT id, agente, erro, resolvido, criado_em
-      FROM falhas_agentes
-      WHERE resolvido = FALSE
-      ORDER BY criado_em DESC
-      LIMIT ${LIMITE_BACKLOG}
-    `;
+    const falhas = await Promise.race<FalhaRegistro[]>([
+      sql<FalhaRegistro[]>`
+        SELECT id, agente, erro, resolvido, criado_em
+        FROM falhas_agentes
+        WHERE resolvido = FALSE
+        ORDER BY criado_em DESC
+        LIMIT ${LIMITE_BACKLOG}
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+
     return Array.isArray(falhas) ? falhas : [];
   } catch (error) {
-    console.error("Erro ao obter falhas não resolvidas:", error);
+    if (error instanceof Error && error.message === "DB_TIMEOUT") {
+      await enviarTelegram(
+        `⚠️ <b>Timeout ao Obter Falhas</b>\n` +
+        `Será retentado na próxima execução.\n`
+      );
+    } else {
+      await enviarTelegram(
+        `❌ <b>Erro ao Obter Falhas</b>\n` +
+        `${error instanceof Error ? error.message : "Erro desconhecido"}\n`
+      );
+    }
     return [];
   }
 }
 
-export async function resolverFalha(id: number): Promise<void> {
+export async function resolverFalha(falhaId: number): Promise<boolean> {
   try {
-    await sql`
-      UPDATE falhas_agentes
-      SET resolvido = TRUE
-      WHERE id = ${id}
-    `;
-  } catch (error) {
-    console.error("Erro ao resolver falha:", error);
-  }
-}
+    const resultado = await Promise.race<Array<{ id: number }>>([
+      sql<Array<{ id: number }>>`
+        UPDATE falhas_agentes
+        SET resolvido = TRUE, atualizado_em = NOW()
+        WHERE id = ${falhaId}
+        RETURNING id
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
 
-export async function contar Falhas(): Promise<number> {
-  try {
-    const result = await sql<FalhaResult[]>`
-      SELECT COUNT(*) as total
-      FROM falhas_agentes
-      WHERE resolvido = FALSE
-    `;
-    return Array.isArray(result) && result.length > 0 ? result[0].total : 0;
+    return Array.isArray(resultado) && resultado.length > 0;
   } catch (error) {
-    console.error("Erro ao contar falhas:", error);
-    return 0;
-  }
-}
-
-export async function notificarEquipe(
-  falha: FalhaRegistro,
-  tentativa: number
-): Promise<void> {
-  try {
-    if (tentativa <= LIMITE_ESPECIALISTA) {
-      const especialista = await getEspecialistaResponsavel(falha.agente);
-      if (especialista) {
-        await enviarTelegram(
-          `🔴 <b>Falha de Agente</b>\n` +
-          `Agente: ${falha.agente}\n` +
-          `Erro: ${falha.erro}\n` +
-          `Atribuído a: ${especialista}\n` +
-          `Tentativa: ${tentativa}`
-        );
-      }
-    } else if (tentativa <= LIMITE_GERENTE) {
-      const gerente = await getGerenteResponsavel(falha.agente);
-      if (gerente) {
-        await enviarTelegram(
-          `🟠 <b>Falha de Agente - Escalação para Gerente</b>\n` +
-          `Agente: ${falha.agente}\n` +
-          `Erro: ${falha.erro}\n` +
-          `Gerente responsável: ${gerente}\n` +
-          `Tentativa: ${tentativa}`
-        );
-      }
-    } else if (tentativa <= LIMITE_CLAUDE) {
+    if (error instanceof Error && error.message === "DB_TIMEOUT") {
       await enviarTelegram(
-        `🟡 <b>Falha de Agente - Análise Claude</b>\n` +
-        `Agente: ${falha.agente}\n` +
-        `Erro: ${falha.erro}\n` +
-        `Tentativa: ${tentativa}\n` +
-        `Status: Aguardando análise de IA`
+        `⚠️ <b>Timeout ao Resolver Falha</b>\n` +
+        `ID: ${falhaId}\n`
       );
     } else {
       await enviarTelegram(
-        `🔴 <b>Falha Crítica - Escalação Final</b>\n` +
+        `❌ <b>Erro ao Resolver Falha</b>\n` +
+        `ID: ${falhaId}\n` +
+        `Erro: ${error instanceof Error ? error.message : "Desconhecido"}\n`
+      );
+    }
+    return false;
+  }
+}
+
+export async function notificarResponsaveis(
+  falha: FalhaRegistro,
+  nivelEscalacao: "especialista" | "gerente" | "claude"
+): Promise<void> {
+  try {
+    let responsavel: string | null = null;
+
+    if (nivelEscalacao === "especialista") {
+      responsavel = await getEspecialistaResponsavel(falha.agente);
+    } else if (nivelEscalacao === "gerente") {
+      responsavel = await getGerenteResponsavel(falha.agente);
+    } else if (nivelEscalacao === "claude") {
+      responsavel = "@claude";
+    }
+
+    if (responsavel) {
+      await enviarTelegram(
+        `🚨 <b>Escalação de Falha</b>\n` +
+        `Responsável: ${responsavel}\n` +
         `Agente: ${falha.agente}\n` +
         `Erro: ${falha.erro}\n` +
-        `Tentativa: ${tentativa}\n` +
-        `Status: Requer intervenção manual urgente`
+        `Nível: ${nivelEscalacao}\n`
       );
     }
   } catch (error) {
-    console.error("Erro ao notificar equipe:", error);
+    console.error("Erro ao notificar responsáveis:", error);
   }
 }
 
-export async function processarFalhas(): Promise<void> {
-  const falhas = await obterFalhasNaoResolvidas();
-
-  for (const falha of falhas) {
-    try {
-      let tentativa = 1;
-      const maxTentativas = LIMITE_CLAUDE + 2;
-
-      while (tentativa <= maxTentativas) {
-        try {
-          await notificarEquipe(falha, tentativa);
-
-          if (tentativa >= maxTentativas) {
-            await resolverFalha(falha.id);
-            break;
-          }
-
-          tentativa++;
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-        } catch (error) {
-          console.error(`Erro na tentativa ${tentativa}:`, error);
-          tentativa++;
-        }
-      }
-    } catch (error) {
-      console.error(`Erro ao processar falha ${falha.id}:`, error);
-    }
-  }
-}
-
-export async function analisarTaxaErros(): Promise<{
-  taxaErros: number;
-  totalFalhas: number;
-  status: string;
-}> {
+export async function processarFalhasComEscalacao(): Promise<void> {
   try {
-    const totalFalhas = await contarFalhas();
-    const taxaErros = (totalFalhas / 100) * 100;
+    const falhas = await obterFalhasNaoResolvidas();
 
-    let status = "✅ Normal";
-    if (taxaErros > 30) {
-      status = "🔴 Crítico";
-    } else if (taxaErros > 15) {
-      status = "🟠 Alto";
-    } else if (taxaErros > 5) {
-      status = "🟡 Moderado";
+    for (const falha of falhas) {
+      const horasCriacao = Math.floor(
+        (Date.now() - new Date(falha.criado_em).getTime()) / (1000 * 60 * 60)
+      );
+
+      if (horasCriacao >= LIMITE_CLAUDE) {
+        await notificarResponsaveis(falha, "claude");
+      } else if (horasCriacao >= LIMITE_GERENTE) {
+        await notificarResponsaveis(falha, "gerente");
+      } else if (horasCriacao >= LIMITE_ESPECIALISTA) {
+        await notificarResponsaveis(falha, "especialista");
+      }
     }
 
-    return {
-      taxaErros,
-      totalFalhas,
-      status,
-    };
+    await limparBacklogFalhas();
   } catch (error) {
-    console.error("Erro ao analisar taxa de erros:", error);
-    return {
-      taxaErros: 0,
-      totalFalhas: 0,
-      status: "❌ Erro na análise",
-    };
+    await enviarTelegram(
+      `❌ <b>Erro ao Processar Falhas com Escalação</b>\n` +
+      `${error instanceof Error ? error.message : "Erro desconhecido"}\n`
+    );
   }
 }
-```
+
+export async function validarWebhookMercadoPago(req: {
+  method: string;
+  body: unknown;
+}): Promise<{ statusCode: number; body: Record<string, unknown> }> {
+  if (req.method !== "POST") {
+    await registrarFalha(
+      "webhook_mp_valida_assinatura",
+      `Método HTTP inválido: ${req.method}`,
+      405
+    );
+    return {
+      statusCode: 405,
+      body: { error: "Método não permitido" },
+    };
+  }
+
+  const validacao = await validarAssinaturaMercadoPago(req.body);
+
+  if (!validacao.valid) {
+    await registrarFalha(
+      "webhook_mp_valida_assinatura",
+      validacao.message,
+      validacao.statusCode
+    );
+  }
+
+  return {
+    statusCode: validacao.statusCode,
+    body: { message: validacao.message },
+  };
+}
