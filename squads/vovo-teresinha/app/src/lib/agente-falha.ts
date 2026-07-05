@@ -93,7 +93,7 @@ export async function limparBacklogFalhas(): Promise<void> {
 
     try {
       const falhasAntiga = (await Promise.race([
-        sql`
+        sql<Array<{ id: number }>>`
           SELECT id FROM falhas_agentes
           WHERE criado_em < NOW() - INTERVAL '${TEMPO_RETENCAO_FALHAS} hours'
           AND resolvido = TRUE
@@ -120,225 +120,106 @@ export async function limparBacklogFalhas(): Promise<void> {
       }
     } catch (dbError) {
       if (timeoutId) clearTimeout(timeoutId);
-      throw dbError;
+      await enviarTelegram(
+        `⚠️ <b>Erro na Limpeza de Backlog</b>\n` +
+        `Erro: ${dbError instanceof Error ? dbError.message : "Desconhecido"}\n`
+      );
     }
   } catch (error) {
-    console.error("Erro ao limpar backlog de falhas:", error);
-    await enviarTelegram(
-      `❌ <b>Erro na Limpeza de Backlog</b>\n` +
-      `${error instanceof Error ? error.message : "Erro desconhecido"}\n`
-    );
+    if (timeoutId) clearTimeout(timeoutId);
+    console.error("[limparBacklogFalhas] Erro geral:", error);
   }
 }
 
-export async function registrarFalhaAgente(
+export async function registrarFalha(
   agente: string,
   erro: string,
   dados?: Record<string, unknown>
-): Promise<FalhaRegistro | null> {
-  let timeoutId: NodeJS.Timeout | null = null;
-
+): Promise<void> {
   try {
-    timeoutId = setTimeout(() => {
-      throw new Error("DB_TIMEOUT");
-    }, DB_TIMEOUT);
+    const backlogCount = (await sql<Array<{ total: number }>>`
+      SELECT COUNT(*) as total FROM falhas_agentes
+      WHERE resolvido = FALSE
+    `) as Array<{ total: number }>;
 
-    try {
-      const resultado = await Promise.race([
-        sql<FalhaRegistro[]>`
-          INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
-          VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, false, NOW())
-          RETURNING id, agente, erro, resolvido, criado_em
-        `,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-        ),
-      ]);
+    const totalAberto = backlogCount[0]?.total ?? 0;
 
-      if (timeoutId) clearTimeout(timeoutId);
-
-      return Array.isArray(resultado) && resultado.length > 0 ? resultado[0] : null;
-    } catch (dbError) {
-      if (timeoutId) clearTimeout(timeoutId);
-      throw dbError;
+    if (totalAberto >= LIMITE_BACKLOG) {
+      await limparBacklogFalhas();
     }
+
+    await sql`
+      INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
+      VALUES (${agente}, ${erro}, ${JSON.stringify(dados)}, FALSE, NOW())
+    `;
   } catch (error) {
-    console.error("Erro ao registrar falha do agente:", error);
-    return null;
+    console.error("[registrarFalha] Erro:", error);
   }
 }
 
-export async function obterFalhasNaoResolvidas(
-  filtroAgente?: string
-): Promise<FalhaRegistro[]> {
-  let timeoutId: NodeJS.Timeout | null = null;
-
+export async function resolverFalha(id: number): Promise<void> {
   try {
-    timeoutId = setTimeout(() => {
-      throw new Error("DB_TIMEOUT");
-    }, DB_TIMEOUT);
-
-    try {
-      const query = filtroAgente
-        ? sql<FalhaRegistro[]>`
-            SELECT id, agente, erro, resolvido, criado_em
-            FROM falhas_agentes
-            WHERE resolvido = FALSE
-            AND agente = ${filtroAgente}
-            ORDER BY criado_em DESC
-            LIMIT ${LIMITE_BACKLOG}
-          `
-        : sql<FalhaRegistro[]>`
-            SELECT id, agente, erro, resolvido, criado_em
-            FROM falhas_agentes
-            WHERE resolvido = FALSE
-            ORDER BY criado_em DESC
-            LIMIT ${LIMITE_BACKLOG}
-          `;
-
-      const resultado = await Promise.race([
-        query,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-        ),
-      ]);
-
-      if (timeoutId) clearTimeout(timeoutId);
-
-      return Array.isArray(resultado) ? resultado : [];
-    } catch (dbError) {
-      if (timeoutId) clearTimeout(timeoutId);
-      throw dbError;
-    }
+    await sql`
+      UPDATE falhas_agentes
+      SET resolvido = TRUE
+      WHERE id = ${id}
+    `;
   } catch (error) {
-    console.error("Erro ao obter falhas não resolvidas:", error);
+    console.error("[resolverFalha] Erro:", error);
+  }
+}
+
+export async function obterFalhasAbertos(): Promise<FalhaRegistro[]> {
+  try {
+    const falhas = (await sql<FalhaRegistro[]>`
+      SELECT id, agente, erro, resolvido, criado_em
+      FROM falhas_agentes
+      WHERE resolvido = FALSE
+      ORDER BY criado_em DESC
+      LIMIT 50
+    `) as FalhaRegistro[];
+
+    return falhas;
+  } catch (error) {
+    console.error("[obterFalhasAbertos] Erro:", error);
     return [];
   }
 }
 
-export async function marcarFalhaResolvida(
-  idFalha: number,
-  respostaEspecialista?: string
-): Promise<boolean> {
-  let timeoutId: NodeJS.Timeout | null = null;
+export async function analisarFalhasComAgente(falhas: FalhaRegistro[]): Promise<void> {
+  if (falhas.length === 0) return;
 
   try {
-    timeoutId = setTimeout(() => {
-      throw new Error("DB_TIMEOUT");
-    }, DB_TIMEOUT);
+    const resumoFalhas = falhas
+      .map((f) => `[${f.agente}] ${f.erro}`)
+      .join("\n");
 
-    try {
-      await Promise.race([
-        sql`
-          UPDATE falhas_agentes
-          SET resolvido = TRUE, resolvido_em = NOW(), resposta = ${respostaEspecialista || null}
-          WHERE id = ${idFalha}
-        `,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-        ),
-      ]);
-
-      if (timeoutId) clearTimeout(timeoutId);
-
-      return true;
-    } catch (dbError) {
-      if (timeoutId) clearTimeout(timeoutId);
-      throw dbError;
-    }
+    await enviarTelegram(
+      `🔍 <b>Análise de Falhas Detectadas</b>\n` +
+      `Total: ${falhas.length}\n\n` +
+      `${resumoFalhas.substring(0, 500)}`
+    );
   } catch (error) {
-    console.error("Erro ao marcar falha como resolvida:", error);
-    return false;
+    console.error("[analisarFalhasComAgente] Erro:", error);
   }
 }
 
-export async function obterEstatisticasFalhas(): Promise<{
-  totalFalhasNaoResolvidas: number;
-  totalFalhasRecentesAgentes: Record<string, number>;
-}> {
-  let timeoutId: NodeJS.Timeout | null = null;
-
+export async function processoAgenteFalhasScheduled(): Promise<void> {
   try {
-    timeoutId = setTimeout(() => {
-      throw new Error("DB_TIMEOUT");
-    }, DB_TIMEOUT);
+    const falhas = await obterFalhasAbertos();
 
-    try {
-      const [totalResult, porAgenteResult] = await Promise.all([
-        Promise.race([
-          sql<FalhaResult[]>`
-            SELECT COUNT(*) as total FROM falhas_agentes WHERE resolvido = FALSE
-          `,
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-          ),
-        ]),
-        Promise.race([
-          sql<Array<{ agente: string; total: number }>>`
-            SELECT agente, COUNT(*) as total
-            FROM falhas_agentes
-            WHERE resolvido = FALSE
-            AND criado_em > NOW() - INTERVAL '1 hour'
-            GROUP BY agente
-            ORDER BY total DESC
-          `,
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-          ),
-        ]),
-      ]);
+    if (falhas.length > 0) {
+      await analisarFalhasComAgente(falhas);
+    }
 
-      if (timeoutId) clearTimeout(timeoutId);
-
-      const totalFalhasNaoResolvidas = Array.isArray(totalResult) && totalResult.length > 0
-        ? totalResult[0].total
-        : 0;
-
-      const totalFalhasRecentesAgentes = Array.isArray(porAgenteResult)
-        ? porAgenteResult.reduce((acc, item) => {
-            acc[item.agente] = item.total;
-            return acc;
-          }, {} as Record<string, number>)
-        : {};
-
-      return {
-        totalFalhasNaoResolvidas,
-        totalFalhasRecentesAgentes,
-      };
-    } catch (dbError) {
-      if (timeoutId) clearTimeout(timeoutId);
-      throw dbError;
+    if (falhas.length >= LIMITE_BACKLOG / 2) {
+      await limparBacklogFalhas();
     }
   } catch (error) {
-    console.error("Erro ao obter estatísticas de falhas:", error);
-    return {
-      totalFalhasNaoResolvidas: 0,
-      totalFalhasRecentesAgentes: {},
-    };
+    console.error("[processoAgenteFalhasScheduled] Erro:", error);
+    await enviarTelegram(
+      `❌ <b>Erro no Processo de Falhas</b>\n` +
+      `Erro: ${error instanceof Error ? error.message : "Desconhecido"}`
+    );
   }
 }
-
-export async function notificarEspecialistaFalha(
-  idFalha: number,
-  agente: string,
-  erro: string
-): Promise<boolean> {
-  try {
-    const especialista = await getEspecialistaResponsavel(agente);
-    if (!especialista) {
-      console.warn(`Nenhum especialista encontrado para o agente: ${agente}`);
-      return false;
-    }
-
-    const mensagem = `
-🚨 <b>Nova Falha Detectada</b>
-Agente: ${agente}
-Erro: ${erro}
-ID da Falha: ${idFalha}
-App: Receitinhas da Vovó Teresinha
-    `;
-
-    await enviarTelegram(mensagem);
-    return true;
-  } catch (error) {
-    console.error("
