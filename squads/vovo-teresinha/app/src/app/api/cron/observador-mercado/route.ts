@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { cronAutorizado } from "@/lib/auth-cron";
-import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
+import { registrarFalha } from "@/lib/agente-falha";
 
 // Monitora o mercado de apps de receitas saudáveis no Brasil semanalmente.
 // Usa Claude com conhecimento de treinamento + métricas internas do app como contexto.
@@ -46,7 +46,9 @@ Faça uma análise semanal de mercado concisa (máx. 4 parágrafos):
 Seja direto e prático. Foque no que é acionável.`,
       }],
     }),
-    signal: AbortSignal.timeout(45000), // era 20000ms — insuficiente para análise de 4 parágrafos; aumentado para 45s (seguro dentro do limite de 60s da Vercel)
+    // 30s para a Anthropic — deixa ~25s de margem para DB + Telegram + overhead
+    // dentro do limite de 60s da Vercel para serverless functions.
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) return null;
@@ -92,10 +94,9 @@ export async function GET(req: NextRequest) {
       await enviarTelegram(`🔍 <b>Observador de Mercado</b>\n\nNão foi possível gerar análise esta semana.`);
     }
 
-    await resolverFalhas("observador-mercado");
     return NextResponse.json({ ok: true, analise: analise ? analise.slice(0, 200) + "..." : null });
   } catch (err) {
-    await reportarFalha("observador-mercado", String(err));
+    await registrarFalha("observador-mercado", String(err));
     return NextResponse.json({ erro: "Erro no observador de mercado", detalhes: String(err) }, { status: 500 });
   }
 }
