@@ -1,42 +1,25 @@
 {
-  "geradoEm": "2026-07-05T13:53:36.090Z",
+  "geradoEm": "2026-07-06T15:47:23.383Z",
   "janela28d": [
     {
-      "data": "2026-06-07",
+      "data": "2026-06-08",
       "tipo": "carousel",
-      "tema": "Por que Seu Glúteo Não Cresce: O Segredo da Progressão Cíclica",
+      "tema": "Treino de Glúteo Por Ciclo Menstrual: O Guia que Vai Transformar Seu Bumbum",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "bumbum",
+        "ciclo",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-06-08",
+      "tipo": "kling",
+      "tema": "Glúteo Redondo: A Postura que Faz Diferença",
       "keywords": [
         "glúteo",
         "gluteo"
-      ]
-    },
-    {
-      "data": "2026-06-07",
-      "tipo": "kling",
-      "tema": "Força e Intensidade: Como as Mulheres Ficam Mais Fortes na Fase Lútea",
-      "keywords": [
-        "força",
-        "fase"
-      ]
-    },
-    {
-      "data": "2026-06-08",
-      "tipo": "carousel",
-      "tema": "Os 5 Maiores Mitos de Emagrecimento que Prendem Mulheres em Ciclos de Fracasso",
-      "keywords": [
-        "emagrecimento",
-        "ciclo"
-      ]
-    },
-    {
-      "data": "2026-06-08",
-      "tipo": "kling",
-      "tema": "Nutrição Estratégica: Proteína e Carboidrato Não São Vilões",
-      "keywords": [
-        "proteína",
-        "proteina",
-        "carboidrato",
-        "nutrição"
       ]
     },
     {
@@ -351,7 +334,105 @@
         "proteína",
         "proteina"
       ]
+    },
+    {
+      "data": "2026-07-09",
+      "tipo": "carousel",
+      "tema": "O protocolo de treino de glúteo por fase do ciclo menstrual que realmente funciona",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "ciclo",
+        "fase",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-07-09",
+      "tipo": "kling",
+      "tema": "Treino de pernas e caminhada estratégica para emagrecimento",
+      "keywords": [
+        "perna",
+        "emagrecimento",
+        "caminhada"
+      ]
+    },
+    {
+      "data": "2026-07-10",
+      "tipo": "carousel",
+      "tema": "Alimentação por ciclo menstrual: o guia de macros que ninguém te deu",
+      "keywords": [
+        "alimentação",
+        "ciclo",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-07-10",
+      "tipo": "kling",
+      "tema": "Força, intensidade e mindset para superação no treino",
+      "keywords": [
+        "força",
+        "mindset"
+      ]
+    },
+    {
+      "data": "2026-07-11",
+      "tipo": "carousel",
+      "tema": "O guia científico: como sua taxa metabólica varia em cada semana do ciclo menstrual",
+      "keywords": [
+        "ciclo",
+        "menstrual"
+      ]
+    },
+    {
+      "data": "2026-07-11",
+      "tipo": "kling",
+      "tema": "Cintura, quadril e como os hormônios do ciclo moldam seu corpo",
+      "keywords": [
+        "ciclo",
+        "hormônio",
+        "hormonio",
+        "cintura"
+      ]
+    },
+    {
+      "data": "2026-07-12",
+      "tipo": "carousel",
+      "tema": "Por que comer pouco sabota seu metabolismo (e como comer mais e emagrecer mais)",
+      "keywords": [
+        "metabolismo",
+        "emagrecer"
+      ]
+    },
+    {
+      "data": "2026-07-12",
+      "tipo": "kling",
+      "tema": "Postura, ombros e confiança: como treinar força muda a percepção do seu corpo",
+      "keywords": [
+        "força",
+        "ombro"
+      ]
+    },
+    {
+      "data": "2026-07-13",
+      "tipo": "carousel",
+      "tema": "O guia definitivo: por que seu glúteo não cresce e como finalmente fazer isso acontecer",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-07-13",
+      "tipo": "kling",
+      "tema": "Cardio e queima de gordura: o mito de que você precisa correr para emagrecer",
+      "keywords": [
+        "emagrecer",
+        "gordura",
+        "cardio"
+      ]
     }
   ],
-  "repeticoesDetectadas": 2
+  "repeticoesDetectadas": 4
 }
