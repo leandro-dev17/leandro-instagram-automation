@@ -2100,5 +2100,37 @@
       ],
       "publishedAt": "2026-07-04T15:53:41.917Z"
     }
+  },
+  "2026-07-06": {
+    "kling-reel": {
+      "postId": "18095721410188193",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Mito: mulher que caminha muito emagrece mais rápido",
+      "videoId": "10-loira-verde-rotacao",
+      "hook": [
+        {
+          "l1": "Você caminha todo",
+          "l2": "come direito",
+          "l3": "e não emagrece."
+        },
+        {
+          "l1": "Sua amiga perdeu",
+          "l2": "caminhando MENOS",
+          "l3": "Ela fez isso."
+        },
+        {
+          "l1": "Caminhada",
+          "l2": "aumenta apetite",
+          "l3": "e bloqueia"
+        },
+        {
+          "l1": "Você já sabia",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-06T17:33:04.131Z"
+    }
   }
 }
