@@ -1,27 +1,6 @@
 {
-  "geradoEm": "2026-07-06T15:47:23.383Z",
+  "geradoEm": "2026-07-07T14:51:42.737Z",
   "janela28d": [
-    {
-      "data": "2026-06-08",
-      "tipo": "carousel",
-      "tema": "Treino de Glúteo Por Ciclo Menstrual: O Guia que Vai Transformar Seu Bumbum",
-      "keywords": [
-        "glúteo",
-        "gluteo",
-        "bumbum",
-        "ciclo",
-        "menstrual"
-      ]
-    },
-    {
-      "data": "2026-06-08",
-      "tipo": "kling",
-      "tema": "Glúteo Redondo: A Postura que Faz Diferença",
-      "keywords": [
-        "glúteo",
-        "gluteo"
-      ]
-    },
     {
       "data": "2026-06-09",
       "tipo": "carousel",
@@ -434,5 +413,5 @@
       ]
     }
   ],
-  "repeticoesDetectadas": 4
+  "repeticoesDetectadas": 3
 }
