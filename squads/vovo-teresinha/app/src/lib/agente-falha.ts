@@ -116,10 +116,7 @@ export async function limparBacklogFalhas(): Promise<void> {
         `Será retentado na próxima execução.\n`
       );
     } else {
-      await enviarTelegram(
-        `❌ <b>Erro na Limpeza de Backlog</b>\n` +
-        `${error instanceof Error ? error.message : "Erro desconhecido"}\n`
-      );
+      throw error;
     }
   }
 }
@@ -130,187 +127,135 @@ export async function registrarFalha(
   dados?: Record<string, unknown>
 ): Promise<void> {
   try {
-    const contagem = await sql<Array<FalhaResult>>`
+    const backlogAtual = await sql<FalhaResult[]>`
       SELECT COUNT(*) as total FROM falhas_agentes
       WHERE resolvido = FALSE
     `;
 
-    const totalFalhas = contagem[0]?.total || 0;
+    const total = backlogAtual[0]?.total ?? 0;
 
-    if (totalFalhas >= LIMITE_BACKLOG) {
+    if (total >= LIMITE_BACKLOG) {
       await enviarTelegram(
-        `🚨 <b>ALERTA: Backlog Crítico de Falhas</b>\n` +
-        `Total de falhas não resolvidas: ${totalFalhas}\n` +
+        `🚨 <b>Backlog de Falhas Crítico</b>\n` +
+        `Registros abertos: ${total}\n` +
         `Agente: ${agente}\n` +
         `Erro: ${erro}\n`
       );
+      return;
     }
 
     await sql`
-      INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
-      VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, FALSE, NOW())
+      INSERT INTO falhas_agentes (agente, erro, dados, resolvido)
+      VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, false)
     `;
   } catch (error) {
     console.error("Erro ao registrar falha:", error);
+    throw error;
   }
 }
 
-export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
+export async function escalarFalha(
+  falhaId: number,
+  nivelEscalacao: "especialista" | "gerente" | "claude"
+): Promise<void> {
   try {
-    const falhas = await Promise.race<FalhaRegistro[]>([
-      sql<FalhaRegistro[]>`
-        SELECT id, agente, erro, resolvido, criado_em FROM falhas_agentes
-        WHERE resolvido = FALSE
-        ORDER BY criado_em DESC
-        LIMIT 50
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
+    const falha = await sql<FalhaRegistro[]>`
+      SELECT * FROM falhas_agentes WHERE id = ${falhaId}
+    `;
 
-    return falhas;
+    if (!falha || falha.length === 0) {
+      throw new Error("Falha não encontrada");
+    }
+
+    const responsavel =
+      nivelEscalacao === "especialista"
+        ? await getEspecialistaResponsavel()
+        : nivelEscalacao === "gerente"
+          ? await getGerenteResponsavel()
+          : "claude-3-7-sonnet";
+
+    const mensagem =
+      `🚨 <b>Escalação de Falha - ${nivelEscalacao.toUpperCase()}</b>\n` +
+      `ID: ${falhaId}\n` +
+      `Agente: ${falha[0].agente}\n` +
+      `Erro: ${falha[0].erro}\n` +
+      `Responsável: ${responsavel}\n`;
+
+    await enviarTelegram(mensagem);
+
+    await sql`
+      UPDATE falhas_agentes
+      SET resolvido = FALSE
+      WHERE id = ${falhaId}
+    `;
   } catch (error) {
-    console.error("Erro ao obter falhas:", error);
-    return [];
+    console.error("Erro ao escalar falha:", error);
+    throw error;
   }
 }
 
-export async function resolverFalha(falhaId: number): Promise<boolean> {
+export async function resolverFalha(falhaId: number): Promise<void> {
   try {
     await sql`
       UPDATE falhas_agentes
       SET resolvido = TRUE
       WHERE id = ${falhaId}
     `;
-    return true;
+
+    await enviarTelegram(
+      `✅ <b>Falha Resolvida</b>\n` +
+      `ID: ${falhaId}\n`
+    );
   } catch (error) {
     console.error("Erro ao resolver falha:", error);
-    return false;
+    throw error;
   }
 }
 
-export async function agenteOrquestradorFalhas(): Promise<void> {
+export async function obterFalhasAbertos(): Promise<FalhaRegistro[]> {
   try {
-    const falhas = await obterFalhasNaoResolvidas();
+    const falhas = await sql<FalhaRegistro[]>`
+      SELECT * FROM falhas_agentes
+      WHERE resolvido = FALSE
+      ORDER BY criado_em DESC
+      LIMIT ${LIMITE_BACKLOG}
+    `;
 
-    if (!Array.isArray(falhas) || falhas.length === 0) {
-      return;
-    }
-
-    for (const falha of falhas) {
-      try {
-        if (falha.agente === "webhook_mp_valida_assinatura") {
-          const dadosErro = typeof falha.erro === "string" ? JSON.parse(falha.erro) : falha.erro;
-
-          if (
-            typeof dadosErro === "object" &&
-            dadosErro !== null &&
-            "statusCode" in dadosErro &&
-            dadosErro.statusCode === 404
-          ) {
-            await registrarFalha(
-              "webhook_mp_valida_assinatura",
-              JSON.stringify({
-                tipo: "payload_vazio_detectado",
-                statusCode: 400,
-                mensagem: "Payload vazio retornou 404, corrigido para 400",
-              })
-            );
-
-            await resolverFalha(falha.id);
-            continue;
-          }
-        }
-
-        const especialista = getEspecialistaResponsavel(falha.agente);
-        if (especialista && falha.agente.length > 0) {
-          const contagem = falhas.filter((f) => f.agente === falha.agente).length;
-
-          if (contagem >= LIMITE_ESPECIALISTA) {
-            await enviarTelegram(
-              `👤 <b>Escalação para Especialista</b>\n` +
-              `Agente: ${falha.agente}\n` +
-              `Especialista: ${especialista}\n` +
-              `Ocorrências: ${contagem}\n`
-            );
-          }
-        }
-
-        const gerente = getGerenteResponsavel(falha.agente);
-        const contagemTotal = falhas.length;
-
-        if (contagemTotal >= LIMITE_GERENTE && gerente) {
-          await enviarTelegram(
-            `👔 <b>Escalação para Gerente</b>\n` +
-            `Total de falhas: ${contagemTotal}\n` +
-            `Gerente: ${gerente}\n`
-          );
-        }
-
-        if (contagemTotal >= LIMITE_CLAUDE) {
-          await enviarTelegram(
-            `🤖 <b>Caso Crítico - Análise Claude</b>\n` +
-            `Total de falhas: ${contagemTotal}\n` +
-            `Verificação recomendada: Infraestrutura e Configurações\n`
-          );
-        }
-      } catch (innerError) {
-        console.error(`Erro processando falha ${falha.id}:`, innerError);
-      }
-    }
+    return falhas || [];
   } catch (error) {
-    console.error("Erro no agente orquestrador:", error);
-    await enviarTelegram(
-      `❌ <b>Erro no Agente Orquestrador de Falhas</b>\n` +
-      `${error instanceof Error ? error.message : "Erro desconhecido"}\n`
-    );
+    console.error("Erro ao obter falhas abertos:", error);
+    return [];
   }
 }
 
-export async function manipuladorWebhookMercadoPago(payload: unknown): Promise<{
-  valid: boolean;
-  statusCode: number;
-  message: string;
+export async function obterEstatisticasFalhas(): Promise<{
+  total: number;
+  abertos: number;
+  resolvidos: number;
 }> {
   try {
-    const validacao = await validarAssinaturaMercadoPago(payload);
+    const stats = await sql<
+      Array<{ total: number; resolvido: boolean }>
+    >`
+      SELECT COUNT(*) as total, resolvido
+      FROM falhas_agentes
+      GROUP BY resolvido
+    `;
 
-    if (!validacao.valid) {
-      await registrarFalha(
-        "webhook_mp_valida_assinatura",
-        JSON.stringify({
-          tipo: "validacao_falhou",
-          statusCode: validacao.statusCode,
-          mensagem: validacao.message,
-          payload: payload,
-        })
-      );
-
-      return validacao;
-    }
+    const abertos = stats.find((s) => s.resolvido === false)?.total ?? 0;
+    const resolvidos = stats.find((s) => s.resolvido === true)?.total ?? 0;
 
     return {
-      valid: true,
-      statusCode: 200,
-      message: "Webhook processado com sucesso",
+      total: abertos + resolvidos,
+      abertos,
+      resolvidos,
     };
   } catch (error) {
-    const statusCode = 500;
-    await registrarFalha(
-      "webhook_mp_valida_assinatura",
-      JSON.stringify({
-        tipo: "erro_processamento",
-        statusCode: statusCode,
-        mensagem: error instanceof Error ? error.message : "Erro desconhecido",
-        payload: payload,
-      })
-    );
-
+    console.error("Erro ao obter estatísticas:", error);
     return {
-      valid: false,
-      statusCode: statusCode,
-      message: `Erro ao processar webhook: ${error instanceof Error ? error.message : "Desconhecido"}`,
+      total: 0,
+      abertos: 0,
+      resolvidos: 0,
     };
   }
 }
