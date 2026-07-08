@@ -1,22 +1,6 @@
 {
-  "geradoEm": "2026-07-07T14:51:42.737Z",
+  "geradoEm": "2026-07-08T14:29:13.369Z",
   "janela28d": [
-    {
-      "data": "2026-06-09",
-      "tipo": "carousel",
-      "tema": "Por Que Contar Caloria Igual Todos os Dias Trava Seu Emagrecimento",
-      "keywords": [
-        "emagrecimento"
-      ]
-    },
-    {
-      "data": "2026-06-09",
-      "tipo": "kling",
-      "tema": "Nutrição Inteligente: Comendo Melhor, Não Menos",
-      "keywords": [
-        "nutrição"
-      ]
-    },
     {
       "data": "2026-06-10",
       "tipo": "carousel",
@@ -413,5 +397,5 @@
       ]
     }
   ],
-  "repeticoesDetectadas": 3
+  "repeticoesDetectadas": 4
 }
