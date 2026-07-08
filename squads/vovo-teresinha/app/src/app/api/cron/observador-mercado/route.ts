@@ -7,6 +7,11 @@ import { registrarFalha } from "@/lib/agente-falha";
 // Monitora o mercado de apps de receitas saudáveis no Brasil semanalmente.
 // Usa Claude com conhecimento de treinamento + métricas internas do app como contexto.
 
+// Declara maxDuration de 60s para esta rota (necessário pois o endpoint não está
+// listado no vercel.json como cron — sem isso a Vercel aplica o timeout padrão de
+// 10s, que aborta a chamada à Anthropic antes dela completar → AbortError HTTP 0).
+export const maxDuration = 60;
+
 async function analisarMercado(
   totalReceitas: number,
   totalUsuarios: number,
@@ -46,9 +51,11 @@ Faça uma análise semanal de mercado concisa (máx. 4 parágrafos):
 Seja direto e prático. Foque no que é acionável.`,
       }],
     }),
-    // 30s para a Anthropic — deixa ~25s de margem para DB + Telegram + overhead
-    // dentro do limite de 60s da Vercel para serverless functions.
-    signal: AbortSignal.timeout(30000),
+    // 50s para a Anthropic — deixa ~10s de margem para DB + Telegram + overhead
+    // dentro do limite de 60s garantido pelo export maxDuration = 60 acima.
+    // Anteriormente era 30s mas a função não tinha maxDuration declarado, então a
+    // Vercel aplicava o default de 10s e abortava a requisição antes (HTTP 0 / AbortError).
+    signal: AbortSignal.timeout(50000),
   });
 
   if (!res.ok) return null;
