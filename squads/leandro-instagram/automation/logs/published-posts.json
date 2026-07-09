@@ -2196,5 +2196,37 @@
       ],
       "publishedAt": "2026-07-08T16:25:28.486Z"
     }
+  },
+  "2026-07-09": {
+    "kling-reel": {
+      "postId": "18115443616822271",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Treino de pernas e caminhada estratégica para emagrecimento",
+      "videoId": "13-loira-curta-azul-angulo-baixo",
+      "hook": [
+        {
+          "l1": "Você corre pra",
+          "l2": "e nada muda.",
+          "l3": "Problema não é"
+        },
+        {
+          "l1": "Sua amiga caminha",
+          "l2": "e emagreceu mais.",
+          "l3": "Ela descobriu"
+        },
+        {
+          "l1": "Treino de perna",
+          "l2": "mais caminhada",
+          "l3": "é o segredo real."
+        },
+        {
+          "l1": "Você já tinha",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-09T17:10:46.517Z"
+    }
   }
 }
