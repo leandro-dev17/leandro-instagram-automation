@@ -1,26 +1,6 @@
 {
-  "geradoEm": "2026-07-09T15:24:13.135Z",
+  "geradoEm": "2026-07-10T14:41:47.024Z",
   "janela28d": [
-    {
-      "data": "2026-06-11",
-      "tipo": "carousel",
-      "tema": "O Guia Científico: Como seu Metabolismo Muda a Cada Fase do Ciclo Menstrual",
-      "keywords": [
-        "metabolismo",
-        "ciclo",
-        "fase",
-        "menstrual"
-      ]
-    },
-    {
-      "data": "2026-06-11",
-      "tipo": "kling",
-      "tema": "Metabolismo Feminino e Queima de Gordura Estratégica",
-      "keywords": [
-        "metabolismo",
-        "gordura"
-      ]
-    },
     {
       "data": "2026-06-12",
       "tipo": "carousel",
@@ -379,5 +359,5 @@
       ]
     }
   ],
-  "repeticoesDetectadas": 4
+  "repeticoesDetectadas": 0
 }
