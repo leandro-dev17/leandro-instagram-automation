@@ -2228,5 +2228,37 @@
       ],
       "publishedAt": "2026-07-09T17:10:46.517Z"
     }
+  },
+  "2026-07-10": {
+    "kling-reel": {
+      "postId": "18028140443654940",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Força, intensidade e mindset para superação no treino",
+      "videoId": "12-morena-escura-coral-ombro",
+      "hook": [
+        {
+          "l1": "Você treina leve",
+          "l2": "com medo de ficar",
+          "l3": "e não muda nada."
+        },
+        {
+          "l1": "Seu personal nunca",
+          "l2": "que força queima",
+          "l3": "do que cardio"
+        },
+        {
+          "l1": "A mulher que",
+          "l2": "começou a treinar",
+          "l3": "e ficou definida."
+        },
+        {
+          "l1": "Você já tentou?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-10T16:50:16.924Z"
+    }
   }
 }
