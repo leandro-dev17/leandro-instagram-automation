@@ -1,43 +1,22 @@
 {
-  "geradoEm": "2026-07-10T14:41:47.024Z",
+  "geradoEm": "2026-07-11T13:40:25.684Z",
   "janela28d": [
     {
-      "data": "2026-06-12",
-      "tipo": "carousel",
-      "tema": "Por Que Seu Glúteo Não Cresce: O Guia Completo de Ativação Muscular Feminina",
-      "keywords": [
-        "glúteo",
-        "gluteo"
-      ]
-    },
-    {
-      "data": "2026-06-12",
-      "tipo": "kling",
-      "tema": "Glúteo em Ação: Rotação de Movimento e Força Feminina",
-      "keywords": [
-        "glúteo",
-        "gluteo",
-        "força"
-      ]
-    },
-    {
       "data": "2026-06-13",
       "tipo": "carousel",
-      "tema": "A Fórmula Real de Proteína para Mulheres que Querem Emagrecer SEM Ficar com Fome",
+      "tema": "O Guia Científico: Como Seus Hormônios Transformam Seu Treino a Cada Semana",
       "keywords": [
-        "emagrecer",
-        "proteína",
-        "proteina"
+        "hormônio",
+        "hormonio"
       ]
     },
     {
       "data": "2026-06-13",
       "tipo": "kling",
-      "tema": "Nutrição Feminina: Proteína e Transformação Real",
+      "tema": "Seus Hormônios Controlam Seu Treino — Você Está Ignorando Isso",
       "keywords": [
-        "proteína",
-        "proteina",
-        "nutrição"
+        "hormônio",
+        "hormonio"
       ]
     },
     {
@@ -356,6 +335,91 @@
         "emagrecer",
         "gordura",
         "cardio"
+      ]
+    },
+    {
+      "data": "2026-07-14",
+      "tipo": "carousel",
+      "tema": "Por que seu glúteo não cresce: os 3 erros que 95% das mulheres cometem",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-07-14",
+      "tipo": "kling",
+      "tema": "Força nos membros inferiores: como mulheres quebram seus próprios recordes",
+      "keywords": [
+        "força"
+      ]
+    },
+    {
+      "data": "2026-07-15",
+      "tipo": "carousel",
+      "tema": "O guia da proteína feminina: quanto comer, quando comer e por que ninguém te ensina isso",
+      "keywords": [
+        "proteína",
+        "proteina"
+      ]
+    },
+    {
+      "data": "2026-07-15",
+      "tipo": "kling",
+      "tema": "Mindset de nutrição: como mulheres que emagrecem pensam diferente sobre comida",
+      "keywords": [
+        "nutrição",
+        "mindset"
+      ]
+    },
+    {
+      "data": "2026-07-16",
+      "tipo": "carousel",
+      "tema": "Os 7 erros que impedem o crescimento de glúteo (e como corrigi-los em 48h)",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-07-16",
+      "tipo": "kling",
+      "tema": "Glúteo cresce com abdução de quadril, não só agachamento",
+      "keywords": [
+        "glúteo",
+        "gluteo"
+      ]
+    },
+    {
+      "data": "2026-07-17",
+      "tipo": "carousel",
+      "tema": "A verdade sobre metabolismo feminino: hormônios, genética e a estratégia que funciona",
+      "keywords": [
+        "metabolismo",
+        "hormônio",
+        "hormonio"
+      ]
+    },
+    {
+      "data": "2026-07-17",
+      "tipo": "kling",
+      "tema": "Mulher emagrece mais lento por biologia, não por preguiça",
+      "keywords": []
+    },
+    {
+      "data": "2026-07-18",
+      "tipo": "carousel",
+      "tema": "Por que treinar perna NÃO deixa você com perna grossa (e por que mulher que não treina fica com perna MAIOR)",
+      "keywords": [
+        "perna"
+      ]
+    },
+    {
+      "data": "2026-07-18",
+      "tipo": "kling",
+      "tema": "Mulher que treina perna pesado emagrece mais rápido e fica mais bonita",
+      "keywords": [
+        "perna"
       ]
     }
   ],
