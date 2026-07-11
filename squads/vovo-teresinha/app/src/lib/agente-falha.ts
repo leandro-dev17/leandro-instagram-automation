@@ -116,42 +116,43 @@ export async function limparBacklogFalhas(): Promise<void> {
         `Será retentado na próxima execução.\n`
       );
     } else {
-      await enviarTelegram(
-        `❌ <b>Erro ao Limpar Backlog</b>\n` +
-        `Erro: ${error instanceof Error ? error.message : String(error)}\n`
-      );
+      throw error;
     }
   }
 }
 
-export async function registrarFalhaAgente(
+export async function registrarFalha(
   agente: string,
   erro: string,
   dados?: Record<string, unknown>
-): Promise<FalhaRegistro | null> {
+): Promise<void> {
   try {
-    const resultado = await Promise.race<Array<FalhaRegistro>>([
-      sql<Array<FalhaRegistro>>`
+    await Promise.race([
+      sql`
         INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
         VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, false, NOW())
-        RETURNING id, agente, erro, resolvido, criado_em
       `,
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
       ),
     ]);
-
-    return Array.isArray(resultado) && resultado.length > 0 ? resultado[0] : null;
   } catch (error) {
-    console.error("[registrarFalhaAgente] Erro:", error);
-    return null;
+    if (error instanceof Error && error.message === "DB_TIMEOUT") {
+      await enviarTelegram(
+        `⚠️ <b>Timeout ao Registrar Falha</b>\n` +
+        `Agente: ${agente}\n` +
+        `Erro: ${erro}\n`
+      );
+    } else {
+      throw error;
+    }
   }
 }
 
 export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
   try {
-    const falhas = await Promise.race<Array<FalhaRegistro>>([
-      sql<Array<FalhaRegistro>>`
+    const falhas = await Promise.race<FalhaRegistro[]>([
+      sql<FalhaRegistro[]>`
         SELECT id, agente, erro, resolvido, criado_em
         FROM falhas_agentes
         WHERE resolvido = FALSE
@@ -163,157 +164,152 @@ export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
       ),
     ]);
 
-    return Array.isArray(falhas) ? falhas : [];
+    return falhas;
   } catch (error) {
-    console.error("[obterFalhasNaoResolvidas] Erro:", error);
-    return [];
+    if (error instanceof Error && error.message === "DB_TIMEOUT") {
+      await enviarTelegram(
+        `⚠️ <b>Timeout ao Obter Falhas Não Resolvidas</b>\n` +
+        `Será retentado na próxima execução.\n`
+      );
+      return [];
+    }
+    throw error;
   }
 }
 
-export async function resolverFalha(falhaId: number): Promise<boolean> {
+export async function resolverFalha(falhaId: number): Promise<void> {
   try {
-    await Promise.race<void>([
+    await Promise.race([
       sql`
         UPDATE falhas_agentes
-        SET resolvido = TRUE, resolvido_em = NOW()
+        SET resolvido = TRUE
         WHERE id = ${falhaId}
       `,
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
       ),
     ]);
-
-    return true;
   } catch (error) {
-    console.error("[resolverFalha] Erro:", error);
-    return false;
+    if (error instanceof Error && error.message === "DB_TIMEOUT") {
+      await enviarTelegram(
+        `⚠️ <b>Timeout ao Resolver Falha</b>\n` +
+        `ID da Falha: ${falhaId}\n`
+      );
+    } else {
+      throw error;
+    }
   }
 }
 
-export async function notificarEquipe(
+export async function notificarEscalacao(
   falha: FalhaRegistro,
-  escalacao: "especialista" | "gerente" | "claude"
+  nivel: "especialista" | "gerente" | "claude"
 ): Promise<void> {
   try {
-    let destinatario = "";
-    let nivel = "";
+    let responsavel: { nome: string; telefone: string } | null = null;
 
-    if (escalacao === "especialista") {
-      destinatario = await getEspecialistaResponsavel(falha.agente);
-      nivel = "🔧 Especialista";
-    } else if (escalacao === "gerente") {
-      destinatario = await getGerenteResponsavel(falha.agente);
-      nivel = "👔 Gerente";
-    } else {
-      nivel = "🤖 Claude IA";
+    if (nivel === "especialista") {
+      responsavel = await getEspecialistaResponsavel(falha.agente);
+    } else if (nivel === "gerente") {
+      responsavel = await getGerenteResponsavel(falha.agente);
     }
 
-    const mensagem =
-      `${nivel} - <b>Falha Detectada</b>\n` +
-      `Agente: ${falha.agente}\n` +
-      `Erro: ${falha.erro}\n` +
-      `ID: ${falha.id}\n` +
-      `Criado em: ${new Date(falha.criado_em).toLocaleString("pt-BR")}\n`;
-
-    if (destinatario) {
-      await enviarTelegram(mensagem + `Para: @${destinatario}`);
-    } else {
-      await enviarTelegram(mensagem);
+    if (responsavel) {
+      await enviarTelegram(
+        `🚨 <b>Escalação de Falha - ${nivel.toUpperCase()}</b>\n` +
+        `Agente: ${falha.agente}\n` +
+        `Erro: ${falha.erro}\n` +
+        `Responsável: ${responsavel.nome}\n` +
+        `Contato: ${responsavel.telefone}\n` +
+        `Data: ${new Date(falha.criado_em).toLocaleString("pt-BR")}\n`
+      );
+    } else if (nivel === "claude") {
+      await enviarTelegram(
+        `🔴 <b>Falha Crítica - Intervenção Manual Necessária</b>\n` +
+        `Agente: ${falha.agente}\n` +
+        `Erro: ${falha.erro}\n` +
+        `Data: ${new Date(falha.criado_em).toLocaleString("pt-BR")}\n` +
+        `Status: Escalado para análise manual\n`
+      );
     }
   } catch (error) {
-    console.error("[notificarEquipe] Erro:", error);
+    if (error instanceof Error && error.message === "DB_TIMEOUT") {
+      await enviarTelegram(
+        `⚠️ <b>Timeout ao Notificar Escalação</b>\n` +
+        `Será retentado na próxima execução.\n`
+      );
+    } else {
+      throw error;
+    }
   }
 }
 
-export async function analisarFalhasRecentes(): Promise<void> {
+export async function processarFalhasComEscalacao(): Promise<void> {
   try {
     const falhas = await obterFalhasNaoResolvidas();
 
-    if (falhas.length === 0) {
-      return;
-    }
-
-    const agrupadosPorAgente: Record<string, number> = {};
-
     for (const falha of falhas) {
-      agrupadosPorAgente[falha.agente] = (agrupadosPorAgente[falha.agente] || 0) + 1;
-    }
+      const contarTentativas = await Promise.race<FalhaResult>([
+        sql<FalhaResult[]>`
+          SELECT COUNT(*) as total
+          FROM falhas_agentes
+          WHERE agente = ${falha.agente}
+          AND resolvido = FALSE
+        `,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+        ),
+      ]).then((result) => {
+        const arr = result as FalhaResult[];
+        return arr[0] || { total: 0 };
+      });
 
-    for (const [agente, contador] of Object.entries(agrupadosPorAgente)) {
-      if (contador >= LIMITE_ESPECIALISTA && contador < LIMITE_GERENTE) {
-        await notificarEquipe(falhas[0], "especialista");
-      } else if (contador >= LIMITE_GERENTE && contador < LIMITE_CLAUDE) {
-        await notificarEquipe(falhas[0], "gerente");
-      } else if (contador >= LIMITE_CLAUDE) {
-        await notificarEquipe(falhas[0], "claude");
+      const tentativas = contarTentativas.total;
+
+      if (tentativas >= LIMITE_CLAUDE) {
+        await notificarEscalacao(falha, "claude");
+      } else if (tentativas >= LIMITE_GERENTE) {
+        await notificarEscalacao(falha, "gerente");
+      } else if (tentativas >= LIMITE_ESPECIALISTA) {
+        await notificarEscalacao(falha, "especialista");
       }
     }
-
-    await enviarTelegram(
-      `📊 <b>Resumo de Falhas</b>\n` +
-      `Total de agentes afetados: ${Object.keys(agrupadosPorAgente).length}\n` +
-      `Total de falhas: ${falhas.length}\n`
-    );
   } catch (error) {
-    console.error("[analisarFalhasRecentes] Erro:", error);
+    if (error instanceof Error && error.message !== "DB_TIMEOUT") {
+      throw error;
+    }
   }
 }
 
-export async function validarWebhookMercadoPago(
-  payload: unknown,
-  signature?: string
-): Promise<{ valid: boolean; statusCode: number; message: string }> {
-  try {
-    if (payload === null || payload === undefined) {
-      await registrarFalhaAgente(
-        "webhook_mp_valida_assinatura",
-        "Payload vazio ou nulo",
-        { signature }
-      );
-      return {
-        valid: false,
-        statusCode: 400,
-        message: "Payload inválido ou vazio",
-      };
-    }
+export async function executarAgenteComFalha<T>(
+  agente: string,
+  funcao: () => Promise<T>,
+  tentativaMaxima: number = 3
+): Promise<T> {
+  let ultimoErro: Error | null = null;
 
-    if (typeof payload !== "object") {
-      await registrarFalhaAgente(
-        "webhook_mp_valida_assinatura",
-        "Payload não é um objeto",
-        { type: typeof payload }
-      );
-      return {
-        valid: false,
-        statusCode: 400,
-        message: "Payload deve ser um objeto",
-      };
-    }
+  for (let tentativa = 1; tentativa <= tentativaMaxima; tentativa++) {
+    try {
+      return await funcao();
+    } catch (error) {
+      ultimoErro = error instanceof Error ? error : new Error(String(error));
 
-    const webhookPayload = payload as WebhookMercadoPagoPayload;
+      if (tentativa === tentativaMaxima) {
+        await registrarFalha(agente, ultimoErro.message, {
+          tentativa,
+          agente,
+          erro: ultimoErro.message,
+        });
 
-    if (!webhookPayload.type || !webhookPayload.data?.id) {
-      await registrarFalhaAgente(
-        "webhook_mp_valida_assinatura",
-        "Campos obrigatórios ausentes",
-        { type: webhookPayload.type, dataId: webhookPayload.data?.id }
-      );
-      return {
-        valid: false,
-        statusCode: 400,
-        message: "Campos obrigatórios ausentes: type ou data.id",
-      };
-    }
+        await enviarTelegram(
+          `❌ <b>Falha em Agente</b>\n` +
+          `Agente: ${agente}\n` +
+          `Tentativas: ${tentativa}\n` +
+          `Erro: ${ultimoErro.message}\n`
+        );
 
-    if (!signature) {
-      await registrarFalhaAgente(
-        "webhook_mp_valida_assinatura",
-        "Assinatura ausente no header",
-        { type: webhookPayload.type }
-      );
-      return {
-        valid: false,
-        statusCode: 401,
-        message: "Assinatura não fornecida",
-      };
-    }
+        throw ultimoErro;
+      }
+
+      const delayMs = Math.min(1000 * Math.pow(2, tentativa - 1), 10000);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
