@@ -1,5 +1,5 @@
 {
-  "semana": "2026-07-04",
+  "semana": "2026-07-11",
   "estacao": "inverno",
   "datas_especiais": [
     "Férias escolares — treino em casa",
@@ -8,83 +8,83 @@
   "temas": [
     {
       "rank": 1,
-      "tema": "Treino de 15min em casa para mães em férias escolares",
-      "angulo": "Mães com filhos em casa não têm tempo de academia. Mostrar que consistência com pouco tempo supera abandono. Criar identificação + solução prática.",
+      "tema": "Treino de 15 min em casa para mães em férias escolares",
+      "angulo": "Mães com filhos em casa têm tempo limitado. Ofereça treinos curtos, eficazes e que podem ser feitos com crianças por perto. Resolve dor real: 'não tenho tempo'",
       "formato_ideal": "reel",
       "urgencia": "alta",
-      "hook_sugerido": "Não precisa de 1h de academia: 15min em casa vale mais que zero dias na semana"
+      "hook_sugerido": "Mãe em férias? Aqui está o treino que cabe no seu caos"
     },
     {
       "rank": 2,
-      "tema": "Revisão de metas — meio do ano: emagreci?",
-      "angulo": "Psicologia de urgência: quem não emagrecer até agora quer resultado RÁPIDO até dezembro. Comparar antes/depois, análise de progresso, motivação.",
+      "tema": "Balanço de metas do meio do ano: quem emagreceu?",
+      "angulo": "Julho é momento de parar e revisar. Mostre transformações reais de clientes, crie urgência para quem não saiu do sofá no primeiro semestre e quer virar o jogo",
       "formato_ideal": "carousel",
       "urgencia": "alta",
-      "hook_sugerido": "Metade do ano passou: você está no caminho ou precisa mudar de estratégia?"
+      "hook_sugerido": "Primeiro semestre foi embora... você saiu do lugar?"
     },
     {
       "rank": 3,
-      "tema": "Por que você não emagrece no inverno (+ a solução)",
-      "angulo": "Inverno = menos movimento, mais frio, menos vontade. Validar a luta do público + dar ferramentas científicas. Alto potencial de identificação.",
+      "tema": "Por que você não consegue treinar no inverno (e como resolver)",
+      "angulo": "Frio, preguiça, falta de disposição aumentam em julho. Aborde barreiras psicológicas reais e ofereça soluções práticas. Gera identificação imediata",
       "formato_ideal": "reel",
       "urgencia": "alta",
-      "hook_sugerido": "Inverno sabotagemm seu emagrecimento: aqui está o porquê (e como combater)"
+      "hook_sugerido": "Você treina menos no inverno? Descubra por quê (spoiler: não é só o frio)"
     },
     {
       "rank": 4,
-      "tema": "Roupas de treino quentinhas para motivar a se mexer",
-      "angulo": "Inverno gera resistência. Roupas certas = barreira psicológica reduzida. Dica prática + estilo. Gera engajamento e pode incluir parcerias.",
-      "formato_ideal": "story",
-      "urgencia": "media",
-      "hook_sugerido": "Roupinha quentinha = desculpa a menos para não treinar (e você fica linda)"
+      "tema": "Treino para emagrecer em casa SEM equipamento",
+      "angulo": "Férias = corpo weight apenas. Mulheres procuram muito isso em inverno. Mostre movimentos práticos, eficientes, que geram queima real",
+      "formato_ideal": "kling",
+      "urgencia": "alta",
+      "hook_sugerido": "Sem academia, sem desculpa: 5 movimentos que queimam mais que você imagina"
     },
     {
       "rank": 5,
-      "tema": "Termogênese: como queimar mais calorias no frio",
-      "angulo": "Frio acelera metabolismo (curiosidade científica). Aproveitar para educar + gerar FOMO de quem não sabe. Alto potencial viral.",
-      "formato_ideal": "reel",
+      "tema": "Como manter a consistência com filhos em casa",
+      "angulo": "Público feminino 25-45 sofre com culpa + interrupções. Aborde mentalidade, rotina criativa, envolver filhos. Reduz abandono de treino",
+      "formato_ideal": "story",
       "urgencia": "media",
-      "hook_sugerido": "Seu corpo queima MAIS caloria no inverno: sabia? Aqui está como potencializar"
+      "hook_sugerido": "Treinar com criança é possível (e ela ainda ganha hábito saudável)"
     },
     {
       "rank": 6,
-      "tema": "Bloqueio mental das férias: como não ganhar peso durante recesso",
-      "angulo": "Férias = tentação + rotina quebrada. Validar medo do ganho de peso, dar estratégia realista (não é restrição total). Empatia + ação.",
-      "formato_ideal": "carousel",
+      "tema": "Antes e depois real: transformação em 6 meses (semestre)",
+      "angulo": "FOMO máxima. Mostre cliente real que saiu do 0 no mês 1 e está irreconhecível. Cria urgência: 'Se eu começar agora, em janeiro estou assim'",
+      "formato_ideal": "reel",
       "urgencia": "alta",
-      "hook_sugerido": "Férias não é 'tudo liberado': veja como outras mães mantêm progresso com filhos em casa"
+      "hook_sugerido": "Ela começou em janeiro do jeito que você está agora... veja agora"
     },
     {
       "rank": 7,
-      "tema": "Mulheres que transformaram em 6 meses: depoimento + mérito",
-      "angulo": "FOMO puro: se ela conseguiu, por que eu não? Estamos no meio do ano = tempo ainda para transformação até dezembro. Urgência + inspiração.",
-      "formato_ideal": "reel",
-      "urgencia": "alta",
-      "hook_sugerido": "Ela perdeu 8kg em 6 meses sendo mãe: você viu como fez?"
+      "tema": "Disposição no inverno: exercício vs. nutrição (qual pesa mais?)",
+      "angulo": "Mulheres reclamam de cansaço em julho. Abordar que treino da disposição, não consome. Quebra mito e motiva",
+      "formato_ideal": "carousel",
+      "urgencia": "media",
+      "hook_sugerido": "Está cansada demais para treinar? A solução é treinar"
     },
     {
       "rank": 8,
-      "tema": "Série 'Meu inverno não vai ser desculpa': desafio de consistência",
-      "angulo": "Criar comunidade + accountability. Desafios geram salvação de stories, compartilhamentos, retenção. Aproveitar férias para viralizar.",
-      "formato_ideal": "kling",
-      "urgencia": "media",
-      "hook_sugerido": "Você entra nesse desafio de 7 dias ou vai deixar o inverno vencer?"
+      "tema": "Challenge de 7 dias: treino em casa para férias",
+      "angulo": "Urgência + comunidade. Lançar desafio com pegada viral, commits diários em stories, gera engagement e cria hábito",
+      "formato_ideal": "story",
+      "urgencia": "alta",
+      "hook_sugerido": "Topar 7 dias de treino em casa comigo? Quem entra?"
     },
     {
       "rank": 9,
-      "tema": "Alimentação inteligente em julho: receitas quentinhas + saudáveis",
-      "angulo": "Inverno + férias = comida pesada/calórica. Oferecer alternativas que saciam, aquecem e não sabotam. Prático + desejável = alto salvamento.",
-      "formato_ideal": "carousel",
+      "tema": "Inverno não é desculpa: celebridades que não param de treinar",
+      "angulo": "Inspiração + aspiracional. Mostrar que sucesso continua no inverno. Comparação social = motivação",
+      "formato_ideal": "reel",
       "urgencia": "media",
-      "hook_sugerido": "Sopa que emagrece: você vai querer fazer agora (receita completa)"
+      "hook_sugerido": "Enquanto você usou o frio como desculpa, elas continuaram..."
     },
     {
       "rank": 10,
-      "tema": "Diferença entre 'treinar em casa' vs 'não treinar': custo real do adiamento",
-      "angulo": "Guilt reversal: quem diz que não tem tempo está escolhendo não ter. Duro mas motivador. Gera comentários + debate = algoritmo adora.",
-      "formato_ideal": "reel",
-      "urgencia": "alta",
-      "hook_sugerido": "Você não treina porque não tem tempo ou porque não faz ser prioridade? (responda nos comentários)"
+      "tema": "Plano de ação para o segundo semestre: resgate suas metas",
+      "angulo": "Quem abandonou em junho tem chance de virar até dezembro. Ofereça roadmap esperançoso, não culpabilizador. Abre inscrições para ciclo novo",
+      "formato_ideal": "carousel",
+      "urgencia": "media",
+      "hook_sugerido": "Primeiro semestre foi fraco? Vamos recuperar até dezembro (é possível)"
     }
   ]
 }
