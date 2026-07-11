@@ -2260,5 +2260,37 @@
       ],
       "publishedAt": "2026-07-10T16:50:16.924Z"
     }
+  },
+  "2026-07-11": {
+    "kling-reel": {
+      "postId": "18087008948557608",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Cintura, quadril e como os hormônios do ciclo moldam seu corpo",
+      "videoId": "11-ruiva-lilas-caminhada-frontal",
+      "hook": [
+        {
+          "l1": "Sua cintura some",
+          "l2": "em certas épocas.",
+          "l3": "Não é gordura."
+        },
+        {
+          "l1": "Você treina igual.",
+          "l2": "Come igual.",
+          "l3": "Seu corpo muda."
+        },
+        {
+          "l1": "Hormônio controla",
+          "l2": "retenção de",
+          "l3": "Como uma maré."
+        },
+        {
+          "l1": "Você já sabia?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-11T15:43:38.608Z"
+    }
   }
 }
