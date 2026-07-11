@@ -1,6 +1,6 @@
 {
   "falhas": {},
-  "ultimaVerificacao": "2026-07-10T23:27:35.201Z",
+  "ultimaVerificacao": "2026-07-11T00:54:56.311Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
@@ -16,5 +16,6 @@
   "schedule_alerta_2026-06-29": "2026-06-28",
   "schedule_alerta_2026-06-30": "2026-06-29",
   "schedule_alerta_2026-07-01": "2026-06-30",
-  "schedule_alerta_2026-07-02": "2026-07-01"
+  "schedule_alerta_2026-07-02": "2026-07-01",
+  "schedule_alerta_2026-07-14": "2026-07-11"
 }
