@@ -115,8 +115,11 @@ export async function limparBacklogFalhas(): Promise<void> {
         `⚠️ <b>Timeout na Limpeza de Backlog</b>\n` +
         `Excedido limite de ${DB_TIMEOUT}ms\n`
       );
-    } else {
-      console.error("Erro ao limpar backlog de falhas:", error);
+    } else if (error instanceof Error) {
+      await enviarTelegram(
+        `❌ <b>Erro ao Limpar Backlog</b>\n` +
+        `Erro: ${error.message}\n`
+      );
     }
   }
 }
@@ -125,215 +128,189 @@ export async function registrarFalha(
   agente: string,
   erro: string,
   dados?: Record<string, unknown>
-): Promise<FalhaRegistro | null> {
+): Promise<void> {
   try {
-    const result = await Promise.race<Array<FalhaRegistro>>([
-      sql<Array<FalhaRegistro>>`
-        INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
-        VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, FALSE, NOW())
-        RETURNING id, agente, erro, resolvido, criado_em
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
+    await sql`
+      INSERT INTO falhas_agentes (agente, erro, dados, resolvido, criado_em)
+      VALUES (${agente}, ${erro}, ${JSON.stringify(dados || {})}, FALSE, NOW())
+    `;
 
-    if (Array.isArray(result) && result.length > 0) {
-      return result[0];
+    const [resultado] = await sql<FalhaResult[]>`
+      SELECT COUNT(*) as total FROM falhas_agentes
+      WHERE agente = ${agente} AND resolvido = FALSE
+    `;
+
+    if (resultado.total >= LIMITE_ESPECIALISTA) {
+      const especialista = await getEspecialistaResponsavel(agente);
+      if (especialista) {
+        await enviarTelegram(
+          `⚠️ <b>Limite de Falhas Atingido</b>\n` +
+          `Agente: ${agente}\n` +
+          `Falhas não resolvidas: ${resultado.total}\n` +
+          `Especialista: @${especialista}\n`
+        );
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Desconhecido";
+    await enviarTelegram(
+      `❌ <b>Erro ao Registrar Falha</b>\n` +
+      `Agente: ${agente}\n` +
+      `Erro: ${errorMessage}\n`
+    );
+  }
+}
+
+export async function resolverFalha(
+  falhaId: number,
+  resolucao: string
+): Promise<void> {
+  try {
+    const [falha] = await sql<FalhaRegistro[]>`
+      SELECT * FROM falhas_agentes WHERE id = ${falhaId}
+    `;
+
+    if (!falha) {
+      throw new Error(`Falha com ID ${falhaId} não encontrada`);
     }
 
-    return null;
+    await sql`
+      UPDATE falhas_agentes
+      SET resolvido = TRUE, resolucao = ${resolucao}, resolvido_em = NOW()
+      WHERE id = ${falhaId}
+    `;
+
+    const gerente = await getGerenteResponsavel(falha.agente);
+    if (gerente) {
+      await enviarTelegram(
+        `✅ <b>Falha Resolvida</b>\n` +
+        `Agente: ${falha.agente}\n` +
+        `Resolução: ${resolucao}\n` +
+        `Gerente: @${gerente}\n`
+      );
+    }
   } catch (error) {
-    console.error("Erro ao registrar falha:", error);
-    return null;
+    const errorMessage = error instanceof Error ? error.message : "Desconhecido";
+    await enviarTelegram(
+      `❌ <b>Erro ao Resolver Falha</b>\n` +
+      `ID: ${falhaId}\n` +
+      `Erro: ${errorMessage}\n`
+    );
   }
 }
 
 export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
   try {
-    const falhas = await Promise.race<Array<FalhaRegistro>>([
-      sql<Array<FalhaRegistro>>`
-        SELECT id, agente, erro, resolvido, criado_em
-        FROM falhas_agentes
-        WHERE resolvido = FALSE
-        ORDER BY criado_em DESC
-        LIMIT ${LIMITE_BACKLOG}
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
+    const falhas = await sql<FalhaRegistro[]>`
+      SELECT id, agente, erro, resolvido, criado_em
+      FROM falhas_agentes
+      WHERE resolvido = FALSE
+      ORDER BY criado_em DESC
+      LIMIT ${LIMITE_BACKLOG}
+    `;
 
-    return Array.isArray(falhas) ? falhas : [];
+    return falhas;
   } catch (error) {
-    console.error("Erro ao obter falhas não resolvidas:", error);
+    const errorMessage = error instanceof Error ? error.message : "Desconhecido";
+    await enviarTelegram(
+      `❌ <b>Erro ao Obter Falhas</b>\n` +
+      `Erro: ${errorMessage}\n`
+    );
     return [];
   }
 }
 
-export async function marcarFalhaResolvida(falhaId: number): Promise<boolean> {
+export async function gerarRelatorioFalhas(): Promise<void> {
   try {
-    await Promise.race([
-      sql`
-        UPDATE falhas_agentes
-        SET resolvido = TRUE
-        WHERE id = ${falhaId}
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-
-    return true;
-  } catch (error) {
-    console.error("Erro ao marcar falha como resolvida:", error);
-    return false;
-  }
-}
-
-export async function escalarFalha(falhaId: number, agente: string): Promise<void> {
-  try {
-    const falha = await sql<Array<FalhaRegistro>>`
-      SELECT id, agente, erro, resolvido, criado_em
+    const falhasAbertas = await sql<Array<{ agente: string; total: number }>>`
+      SELECT agente, COUNT(*) as total
       FROM falhas_agentes
-      WHERE id = ${falhaId}
+      WHERE resolvido = FALSE
+      GROUP BY agente
+      ORDER BY total DESC
     `;
 
-    if (!Array.isArray(falha) || falha.length === 0) {
-      throw new Error("Falha não encontrada");
-    }
+    const totalAberto = falhasAbertas.reduce((sum, f) => sum + f.total, 0);
 
-    const falhaData = falha[0];
-    const especialista = await getEspecialistaResponsavel(agente);
-    const gerente = await getGerenteResponsavel(especialista || agente);
+    let mensagem = `📊 <b>Relatório de Falhas (últimas 24h)</b>\n\n`;
+    mensagem += `Total aberto: ${totalAberto}\n\n`;
 
-    let destinatario = especialista;
-    let nivel = "Especialista";
-
-    if (falhaData.erro.includes("crítico") || falhaData.erro.includes("timeout")) {
-      destinatario = gerente;
-      nivel = "Gerente";
-    }
-
-    await enviarTelegram(
-      `🚨 <b>Escalação de Falha - ${nivel}</b>\n` +
-      `ID: ${falhaId}\n` +
-      `Agente: ${agente}\n` +
-      `Erro: ${falhaData.erro}\n` +
-      `Responsável: ${destinatario}\n`
-    );
-  } catch (error) {
-    console.error("Erro ao escalar falha:", error);
-  }
-}
-
-export async function processarFalhasComRetry(
-  maxTentativas: number = 3
-): Promise<void> {
-  try {
-    const falhas = await obterFalhasNaoResolvidas();
-
-    for (const falha of falhas) {
-      let tentativa = 0;
-
-      while (tentativa < maxTentativas) {
-        try {
-          if (falha.agente === "webhook_mp_valida_assinatura") {
-            const resultado = validarAssinaturaMercadoPago(falha.erro);
-            if ((await resultado).valid) {
-              await marcarFalhaResolvida(falha.id);
-              break;
-            }
-          }
-
-          tentativa++;
-
-          if (tentativa >= maxTentativas) {
-            await escalarFalha(falha.id, falha.agente);
-          } else {
-            await new Promise((resolve) => setTimeout(resolve, 1000 * tentativa));
-          }
-        } catch (error) {
-          tentativa++;
-          if (tentativa >= maxTentativas) {
-            await escalarFalha(falha.id, falha.agente);
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Erro ao processar falhas com retry:", error);
-  }
-}
-
-export async function verificarSaudeAgentes(): Promise<{
-  agentes: Array<{
-    nome: string;
-    falhas_recentes: number;
-    taxa_erro: number;
-    status: "saudável" | "alerta" | "crítico";
-  }>;
-}> {
-  try {
-    const result = await Promise.race<
-      Array<{
-        agente: string;
-        total: number;
-      }>
-    >([
-      sql<
-        Array<{
-          agente: string;
-          total: number;
-        }>
-      >`
-        SELECT agente, COUNT(*) as total
-        FROM falhas_agentes
-        WHERE criado_em > NOW() - INTERVAL '2 hours'
-        GROUP BY agente
-        ORDER BY total DESC
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-
-    if (!Array.isArray(result)) {
-      return { agentes: [] };
-    }
-
-    const agentes = result.map((item) => {
-      const taxa_erro = (item.total / 100) * 100;
-
-      let status: "saudável" | "alerta" | "crítico" = "saudável";
-      if (taxa_erro > 25) {
-        status = "alerta";
-      }
-      if (taxa_erro > 36) {
-        status = "crítico";
-      }
-
-      return {
-        nome: item.agente,
-        falhas_recentes: item.total,
-        taxa_erro,
-        status,
-      };
+    falhasAbertas.forEach((falha) => {
+      mensagem += `• ${falha.agente}: ${falha.total} falhas\n`;
     });
 
-    const temCritico = agentes.some((a) => a.status === "crítico");
+    await enviarTelegram(mensagem);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Desconhecido";
+    await enviarTelegram(
+      `❌ <b>Erro ao Gerar Relatório</b>\n` +
+      `Erro: ${errorMessage}\n`
+    );
+  }
+}
 
-    if (temCritico) {
-      await enviarTelegram(
-        `🚨 <b>Status Crítico Detectado</b>\n` +
-        agentes
-          .filter((a) => a.status === "crítico")
-          .map((a) => `• ${a.nome}: ${a.taxa_erro.toFixed(1)}% de erro (${a.falhas_recentes} falhas)`)
-          .join("\n")
-      );
+export async function verificarSaudeSistema(): Promise<{ saudavel: boolean; mensagem: string }> {
+  try {
+    const [resultado] = await sql<FalhaResult[]>`
+      SELECT COUNT(*) as total FROM falhas_agentes
+      WHERE resolvido = FALSE
+      AND criado_em > NOW() - INTERVAL '2 hours'
+    `;
+
+    const totalRecente = resultado.total;
+    const percentualErro = (totalRecente / 100) * 100;
+
+    if (percentualErro >= 36) {
+      return {
+        saudavel: false,
+        mensagem: `Taxa de erro crítica: ${percentualErro.toFixed(2)}% nas últimas 2 horas`,
+      };
     }
 
-    return { agentes };
+    if (percentualErro >= 20) {
+      return {
+        saudavel: false,
+        mensagem: `Taxa de erro elevada: ${percentualErro.toFixed(2)}% nas últimas 2 horas`,
+      };
+    }
+
+    return {
+      saudavel: true,
+      mensagem: "Sistema operacional normal",
+    };
   } catch (error) {
-    console.error("Erro ao verificar saúde dos agentes:", error);
-    return { agentes: [] };
+    const errorMessage = error instanceof Error ? error.message : "Desconhecido";
+    return {
+      saudavel: false,
+      mensagem: `Erro ao verificar saúde: ${errorMessage}`,
+    };
+  }
+}
+
+export async function escalarFalhaParaGerente(
+  falhaId: number,
+  motivo: string
+): Promise<void> {
+  try {
+    const [falha] = await sql<FalhaRegistro[]>`
+      SELECT * FROM falhas_agentes WHERE id = ${falhaId}
+    `;
+
+    if (!falha) {
+      throw new Error(`Falha com ID ${falhaId} não encontrada`);
+    }
+
+    const gerente = await getGerenteResponsavel(falha.agente);
+    if (gerente) {
+      await enviarTelegram(
+        `🚨 <b>Escalação para Gerente</b>\n` +
+        `Agente: ${falha.agente}\n` +
+        `Motivo: ${motivo}\n` +
+        `Gerente: @${gerente}\n` +
+        `Erro original: ${falha.erro}\n`
+      );
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Desconhecido";
+    await enviarTelegram(
+      `❌
