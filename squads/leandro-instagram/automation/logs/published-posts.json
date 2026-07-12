@@ -2292,5 +2292,37 @@
       ],
       "publishedAt": "2026-07-11T15:43:38.608Z"
     }
+  },
+  "2026-07-12": {
+    "kling-reel": {
+      "postId": "18081220409657092",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Caminhada de baixa intensidade queima mais gordura que você pensa",
+      "videoId": "10-loira-verde-rotacao",
+      "hook": [
+        {
+          "l1": "Você malha pesado",
+          "l2": "suda bastante",
+          "l3": "e não emagrece."
+        },
+        {
+          "l1": "Seu personal nunca",
+          "l2": "te falou a",
+          "l3": "Assusta quem"
+        },
+        {
+          "l1": "Caminhada lenta",
+          "l2": "queima mais",
+          "l3": "que você imagina."
+        },
+        {
+          "l1": "Você já sabia",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-12T15:46:26.985Z"
+    }
   }
 }
