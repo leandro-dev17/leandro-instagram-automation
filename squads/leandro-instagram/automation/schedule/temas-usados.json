@@ -1,95 +1,6 @@
 {
-  "geradoEm": "2026-07-12T13:40:44.109Z",
+  "geradoEm": "2026-07-13T14:48:56.586Z",
   "janela28d": [
-    {
-      "data": "2026-06-14",
-      "tipo": "carousel",
-      "tema": "Os 7 Maiores Mitos Sobre Emagrecimento Que Te Mantêm Gorda",
-      "keywords": [
-        "emagrecimento"
-      ]
-    },
-    {
-      "data": "2026-06-14",
-      "tipo": "kling",
-      "tema": "O Maior Mito Sobre Emagrecimento Que Te Mantém Gorda",
-      "keywords": [
-        "emagrecimento"
-      ]
-    },
-    {
-      "data": "2026-06-15",
-      "tipo": "carousel",
-      "tema": "Os 3 Movimentos Que Realmente Transformam Seu Glúteo (Não É Agachamento)",
-      "keywords": [
-        "glúteo",
-        "gluteo"
-      ]
-    },
-    {
-      "data": "2026-06-15",
-      "tipo": "kling",
-      "tema": "Seu Glúteo Não Cresce Porque Você Está Treinando Errado",
-      "keywords": [
-        "glúteo",
-        "gluteo"
-      ]
-    },
-    {
-      "data": "2026-06-16",
-      "tipo": "carousel",
-      "tema": "Os 4 pilares que aumentam o metabolismo feminino (e ninguém está falando sobre isso)",
-      "keywords": [
-        "metabolismo"
-      ]
-    },
-    {
-      "data": "2026-06-16",
-      "tipo": "kling",
-      "tema": "A verdade sobre cardio infinito e por que não funciona para emagrecer",
-      "keywords": [
-        "emagrecer",
-        "cardio"
-      ]
-    },
-    {
-      "data": "2026-06-17",
-      "tipo": "carousel",
-      "tema": "O mapa completo do treino por ciclo: como periodizar seu treino com seus hormônios",
-      "keywords": [
-        "ciclo",
-        "hormônio",
-        "hormonio"
-      ]
-    },
-    {
-      "data": "2026-06-17",
-      "tipo": "kling",
-      "tema": "Postura, glúteo e ciclo menstrual: por que sua postura piora na menstruação",
-      "keywords": [
-        "glúteo",
-        "gluteo",
-        "ciclo",
-        "menstrual"
-      ]
-    },
-    {
-      "data": "2026-06-18",
-      "tipo": "carousel",
-      "tema": "Os 5 mitos de emagrecimento que estão matando seu resultado (e a ciência que prova)",
-      "keywords": [
-        "emagrecimento"
-      ]
-    },
-    {
-      "data": "2026-06-18",
-      "tipo": "kling",
-      "tema": "Motivação real: por que comparação sabota seu emagrecimento",
-      "keywords": [
-        "emagrecimento",
-        "motivação"
-      ]
-    },
     {
       "data": "2026-07-02",
       "tipo": "carousel",
@@ -403,7 +314,44 @@
       "keywords": [
         "perna"
       ]
+    },
+    {
+      "data": "2026-07-19",
+      "tipo": "carousel",
+      "tema": "Fase folicular vs fase lútea: quando seu glúteo cresce MAIS (e é científico)",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "fase"
+      ]
+    },
+    {
+      "data": "2026-07-19",
+      "tipo": "kling",
+      "tema": "Força feminina: o treino que faz seu glúteo crescer de verdade",
+      "keywords": [
+        "glúteo",
+        "gluteo",
+        "força"
+      ]
+    },
+    {
+      "data": "2026-07-20",
+      "tipo": "carousel",
+      "tema": "Por que dieta restritiva faz você ganhar peso (e como comer MAIS e emagrecer)",
+      "keywords": [
+        "emagrecer"
+      ]
+    },
+    {
+      "data": "2026-07-20",
+      "tipo": "kling",
+      "tema": "Nutrição feminina: como comer mais e emagrecer de verdade",
+      "keywords": [
+        "emagrecer",
+        "nutrição"
+      ]
     }
   ],
-  "repeticoesDetectadas": 0
+  "repeticoesDetectadas": 2
 }
