@@ -1,78 +1,84 @@
 #!/usr/bin/env node
 /**
  * ai-helper.cjs — Geração de texto via IA para os scripts de automação (GitHub Actions)
- * Mesma lógica do lib/ai.ts do app Next.js: tenta Claude (Anthropic) e, se a
- * cota estiver esgotada/limitada, cai para o Groq (Llama) automaticamente.
+ * FASE 56: antes tentava Claude (Anthropic) primeiro e só caía pro Groq em erro de limite —
+ * ordem invertida em relação ao lib/ai.ts do app Next.js. Agora segue o mesmo padrão de custo
+ * zero: tenta Groq, depois Cerebras, sem nenhuma camada Anthropic (a pedido do usuário, para
+ * eliminar o consumo pago residual do whatsapp-dossie.cjs, único script que usa este helper).
  */
 'use strict';
 
-const AnthropicMod = require('@anthropic-ai/sdk');
-const Anthropic = AnthropicMod.default || AnthropicMod;
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY;
 
-// Mapeia modelos Claude → equivalente Groq para o fallback
+const MODELO_LLAMA_GROQ = 'llama-3.3-70b-versatile';
+const MODELO_LLAMA_CEREBRAS = 'llama-3.3-70b';
+
+// Mapeia modelos Claude → equivalente Llama servido pelo Groq
 const MODELO_FALLBACK = {
-  'claude-haiku-4-5-20251001': 'llama-3.3-70b-versatile',
-  'claude-sonnet-4-6': 'llama-3.3-70b-versatile',
+  'claude-haiku-4-5-20251001': MODELO_LLAMA_GROQ,
+  'claude-sonnet-4-6': MODELO_LLAMA_GROQ,
 };
 
-function ehErroDeLimite(err) {
-  const status = err?.status;
-  if (status === 429 || status === 529 || status === 503) return true;
+// Llama 3.3 70B servido via Groq/Cerebras (inferência ultrarrápida) ocasionalmente "vaza"
+// tokens de outro alfabeto no meio do texto em português — efeito colateral conhecido desses
+// provedores (mesma checagem usada em lib/ai.ts). Detecta CJK/hangul/cirílico/árabe/hebraico/
+// devanágari/tailandês para rejeitar a resposta e cair para o próximo provedor da cadeia.
+const REGEX_SCRIPT_NAO_PORTUGUES = /[一-鿿぀-ヿ가-힯Ѐ-ӿ؀-ۿ֐-׿ऀ-ॿ฀-๿]/;
 
-  const tipo = err?.error?.type;
-  if (tipo === 'rate_limit_error' || tipo === 'overloaded_error') return true;
-
-  const msg = String(err);
-  return msg.includes('usage limit') || msg.includes('rate_limit') || msg.includes('429') || msg.includes('overloaded');
+function contemScriptNaoPortugues(texto) {
+  return REGEX_SCRIPT_NAO_PORTUGUES.test(texto);
 }
 
-// Plano gratuito do Groq tem limite de tokens por minuto (TPM); ao bater no limite
-// o Groq retorna 429 com header retry-after — esperamos e tentamos de novo.
-async function gerarComGroq({ model, max_tokens, messages }, tentativa = 0) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+// Provedores gratuitos (Groq/Cerebras) têm limite de tokens por minuto (TPM); ao bater no limite
+// retornam 429 com header retry-after — esperamos e tentamos de novo antes de desistir desse provedor.
+async function gerarComProvedorCompativel(nome, url, apiKey, modelo, params, tentativa = 0) {
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: MODELO_FALLBACK[model] || 'llama-3.3-70b-versatile',
-      messages,
-      max_tokens,
-    }),
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: modelo, messages: params.messages, max_tokens: params.max_tokens }),
     signal: AbortSignal.timeout(30000),
   });
   if (res.status === 429 && tentativa < 2) {
     const espera = Math.min(Math.ceil(Number(res.headers.get('retry-after')) || 10) * 1000, 30000);
     await new Promise((r) => setTimeout(r, espera));
-    return gerarComGroq({ model, max_tokens, messages }, tentativa + 1);
+    return gerarComProvedorCompativel(nome, url, apiKey, modelo, params, tentativa + 1);
   }
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`${nome} ${res.status}: ${await res.text()}`);
   const data = await res.json();
   return (data.choices?.[0]?.message?.content || '').trim();
 }
 
 /**
- * Gera texto com Claude e, se a cota da Anthropic estiver esgotada, cai para o Groq.
+ * Gera texto tentando Groq e, se falhar/esgotar, Cerebras. Sem fallback pago (Anthropic).
  * @param {{model: string, max_tokens: number, messages: {role: string, content: string}[]}} params
  * @returns {Promise<string>}
  */
 async function gerarTexto(params) {
-  try {
-    const resposta = await anthropic.messages.create({
-      model: params.model,
-      max_tokens: params.max_tokens,
-      messages: params.messages,
-    });
-    return resposta.content[0].type === 'text' ? resposta.content[0].text.trim() : '';
-  } catch (err) {
-    if (!GROQ_API_KEY || !ehErroDeLimite(err)) throw err;
+  const modeloLlama = MODELO_FALLBACK[params.model] || MODELO_LLAMA_GROQ;
+  const erros = [];
+
+  if (GROQ_API_KEY) {
     try {
-      return await gerarComGroq(params);
-    } catch (errGroq) {
-      throw new Error(`Anthropic e Groq falharam — Anthropic: ${String(err)} | Groq: ${String(errGroq)}`);
+      const texto = await gerarComProvedorCompativel('Groq', 'https://api.groq.com/openai/v1/chat/completions', GROQ_API_KEY, modeloLlama, params);
+      if (contemScriptNaoPortugues(texto)) throw new Error('Groq retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida');
+      return texto;
+    } catch (err) {
+      erros.push(`Groq: ${String(err)}`);
     }
   }
+
+  if (CEREBRAS_API_KEY) {
+    try {
+      const texto = await gerarComProvedorCompativel('Cerebras', 'https://api.cerebras.ai/v1/chat/completions', CEREBRAS_API_KEY, MODELO_LLAMA_CEREBRAS, params);
+      if (contemScriptNaoPortugues(texto)) throw new Error('Cerebras retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida');
+      return texto;
+    } catch (err) {
+      erros.push(`Cerebras: ${String(err)}`);
+    }
+  }
+
+  throw new Error(`Groq e Cerebras falharam — ${erros.join(' | ')}`);
 }
 
 module.exports = { gerarTexto };

@@ -160,6 +160,34 @@ async function gerarComAnthropic(params: MensagemIA): Promise<string> {
   return resposta.content[0].type === "text" ? resposta.content[0].text.trim() : "";
 }
 
+// Tenta Groq; retorna o texto extraído ou lança erro (registra consumo nos dois casos).
+// Compartilhado por gerarTexto (rotina) e gerarCodigoComClaude (geração de código).
+async function tentarGroq(params: MensagemIA): Promise<string> {
+  const modeloLlama = MODELO_FALLBACK[params.model] || MODELO_LLAMA_GROQ;
+  try {
+    const texto = await gerarComOpenAICompativel("Groq", "https://api.groq.com/openai/v1/chat/completions", GROQ_API_KEY!, modeloLlama, params);
+    if (contemScriptNaoPortugues(texto)) throw new ErroScriptInvalido("Groq retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida");
+    await registrarConsumo(params.agente, "groq", "sucesso");
+    return texto;
+  } catch (err) {
+    await registrarConsumo(params.agente, "groq", "erro");
+    throw err;
+  }
+}
+
+// Tenta Cerebras; retorna o texto extraído ou lança erro (registra consumo nos dois casos).
+async function tentarCerebras(params: MensagemIA): Promise<string> {
+  try {
+    const texto = await gerarComOpenAICompativel("Cerebras", "https://api.cerebras.ai/v1/chat/completions", CEREBRAS_API_KEY!, MODELO_LLAMA_CEREBRAS, params);
+    if (contemScriptNaoPortugues(texto)) throw new ErroScriptInvalido("Cerebras retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida");
+    await registrarConsumo(params.agente, "cerebras", "sucesso");
+    return texto;
+  } catch (err) {
+    await registrarConsumo(params.agente, "cerebras", "erro");
+    throw err;
+  }
+}
+
 /**
  * Gera texto para conteúdo de rotina (resumos, respostas de bot, cards): tenta Groq, depois
  * Cerebras, e só recorre ao Anthropic (pago) se os dois gratuitos também falharem/esgotarem.
@@ -168,16 +196,11 @@ async function gerarComAnthropic(params: MensagemIA): Promise<string> {
 export async function gerarTexto(paramsOriginais: MensagemIA): Promise<string> {
   const params = comInstrucaoIdioma(paramsOriginais);
   const erros: string[] = [];
-  const modeloLlama = MODELO_FALLBACK[params.model] || MODELO_LLAMA_GROQ;
 
   if (GROQ_API_KEY) {
     try {
-      const texto = await gerarComOpenAICompativel("Groq", "https://api.groq.com/openai/v1/chat/completions", GROQ_API_KEY, modeloLlama, params);
-      if (contemScriptNaoPortugues(texto)) throw new ErroScriptInvalido("Groq retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida");
-      await registrarConsumo(params.agente, "groq", "sucesso");
-      return texto;
+      return await tentarGroq(params);
     } catch (err) {
-      await registrarConsumo(params.agente, "groq", "erro");
       // FASE 27.6: qualquer erro não catalogado por uma heurística de "é recuperável?"
       // (removida) abortava a função inteira em vez de cair para o próximo provedor —
       // exatamente o oposto do propósito da cadeia de fallback Groq→Cerebras→Anthropic.
@@ -188,12 +211,8 @@ export async function gerarTexto(paramsOriginais: MensagemIA): Promise<string> {
 
   if (CEREBRAS_API_KEY) {
     try {
-      const texto = await gerarComOpenAICompativel("Cerebras", "https://api.cerebras.ai/v1/chat/completions", CEREBRAS_API_KEY, MODELO_LLAMA_CEREBRAS, params);
-      if (contemScriptNaoPortugues(texto)) throw new ErroScriptInvalido("Cerebras retornou texto com caracteres de outro alfabeto — vazamento de token conhecido do Llama via inferência rápida");
-      await registrarConsumo(params.agente, "cerebras", "sucesso");
-      return texto;
+      return await tentarCerebras(params);
     } catch (err) {
-      await registrarConsumo(params.agente, "cerebras", "erro");
       // FASE 27.6: mesmo fix do branch Groq acima — sempre cai para o Anthropic.
       erros.push(`Cerebras: ${String(err)}`);
     }
@@ -210,11 +229,33 @@ export async function gerarTexto(paramsOriginais: MensagemIA): Promise<string> {
 }
 
 /**
- * Geração de código (uso exclusivo do claude-revisor): sempre via Anthropic, sem fallback para
- * Llama. Modelos abertos têm taxa de erro maior em código TypeScript válido, e esse agente já
- * corrompeu arquivos de produção mesmo usando Claude — não vale o risco de piorar isso pra economizar.
- * Passa pelo mesmo disjuntor: se o próprio claude-revisor entrar em loop, também é bloqueado.
+ * FASE 56: Geração de código (uso exclusivo do claude-revisor) — antes ia direto no Anthropic
+ * sem fallback (modelos abertos têm taxa de erro maior em TypeScript válido, e esse agente já
+ * corrompeu arquivos de produção mesmo usando Claude). Agora tenta Groq → Cerebras, sem nenhuma
+ * camada Anthropic, a pedido do usuário (eliminar consumo pago residual). A rede de segurança
+ * contra código quebrado/truncado deixa de ser "só Claude escreve" e passa a ser inteiramente
+ * `validarAntesDeCommitar()` em route.ts (checagem de compilação TS, cerca de markdown residual,
+ * encolhimento suspeito de tamanho) — continue revisando manualmente os commits do claude-revisor.
+ * Se Groq e Cerebras falharem, a rota já escala para revisão humana/Claude Resolver (ver route.ts).
  */
 export async function gerarCodigoComClaude(params: MensagemIA): Promise<string> {
-  return await gerarComAnthropicComDisjuntor(params.agente, params);
+  const erros: string[] = [];
+
+  if (GROQ_API_KEY) {
+    try {
+      return await tentarGroq(params);
+    } catch (err) {
+      erros.push(`Groq: ${String(err)}`);
+    }
+  }
+
+  if (CEREBRAS_API_KEY) {
+    try {
+      return await tentarCerebras(params);
+    } catch (err) {
+      erros.push(`Cerebras: ${String(err)}`);
+    }
+  }
+
+  throw new Error(`Groq e Cerebras falharam — ${erros.join(" | ")}`);
 }

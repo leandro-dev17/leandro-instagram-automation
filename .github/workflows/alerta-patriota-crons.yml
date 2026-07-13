@@ -703,8 +703,8 @@ jobs:
           EVOLUTION_API_KEY:     ${{ secrets.ALERTA_EVOLUTION_KEY }}
           EVOLUTION_INSTANCIA:   alertapatriota
           WPP_GROUP_ELITE:       120363426153474301@g.us
-          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GROQ_API_KEY:          ${{ secrets.GROQ_API_KEY }}
+          CEREBRAS_API_KEY:      ${{ secrets.CEREBRAS_API_KEY }}
           CLOUDINARY_CLOUD_NAME: demazkgy2
           CLOUDINARY_API_KEY:    ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}

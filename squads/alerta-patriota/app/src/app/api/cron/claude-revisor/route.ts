@@ -1,15 +1,18 @@
 /**
  * CLAUDE REVISOR (Nível 1)
- * Usa a API da Anthropic para analisar e corrigir problemas de código automaticamente.
- * Fluxo: Recebe alertas → lê arquivo no GitHub → Claude gera fix → commita → redeploy Vercel.
+ * Analisa e corrige problemas de código automaticamente via `gerarCodigoComClaude` (lib/ai.ts).
+ * FASE 56: essa função passou de Anthropic-only para Groq → Cerebras (sem Anthropic), a pedido
+ * do usuário, para eliminar consumo pago residual — o nome da função ficou legado.
+ * Fluxo: Recebe alertas → lê arquivo no GitHub → IA gera fix → commita → redeploy Vercel.
  * Se falhar 2x → escala para Claude Resolver existente → notifica Leandro.
  *
  * ⚠️ ATENÇÃO — INCIDENTE 19-20/06/2026: este agente já recorrompeu resumir-noticias/route.ts
  * 2x (commits 44d585b e 3f1858d) sobrescrevendo o arquivo com código truncado/inválido antes
- * do fix de strip de markdown (linhas 199-204) existir. SEMPRE revisar manualmente todo commit
- * "fix(auto): claude-revisor corrige ..." no GitHub (autor Claude Revisor) antes de confiar nele:
- * confirmar que o arquivo resultante compila (tsc --noEmit) e que o tamanho não encolheu de forma
- * suspeita. Ver squads/alerta-patriota/PLANO-CORRECAO.md (Fase 7) para o histórico completo.
+ * do fix de strip de markdown (linhas 199-204) existir — isso aconteceu usando só Claude, então
+ * a proteção real nunca foi "qual modelo gera o código" e sim a validação abaixo. SEMPRE revisar
+ * manualmente todo commit "fix(auto): claude-revisor corrige ..." no GitHub (autor Claude Revisor)
+ * antes de confiar nele: confirmar que o arquivo resultante compila (tsc --noEmit) e que o tamanho
+ * não encolheu de forma suspeita. Ver squads/alerta-patriota/PLANO-CORRECAO.md (Fases 7 e 56).
  */
 import { NextRequest, NextResponse } from "next/server";
 import * as ts from "typescript";
@@ -18,7 +21,7 @@ import { verificarSegredoAutofix } from "@/lib/auth";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
 import { gerarCodigoComClaude } from "@/lib/ai";
 
-// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras→Anthropic pode levar mais que isso
+// Plano Hobby da Vercel mata a função em 10s por padrão, e a cadeia de fallback Groq→Cerebras pode levar mais que isso
 export const maxDuration = 60;
 // Os 4 fetches fixos (ler arquivo, ler SHA, commit, redeploy) já somavam até 50s de timeout
 // declarado, sobrando quase nada para a chamada de IA (a etapa mais lenta e variável) antes
