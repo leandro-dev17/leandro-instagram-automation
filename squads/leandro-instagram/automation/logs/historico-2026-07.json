@@ -282,6 +282,24 @@
           "runId": 29163994483
         }
       }
+    },
+    "2026-07-13": {
+      "data": "2026-07-13",
+      "geradoEm": "2026-07-13T01:15:46.888Z",
+      "publicacoes": {
+        "kling": {
+          "label": "Kling Reel",
+          "status": "success",
+          "concluiuEm": "2026-07-12T15:46:29Z",
+          "runId": 29198786745
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "success",
+          "concluiuEm": "2026-07-12T18:52:26Z",
+          "runId": 29204636272
+        }
+      }
     }
   }
 }
