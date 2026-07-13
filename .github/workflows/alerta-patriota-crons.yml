@@ -27,6 +27,10 @@ on:
     # 0% de chance de executar porque nada nunca os chamava.
     - cron: '0 11 * * *'
     - cron: '0 7 * * *'
+    # FASE 57: Paulo VIP/Elite — publicar notícia em texto 3x/dia (7h/13h/19h BRT = 10h/16h/22h UTC).
+    # Endpoint /api/cron/publicar-noticias nunca tinha sido chamado por nenhum cron — só
+    # acionável manualmente pelo admin ("Publicar agora").
+    - cron: '0 10,16,22 * * *'
   workflow_dispatch:
     inputs:
       etapa:
@@ -568,6 +572,24 @@ jobs:
         run: |
           sleep 10
           curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/gerar-card?plano=elite" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+  # ── PAULO VIP/ELITE — PUBLICAR NOTÍCIA EM TEXTO (7h/13h/19h BRT) ──────────
+  # FASE 57: endpoint existia desde a Fase 1 mas nunca tinha sido agendado —
+  # só disparava via "Publicar agora" manual no admin.
+  publicar-noticias:
+    name: Paulo VIP/Elite — Publicar Notícia (texto)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 10,16,22 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 5
+    steps:
+      - name: Notícia VIP
+        run: |
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=vip" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
+
+      - name: Notícia Elite
+        run: |
+          sleep 10
+          curl -s "${{ secrets.ALERTA_APP_URL }}/api/cron/publicar-noticias?grupo=elite" -H "Authorization: Bearer ${{ secrets.ALERTA_CRON_SECRET }}"
 
   # ── FASE 4 — BACKUP DIÁRIO (às 3h BRT = 6h UTC) ──────────────────────────
   backup:
