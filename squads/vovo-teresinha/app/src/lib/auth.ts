@@ -1,3 +1,4 @@
+```typescript
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
@@ -102,3 +103,4 @@ export function validateMercadoPagoWebhook(payload: unknown): payload is Record<
   }
   return true;
 }
+```
