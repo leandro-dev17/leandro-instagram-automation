@@ -1,4 +1,3 @@
-```typescript
 import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { getGerenteResponsavel, getEspecialistaResponsavel } from "@/lib/hierarquia";
@@ -125,186 +124,159 @@ export async function limparBacklogFalhas(): Promise<void> {
         WHERE criado_em < NOW() - INTERVAL '${TEMPO_RETENCAO_FALHAS} hours'
         LIMIT ${LIMITE_BACKLOG}
       `,
-      new Promise<never>((_, reject) =>
+      new Promise<FalhaRegistro[]>((_, reject) =>
         setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
       ),
     ]);
 
     if (falhasAntiga.length > 0) {
       const ids = falhasAntiga.map((f) => f.id);
-      await sql`DELETE FROM falhas_agentes WHERE id = ANY(${ids})`;
+      await sql`
+        DELETE FROM falhas_agentes
+        WHERE id = ANY(${ids})
+      `;
     }
   } catch (error) {
     console.error("Erro ao limpar backlog de falhas:", error);
   }
 }
 
-export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
+export async function contarFalhasNaoResolvidas(
+  agente: string
+): Promise<number> {
   try {
-    return await Promise.race<FalhaRegistro[]>([
+    const result = await Promise.race<FalhaResult[]>([
+      sql`
+        SELECT COUNT(*) as total
+        FROM falhas_agentes
+        WHERE agente = ${agente} AND resolvido = FALSE
+      `,
+      new Promise<FalhaResult[]>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+
+    return result[0]?.total || 0;
+  } catch (error) {
+    console.error("Erro ao contar falhas não resolvidas:", error);
+    return 0;
+  }
+}
+
+export async function determinarSeveridade(agente: string): Promise<string> {
+  const falhas = await contarFalhasNaoResolvidas(agente);
+
+  if (falhas >= LIMITE_CLAUDE) {
+    return "CRÍTICA";
+  }
+  if (falhas >= LIMITE_GERENTE) {
+    return "ALTA";
+  }
+  if (falhas >= LIMITE_ESPECIALISTA) {
+    return "MÉDIA";
+  }
+  return "BAIXA";
+}
+
+export async function marcarFalhaResolvida(
+  falhaId: number
+): Promise<void> {
+  try {
+    await Promise.race([
+      sql`
+        UPDATE falhas_agentes
+        SET resolvido = TRUE
+        WHERE id = ${falhaId}
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+  } catch (error) {
+    console.error("Erro ao marcar falha como resolvida:", error);
+  }
+}
+
+export async function obterFalhasRecentes(
+  limit: number = 10
+): Promise<FalhaRegistro[]> {
+  try {
+    const falhas = await Promise.race<FalhaRegistro[]>([
       sql`
         SELECT id, agente, erro, resolvido, criado_em
         FROM falhas_agentes
         WHERE resolvido = FALSE
         ORDER BY criado_em DESC
-        LIMIT 50
+        LIMIT ${limit}
       `,
-      new Promise<never>((_, reject) =>
+      new Promise<FalhaRegistro[]>((_, reject) =>
         setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
       ),
     ]);
+
+    return falhas;
   } catch (error) {
-    console.error("Erro ao obter falhas não resolvidas:", error);
+    console.error("Erro ao obter falhas recentes:", error);
     return [];
   }
 }
 
-export async function resolverFalha(falhaId: number): Promise<void> {
+export async function processarFalhaWebhook(
+  payload: WebhookValidacaoPayload
+): Promise<{ statusCode: number; message: string }> {
   try {
-    await Promise.race([
-      sql`
-        UPDATE falhas_agentes
-        SET resolvido = TRUE, resolvido_em = NOW()
-        WHERE id = ${falhaId}
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-  } catch (error) {
-    console.error("Erro ao resolver falha:", error);
-  }
-}
-
-export async function monitorarFalhas(): Promise<void> {
-  try {
-    const falhasNaoResolvidas = await obterFalhasNaoResolvidas();
-
-    for (const falha of falhasNaoResolvidas) {
-      const especialista = await getEspecialistaResponsavel(falha.agente);
-      const gerente = await getGerenteResponsavel(falha.agente);
-
-      const mensagem =
-        `📊 <b>Monitoramento de Falhas</b>\n` +
-        `ID: ${falha.id}\n` +
-        `Agente: ${falha.agente}\n` +
-        `Erro: ${falha.erro}\n` +
-        `Criado em: ${falha.criado_em}\n` +
-        `Status: ${"Não resolvido"}\n`;
-
-      await enviarTelegram(mensagem, [especialista, gerente]);
+    if (!payload.agente || !payload.erro) {
+      return {
+        statusCode: 400,
+        message: "Agente e erro são obrigatórios",
+      };
     }
 
-    await limparBacklogFalhas();
-  } catch (error) {
-    console.error("Erro ao monitorar falhas:", error);
-  }
-}
+    await registrarFalha(payload.agente, payload.erro, payload.dados);
 
-export async function escalarFalha(
-  falhaId: number,
-  nivelEscalacao: "especialista" | "gerente" | "claude"
-): Promise<void> {
-  try {
-    const falha = await Promise.race<FalhaRegistro[]>([
-      sql`
-        SELECT id, agente, erro, resolvido, criado_em
-        FROM falhas_agentes
-        WHERE id = ${falhaId}
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-
-    if (falha.length === 0) {
-      throw new Error(`Falha ${falhaId} não encontrada`);
-    }
-
-    const registro = falha[0];
-
-    if (nivelEscalacao === "especialista") {
-      const especialista = await getEspecialistaResponsavel(registro.agente);
-      await enviarTelegram(
-        `⚠️ <b>Falha Escalada para Especialista</b>\n` +
-        `ID: ${falhaId}\n` +
-        `Agente: ${registro.agente}\n` +
-        `Erro: ${registro.erro}\n`,
-        [especialista]
-      );
-    } else if (nivelEscalacao === "gerente") {
-      const gerente = await getGerenteResponsavel(registro.agente);
-      await enviarTelegram(
-        `🔴 <b>Falha Escalada para Gerente</b>\n` +
-        `ID: ${falhaId}\n` +
-        `Agente: ${registro.agente}\n` +
-        `Erro: ${registro.erro}\n`,
-        [gerente]
-      );
-    } else if (nivelEscalacao === "claude") {
-      await enviarTelegram(
-        `🆘 <b>Falha Escalada para Claude</b>\n` +
-        `ID: ${falhaId}\n` +
-        `Agente: ${registro.agente}\n` +
-        `Erro: ${registro.erro}\n`,
-        ["claude@vovoteresinha.com"]
-      );
-    }
-  } catch (error) {
-    console.error("Erro ao escalar falha:", error);
-  }
-}
-
-export async function gerarRelatórioFalhas(): Promise<{
-  totalFalhas: number;
-  falhasNaoResolvidas: number;
-  agentesComErro: string[];
-}> {
-  try {
-    const resultado = await Promise.race<FalhaResult[]>([
-      sql`
-        SELECT COUNT(*) as total
-        FROM falhas_agentes
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-
-    const naoResolvidas = await Promise.race<FalhaResult[]>([
-      sql`
-        SELECT COUNT(*) as total
-        FROM falhas_agentes
-        WHERE resolvido = FALSE
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-
-    const agentes = await Promise.race<{ agente: string }[]>([
-      sql`
-        SELECT DISTINCT agente
-        FROM falhas_agentes
-        WHERE resolvido = FALSE
-      `,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
+    const severidade = await determinarSeveridade(payload.agente);
 
     return {
-      totalFalhas: resultado[0]?.total || 0,
-      falhasNaoResolvidas: naoResolvidas[0]?.total || 0,
-      agentesComErro: agentes.map((a) => a.agente),
+      statusCode: 200,
+      message: `Falha registrada com severidade: ${severidade}`,
     };
   } catch (error) {
-    console.error("Erro ao gerar relatório de falhas:", error);
+    console.error("Erro ao processar falha de webhook:", error);
     return {
-      totalFalhas: 0,
-      falhasNaoResolvidas: 0,
-      agentesComErro: [],
+      statusCode: 500,
+      message: "Erro interno ao processar falha",
     };
   }
 }
-```
+
+export async function validarWebhookMercadoPago(
+  req: { method?: string; body?: unknown; headers?: Record<string, string> }
+): Promise<{ valid: boolean; statusCode: number; message: string }> {
+  try {
+    if (!req.method || req.method !== "POST") {
+      return {
+        valid: false,
+        statusCode: 405,
+        message: "Método não permitido",
+      };
+    }
+
+    if (!req.body) {
+      return {
+        valid: false,
+        statusCode: 400,
+        message: "Payload inválido ou vazio",
+      };
+    }
+
+    const validacao = await validarAssinaturaMercadoPago(req.body);
+    return validacao;
+  } catch (error) {
+    console.error("Erro ao validar webhook MercadoPago:", error);
+    return {
+      valid: false,
+      statusCode: 500,
+      message: "Erro ao validar webhook",
+    };
+  }
+}
