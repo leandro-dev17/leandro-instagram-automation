@@ -118,12 +118,10 @@ export async function registrarFalha(
 export async function limparBacklogFalhas(): Promise<void> {
   try {
     const falhasAntigas = await Promise.race<FalhaRegistro[]>([
-      sql<FalhaRegistro>`
+      sql<FalhaRegistro[]>`
         SELECT id, agente, erro, resolvido, criado_em
         FROM falhas_agentes
         WHERE criado_em < NOW() - INTERVAL '${TEMPO_RETENCAO_FALHAS} hours'
-        OR (resolvido = TRUE AND criado_em < NOW() - INTERVAL '6 hours')
-        LIMIT 500
       `,
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
@@ -132,73 +130,20 @@ export async function limparBacklogFalhas(): Promise<void> {
 
     if (falhasAntigas.length > 0) {
       const ids = falhasAntigas.map((f) => f.id);
-      await Promise.race([
-        sql`DELETE FROM falhas_agentes WHERE id = ANY(${ids})`,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-        ),
-      ]);
-
-      console.log(`✅ ${falhasAntigas.length} falhas antigas removidas`);
+      await sql`
+        DELETE FROM falhas_agentes
+        WHERE id = ANY(${ids}::int[])
+      `;
     }
   } catch (error) {
     console.error("Erro ao limpar backlog de falhas:", error);
   }
 }
 
-export async function escalarFalha(
-  falhaId: number,
-  motivoEscalacao: string
-): Promise<void> {
-  try {
-    const falha = await Promise.race<FalhaRegistro[]>([
-      sql<FalhaRegistro>`SELECT * FROM falhas_agentes WHERE id = ${falhaId}`,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-
-    if (falha.length === 0) {
-      throw new Error(`Falha ${falhaId} não encontrada`);
-    }
-
-    const especialista = await getEspecialistaResponsavel(falha[0].agente);
-    const gerente = await getGerenteResponsavel(falha[0].agente);
-
-    await enviarTelegram(
-      `⚠️ <b>Falha Escalada</b>\n` +
-      `ID: ${falhaId}\n` +
-      `Agente: ${falha[0].agente}\n` +
-      `Erro: ${falha[0].erro}\n` +
-      `Motivo: ${motivoEscalacao}\n` +
-      `Especialista: ${especialista}\n` +
-      `Gerente: ${gerente}\n`,
-      [especialista, gerente]
-    );
-  } catch (error) {
-    console.error("Erro ao escalar falha:", error);
-  }
-}
-
-export async function resolverFalha(falhaId: number): Promise<void> {
-  try {
-    await Promise.race([
-      sql`UPDATE falhas_agentes SET resolvido = TRUE WHERE id = ${falhaId}`,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
-      ),
-    ]);
-
-    console.log(`✅ Falha ${falhaId} marcada como resolvida`);
-  } catch (error) {
-    console.error("Erro ao resolver falha:", error);
-  }
-}
-
-export async function obterBacklogFalhas(): Promise<FalhaRegistro[]> {
+export async function obterFalhasNaoResolvidas(): Promise<FalhaRegistro[]> {
   try {
     const falhas = await Promise.race<FalhaRegistro[]>([
-      sql<FalhaRegistro>`
+      sql<FalhaRegistro[]>`
         SELECT id, agente, erro, resolvido, criado_em
         FROM falhas_agentes
         WHERE resolvido = FALSE
@@ -212,23 +157,177 @@ export async function obterBacklogFalhas(): Promise<FalhaRegistro[]> {
 
     return falhas;
   } catch (error) {
-    console.error("Erro ao obter backlog de falhas:", error);
+    console.error("Erro ao obter falhas não resolvidas:", error);
     return [];
   }
 }
 
-export async function obterTotalFalhas(): Promise<number> {
+export async function resolverFalha(falhaId: number): Promise<void> {
   try {
-    const result = await Promise.race<FalhaResult[]>([
-      sql<FalhaResult>`SELECT COUNT(*) as total FROM falhas_agentes WHERE resolvido = FALSE`,
+    await Promise.race([
+      sql`
+        UPDATE falhas_agentes
+        SET resolvido = TRUE
+        WHERE id = ${falhaId}
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+  } catch (error) {
+    console.error("Erro ao resolver falha:", error);
+  }
+}
+
+export async function escalarFalha(
+  falhaId: number,
+  novoNivel: "especialista" | "gerente" | "claude"
+): Promise<void> {
+  try {
+    const falha = await Promise.race<FalhaRegistro[]>([
+      sql<FalhaRegistro[]>`
+        SELECT id, agente, erro, resolvido, criado_em
+        FROM falhas_agentes
+        WHERE id = ${falhaId}
+      `,
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
       ),
     ]);
 
-    return result.length > 0 ? result[0].total : 0;
+    if (falha.length === 0) {
+      throw new Error(`Falha com ID ${falhaId} não encontrada`);
+    }
+
+    const { agente, erro } = falha[0];
+
+    let destinatarios: string[] = [];
+
+    if (novoNivel === "especialista") {
+      destinatarios = [await getEspecialistaResponsavel(agente)];
+    } else if (novoNivel === "gerente") {
+      destinatarios = [await getGerenteResponsavel(agente)];
+    } else if (novoNivel === "claude") {
+      destinatarios = ["claude_team"];
+    }
+
+    await enviarTelegram(
+      `⚠️ <b>Falha Escalada para ${novoNivel.toUpperCase()}</b>\n` +
+      `Agente: ${agente}\n` +
+      `Erro: ${erro}\n`,
+      destinatarios
+    );
   } catch (error) {
-    console.error("Erro ao obter total de falhas:", error);
-    return 0;
+    console.error("Erro ao escalar falha:", error);
   }
 }
+
+export async function gerarRelatorioFalhas(): Promise<{
+  total: number;
+  porAgente: Record<string, number>;
+  taxa: string;
+}> {
+  try {
+    const resultado = await Promise.race<FalhaResult[]>([
+      sql<FalhaResult[]>`
+        SELECT COUNT(*) as total
+        FROM falhas_agentes
+        WHERE criado_em > NOW() - INTERVAL '2 hours'
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+
+    const falhasPorAgente = await Promise.race<Array<{ agente: string; total: number }>>([
+      sql<Array<{ agente: string; total: number }>>`
+        SELECT agente, COUNT(*) as total
+        FROM falhas_agentes
+        WHERE criado_em > NOW() - INTERVAL '2 hours'
+        GROUP BY agente
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+
+    const totalFalhas = resultado[0]?.total || 0;
+    const porAgente: Record<string, number> = {};
+    falhasPorAgente.forEach((item) => {
+      porAgente[item.agente] = item.total;
+    });
+
+    const taxa = totalFalhas > 0 ? ((totalFalhas / 1000) * 100).toFixed(2) : "0.00";
+
+    return {
+      total: totalFalhas,
+      porAgente,
+      taxa: `${taxa}%`,
+    };
+  } catch (error) {
+    console.error("Erro ao gerar relatório de falhas:", error);
+    return { total: 0, porAgente: {}, taxa: "0.00%" };
+  }
+}
+
+export async function processarWebhookValidacao(
+  payload: WebhookValidacaoPayload
+): Promise<{ status: number; mensagem: string }> {
+  try {
+    const { agente, erro, dados, statusCode } = payload;
+
+    if (!agente || !erro) {
+      return {
+        status: 400,
+        mensagem: "Agente e erro são campos obrigatórios",
+      };
+    }
+
+    await registrarFalha(agente, erro, dados);
+
+    const falhasAgente = await Promise.race<FalhaResult[]>([
+      sql<FalhaResult[]>`
+        SELECT COUNT(*) as total
+        FROM falhas_agentes
+        WHERE agente = ${agente} AND resolvido = FALSE
+      `,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), DB_TIMEOUT)
+      ),
+    ]);
+
+    const totalFalhas = falhasAgente[0]?.total || 0;
+
+    if (totalFalhas >= LIMITE_ESPECIALISTA) {
+      await escalarFalha(totalFalhas, "especialista");
+    }
+
+    if (totalFalhas >= LIMITE_GERENTE) {
+      await escalarFalha(totalFalhas, "gerente");
+    }
+
+    if (totalFalhas >= LIMITE_CLAUDE) {
+      await escalarFalha(totalFalhas, "claude");
+    }
+
+    return {
+      status: 202,
+      mensagem: "Webhook processado com sucesso",
+    };
+  } catch (error) {
+    console.error("Erro ao processar webhook de validação:", error);
+    return {
+      status: 500,
+      mensagem: "Erro ao processar webhook",
+    };
+  }
+}
+
+export async function verificarSaudeMercadoPago(): Promise<{
+  status: string;
+  timestamp: string;
+  ultimaVerificacao: string;
+}> {
+  try {
+    const verificacao = await Promise.race([
+      fetch(`${APP_URL}/api/webhooks
