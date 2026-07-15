@@ -29,7 +29,12 @@ async function analisarMercado(
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5",
+      // CORRIGIDO: "claude-haiku-4-5" não é um identificador válido na API Anthropic
+      // e causava HTTP 400 → analisarMercado retornava null → registrarFalha tentava
+      // gravar no DB + Telegram → esse overhead somado ao timeout da função gerava
+      // AbortError HTTP 0. Modelo correto: claude-haiku-4-5 → claude-3-5-haiku-20241022
+      // (mais rápido e econômico, ideal para funções serverless de 60s).
+      model: "claude-3-5-haiku-20241022",
       max_tokens: 600,
       messages: [
         {
@@ -58,7 +63,15 @@ Seja direto e prático. Foque no que é acionável.`,
     signal: AbortSignal.timeout(50000),
   });
 
-  if (!res.ok) return null;
+  if (!res.ok) {
+    // Log explícito do status HTTP para facilitar diagnóstico futuro
+    // (ex: 400 = modelo inválido, 401 = API key errada, 429 = rate limit, 529 = sobrecarga)
+    console.error(
+      `[observador-mercado] Anthropic retornou HTTP ${res.status} ${res.statusText}`
+    );
+    return null;
+  }
+
   const data = await res.json();
   return data.content?.[0]?.text ?? null;
 }
