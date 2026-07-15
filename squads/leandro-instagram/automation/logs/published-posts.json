@@ -2388,5 +2388,37 @@
       ],
       "publishedAt": "2026-07-14T16:07:37.742Z"
     }
+  },
+  "2026-07-15": {
+    "kling-reel": {
+      "postId": "18062768855718022",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Força vs Cardio: Qual Realmente Emagrece Mais",
+      "videoId": "13-loira-curta-azul-angulo-baixo",
+      "hook": [
+        {
+          "l1": "Você faz cardio",
+          "l2": "todo dia.",
+          "l3": "E nada muda."
+        },
+        {
+          "l1": "O problema",
+          "l2": "não é esforço.",
+          "l3": "É o método."
+        },
+        {
+          "l1": "Força queima",
+          "l2": "mais gordura",
+          "l3": "que cardio."
+        },
+        {
+          "l1": "Você sabia?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-15T16:12:11.273Z"
+    }
   }
 }
