@@ -98,7 +98,7 @@ export function validateMercadoPagoWebhook(payload: unknown): payload is Record<
   }
   const record = payload as Record<string, unknown>;
   if (!("id" in record) || !("type" in record)) {
-    throw new WebhookValidationError("webhook_mp_missing_fields", 400);
+    throw new WebhookValidationError("webhook_mp_payload_missing_fields", 400);
   }
   return true;
 }
