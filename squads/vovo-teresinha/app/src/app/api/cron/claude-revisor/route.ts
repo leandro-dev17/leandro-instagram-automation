@@ -1,13 +1,16 @@
 /**
  * CLAUDE REVISOR — Aplicador de Correções Automáticas (Nível 1 / Topo da cadeia)
- * Fluxo: recebe alertas → lê arquivo no GitHub → Claude Haiku gera fix → commita → redeploy Vercel.
+ * Fluxo: recebe alertas → lê arquivo no GitHub → Groq/Cerebras gera fix → commita → redeploy Vercel.
  * Dedup: se já tentou 2x em 2h → escala para intervenção manual via Telegram.
+ * Anthropic removido em 15/07/2026 (mesmo padrão do claude-revisor do Alerta Patriota, Fase 56):
+ * a rede de segurança real não é o provedor, é a validação de compilação/tamanho abaixo.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { alertarTelegram, enviarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarCodigo } from "@/lib/ai";
+import * as ts from "typescript";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://receitinhas-vovo-teresinha.vercel.app";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.ALERTA_GITHUB_TOKEN || "";
@@ -17,7 +20,41 @@ const VERCEL_TEAM = "team_JnDwQYGSI9RBjHyIygKLR56b";
 const REPO = "leandro-dev17/leandro-instagram-automation";
 const BASE = "squads/vovo-teresinha/app/src";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Bloqueia commits que quebrariam o build antes de irem ao GitHub. Adicionado em 15/07/2026
+// depois de encontrar lib/agente-falha.ts com 85 commits consecutivos deste agente se
+// corrigindo (e se corrompendo) sem nenhuma validação — chegou a substituir o arquivo inteiro
+// por um módulo alucinado sem os exports que os outros crons realmente importam.
+function validarAntesDeCommitar(caminho: string, codigoNovo: string, codigoAntigo: string): { ok: boolean; motivo?: string } {
+  if (codigoNovo.includes("```")) {
+    return { ok: false, motivo: "markdown residual no código (cerca não removida)" };
+  }
+  if (codigoNovo.trim().length < codigoAntigo.trim().length * 0.5) {
+    return { ok: false, motivo: "conteúdo novo tem menos da metade do tamanho original (risco de truncamento)" };
+  }
+  if (caminho.endsWith(".ts") || caminho.endsWith(".tsx")) {
+    const resultado = ts.transpileModule(codigoNovo, {
+      compilerOptions: {
+        jsx: ts.JsxEmit.ReactJSX,
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2020,
+      },
+      reportDiagnostics: true,
+    });
+    const erros = (resultado.diagnostics || []).filter(d => d.category === ts.DiagnosticCategory.Error);
+    if (erros.length > 0) {
+      const msg = erros.map(e => ts.flattenDiagnosticMessageText(e.messageText, " ")).join("; ");
+      return { ok: false, motivo: `erro de sintaxe TypeScript: ${msg.substring(0, 200)}` };
+    }
+    // Exports removidos = provável reescrita alucinada do módulo, não um fix pontual
+    const exportsAntigos = [...codigoAntigo.matchAll(/export\s+(?:async\s+)?(?:function|const)\s+(\w+)/g)].map(m => m[1]);
+    const exportsNovos = new Set([...codigoNovo.matchAll(/export\s+(?:async\s+)?(?:function|const)\s+(\w+)/g)].map(m => m[1]));
+    const perdidos = exportsAntigos.filter(nome => !exportsNovos.has(nome));
+    if (perdidos.length > 0) {
+      return { ok: false, motivo: `removeria export(s) usados por outros arquivos: ${perdidos.join(", ")}` };
+    }
+  }
+  return { ok: true };
+}
 
 // Tipo de alerta → arquivo mais provável para corrigir
 const ARQUIVO_POR_TIPO: Record<string, string> = {
@@ -155,10 +192,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Não conseguiu ler arquivo no GitHub" }, { status: 500 });
     }
 
-    // Claude Haiku gera o fix
+    // Groq/Cerebras (Llama 3.3 70B) gera o fix
     const problema = alertas.map(a => a.mensagem).join("\n");
-    const resposta = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+    const codigoCorrigido = (await gerarCodigo({
       max_tokens: 3000,
       messages: [{
         role: "user",
@@ -175,16 +211,24 @@ ${codigoAtual.substring(0, 3000)}
 Retorne APENAS o código TypeScript corrigido completo, sem explicação, sem markdown, sem \`\`\`.
 O código deve compilar sem erros TypeScript.`,
       }],
-    });
-
-    const codigoCorrigido = resposta.content[0].type === "text" ? resposta.content[0].text.trim() : "";
+    })).trim();
     if (!codigoCorrigido || codigoCorrigido.length < 50) {
-      throw new Error("Claude retornou código vazio ou muito curto");
+      throw new Error("IA retornou código vazio ou muito curto");
+    }
+
+    // Remove cercas de markdown que o modelo às vezes adiciona mesmo quando instruído a não usar
+    const codigoLimpo = codigoCorrigido.replace(/^```[a-zA-Z]*\n?/, "").replace(/\n?```\s*$/, "").trim();
+
+    // Validação pré-commit: bloqueia código com markdown residual, truncado ou com erro de
+    // sintaxe antes do PUT no GitHub (ver comentário de validarAntesDeCommitar acima)
+    const validacao = validarAntesDeCommitar(arquivo, codigoLimpo, codigoAtual);
+    if (!validacao.ok) {
+      throw new Error(`Fix BLOQUEADO antes do commit (${validacao.motivo})`);
     }
 
     // Commita o fix no GitHub
     const commitMsg = `fix(auto): claude-revisor vovó corrige ${tipoAlerta}\n\nProblema: ${problema.substring(0, 100)}\n\nCo-Authored-By: Claude Revisor Vovó Teresinha <noreply@anthropic.com>`;
-    const commitOk = await commitarFix(arquivo, codigoCorrigido, commitMsg);
+    const commitOk = await commitarFix(arquivo, codigoLimpo, commitMsg);
     const deployOk = commitOk ? await redeploy() : false;
 
     // Registra tentativa (usado no dedup)

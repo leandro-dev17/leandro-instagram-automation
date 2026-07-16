@@ -4,7 +4,7 @@
  * Executado a cada 15 minutos via GitHub Actions.
  * Cadeia de escalação em 3 níveis:
  *   Nível 1 — Auto-correção imediata (fixes leves e conhecidos)
- *   Nível 2 — Claude Anthropic (claude-revisor: lê código, gera fix, commita, redeploy)
+ *   Nível 2 — Claude Revisor (Groq/Cerebras: lê código, gera fix, commita, redeploy)
  *   Nível 3 — Telegram ao dono (intervenção humana, última instância)
  *
  * Checks rápidos (< 5s total):
@@ -203,7 +203,7 @@ export async function GET(req: NextRequest) {
         `🚨 <b>GUARDIÃO 24/7 — INTERVENÇÃO NECESSÁRIA (${hora})</b>\n\n` +
         `Os sistemas abaixo <b>não puderam ser corrigidos automaticamente</b>:\n\n` +
         lista +
-        `\n\n⚙️ Claude Anthropic já tentou 2x sem sucesso. Ação humana necessária.\n` +
+        `\n\n⚙️ Claude Revisor já tentou 2x sem sucesso. Ação humana necessária.\n` +
         `🔗 <a href="${APP}/admin">Acessar painel admin</a>`
       );
     }

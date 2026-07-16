@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { sql } from "@/lib/db";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
+import { gerarTexto } from "@/lib/ai";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const EVO_URL = process.env.EVOLUTION_API_URL;
 const EVO_KEY = process.env.EVOLUTION_API_KEY;
 const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || "vovo-teresinha";
@@ -81,14 +80,11 @@ export async function GET(req: NextRequest) {
     for (const msg of mensagens) {
       if (await jaRespondido(msg.id)) continue;
 
-      const response = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+      const resposta = await gerarTexto({
         max_tokens: 400,
         system: SYSTEM_VOVO,
         messages: [{ role: "user", content: msg.mensagem }],
       });
-
-      const resposta = response.content[0].type === "text" ? response.content[0].text : "";
       if (!resposta) continue;
 
       const enviado = await enviarResposta(msg.numero, resposta);

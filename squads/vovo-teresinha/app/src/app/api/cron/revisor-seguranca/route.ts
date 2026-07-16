@@ -1,17 +1,16 @@
 /**
  * REVISOR DANIELA DEFESA — Revisora de Segurança
- * Usa Claude Haiku para analisar alertas de segurança do fiscal-codigo-seguranca.
+ * Usa Groq/Cerebras (Llama 3.3 70B) para analisar alertas de segurança do fiscal-codigo-seguranca.
  * Gera diagnóstico técnico e escala para gerente-codigo.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { enviarTelegram } from "@/lib/telegram";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarTexto } from "@/lib/ai";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL || "https://receitinhas-vovo-teresinha.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function GET(req: NextRequest) {
   if (!cronAutorizado(req)) {
@@ -31,9 +30,8 @@ export async function GET(req: NextRequest) {
 
     const descricao = alertas.map(a => `• ${a.erro}`).join("\n");
 
-    // Análise com Claude Haiku
-    const resposta = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+    // Análise com Groq/Cerebras
+    const analise = await gerarTexto({
       max_tokens: 600,
       messages: [{
         role: "user",
@@ -49,9 +47,7 @@ Responda em português com:
 
 Seja conciso e técnico.`,
       }],
-    });
-
-    const analise = resposta.content[0].type === "text" ? resposta.content[0].text : "Análise indisponível";
+    }).catch(() => "Análise indisponível");
 
     // Marca como analisados
     for (const a of alertas) {

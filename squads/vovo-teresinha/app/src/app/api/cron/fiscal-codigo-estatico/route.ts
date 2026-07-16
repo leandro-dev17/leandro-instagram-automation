@@ -1,7 +1,7 @@
 /**
  * FISCAL ARNOLD AUDITOR — Fiscal de Código Estático
  *
- * Lê todos os route.ts de /api/cron via GitHub API e passa ao Claude Haiku
+ * Lê todos os route.ts de /api/cron via GitHub API e passa ao Groq/Cerebras
  * para detectar bugs estáticos que só aparecem ao ler o código-fonte:
  *   - Colunas inexistentes nas queries (ex: usuarios.criado_em → não existe)
  *   - Tabelas inexistentes (ex: pagamentos → não existe)
@@ -18,15 +18,13 @@ import { sql } from "@/lib/db";
 import { cronAutorizado } from "@/lib/auth-cron";
 import { enviarTelegram } from "@/lib/telegram";
 import { reportarFalha, resolverFalhas } from "@/lib/agente-falha";
-import Anthropic from "@anthropic-ai/sdk";
+import { gerarTexto } from "@/lib/ai";
 
 const APP  = process.env.NEXT_PUBLIC_APP_URL || "https://receitinhas-vovo-teresinha.vercel.app";
 const CRON = process.env.CRON_SECRET || "";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.ALERTA_GITHUB_TOKEN || "";
 const REPO = "leandro-dev17/leandro-instagram-automation";
 const BASE = "squads/vovo-teresinha/app/src";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // ── Contexto de schema passado ao Claude ─────────────────────────────────────
 
@@ -104,7 +102,7 @@ async function lerRoute(nome: string): Promise<string | null> {
   } catch { return null; }
 }
 
-// ── Análise via Claude Haiku ──────────────────────────────────────────────────
+// ── Análise via Groq/Cerebras ──────────────────────────────────────────────────
 
 type Finding = { arquivo: string; problema: string; trecho?: string };
 
@@ -115,8 +113,7 @@ async function analisarLote(
     .map(a => `=== ${a.nome}/route.ts ===\n${a.codigo.slice(0, 2500)}`)
     .join("\n\n");
 
-  const resp = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
+  const text = await gerarTexto({
     max_tokens: 2048,
     messages: [{
       role: "user",
@@ -141,9 +138,8 @@ Responda APENAS com o JSON, sem explicação.
 ARQUIVOS:
 ${bloco}`,
     }],
-  });
+  }).then(t => t.trim()).catch(() => "[]");
 
-  const text = resp.content[0].type === "text" ? resp.content[0].text.trim() : "[]";
   const match = text.match(/\[[\s\S]*\]/);
   if (!match) return [];
 
