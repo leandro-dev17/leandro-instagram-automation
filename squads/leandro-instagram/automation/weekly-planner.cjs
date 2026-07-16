@@ -43,7 +43,7 @@ function getDayName(dateStr) {
 }
 
 async function gerarCronograma(prompt) {
-  const text = await gerarTexto(prompt, 8000);
+  const text = await gerarTexto(prompt, 12000);
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('Nenhum JSON encontrado na resposta da IA');
   return JSON.parse(match[0]);

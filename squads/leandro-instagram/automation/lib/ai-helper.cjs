@@ -38,7 +38,7 @@ async function chamarOpenAICompativel(url, apiKey, modelo, messages, maxTokens, 
   const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: modelo, messages, max_tokens: Math.min(maxTokens, 8000) }),
+    body: JSON.stringify({ model: modelo, messages, max_tokens: Math.min(maxTokens, 12000) }),
     signal: AbortSignal.timeout(45000),
   });
   if (res.status === 429 && tentativa < 2) {
