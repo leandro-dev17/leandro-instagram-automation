@@ -117,10 +117,10 @@ async function main() {
     'CLOUDINARY_CLOUD_NAME',
     'CLOUDINARY_API_KEY',
     'CLOUDINARY_API_SECRET',
-    'ANTHROPIC_API_KEY',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
   ];
+  const variaveisIA = ['GROQ_API_KEY', 'CEREBRAS_API_KEY'];
 
   const faltando = variaveisObrigatorias.filter(v => !process.env[v]);
   if (faltando.length > 0) {
@@ -128,6 +128,14 @@ async function main() {
     relatorio.push(`❌ Env vars faltando: ${faltando.join(', ')}`);
   } else {
     relatorio.push(`✅ Todas as variáveis de ambiente críticas configuradas`);
+  }
+
+  // GROQ_API_KEY/CEREBRAS_API_KEY: pelo menos uma precisa estar presente (cascata Groq→Cerebras)
+  if (!variaveisIA.some(v => process.env[v])) {
+    alertas.push(`🔴 Nenhuma chave de IA configurada (GROQ_API_KEY/CEREBRAS_API_KEY) — geração de texto indisponível`);
+    relatorio.push(`❌ IA: nenhuma chave configurada`);
+  } else {
+    relatorio.push(`✅ IA: ${variaveisIA.filter(v => process.env[v]).join(', ')} configurada(s)`);
   }
 
   // ── Monta mensagem ───────────────────────────────────────────────────────

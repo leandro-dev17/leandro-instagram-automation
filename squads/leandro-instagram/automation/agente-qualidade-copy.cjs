@@ -5,7 +5,7 @@
  * agente-qualidade-copy.cjs — Validação de Qualidade de Captions
  *
  * Roda logo após o weekly-planner (20:30 BRT domingo → este às 21:30 BRT).
- * Lê os captions do cronograma semanal gerado, valida com Claude e
+ * Lê os captions do cronograma semanal gerado, valida com IA (Groq→Cerebras) e
  * regenera os que não passarem nos critérios mínimos.
  *
  * Critérios de qualidade:
@@ -32,7 +32,8 @@ const path = require('path');
   }
 })();
 
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+const { gerarTexto } = require('./lib/ai-helper.cjs');
+
 const BOT_TOKEN     = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID       = process.env.TELEGRAM_CHAT_ID;
 const GITHUB_TOKEN  = process.env.GITHUB_TOKEN;
@@ -71,15 +72,7 @@ function getScheduleSemana() {
 }
 
 async function validarCaption(topic, caption, tipo) {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
-
-  const response = await client.messages.create({
-    model:      'claude-haiku-4-5-20251001',
-    max_tokens: 2000,
-    messages: [{
-      role: 'user',
-      content: `Você é especialista em copywriting para Instagram fitness feminino.
+  const prompt = `Você é especialista em copywriting para Instagram fitness feminino.
 
 Avalie esta caption para o @leandro_personall (personal trainer feminino):
 
@@ -111,13 +104,11 @@ Responda APENAS JSON:
   },
   "problemas": ["lista de problemas encontrados"],
   "caption_melhorado": "caption reescrito SE aprovado=false, senão null"
-}`,
-    }],
-  });
+}`;
 
-  const text  = response.content[0].text.trim();
+  const text  = await gerarTexto(prompt, 2000);
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('JSON inválido do Claude');
+  if (!match) throw new Error('JSON inválido da IA');
   return JSON.parse(match[0]);
 }
 
@@ -157,8 +148,8 @@ async function main() {
   const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   console.log(`[agente-qualidade-copy] Validando captions — ${data}`);
 
-  if (!ANTHROPIC_KEY) {
-    await enviarTelegram('⚠️ Agente Qualidade Copy: ANTHROPIC_API_KEY não configurada.');
+  if (!process.env.GROQ_API_KEY && !process.env.CEREBRAS_API_KEY) {
+    await enviarTelegram('⚠️ Agente Qualidade Copy: GROQ_API_KEY/CEREBRAS_API_KEY não configuradas.');
     process.exit(1);
   }
 

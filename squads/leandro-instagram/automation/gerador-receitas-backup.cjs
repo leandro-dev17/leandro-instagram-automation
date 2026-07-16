@@ -5,7 +5,7 @@
  * gerador-receitas-backup.cjs — Gera novas receitas fit quando o estoque cai
  *
  * Roda toda segunda-feira após o monitor de engajamento.
- * Se disponíveis < LIMITE_MINIMO → Claude gera 20 novas receitas no
+ * Se disponíveis < LIMITE_MINIMO → IA (Groq→Cerebras) gera 20 novas receitas no
  * mesmo formato dos batch files e commita um novo batch no repositório.
  *
  * Formato de receita (igual batch-01.json a batch-10.json):
@@ -28,7 +28,8 @@ const path = require('path');
   }
 })();
 
-const ANTHROPIC_KEY  = process.env.ANTHROPIC_API_KEY;
+const { gerarTexto }  = require('./lib/ai-helper.cjs');
+
 const BOT_TOKEN      = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID        = process.env.TELEGRAM_CHAT_ID;
 const GITHUB_TOKEN   = process.env.GITHUB_TOKEN;
@@ -66,9 +67,6 @@ function proximoBatchNum() {
 }
 
 async function gerarReceitas(qtde, categoriasExistentes) {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
-
   const prompt = `Você é especialista em nutrição fitness para mulheres. Gere ${qtde} receitas fit NOVAS e ÚNICAS para o Instagram @leandro_personall (personal trainer feminino).
 
 CATEGORIAS DISPONÍVEIS: pré-treino, pós-treino, café da manhã, manhã, almoço, jantar, lanche, sobremesa, hidratação, especial
@@ -95,15 +93,9 @@ Responda APENAS com JSON válido — array de ${qtde} receitas:
   }
 ]`;
 
-  const response = await client.messages.create({
-    model: 'claude-opus-4-8',
-    max_tokens: 8000,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text  = response.content[0].text.trim();
+  const text  = await gerarTexto(prompt, 8000);
   const match = text.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('Claude não retornou JSON válido');
+  if (!match) throw new Error('IA não retornou JSON válido');
   return JSON.parse(match[0]);
 }
 
@@ -153,8 +145,8 @@ async function main() {
     return;
   }
 
-  if (!ANTHROPIC_KEY) {
-    await enviarTelegram(`🔴 Gerador de Receitas: ANTHROPIC_API_KEY não configurada. Estoque: ${estoque.available} receitas!`);
+  if (!process.env.GROQ_API_KEY && !process.env.CEREBRAS_API_KEY) {
+    await enviarTelegram(`🔴 Gerador de Receitas: GROQ_API_KEY/CEREBRAS_API_KEY não configuradas. Estoque: ${estoque.available} receitas!`);
     return;
   }
 
@@ -163,14 +155,14 @@ async function main() {
   await enviarTelegram(
     `🍳 <b>Gerador de Receitas — gerando backup</b>\n\n` +
     `Estoque baixo: ${estoque.available} disponíveis\n` +
-    `Gerando ${GERAR_QTDE} novas receitas com Claude...`
+    `Gerando ${GERAR_QTDE} novas receitas com IA...`
   );
 
   let novasReceitas;
   try {
     novasReceitas = await gerarReceitas(GERAR_QTDE, []);
   } catch (err) {
-    await enviarTelegram(`🔴 Gerador de Receitas — Claude falhou: ${err.message.slice(0, 200)}`);
+    await enviarTelegram(`🔴 Gerador de Receitas — IA falhou: ${err.message.slice(0, 200)}`);
     throw err;
   }
 

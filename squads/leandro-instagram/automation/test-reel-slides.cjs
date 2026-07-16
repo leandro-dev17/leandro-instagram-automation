@@ -14,7 +14,7 @@ for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
 const { generateImage }    = require('./lib/kie.cjs');
 const { renderHTML, reelSlide1Hook, reelSlide2Dev, reelSlide3Tip, reelSlide4CTA } = require('./lib/renderer.cjs');
 const { slidesToMp4 }     = require('./lib/ffmpeg.cjs');
-const Anthropic = require('C:/Users/lelus/OneDrive/Pictures/BioNexus Digital/node_modules/@anthropic-ai/sdk');
+const { gerarTexto } = require('./lib/ai-helper.cjs');
 
 const OUT_DIR  = 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/test-reel-slides';
 const TEMP_DIR = 'C:/bionexus_render_tmp';
@@ -29,7 +29,6 @@ const REEL = {
 };
 
 async function generateSlideContent(reel) {
-  const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
   const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino.
 
 Tema do reel: "${reel.headline}"
@@ -45,20 +44,15 @@ Responda APENAS com JSON válido, sem texto extra:
   "slide4": { "headline": "Quer mais dicas assim?", "body": "Segue @leandro_personall e ativa as notificações para não perder nenhum treino!" }
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 600,
-    messages: [{ role: 'user', content: prompt }]
-  });
-  const text = response.content[0].text.trim();
+  const text = await gerarTexto(prompt, 600);
   return JSON.parse(text.match(/\{[\s\S]*\}/)[0]);
 }
 
 async function main() {
   console.log('=== TESTE: 4 Slides do Reel 1 ===\n');
 
-  // 1. Gera textos via Claude
-  console.log('1/3 — Gerando textos dos slides via Claude...');
+  // 1. Gera textos via IA (Groq→Cerebras)
+  console.log('1/3 — Gerando textos dos slides via IA...');
   const slides = await generateSlideContent(REEL);
   console.log('Textos gerados:');
   Object.entries(slides).forEach(([k, v]) => console.log(`  ${k}: "${v.headline}" / "${v.body}"`));

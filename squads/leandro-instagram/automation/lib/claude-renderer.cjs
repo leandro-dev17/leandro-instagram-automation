@@ -1,15 +1,15 @@
 /**
  * claude-renderer.cjs
- * Usa a Claude API (Haiku) para gerar layouts HTML dinâmicos para posts e reels.
+ * Usa IA (Groq→Cerebras) para gerar layouts HTML dinâmicos para posts e reels.
  *
- * Abordagem 1 — Claude gera HTML completo (máxima criatividade)
- * Abordagem 2 — Claude escolhe entre templates + customiza
- * Abordagem 3 — Claude refina HTML existente (ajustes finos)
+ * Abordagem 1 — IA gera HTML completo (máxima criatividade)
+ * Abordagem 2 — IA escolhe entre templates + customiza
+ * Abordagem 3 — IA refina HTML existente (ajustes finos)
  */
 
 const fs = require('fs');
 const path = require('path');
-const Anthropic = require('@anthropic-ai/sdk');
+const { gerarTexto } = require('./ai-helper.cjs');
 
 const ENV_PATH = path.join(__dirname, '../../.env');
 
@@ -23,10 +23,13 @@ function loadEnv() {
   return env;
 }
 
-function getClient() {
+function garantirChaveIA() {
   const env = loadEnv();
-  if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY não encontrada no .env');
-  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  if (env.GROQ_API_KEY && !process.env.GROQ_API_KEY) process.env.GROQ_API_KEY = env.GROQ_API_KEY;
+  if (env.CEREBRAS_API_KEY && !process.env.CEREBRAS_API_KEY) process.env.CEREBRAS_API_KEY = env.CEREBRAS_API_KEY;
+  if (!process.env.GROQ_API_KEY && !process.env.CEREBRAS_API_KEY) {
+    throw new Error('GROQ_API_KEY/CEREBRAS_API_KEY não encontradas no .env');
+  }
 }
 
 // ─── UTILITÁRIOS ──────────────────────────────────────────────────────────────
@@ -36,12 +39,12 @@ function imgToDataUrl(imgPath) {
   return `data:image/png;base64,${data.toString('base64')}`;
 }
 
-// ─── ABORDAGEM 1 — HTML COMPLETO GERADO PELO CLAUDE ──────────────────────────
-// Claude recebe os dados do post e gera o HTML inteiro do zero.
+// ─── ABORDAGEM 1 — HTML COMPLETO GERADO PELA IA ──────────────────────────────
+// A IA recebe os dados do post e gera o HTML inteiro do zero.
 // Resultado: layout único e criativo para cada post.
 
 async function generateFullHTML(postData, bgImagePath, format = 'post') {
-  const client = getClient();
+  garantirChaveIA();
 
   const dimensions = format === 'reel'
     ? { width: 1080, height: 1920, desc: '9:16 vertical (Instagram Reel)' }
@@ -78,13 +81,7 @@ REGRAS DE DESIGN:
 IMPORTANTE: Retorne APENAS o HTML completo, sem explicações, sem markdown, sem \`\`\`.
 Comece com <!DOCTYPE html>. Use __BG_URL__ exatamente como está para o background.`;
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }]
-  });
-
-  let html = response.content[0].text.trim();
+  let html = (await gerarTexto(prompt, 4096)).trim();
   if (!html.startsWith('<!DOCTYPE') && !html.startsWith('<html')) {
     const start = html.indexOf('<!DOCTYPE');
     if (start > -1) html = html.substring(start);
@@ -196,7 +193,7 @@ const TEMPLATE_VARIANTS = {
 };
 
 async function chooseAndCustomizeTemplate(postData, bgImagePath, format = 'post') {
-  const client = getClient();
+  garantirChaveIA();
   const bgUrl = imgToDataUrl(bgImagePath);
 
   const isReel = format === 'reel';
@@ -209,13 +206,8 @@ async function chooseAndCustomizeTemplate(postData, bgImagePath, format = 'post'
     mitos: 'MITOS', dica: 'DICA RÁPIDA', treino: 'TREINO', nutricao: 'NUTRIÇÃO'
   };
 
-  // Pede ao Claude para escolher o template e customizar cores
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 256,
-    messages: [{
-      role: 'user',
-      content: `Você é um designer de Instagram fitness. Para o post abaixo, escolha o melhor template e customizações.
+  // Pede à IA para escolher o template e customizar cores
+  const promptEscolha = `Você é um designer de Instagram fitness. Para o post abaixo, escolha o melhor template e customizações.
 
 POST:
 - Tipo: ${postData.type}
@@ -235,13 +227,11 @@ CORES DISPONÍVEIS para tagColor e accentColor (hex):
 - Dourado: #F1C40F
 
 Responda SOMENTE com JSON válido neste formato exato:
-{"template":"bottom_text","tagColor":"#E8614A","accentColor":"#E8614A","reason":"motivo em 5 palavras"}`
-    }]
-  });
+{"template":"bottom_text","tagColor":"#E8614A","accentColor":"#E8614A","reason":"motivo em 5 palavras"}`;
 
   let choice = { template: 'bottom_text', tagColor: '#E8614A', accentColor: '#E8614A' };
   try {
-    const text = response.content[0].text.trim();
+    const text = (await gerarTexto(promptEscolha, 256)).trim();
     const json = text.match(/\{[\s\S]*\}/);
     if (json) choice = { ...choice, ...JSON.parse(json[0]) };
   } catch { /* usa padrão */ }
@@ -271,7 +261,7 @@ Responda SOMENTE com JSON válido neste formato exato:
 // - Reposiciona elementos para melhor equilíbrio visual
 
 async function refineHTML(baseHTML, postData, refinementHints = '') {
-  const client = getClient();
+  garantirChaveIA();
 
   const isLongText = (postData.body || '').length > 120;
   const isShortHeadline = (postData.headline || '').split(' ').length < 4;
@@ -281,7 +271,7 @@ async function refineHTML(baseHTML, postData, refinementHints = '') {
     return baseHTML;
   }
 
-  // Remove a imagem base64 do HTML antes de enviar ao Claude (evita estouro de tokens)
+  // Remove a imagem base64 do HTML antes de enviar à IA (evita estouro de tokens)
   // Salva a data URL para reinserir depois
   const bgMatch = baseHTML.match(/url\('(data:image\/[^']+)'\)/);
   const bgDataUrl = bgMatch ? bgMatch[1] : null;
@@ -297,12 +287,7 @@ async function refineHTML(baseHTML, postData, refinementHints = '') {
 - Mantenha __BG_URL__ intacto no CSS — não altere esse valor
 - Faça apenas ajustes no CSS e no texto, não mude a estrutura HTML`.trim();
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
-    messages: [{
-      role: 'user',
-      content: `Você é um designer front-end. Faça ajustes finos no HTML abaixo seguindo as instruções.
+  const promptRefino = `Você é um designer front-end. Faça ajustes finos no HTML abaixo seguindo as instruções.
 
 INSTRUÇÕES DE REFINAMENTO:
 ${hints}
@@ -315,11 +300,9 @@ DADOS DO POST:
 HTML PARA REFINAR:
 ${htmlSemImagem}
 
-IMPORTANTE: Retorne APENAS o HTML completo refinado, sem explicações nem markdown. Mantenha __BG_URL__ exatamente como está.`
-    }]
-  });
+IMPORTANTE: Retorne APENAS o HTML completo refinado, sem explicações nem markdown. Mantenha __BG_URL__ exatamente como está.`;
 
-  let refined = response.content[0].text.trim();
+  let refined = (await gerarTexto(promptRefino, 4096)).trim();
   if (!refined.startsWith('<!DOCTYPE') && !refined.startsWith('<html')) {
     const start = refined.indexOf('<!DOCTYPE');
     if (start > -1) refined = refined.substring(start);
@@ -333,7 +316,7 @@ IMPORTANTE: Retorne APENAS o HTML completo refinado, sem explicações nem markd
 
 // ─── PIPELINE COMPLETO (usa as 3 abordagens em sequência) ────────────────────
 // Para cada post, escolhe a melhor estratégia baseada no tipo:
-// - Posts científicos/educativos: Abordagem 2 (template escolhido pelo Claude)
+// - Posts científicos/educativos: Abordagem 2 (template escolhido pela IA)
 // - Posts motivacionais: Abordagem 1 (HTML gerado do zero para máximo impacto)
 // - Todos passam pela Abordagem 3 (refinamento final)
 
@@ -344,11 +327,11 @@ async function generateSmartHTML(postData, bgImagePath, format = 'post') {
   let strategy;
 
   if (useFullGeneration) {
-    // Abordagem 1: HTML completo gerado pelo Claude
+    // Abordagem 1: HTML completo gerado pela IA
     strategy = 'abordagem-1 (HTML completo)';
     html = await generateFullHTML(postData, bgImagePath, format);
   } else {
-    // Abordagem 2: Claude escolhe template + customiza
+    // Abordagem 2: IA escolhe template + customiza
     const result = await chooseAndCustomizeTemplate(postData, bgImagePath, format);
     strategy = `abordagem-2 (template: ${result.choice.template})`;
     html = result.html;

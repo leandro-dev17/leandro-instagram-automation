@@ -4,7 +4,7 @@
  * Pipeline:
  *   1. Lê reel_kling do plano do dia (video_id + caption + hashtags)
  *   2. Copia o vídeo do pool para temp
- *   3. Gera hook provocativo via Claude (3-4 frases curtas para queimar no vídeo)
+ *   3. Gera hook provocativo via IA (3-4 frases curtas para queimar no vídeo)
  *   4. Queima o hook no vídeo via ffmpeg drawtext (texto aparece e some a cada 2.5s)
  *   5. Faz upload para Cloudinary
  *   6. Publica como Reel no Instagram
@@ -37,6 +37,7 @@ const { publishReel, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.
 const { lerTrackingCompleto, salvarTracking }     = require('./lib/tracking-github.cjs');
 const { publishShort }                            = require('./lib/youtube.cjs');
 const { notifyReel, notifyError }                 = require('./lib/telegram.cjs');
+const { gerarTexto }                              = require('./lib/ai-helper.cjs');
 
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 const LOGS_DIR     = path.join(__dirname, 'logs');
@@ -261,11 +262,8 @@ async function savePublished(dateStr, data) {
   await salvarTracking(trackingFile, tracking);
 }
 
-// ── Gerador de hook provocativo via Claude ──────────────────────────────────────
+// ── Gerador de hook provocativo via IA ──────────────────────────────────────────
 async function generateHook(topic, caption) {
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client    = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
-
   const prompt = `Você é o melhor copywriter de Instagram do Brasil especializado em fitness feminino.
 
 Crie 4 frases de hook para queimar em um Reel de 10 segundos de @leandro_personall (personal trainer para mulheres).
@@ -343,16 +341,10 @@ Responda APENAS com JSON válido, sem texto antes ou depois:
   "s4_l3": ""
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 500,
-    messages: [{ role: 'user', content: prompt }]
-  });
-
-  const text  = response.content[0].text.trim();
+  const text  = await gerarTexto(prompt, 500);
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) {
-    log('⚠ Claude não retornou JSON — usando hook genérico');
+    log('⚠ IA não retornou JSON — usando hook genérico');
     return [
       { l1: 'Treino', l2: 'feminino', l3: 'completo' },
       { l1: 'Resultados', l2: 'reais', l3: 'garantidos' },
@@ -363,7 +355,7 @@ Responda APENAS com JSON válido, sem texto antes ou depois:
   let parsed;
   try { parsed = JSON.parse(match[0]); }
   catch {
-    log('⚠ JSON do Claude inválido — usando hook genérico');
+    log('⚠ JSON da IA inválido — usando hook genérico');
     return [
       { l1: 'Treino', l2: 'feminino', l3: 'completo' },
       { l1: 'Resultados', l2: 'reais', l3: 'garantidos' },
@@ -551,15 +543,15 @@ async function main() {
 
   if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
 
-  // 3. Gera hook provocativo via Claude
-  log('\n✍️  Gerando hook provocativo via Claude...');
+  // 3. Gera hook provocativo via IA
+  log('\n✍️  Gerando hook provocativo via IA...');
   let hookLines;
   try {
     hookLines = await generateHook(reelKling.topic, reelKling.caption);
     log('  Hook gerado:');
     hookLines.forEach((l, i) => log(`    [${i + 1}] "${[l.l1,l.l2,l.l3].filter(Boolean).join(' | ')}"`));
   } catch (err) {
-    log(`  ⚠ Claude falhou para hook (${err.message}) — usando fallback genérico`);
+    log(`  ⚠ IA falhou para hook (${err.message}) — usando fallback genérico`);
     hookLines = [
       { l1: 'Isso vai mudar', l2: 'seu treino.', l3: 'A maioria ignora.' },
       { l1: 'Os resultados', l2: 'provam isso', l3: 'todo dia.' },

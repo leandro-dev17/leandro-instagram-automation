@@ -5,7 +5,7 @@
  * agente-sazonalidade.cjs — Calendário Sazonal de Conteúdo
  *
  * Roda no primeiro dia de cada mês às 07:00 BRT.
- * Claude analisa o próximo mês e gera:
+ * IA (Groq→Cerebras) analisa o próximo mês e gera:
  * - Datas especiais relevantes para fitness feminino
  * - Sugestões de conteúdo temático para cada data
  * - Alertas para o Leandro planejar com antecedência
@@ -29,7 +29,8 @@ const path = require('path');
   }
 })();
 
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+const { gerarTexto } = require('./lib/ai-helper.cjs');
+
 const BOT_TOKEN     = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID       = process.env.TELEGRAM_CHAT_ID;
 const GITHUB_TOKEN  = process.env.GITHUB_TOKEN;
@@ -56,15 +57,7 @@ function getProximoMes() {
 }
 
 async function gerarSazonalidade(mesNome, mesNum, anoNum) {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
-
-  const response = await client.messages.create({
-    model:      'claude-haiku-4-5-20251001',
-    max_tokens: 3000,
-    messages: [{
-      role: 'user',
-      content: `Você é especialista em marketing de conteúdo fitness feminino no Brasil.
+  const prompt = `Você é especialista em marketing de conteúdo fitness feminino no Brasil.
 
 Gere o calendário sazonal para ${mesNome} de ${anoNum} para o @leandro_personall (personal trainer feminino em Jaraguá do Sul-SC).
 
@@ -102,13 +95,11 @@ Responda APENAS com JSON:
   "alertas": [
     "Alerta importante para o Leandro planejar"
   ]
-}`,
-    }],
-  });
+}`;
 
-  const text  = response.content[0].text.trim();
+  const text  = await gerarTexto(prompt, 3000);
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Claude não retornou JSON válido');
+  if (!match) throw new Error('IA não retornou JSON válido');
   return JSON.parse(match[0]);
 }
 
@@ -150,8 +141,8 @@ async function main() {
   const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   console.log(`[agente-sazonalidade] Gerando calendário sazonal — ${data}`);
 
-  if (!ANTHROPIC_KEY) {
-    await enviarTelegram('⚠️ Agente Sazonalidade: ANTHROPIC_API_KEY não configurada.');
+  if (!process.env.GROQ_API_KEY && !process.env.CEREBRAS_API_KEY) {
+    await enviarTelegram('⚠️ Agente Sazonalidade: GROQ_API_KEY/CEREBRAS_API_KEY não configuradas.');
     process.exit(1);
   }
 
@@ -161,7 +152,7 @@ async function main() {
   try {
     dados = await gerarSazonalidade(mesNome, mesNum, anoNum);
   } catch (err) {
-    await enviarTelegram(`🔴 Agente Sazonalidade — Claude falhou: ${err.message.slice(0, 200)}`);
+    await enviarTelegram(`🔴 Agente Sazonalidade — IA falhou: ${err.message.slice(0, 200)}`);
     throw err;
   }
 

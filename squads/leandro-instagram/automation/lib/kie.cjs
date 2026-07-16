@@ -7,6 +7,8 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
+const { gerarComVisao } = require('./ai-helper.cjs');
+
 const ENV_PATH = path.join(__dirname, '../../.env');
 
 function loadApiKey() {
@@ -16,6 +18,20 @@ function loadApiKey() {
     if (k && k.trim() === 'KIE_API_KEY') return v.join('=').trim();
   }
   throw new Error('KIE_API_KEY não encontrada no arquivo .env');
+}
+
+// Alguns scripts chamam este módulo sem antes carregar o .env no process.env (cada
+// um tem seu próprio loader manual, nem todos rodam antes deste require) — garante
+// que GROQ_API_KEY esteja disponível para o QC de visão (lib/ai-helper.cjs) mesmo assim.
+function ensureGroqKeyLoaded() {
+  if (process.env.GROQ_API_KEY) return;
+  try {
+    const lines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
+    for (const line of lines) {
+      const [k, ...v] = line.split('=');
+      if (k && k.trim() === 'GROQ_API_KEY') { process.env.GROQ_API_KEY = v.join('=').trim(); break; }
+    }
+  } catch {}
 }
 
 // Sufixo de qualidade — referência de câmera real para evitar pele plástica/borracha
@@ -213,44 +229,22 @@ function buildFinalPrompt(originalPrompt, diversity, outfit, pose) {
 
 // QC específico para imagens de alimento — rejeita relógio, pessoa, objeto sem relação com comida
 async function checkFoodImageQuality(imagePath) {
-  let anthropicKey = '';
+  ensureGroqKeyLoaded();
   try {
-    const envLines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
-    for (const line of envLines) {
-      const [k, ...v] = line.split('=');
-      if (k && k.trim() === 'ANTHROPIC_API_KEY') { anthropicKey = v.join('=').trim(); break; }
-    }
-    if (!anthropicKey) return { approved: true, reason: 'sem chave Anthropic — pulando QC' };
-  } catch { return { approved: true, reason: 'erro ao ler .env — pulando QC' }; }
-
-  try {
-    const Anthropic = require(path.join(__dirname, '../../../node_modules/@anthropic-ai/sdk'));
-    const client = new Anthropic.default({ apiKey: anthropicKey });
     const imageData = fs.readFileSync(imagePath).toString('base64');
-
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 100,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageData } },
-          {
-            type: 'text',
-            text: `You are QC for food Instagram images. Analyze this image.
+    const text = await gerarComVisao(
+      `You are QC for food Instagram images. Analyze this image.
 
 FAIL if: image shows a watch, phone, person, clothing, gym equipment, landscape, or any non-food object as the main subject.
 PASS if: image clearly shows food, drink, meal, ingredients, or kitchen items as the main subject.
 
 Respond ONLY with valid JSON:
 {"approved": true} if food is visible as main subject
-{"approved": false, "reason": "brief description"} if not food`
-          }
-        ]
-      }]
-    });
+{"approved": false, "reason": "brief description"} if not food`,
+      imageData,
+      100
+    );
 
-    const text = response.content[0].text.trim();
     const match = text.match(/\{[\s\S]*?\}/);
     if (!match) return { approved: true, reason: 'resposta inválida — aprovando por padrão' };
     return JSON.parse(match[0]);
@@ -379,35 +373,14 @@ async function generateFoodImage(prompt, outputPath) {
   }
 }
 
-// ── QUALITY CONTROL — Claude Vision ─────────────────────────────────────────
+// ── QUALITY CONTROL — visão via Groq ────────────────────────────────────────
 // Analisa a imagem gerada e reprova se detectar problemas óbvios
 async function checkImageQuality(imagePath) {
-  let anthropicKey = '';
+  ensureGroqKeyLoaded();
   try {
-    const envLines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
-    for (const line of envLines) {
-      const [k, ...v] = line.split('=');
-      if (k && k.trim() === 'ANTHROPIC_API_KEY') { anthropicKey = v.join('=').trim(); break; }
-    }
-    if (!anthropicKey) return { approved: true, reason: 'sem chave Anthropic — pulando QC' };
-  } catch { return { approved: true, reason: 'erro ao ler .env — pulando QC' }; }
-
-  try {
-    const Anthropic = require(path.join(__dirname, '../../../node_modules/@anthropic-ai/sdk'));
-    const client = new Anthropic.default({ apiKey: anthropicKey });
-
     const imageData = fs.readFileSync(imagePath).toString('base64');
-
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageData } },
-          {
-            type: 'text',
-            text: `You are a quality control system for fitness Instagram images. Analyze this image and respond with JSON only.
+    const text = await gerarComVisao(
+      `You are a quality control system for fitness Instagram images. Analyze this image and respond with JSON only.
 
 Check for these FAIL conditions:
 1. No person/woman visible in the image (landscape, nature, objects only — FAIL)
@@ -420,13 +393,11 @@ Check for these FAIL conditions:
 
 Respond ONLY with valid JSON:
 {"approved": true} if image passes
-{"approved": false, "reason": "brief description of the problem"} if image fails`
-          }
-        ]
-      }]
-    });
+{"approved": false, "reason": "brief description of the problem"} if image fails`,
+      imageData,
+      200
+    );
 
-    const text = response.content[0].text.trim();
     const match = text.match(/\{[\s\S]*?\}/);
     if (!match) return { approved: true, reason: 'resposta inválida do QC — aprovando por padrão' };
     return JSON.parse(match[0]);
@@ -522,7 +493,7 @@ async function generateImage(prompt, outputPath, topicHint) {
     const tmpPath = outputPath.replace(/\.png$/, `_tmp${attempt}.png`);
     await downloadImage(imageUrl, tmpPath);
 
-    // 3. Verifica qualidade com Claude Vision
+    // 3. Verifica qualidade com IA (visão)
     console.log(`  [QC] Analisando imagem (tentativa ${attempt})...`);
     const qc = await checkImageQuality(tmpPath);
 

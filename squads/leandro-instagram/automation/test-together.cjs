@@ -234,24 +234,14 @@ async function saveKie(apiKey, prompt, outputPath) {
   return outputPath;
 }
 
-// ── QC via Claude Vision ───────────────────────────────────────────────────────
-async function checkQuality(imagePath, anthropicKey) {
-  if (!anthropicKey) return { approved: true, reason: 'sem ANTHROPIC_API_KEY — QC desativado' };
+// ── QC via IA (Groq→Cerebras, visão) ────────────────────────────────────────────
+async function checkQuality(imagePath) {
+  const { gerarComVisao } = require('./lib/ai-helper.cjs');
+  if (!process.env.GROQ_API_KEY) return { approved: true, reason: 'sem GROQ_API_KEY — QC desativado' };
   try {
-    const Anthropic = require(path.join(__dirname, '../../../node_modules/@anthropic-ai/sdk'));
-    const client = new Anthropic.default({ apiKey: anthropicKey });
     const imageData = fs.readFileSync(imagePath).toString('base64');
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageData } },
-          {
-            type: 'text',
-            text: `Quality control for fitness Instagram image. Respond ONLY with valid JSON.
+    const prompt = `Quality control for fitness Instagram image. Respond ONLY with valid JSON.
 
 FAIL if:
 1. Plastic/rubber/artificial skin texture
@@ -262,13 +252,9 @@ FAIL if:
 6. Multiple people
 
 {"approved": true} — if passes
-{"approved": false, "reason": "brief description"} — if fails`
-          }
-        ]
-      }]
-    });
+{"approved": false, "reason": "brief description"} — if fails`;
 
-    const text = response.content[0].text.trim();
+    const text = await gerarComVisao(prompt, imageData, 200);
     const match = text.match(/\{[\s\S]*?\}/);
     if (!match) return { approved: true, reason: 'resposta inválida' };
     return JSON.parse(match[0]);
@@ -283,7 +269,7 @@ async function main() {
 
   const togetherKey = env['TOGETHER_API_KEY'];
   const kieKey = env['KIE_API_KEY'];
-  const anthropicKey = env['ANTHROPIC_API_KEY'];
+  if (env['GROQ_API_KEY']) process.env.GROQ_API_KEY = env['GROQ_API_KEY'];
 
   if (!togetherKey) {
     console.error('\n❌ TOGETHER_API_KEY não encontrada no .env');
@@ -330,7 +316,7 @@ async function main() {
       const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
       process.stdout.write(`✅ (${elapsed}s)\n`);
 
-      const qc = await checkQuality(togetherPath, anthropicKey);
+      const qc = await checkQuality(togetherPath);
       const qcStr = qc.approved ? '✅ QC OK' : `❌ QC falhou: ${qc.reason}`;
       console.log(`     ${qcStr}`);
       row.together = { ok: true, qc: qc.approved, qcReason: qc.reason, time: elapsed };
@@ -347,7 +333,7 @@ async function main() {
       const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
       process.stdout.write(`✅ (${elapsed}s)\n`);
 
-      const qc = await checkQuality(kieFilePath, anthropicKey);
+      const qc = await checkQuality(kieFilePath);
       const qcStr = qc.approved ? '✅ QC OK' : `❌ QC falhou: ${qc.reason}`;
       console.log(`     ${qcStr}`);
       row.kie = { ok: true, qc: qc.approved, qcReason: qc.reason, time: elapsed };

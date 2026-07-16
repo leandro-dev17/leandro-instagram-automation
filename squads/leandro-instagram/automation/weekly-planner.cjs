@@ -1,30 +1,30 @@
 ﻿/**
  * weekly-planner.cjs
- * Gera o cronograma de conteúdo para a próxima semana usando Gemini AI.
+ * Gera o cronograma de conteúdo para a próxima semana via IA (Groq→Cerebras).
  * Execute manualmente uma vez por semana (ex: todo domingo à noite).
  *
  * Uso: node weekly-planner.cjs
  */
 
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const ENV_PATH = path.join(__dirname, '../.env');
+(function loadEnv() {
+  const ep = path.join(__dirname, '../.env');
+  if (!fs.existsSync(ep)) return;
+  for (const line of fs.readFileSync(ep, 'utf8').split('\n')) {
+    const [k, ...v] = line.split('=');
+    if (k && k.trim() && !k.trim().startsWith('#')) process.env[k.trim()] = v.join('=').trim();
+  }
+})();
+
+const { gerarTexto } = require('./lib/ai-helper.cjs');
+
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 const REPORTS_DIR = process.env.REPORTS_DIR ||
   (process.platform === 'win32'
     ? 'C:/Users/lelus/OneDrive/Pictures/Automação Claude post/leandro-instagram/Relatórios/Relatório insights instagram'
     : path.join(__dirname, 'reports'));
-
-function loadApiKey() {
-  const lines = fs.readFileSync(ENV_PATH, 'utf8').split('\n');
-  for (const line of lines) {
-    const [k, ...v] = line.split('=');
-    if (k && k.trim() === 'ANTHROPIC_API_KEY') return v.join('=').trim();
-  }
-  throw new Error('ANTHROPIC_API_KEY não encontrada no .env');
-}
 
 function getWeekDates() {
   const today = new Date();
@@ -42,51 +42,11 @@ function getDayName(dateStr) {
   return names[new Date(dateStr + 'T12:00:00').getDay()];
 }
 
-async function callClaude(prompt) {
-  const apiKey = loadApiKey();
-  const body = JSON.stringify({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 16000,
-    temperature: 0.85,
-    messages: [{ role: 'user', content: prompt }]
-  });
-
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'api.anthropic.com',
-      path: '/v1/messages',
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    };
-
-    const req = https.request(options, res => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          try {
-            const parsed = JSON.parse(data);
-            const text = parsed.content?.[0]?.text || '';
-            const match = text.match(/\{[\s\S]*\}/);
-            if (!match) throw new Error('Nenhum JSON encontrado na resposta');
-            resolve(JSON.parse(match[0]));
-          } catch (e) {
-            reject(new Error('Erro ao parsear Claude: ' + e.message));
-          }
-        } else {
-          reject(new Error(`Claude erro ${res.statusCode}: ${data.slice(0, 300)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
+async function gerarCronograma(prompt) {
+  const text = await gerarTexto(prompt, 8000);
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Nenhum JSON encontrado na resposta da IA');
+  return JSON.parse(match[0]);
 }
 
 function loadLatestInsights() {
@@ -302,7 +262,7 @@ async function main() {
   const allDays = {};
   for (let i = 0; i < batches.length; i++) {
     console.log(`\nLote ${i+1}/${batches.length}: gerando ${batches[i].map(getDayName).join(', ')}...`);
-    const result = await callClaude(buildPrompt(batches[i], insights, videoHistory));
+    const result = await gerarCronograma(buildPrompt(batches[i], insights, videoHistory));
     Object.assign(allDays, result.days || {});
     // Adiciona ao histórico para o próximo lote
     for (const [d, day] of Object.entries(result.days || {})) {
@@ -340,7 +300,7 @@ async function main() {
     const day = allDays[dateStr];
     if (!day) continue;
 
-    // Verifica se o video_id escolhido pelo Claude viola o gap mínimo
+    // Verifica se o video_id escolhido pela IA viola o gap mínimo
     if (day.reel_kling?.video_id && isVideoBlockedOnDate(day.reel_kling.video_id, dateStr)) {
       console.log(`  ⚠ video_id ${day.reel_kling.video_id} muito recente para ${dateStr} — substituindo`);
       day.reel_kling.video_id = null;

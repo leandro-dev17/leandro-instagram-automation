@@ -23,6 +23,7 @@ const { uploadVideo, uploadImage } = require('./lib/cloudinary.cjs');
 const { publishReel, refreshTokenIfNeeded, loadEnv } = require('./lib/instagram.cjs');
 const { publishShort } = require('./lib/youtube.cjs');
 const { notifyReel, notifyError } = require('./lib/telegram.cjs');
+const { gerarTexto } = require('./lib/ai-helper.cjs');
 
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 const LOGS_DIR     = path.join(__dirname, 'logs');
@@ -70,20 +71,8 @@ function savePublished(dateStr, reelNumber, data) {
   }
 }
 
-// Gera legenda específica por tema via Claude
+// Gera legenda específica por tema via IA (Groq→Cerebras)
 async function generateCaption(reel) {
-  // Carrega .env manualmente
-  const envPath = path.join(__dirname, '../.env');
-  const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
-  let anthropicKey = '';
-  for (const line of envLines) {
-    const [k, ...v] = line.split('=');
-    if (k && k.trim() === 'ANTHROPIC_API_KEY') { anthropicKey = v.join('=').trim(); break; }
-  }
-
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic.default({ apiKey: anthropicKey });
-
   const prompt = `Você é especialista em conteúdo fitness para Instagram de @leandro_personall, personal trainer feminino.
 
 Tema do reel: "${reel.headline}"
@@ -102,15 +91,9 @@ Regras:
 - Hashtags específicas para o tema (não genéricas)
 - CTA sempre chamando para seguir o perfil`;
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 500,
-    messages: [{ role: 'user', content: prompt }]
-  });
-
-  const text = response.content[0].text.trim();
+  const text  = await gerarTexto(prompt, 500);
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Claude não retornou JSON válido para caption');
+  if (!match) throw new Error('IA não retornou JSON válido para caption');
   return JSON.parse(match[0]);
 }
 
@@ -253,14 +236,14 @@ async function main() {
     log('🎬 Convertendo 4 slides → MP4 (5s cada = 20s total)...');
     slidesToMp4(slidePaths, mp4Path, 5);
 
-    // Gera legenda específica via Claude
-    log('✍️  Gerando legenda específica via Claude...');
+    // Gera legenda específica via IA (Groq→Cerebras)
+    log('✍️  Gerando legenda específica via IA...');
     try {
       const captionData = await generateCaption(reel);
       caption = `${captionData.caption}\n\n${captionData.hashtags}\n\n${captionData.cta}`;
       log(`✅ Legenda gerada`);
     } catch (err) {
-      log(`  → Claude falhou para legenda, usando fallback: ${err.message}`);
+      log(`  → IA falhou para legenda, usando fallback: ${err.message}`);
       caption = `${reel?.cta || ''}\n\n${dayPlan.reels_hashtags || ''}\n\nSegue @leandro_personall para mais dicas! 💪`;
     }
   }

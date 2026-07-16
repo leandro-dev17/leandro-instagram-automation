@@ -29,6 +29,7 @@ const { storySlide, carouselSlide, renderHTML } = require('./lib/renderer.cjs');
 const { getNextRecipe, getBankStatus } = require('./lib/recipe-manager.cjs');
 const { recipeDicaReel } = require('./lib/renderer.cjs');
 const { notifyError } = require('./lib/telegram.cjs');
+const { gerarTexto } = require('./lib/ai-helper.cjs');
 
 const SCHEDULE_DIR = path.join(__dirname, 'schedule');
 const LOGS_DIR    = path.join(__dirname, 'logs');
@@ -88,9 +89,6 @@ async function kieImage(prompt, destPath, topicHint) {
 // ─── CLAUDE: conteúdo dos 5 slides do story ───────────────────────────────────
 
 async function generateStoryContent(story) {
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
-
   const prompt = `Você é especialista em conteúdo viral para Instagram Stories de @leandro_personall, personal trainer feminina focada em emagrecimento e treino por ciclo menstrual.
 
 Tema do story: "${story.topic}"
@@ -138,24 +136,15 @@ Responda APENAS com JSON válido:
   }
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 800,
-    messages: [{ role: 'user', content: prompt }]
-  });
-
-  const text = response.content[0].text.trim();
+  const text = await gerarTexto(prompt, 800);
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Claude não retornou JSON válido para story');
+  if (!match) throw new Error('IA não retornou JSON válido para story');
   return JSON.parse(match[0]);
 }
 
 // ─── CLAUDE: conteúdo dos 7 slides do carrossel ───────────────────────────────
 
 async function generateCarouselContent(carousel) {
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY });
-
   const prompt = `Você é especialista em conteúdo viral para carrossel do Instagram de @leandro_personall, personal trainer feminina.
 
 Tema do carrossel: "${carousel.topic}"
@@ -218,15 +207,9 @@ Responda APENAS com JSON válido:
   }
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1000,
-    messages: [{ role: 'user', content: prompt }]
-  });
-
-  const text = response.content[0].text.trim();
+  const text = await gerarTexto(prompt, 1000);
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Claude não retornou JSON válido para carrossel');
+  if (!match) throw new Error('IA não retornou JSON válido para carrossel');
   return JSON.parse(match[0]);
 }
 
@@ -249,14 +232,14 @@ async function generateStory(story, outputDir) {
   await kieImage(story.image_prompt || '', basePath, story.topic);
   log('  → Imagem base gerada');
 
-  // 2. Gera conteúdo dos 5 slides via Claude
-  log('  → Gerando textos dos slides via Claude...');
+  // 2. Gera conteúdo dos 5 slides via IA
+  log('  → Gerando textos dos slides via IA...');
   let slides;
   try {
     slides = await generateStoryContent(story);
     log('  → Textos gerados com sucesso');
   } catch (err) {
-    log(`  → Claude falhou, usando textos de fallback: ${err.message}`);
+    log(`  → IA falhou, usando textos de fallback: ${err.message}`);
     slides = {
       slide1: { label: 'GANCHO', style: 'hook', headline: story.topic || 'Você precisa saber disso', body: 'Isso vai mudar seu treino para sempre' },
       slide2: { label: 'O PROBLEMA', style: 'content', headline: 'O erro mais comum', body: 'A maioria das mulheres treina sem entender como o próprio corpo funciona, perdendo resultados.' },
@@ -301,14 +284,14 @@ async function generateCarousel(carousel, outputDir) {
   await kieImage(carousel.image_prompt || '', basePath, carousel.topic);
   log('  → Imagem base gerada');
 
-  // 2. Gera conteúdo dos 7 slides via Claude
-  log('  → Gerando textos dos slides via Claude...');
+  // 2. Gera conteúdo dos 7 slides via IA
+  log('  → Gerando textos dos slides via IA...');
   let slides;
   try {
     slides = await generateCarouselContent(carousel);
     log('  → Textos gerados com sucesso');
   } catch (err) {
-    log(`  → Claude falhou, usando textos de fallback: ${err.message}`);
+    log(`  → IA falhou, usando textos de fallback: ${err.message}`);
     slides = {
       slide1: { label: 'LEIA ISSO', style: 'cover', headline: carousel.topic || 'O que ninguém te conta sobre treino', body: 'Arraste e descubra como transformar seu resultado' },
       slide2: { label: 'A DOR', style: 'content', headline: 'Você se identifica?', body: 'Treina duro mas o resultado não aparece. Segue dieta mas o peso não sai.' },

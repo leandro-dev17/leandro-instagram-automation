@@ -5,7 +5,7 @@
  * agente-hashtags.cjs — Pesquisa e Atualização de Hashtags
  *
  * Roda no dia 15 de cada mês às 08:00 BRT.
- * Claude analisa o nicho de fitness feminino brasileiro e gera uma lista
+ * IA (Groq→Cerebras) analisa o nicho de fitness feminino brasileiro e gera uma lista
  * atualizada e ranqueada de hashtags por categoria.
  *
  * Salva em schedule/hashtags-recomendadas.json — weekly-planner e publishers
@@ -35,7 +35,8 @@ const path = require('path');
   }
 })();
 
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+const { gerarTexto } = require('./lib/ai-helper.cjs');
+
 const BOT_TOKEN     = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID       = process.env.TELEGRAM_CHAT_ID;
 const GITHUB_TOKEN  = process.env.GITHUB_TOKEN;
@@ -54,20 +55,12 @@ async function enviarTelegram(msg) {
 }
 
 async function gerarHashtags() {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
-
   const mesAtual  = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const estacao   = ['junho', 'julho', 'agosto'].includes(new Date().toLocaleDateString('pt-BR', { month: 'long' }).toLowerCase()) ? 'inverno' :
                     ['setembro', 'outubro', 'novembro'].includes(new Date().toLocaleDateString('pt-BR', { month: 'long' }).toLowerCase()) ? 'primavera' :
                     ['dezembro', 'janeiro', 'fevereiro'].includes(new Date().toLocaleDateString('pt-BR', { month: 'long' }).toLowerCase()) ? 'verão' : 'outono';
 
-  const response = await client.messages.create({
-    model:      'claude-haiku-4-5-20251001',
-    max_tokens: 3000,
-    messages: [{
-      role: 'user',
-      content: `Você é especialista em estratégia de hashtags para Instagram fitness feminino no Brasil.
+  const prompt = `Você é especialista em estratégia de hashtags para Instagram fitness feminino no Brasil.
 
 PERFIL: @leandro_personall — Personal trainer feminino em Jaraguá do Sul, SC
 PÚBLICO: Mulheres 25-45 anos, emagrecimento, treino feminino, receitas fit
@@ -123,13 +116,11 @@ Responda APENAS JSON:
   },
   "evitar": ["hashtags com reputação ruim ou muito saturadas"],
   "dica_do_mes": "Insight estratégico específico para ${mesAtual}"
-}`,
-    }],
-  });
+}`;
 
-  const text  = response.content[0].text.trim();
+  const text  = await gerarTexto(prompt, 3000);
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Claude não retornou JSON válido');
+  if (!match) throw new Error('IA não retornou JSON válido');
   return JSON.parse(match[0]);
 }
 
@@ -167,8 +158,8 @@ async function main() {
   const data = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   console.log(`[agente-hashtags] Pesquisando hashtags — ${data}`);
 
-  if (!ANTHROPIC_KEY) {
-    await enviarTelegram('⚠️ Agente Hashtags: ANTHROPIC_API_KEY não configurada.');
+  if (!process.env.GROQ_API_KEY && !process.env.CEREBRAS_API_KEY) {
+    await enviarTelegram('⚠️ Agente Hashtags: GROQ_API_KEY/CEREBRAS_API_KEY não configuradas.');
     process.exit(1);
   }
 
@@ -176,7 +167,7 @@ async function main() {
   try {
     dados = await gerarHashtags();
   } catch (err) {
-    await enviarTelegram(`🔴 Agente Hashtags — Claude falhou: ${err.message.slice(0, 200)}`);
+    await enviarTelegram(`🔴 Agente Hashtags — IA falhou: ${err.message.slice(0, 200)}`);
     throw err;
   }
 

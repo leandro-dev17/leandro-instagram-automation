@@ -37,7 +37,7 @@ const { spawnSync } = require('child_process');
   }
 })();
 
-const ANTHROPIC_KEY  = process.env.ANTHROPIC_API_KEY;
+const TEM_IA_KEY     = !!(process.env.GROQ_API_KEY || process.env.CEREBRAS_API_KEY);
 const IG_TOKEN       = process.env.INSTAGRAM_ACCESS_TOKEN;
 const IG_USER_ID     = process.env.INSTAGRAM_USER_ID;
 const BOT_TOKEN      = process.env.TELEGRAM_BOT_TOKEN;
@@ -55,11 +55,12 @@ const TRACKING_FILE  = path.join(__dirname, 'logs', 'published-posts.json');
 // Antes este bloco fazia process.exit(1) quando a ANTHROPIC_API_KEY faltava.
 // Como o guardião invoca este script com execSync({ stdio: 'inherit' }), o exit 1
 // PROPAGAVA e derrubava o PRÓPRIO GUARDIÃO em cascata — interrompendo o
-// monitoramento de TODAS as publicações sempre que a key da Anthropic ficava
-// indisponível (expirada/sem créditos). Agora notificamos o Leandro via Telegram
-// e saímos com exit 0, mantendo o guardião e as publicações em pé.
-if (!ANTHROPIC_KEY) {
-  console.error('ERRO: ANTHROPIC_API_KEY ausente — Claude Resolver não pode operar autonomamente.');
+// monitoramento de TODAS as publicações sempre que a key ficava indisponível
+// (expirada/sem créditos). Agora notificamos o Leandro via Telegram e saímos
+// com exit 0, mantendo o guardião e as publicações em pé. Anthropic foi removido
+// do squad inteiro — a checagem agora é sobre GROQ_API_KEY/CEREBRAS_API_KEY.
+if (!TEM_IA_KEY) {
+  console.error('ERRO: GROQ_API_KEY/CEREBRAS_API_KEY ausentes — Claude Resolver não pode operar autonomamente.');
   (async () => {
     if (BOT_TOKEN && CHAT_ID) {
       try {
@@ -70,12 +71,12 @@ if (!ANTHROPIC_KEY) {
             chat_id: CHAT_ID,
             parse_mode: 'HTML',
             text:
-              '🚨 <b>ANTHROPIC_API_KEY indisponível</b>\n\n' +
-              'O Claude Resolver foi acionado mas não há chave da Anthropic válida.\n\n' +
+              '🚨 <b>GROQ_API_KEY/CEREBRAS_API_KEY indisponíveis</b>\n\n' +
+              'O Claude Resolver foi acionado mas não há chave de IA válida.\n\n' +
               '⚠️ Impacto: hooks dos reels caem em <i>fallback</i>, fiscais de qualidade acusam ' +
-              'problema e qualquer geração de texto via Claude para de funcionar.\n\n' +
-              '👉 <b>Ação necessária:</b> renove/verifique a <code>ANTHROPIC_API_KEY</code> ' +
-              '(créditos/validade) e atualize o secret no GitHub.\n' +
+              'problema e qualquer geração de texto via IA para de funcionar.\n\n' +
+              '👉 <b>Ação necessária:</b> renove/verifique <code>GROQ_API_KEY</code>/<code>CEREBRAS_API_KEY</code> ' +
+              'e atualize o secret no GitHub.\n' +
               `Repo: github.com/${REPO}/settings/secrets/actions`,
           }),
         });
