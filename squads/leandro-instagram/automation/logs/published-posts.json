@@ -2420,5 +2420,37 @@
       ],
       "publishedAt": "2026-07-15T16:12:11.273Z"
     }
+  },
+  "2026-07-16": {
+    "kling-reel": {
+      "postId": "18051178277556191",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "A Refeiç��o Perfeita: Proteína, Carboidrato e Gordura na Proporção Certa",
+      "videoId": "15-negra-vermelho-cintura-quadril",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-16T16:08:57.902Z"
+    }
   }
 }
