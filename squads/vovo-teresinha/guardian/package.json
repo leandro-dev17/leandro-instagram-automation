@@ -4,6 +4,6 @@
   "description": "Guardião 24/7 autônomo do app Vovó Teresinha",
   "main": "monitor.cjs",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.55.0"
+    "typescript": "^5.7.0"
   }
 }

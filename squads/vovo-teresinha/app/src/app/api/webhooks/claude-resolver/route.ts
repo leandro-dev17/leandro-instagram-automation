@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { sql } from "@/lib/db";
 import { enviarTelegram } from "@/lib/telegram";
 import { cronAutorizado } from "@/lib/auth-cron";
+import { gerarComFerramentas, DefinicaoFerramenta } from "@/lib/ai";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const VERCEL_TOKEN = process.env.VERCEL_DEPLOY_TOKEN;
 const VERCEL_DEPLOY_HOOK = process.env.VERCEL_DEPLOY_HOOK_URL;
 
@@ -165,157 +164,159 @@ Dados: ${JSON.stringify(dados ?? {})}
 Comece com diagnose_sistema e verificar_falhas_recentes, depois decida o que corrigir.
 `.trim();
 
-  const tools: Anthropic.Tool[] = [
+  const ferramentas: DefinicaoFerramenta[] = [
     {
-      name: "diagnosticar_sistema",
-      description: "Retorna estatísticas gerais: total de usuários, assinaturas, inconsistências detectadas.",
-      input_schema: { type: "object" as const, properties: {}, required: [] },
-    },
-    {
-      name: "verificar_falhas_recentes",
-      description: "Retorna o histórico de falhas recentes do agente problemático.",
-      input_schema: { type: "object" as const, properties: {}, required: [] },
-    },
-    {
-      name: "corrigir_premium_sem_assinatura",
-      description: "Rebaixa para 'free' usuários marcados como premium que não têm assinatura ativa. Correto quando o pagamento foi cancelado mas o tipo_usuario não foi atualizado.",
-      input_schema: { type: "object" as const, properties: {}, required: [] },
-    },
-    {
-      name: "corrigir_assinatura_sem_premium",
-      description: "Promove para 'premium' usuários com assinatura ativa que ainda estão marcados como 'free'. Correto quando o webhook MP chegou mas o usuário não foi atualizado.",
-      input_schema: { type: "object" as const, properties: {}, required: [] },
-    },
-    {
-      name: "limpar_assinaturas_orfas",
-      description: "Remove assinaturas sem usuário correspondente (dados órfãos).",
-      input_schema: { type: "object" as const, properties: {}, required: [] },
-    },
-    {
-      name: "limpar_push_subscriptions_antigas",
-      description: "Remove push subscriptions com mais de 90 dias (cleanup de segurança).",
-      input_schema: { type: "object" as const, properties: {}, required: [] },
-    },
-    {
-      name: "atualizar_configuracao",
-      description: "Atualiza uma configuração em app_configuracoes (ex: desativar desconto sazonal incorreto).",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          chave: { type: "string", description: "Nome da configuração" },
-          valor: { type: "string", description: "Novo valor" },
-          motivo: { type: "string", description: "Por que está alterando" },
-        },
-        required: ["chave", "valor", "motivo"],
+      type: "function",
+      function: {
+        name: "diagnosticar_sistema",
+        description: "Retorna estatísticas gerais: total de usuários, assinaturas, inconsistências detectadas.",
+        parameters: { type: "object", properties: {}, required: [] },
       },
     },
     {
-      name: "triggerar_redeploy",
-      description: "Dispara um redeploy automático da aplicação no Vercel. Use quando suspeitar de bug transitório que pode ter sido causado por cache ou estado corrompido em memória. Tenta via deploy hook primeiro, depois via API com token.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          motivo: { type: "string", description: "Por que está fazendo redeploy" },
-        },
-        required: ["motivo"],
+      type: "function",
+      function: {
+        name: "verificar_falhas_recentes",
+        description: "Retorna o histórico de falhas recentes do agente problemático.",
+        parameters: { type: "object", properties: {}, required: [] },
       },
     },
     {
-      name: "enviar_relatorio",
-      description: "OBRIGATÓRIO ao final. Envia o relatório de diagnóstico e ações via Telegram.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          diagnostico: { type: "string" },
-          acoes_tomadas: { type: "string" },
-          codigo_sugerido: { type: "string", description: "Se for bug de código, o código corrigido para o Leandro aplicar" },
-          arquivo_sugerido: { type: "string", description: "Caminho do arquivo a ser alterado (ex: src/app/api/cron/fiscal-banco/route.ts)" },
-          precisa_intervencao_humana: { type: "boolean" },
-        },
-        required: ["diagnostico", "acoes_tomadas", "precisa_intervencao_humana"],
+      type: "function",
+      function: {
+        name: "corrigir_premium_sem_assinatura",
+        description: "Rebaixa para 'free' usuários marcados como premium que não têm assinatura ativa. Correto quando o pagamento foi cancelado mas o tipo_usuario não foi atualizado.",
+        parameters: { type: "object", properties: {}, required: [] },
       },
     },
-  ];
-
-  const messages: Anthropic.MessageParam[] = [
-    { role: "user", content: contexto },
+    {
+      type: "function",
+      function: {
+        name: "corrigir_assinatura_sem_premium",
+        description: "Promove para 'premium' usuários com assinatura ativa que ainda estão marcados como 'free'. Correto quando o webhook MP chegou mas o usuário não foi atualizado.",
+        parameters: { type: "object", properties: {}, required: [] },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "limpar_assinaturas_orfas",
+        description: "Remove assinaturas sem usuário correspondente (dados órfãos).",
+        parameters: { type: "object", properties: {}, required: [] },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "limpar_push_subscriptions_antigas",
+        description: "Remove push subscriptions com mais de 90 dias (cleanup de segurança).",
+        parameters: { type: "object", properties: {}, required: [] },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "atualizar_configuracao",
+        description: "Atualiza uma configuração em app_configuracoes (ex: desativar desconto sazonal incorreto).",
+        parameters: {
+          type: "object",
+          properties: {
+            chave: { type: "string", description: "Nome da configuração" },
+            valor: { type: "string", description: "Novo valor" },
+            motivo: { type: "string", description: "Por que está alterando" },
+          },
+          required: ["chave", "valor", "motivo"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "triggerar_redeploy",
+        description: "Dispara um redeploy automático da aplicação no Vercel. Use quando suspeitar de bug transitório que pode ter sido causado por cache ou estado corrompido em memória. Tenta via deploy hook primeiro, depois via API com token.",
+        parameters: {
+          type: "object",
+          properties: {
+            motivo: { type: "string", description: "Por que está fazendo redeploy" },
+          },
+          required: ["motivo"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "enviar_relatorio",
+        description: "OBRIGATÓRIO ao final. Envia o relatório de diagnóstico e ações via Telegram.",
+        parameters: {
+          type: "object",
+          properties: {
+            diagnostico: { type: "string" },
+            acoes_tomadas: { type: "string" },
+            codigo_sugerido: { type: "string", description: "Se for bug de código, o código corrigido para o Leandro aplicar" },
+            arquivo_sugerido: { type: "string", description: "Caminho do arquivo a ser alterado (ex: src/app/api/cron/fiscal-banco/route.ts)" },
+            precisa_intervencao_humana: { type: "boolean" },
+          },
+          required: ["diagnostico", "acoes_tomadas", "precisa_intervencao_humana"],
+        },
+      },
+    },
   ];
 
   const acoesTomadas: string[] = [];
-  let relatorioFinal: Record<string, unknown> | null = null;
 
-  for (let i = 0; i < 12; i++) {
-    const response = await client.messages.create({
-      model: "claude-opus-4-8",
-      max_tokens: 4096,
-      tools,
-      messages,
-    });
-
-    messages.push({ role: "assistant", content: response.content });
-    if (response.stop_reason !== "tool_use") break;
-
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-
-    for (const block of response.content) {
-      if (block.type !== "tool_use") continue;
-      let resultado: unknown = "";
-
-      try {
-        switch (block.name) {
-          case "diagnosticar_sistema":
-            resultado = await diagnosticarSistema();
-            break;
-          case "verificar_falhas_recentes":
-            resultado = await verificarFalhasRecentes(agente);
-            break;
-          case "corrigir_premium_sem_assinatura":
-            resultado = await corrigirPremiumSemAssinatura();
-            acoesTomadas.push(`Corrigiu premium sem assinatura: ${JSON.stringify(resultado)}`);
-            break;
-          case "corrigir_assinatura_sem_premium":
-            resultado = await corrigirAssinaturaSemPremium();
-            acoesTomadas.push(`Promoveu usuários para premium: ${JSON.stringify(resultado)}`);
-            break;
-          case "limpar_assinaturas_orfas":
-            resultado = await limparAssinaturasOrfas();
-            acoesTomadas.push(`Limpou assinaturas órfãs: ${JSON.stringify(resultado)}`);
-            break;
-          case "limpar_push_subscriptions_antigas":
-            resultado = await limparPushSubscriptionsAntigas();
-            acoesTomadas.push(`Limpou push subscriptions: ${JSON.stringify(resultado)}`);
-            break;
-          case "atualizar_configuracao": {
-            const { chave, valor, motivo } = block.input as { chave: string; valor: string; motivo: string };
-            resultado = await atualizarConfiguracao(chave, valor);
-            acoesTomadas.push(`Config atualizada: ${chave}=${valor} — ${motivo}`);
-            break;
-          }
-          case "triggerar_redeploy": {
-            const { motivo } = block.input as { motivo: string };
-            resultado = await triguerarRedeploy();
-            const r = resultado as { ok: boolean; msg: string };
-            acoesTomadas.push(`Redeploy: ${r.ok ? "✅" : "❌"} ${r.msg} — Motivo: ${motivo}`);
-            break;
-          }
-          case "enviar_relatorio":
-            relatorioFinal = block.input as Record<string, unknown>;
-            resultado = "Relatório registrado";
-            break;
-        }
-      } catch (err) {
-        resultado = `Erro: ${String(err).slice(0, 200)}`;
+  const executarFerramenta = async (nome: string, args: Record<string, unknown>): Promise<unknown> => {
+    switch (nome) {
+      case "diagnosticar_sistema":
+        return await diagnosticarSistema();
+      case "verificar_falhas_recentes":
+        return await verificarFalhasRecentes(agente);
+      case "corrigir_premium_sem_assinatura": {
+        const resultado = await corrigirPremiumSemAssinatura();
+        acoesTomadas.push(`Corrigiu premium sem assinatura: ${JSON.stringify(resultado)}`);
+        return resultado;
       }
-
-      toolResults.push({
-        type: "tool_result",
-        tool_use_id: block.id,
-        content: JSON.stringify(resultado),
-      });
+      case "corrigir_assinatura_sem_premium": {
+        const resultado = await corrigirAssinaturaSemPremium();
+        acoesTomadas.push(`Promoveu usuários para premium: ${JSON.stringify(resultado)}`);
+        return resultado;
+      }
+      case "limpar_assinaturas_orfas": {
+        const resultado = await limparAssinaturasOrfas();
+        acoesTomadas.push(`Limpou assinaturas órfãs: ${JSON.stringify(resultado)}`);
+        return resultado;
+      }
+      case "limpar_push_subscriptions_antigas": {
+        const resultado = await limparPushSubscriptionsAntigas();
+        acoesTomadas.push(`Limpou push subscriptions: ${JSON.stringify(resultado)}`);
+        return resultado;
+      }
+      case "atualizar_configuracao": {
+        const { chave, valor, motivo } = args as { chave: string; valor: string; motivo: string };
+        const resultado = await atualizarConfiguracao(chave, valor);
+        acoesTomadas.push(`Config atualizada: ${chave}=${valor} — ${motivo}`);
+        return resultado;
+      }
+      case "triggerar_redeploy": {
+        const { motivo } = args as { motivo: string };
+        const resultado = await triguerarRedeploy();
+        acoesTomadas.push(`Redeploy: ${resultado.ok ? "✅" : "❌"} ${resultado.msg} — Motivo: ${motivo}`);
+        return resultado;
+      }
+      case "enviar_relatorio":
+        return "Relatório registrado";
+      default:
+        return `Ferramenta desconhecida: ${nome}`;
     }
+  };
 
-    messages.push({ role: "user", content: toolResults });
-  }
+  const { relatorioFinal } = await gerarComFerramentas({
+    promptInicial: contexto,
+    ferramentas,
+    executar: executarFerramenta,
+    nomeFerramentaFinal: "enviar_relatorio",
+    maxIteracoes: 12,
+  });
 
   // Envia relatório via Telegram
   if (relatorioFinal) {

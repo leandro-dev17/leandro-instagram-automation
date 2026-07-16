@@ -1,10 +1,15 @@
 /**
  * Guardião 24/7 — Vovó Teresinha
  * Roda a cada 15 minutos via GitHub Actions.
- * Detecta falhas → chama Claude → aplica correções → avisa só o que foi resolvido.
+ * Detecta falhas → chama Groq/Cerebras (Llama 3.3 70B) → aplica correções → avisa só o que foi resolvido.
+ * Anthropic removido em 16/07/2026 (mesmo motivo do restante do squad): chave excluída pelo
+ * usuário para parar cobrança recorrente. Como este script escreve arquivo direto no disco do
+ * runner (sem passar pela validação de compilação do claude-revisor), validarAntesDeEscrever()
+ * abaixo é a rede de segurança real — ver o incidente de lib/agente-falha.ts que motivou o
+ * mesmo tipo de proteção no claude-revisor.
  */
 
-const Anthropic = require("@anthropic-ai/sdk");
+const ts = require("typescript");
 const fs = require("fs");
 const path = require("path");
 
@@ -15,6 +20,11 @@ const TG_CHAT     = process.env.TELEGRAM_CHAT_ID   || "";
 const VERCEL_TOK  = process.env.VERCEL_TOKEN        || "";
 const VERCEL_PID  = process.env.VERCEL_PROJECT_ID   || "prj_RtqsbSdxPMz81W2cr0tJyatRJGMv";
 const VERCEL_TID  = process.env.VERCEL_TEAM_ID      || "team_JnDwQYGSI9RBjHyIygKLR56b";
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || "";
+const MODELO_LLAMA_GROQ = "llama-3.3-70b-versatile";
+const MODELO_LLAMA_CEREBRAS = "llama-3.3-70b";
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 const APP_SRC   = path.join(REPO_ROOT, "squads/vovo-teresinha/app/src");
@@ -174,6 +184,41 @@ function readSourceFile(relativePath) {
   return fs.readFileSync(full, "utf8");
 }
 
+// Bloqueia escritas que quebrariam o build antes de irem pro disco do runner (que o workflow
+// commita e pusha direto, sem CI no meio). Mesmo padrão de validarAntesDeCommitar do claude-revisor.
+function validarAntesDeEscrever(caminho, codigoNovo, codigoAntigo) {
+  if (codigoNovo.includes("```")) {
+    return { ok: false, motivo: "markdown residual no código (cerca não removida)" };
+  }
+  if (codigoAntigo && codigoNovo.trim().length < codigoAntigo.trim().length * 0.5) {
+    return { ok: false, motivo: "conteúdo novo tem menos da metade do tamanho original (risco de truncamento)" };
+  }
+  if (caminho.endsWith(".ts") || caminho.endsWith(".tsx")) {
+    const resultado = ts.transpileModule(codigoNovo, {
+      compilerOptions: {
+        jsx: ts.JsxEmit.ReactJSX,
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2020,
+      },
+      reportDiagnostics: true,
+    });
+    const erros = (resultado.diagnostics || []).filter(d => d.category === ts.DiagnosticCategory.Error);
+    if (erros.length > 0) {
+      const msg = erros.map(e => ts.flattenDiagnosticMessageText(e.messageText, " ")).join("; ");
+      return { ok: false, motivo: `erro de sintaxe TypeScript: ${msg.substring(0, 200)}` };
+    }
+    if (codigoAntigo) {
+      const exportsAntigos = [...codigoAntigo.matchAll(/export\s+(?:async\s+)?(?:function|const)\s+(\w+)/g)].map(m => m[1]);
+      const exportsNovos = new Set([...codigoNovo.matchAll(/export\s+(?:async\s+)?(?:function|const)\s+(\w+)/g)].map(m => m[1]));
+      const perdidos = exportsAntigos.filter(nome => !exportsNovos.has(nome));
+      if (perdidos.length > 0) {
+        return { ok: false, motivo: `removeria export(s) usados por outros arquivos: ${perdidos.join(", ")}` };
+      }
+    }
+  }
+  return { ok: true };
+}
+
 function writeSourceFile(relativePath, content) {
   // Bloquear caminhos que começam com src/ para evitar criar src/src/ duplicado
   const cleaned = relativePath.replace(/^src[\\/]/, "");
@@ -204,11 +249,85 @@ async function triggerRedeploy() {
 
 function waitMs(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ── Claude: diagnóstico e correção autônoma ──────────────────────────────────
+// ── Groq/Cerebras: tool-use agêntico (formato OpenAI-compatible) ─────────────
+// Mesmo padrão de squads/vovo-teresinha/app/src/lib/ai.ts (gerarComFerramentas), duplicado aqui
+// porque este script .cjs roda isolado no runner do GitHub Actions e não importa o app Next.js.
+
+async function rodarLoopFerramentas(url, apiKey, modelo, promptInicial, ferramentas, executar, nomeFerramentaFinal, maxIteracoes) {
+  const messages = [{ role: "user", content: promptInicial }];
+  let relatorioFinal = null;
+  const acoesAplicadas = [];
+
+  for (let i = 0; i < maxIteracoes; i++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelo, messages, tools: ferramentas, max_tokens: 4096 }),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!res.ok) throw new Error(`${url} ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const msg = data.choices?.[0]?.message;
+    if (!msg) throw new Error("Resposta sem choices[0].message");
+
+    const chamadas = msg.tool_calls || [];
+    messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: chamadas });
+    if (chamadas.length === 0) break;
+
+    for (const chamada of chamadas) {
+      const nome = chamada.function.name;
+      let args = {};
+      try { args = JSON.parse(chamada.function.arguments || "{}"); } catch { /* argumentos malformados, segue vazio */ }
+
+      let resultado;
+      try {
+        resultado = await executar(nome, args, acoesAplicadas);
+      } catch (err) {
+        resultado = `Erro: ${String(err).slice(0, 200)}`;
+      }
+
+      if (nome === nomeFerramentaFinal) relatorioFinal = args;
+
+      messages.push({
+        role: "tool",
+        tool_call_id: chamada.id,
+        content: typeof resultado === "string" ? resultado : JSON.stringify(resultado),
+      });
+    }
+
+    if (relatorioFinal) break;
+  }
+
+  return { relatorioFinal, acoesAplicadas };
+}
+
+async function gerarComFerramentas({ promptInicial, ferramentas, executar, nomeFerramentaFinal, maxIteracoes = 10 }) {
+  const erros = [];
+
+  if (GROQ_API_KEY) {
+    try {
+      return await rodarLoopFerramentas(
+        "https://api.groq.com/openai/v1/chat/completions", GROQ_API_KEY, MODELO_LLAMA_GROQ,
+        promptInicial, ferramentas, executar, nomeFerramentaFinal, maxIteracoes
+      );
+    } catch (err) { erros.push(`Groq: ${String(err)}`); }
+  }
+
+  if (CEREBRAS_API_KEY) {
+    try {
+      return await rodarLoopFerramentas(
+        "https://api.cerebras.ai/v1/chat/completions", CEREBRAS_API_KEY, MODELO_LLAMA_CEREBRAS,
+        promptInicial, ferramentas, executar, nomeFerramentaFinal, maxIteracoes
+      );
+    } catch (err) { erros.push(`Cerebras: ${String(err)}`); }
+  }
+
+  throw new Error(`Groq e Cerebras falharam — ${erros.join(" | ")}`);
+}
+
+// ── Diagnóstico e correção autônoma ───────────────────────────────────────────
 
 async function diagnoseAndFix(failedChecks, logs) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
   const sourceContext = [];
   for (const check of failedChecks) {
     const routeName = check.name.replace(/^(homepage|login-page|api-receitas)$/, "");
@@ -238,88 +357,91 @@ ${sourceContext.join("\n") || "(nenhum encontrado)"}
 ## Missão:
 1. Use \`read_file\` para mais contexto se necessário
 2. Diagnostique a causa raiz
-3. Use \`write_fix\` para corrigir em código
+3. Use \`write_fix\` para corrigir em código — o campo "content" deve ser o arquivo completo
+   corrigido, em TypeScript puro, SEM cercas de markdown (sem \`\`\`) e sem explicação junto
 4. Finalize com \`send_report\``;
 
-  const tools = [
+  const ferramentas = [
     {
-      name: "read_file",
-      description: "Lê arquivo do repositório.",
-      input_schema: {
-        type: "object",
-        properties: { path: { type: "string", description: "Caminho relativo a squads/vovo-teresinha/app/src/" } },
-        required: ["path"],
+      type: "function",
+      function: {
+        name: "read_file",
+        description: "Lê arquivo do repositório.",
+        parameters: {
+          type: "object",
+          properties: { path: { type: "string", description: "Caminho relativo a squads/vovo-teresinha/app/src/" } },
+          required: ["path"],
+        },
       },
     },
     {
-      name: "write_fix",
-      description: "Escreve arquivo corrigido. Commit e redeploy serão feitos automaticamente.",
-      input_schema: {
-        type: "object",
-        properties: {
-          path: { type: "string" },
-          content: { type: "string" },
-          reason: { type: "string", description: "Explicação da correção em 1 frase" },
+      type: "function",
+      function: {
+        name: "write_fix",
+        description: "Escreve arquivo corrigido. Commit e redeploy serão feitos automaticamente.",
+        parameters: {
+          type: "object",
+          properties: {
+            path: { type: "string" },
+            content: { type: "string" },
+            reason: { type: "string", description: "Explicação da correção em 1 frase" },
+          },
+          required: ["path", "content", "reason"],
         },
-        required: ["path", "content", "reason"],
       },
     },
     {
-      name: "send_report",
-      description: "OBRIGATÓRIO ao final.",
-      input_schema: {
-        type: "object",
-        properties: {
-          diagnosis: { type: "string" },
-          action: { type: "string", enum: ["code_fixed", "redeploy_triggered", "no_fix_possible", "false_alarm"] },
-          summary: { type: "string" },
-          fixed_items: { type: "array", items: { type: "string" }, description: "Lista do que foi corrigido" },
-          needs_human: { type: "boolean" },
+      type: "function",
+      function: {
+        name: "send_report",
+        description: "OBRIGATÓRIO ao final.",
+        parameters: {
+          type: "object",
+          properties: {
+            diagnosis: { type: "string" },
+            action: { type: "string", enum: ["code_fixed", "redeploy_triggered", "no_fix_possible", "false_alarm"] },
+            summary: { type: "string" },
+            fixed_items: { type: "array", items: { type: "string" }, description: "Lista do que foi corrigido" },
+            needs_human: { type: "boolean" },
+          },
+          required: ["diagnosis", "action", "summary", "fixed_items", "needs_human"],
         },
-        required: ["diagnosis", "action", "summary", "fixed_items", "needs_human"],
       },
     },
   ];
 
-  const messages = [{ role: "user", content: prompt }];
-  let report = null;
   const actionsApplied = [];
 
-  for (let i = 0; i < 10; i++) {
-    const resp = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      tools,
-      messages,
-    });
-
-    messages.push({ role: "assistant", content: resp.content });
-    if (resp.stop_reason !== "tool_use") break;
-
-    const results = [];
-    for (const block of resp.content) {
-      if (block.type !== "tool_use") continue;
-      let result = "";
-      try {
-        if (block.name === "read_file") {
-          result = readSourceFile(block.input.path) ?? "Arquivo não encontrado.";
-        } else if (block.name === "write_fix") {
-          writeSourceFile(block.input.path, block.input.content);
-          actionsApplied.push({ path: block.input.path, reason: block.input.reason });
-          result = "Arquivo escrito.";
-        } else if (block.name === "send_report") {
-          report = block.input;
-          result = "Relatório registrado.";
-        }
-      } catch (e) {
-        result = `Erro: ${String(e).slice(0, 200)}`;
-      }
-      results.push({ type: "tool_result", tool_use_id: block.id, content: result });
+  const executarFerramenta = async (nome, args) => {
+    if (nome === "read_file") {
+      return readSourceFile(args.path) ?? "Arquivo não encontrado.";
     }
-    messages.push({ role: "user", content: results });
-  }
+    if (nome === "write_fix") {
+      const codigoLimpo = String(args.content).replace(/^```[a-zA-Z]*\n?/, "").replace(/\n?```\s*$/, "").trim();
+      const codigoAntigo = readSourceFile(args.path.replace(/^src[\\/]/, "")) || "";
+      const validacao = validarAntesDeEscrever(args.path, codigoLimpo, codigoAntigo);
+      if (!validacao.ok) {
+        return `Fix BLOQUEADO antes de escrever (${validacao.motivo}) — revise e tente write_fix de novo.`;
+      }
+      writeSourceFile(args.path, codigoLimpo);
+      actionsApplied.push({ path: args.path, reason: args.reason });
+      return "Arquivo escrito.";
+    }
+    if (nome === "send_report") {
+      return "Relatório registrado.";
+    }
+    return `Ferramenta desconhecida: ${nome}`;
+  };
 
-  return { report, actionsApplied };
+  const { relatorioFinal } = await gerarComFerramentas({
+    promptInicial: prompt,
+    ferramentas,
+    executar: executarFerramenta,
+    nomeFerramentaFinal: "send_report",
+    maxIteracoes: 10,
+  });
+
+  return { report: relatorioFinal, actionsApplied };
 }
 
 // ── Health check de rotas de usuário (servidor-para-servidor) ────────────────

@@ -103,6 +103,117 @@ export async function gerarTexto(paramsOriginais: MensagemIA): Promise<string> {
   throw new Error(`Groq e Cerebras falharam — ${erros.join(" | ")}`);
 }
 
+// ===== Tool-use agêntico (claude-resolver) =====
+// Substitui o loop nativo Anthropic (tools + tool_use) pelo formato OpenAI-compatible que
+// Groq/Cerebras suportam para Llama 3.3 70B: "function calling" com tool_calls/role:"tool".
+
+export type DefinicaoFerramenta = {
+  type: "function";
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+};
+
+export type ChamadaFerramenta = { nome: string; argumentos: Record<string, unknown>; resultado: unknown };
+
+type MensagemFerramentas =
+  | { role: "user"; content: string }
+  | { role: "assistant"; content: string | null; tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[] }
+  | { role: "tool"; tool_call_id: string; content: string };
+
+async function rodarLoopFerramentas(
+  url: string,
+  apiKey: string,
+  modelo: string,
+  promptInicial: string,
+  ferramentas: DefinicaoFerramenta[],
+  executar: (nome: string, args: Record<string, unknown>) => Promise<unknown>,
+  nomeFerramentaFinal: string,
+  maxIteracoes: number
+): Promise<{ relatorioFinal: Record<string, unknown> | null; historico: ChamadaFerramenta[] }> {
+  const messages: MensagemFerramentas[] = [{ role: "user", content: promptInicial }];
+  const historico: ChamadaFerramenta[] = [];
+  let relatorioFinal: Record<string, unknown> | null = null;
+
+  for (let i = 0; i < maxIteracoes; i++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelo, messages, tools: ferramentas, max_tokens: 4096 }),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!res.ok) throw new Error(`${url} ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const msg = data.choices?.[0]?.message;
+    if (!msg) throw new Error("Resposta sem choices[0].message");
+
+    const chamadas = msg.tool_calls || [];
+    messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: chamadas });
+    if (chamadas.length === 0) break;
+
+    for (const chamada of chamadas) {
+      const nome = chamada.function.name;
+      let args: Record<string, unknown> = {};
+      try { args = JSON.parse(chamada.function.arguments || "{}"); } catch { /* argumentos malformados, segue vazio */ }
+
+      let resultado: unknown;
+      try {
+        resultado = await executar(nome, args);
+      } catch (err) {
+        resultado = `Erro: ${String(err).slice(0, 200)}`;
+      }
+
+      if (nome === nomeFerramentaFinal) relatorioFinal = args;
+      historico.push({ nome, argumentos: args, resultado });
+
+      messages.push({
+        role: "tool",
+        tool_call_id: chamada.id,
+        content: typeof resultado === "string" ? resultado : JSON.stringify(resultado),
+      });
+    }
+
+    if (relatorioFinal) break;
+  }
+
+  return { relatorioFinal, historico };
+}
+
+/**
+ * Loop agêntico de tool-use: tenta rodar do zero via Groq; se Groq falhar (erro de rede/API,
+ * não decisão de negócio), tenta de novo do zero via Cerebras. Ferramentas que alteram estado
+ * (UPDATE...WHERE, redeploy) devem ser idempotentes o bastante para tolerar uma repetição rara
+ * nesse cenário de fallback — não há como retomar o loop no meio em outro provedor.
+ */
+export async function gerarComFerramentas(params: {
+  promptInicial: string;
+  ferramentas: DefinicaoFerramenta[];
+  executar: (nome: string, args: Record<string, unknown>) => Promise<unknown>;
+  nomeFerramentaFinal: string;
+  maxIteracoes?: number;
+}): Promise<{ relatorioFinal: Record<string, unknown> | null; historico: ChamadaFerramenta[] }> {
+  const { promptInicial, ferramentas, executar, nomeFerramentaFinal, maxIteracoes = 12 } = params;
+  const erros: string[] = [];
+
+  if (GROQ_API_KEY) {
+    try {
+      return await rodarLoopFerramentas(
+        "https://api.groq.com/openai/v1/chat/completions", GROQ_API_KEY, MODELO_LLAMA_GROQ,
+        promptInicial, ferramentas, executar, nomeFerramentaFinal, maxIteracoes
+      );
+    } catch (err) { erros.push(`Groq: ${String(err)}`); }
+  }
+
+  if (CEREBRAS_API_KEY) {
+    try {
+      return await rodarLoopFerramentas(
+        "https://api.cerebras.ai/v1/chat/completions", CEREBRAS_API_KEY, MODELO_LLAMA_CEREBRAS,
+        promptInicial, ferramentas, executar, nomeFerramentaFinal, maxIteracoes
+      );
+    } catch (err) { erros.push(`Cerebras: ${String(err)}`); }
+  }
+
+  throw new Error(`Groq e Cerebras falharam — ${erros.join(" | ")}`);
+}
+
 /**
  * Gera código (uso exclusivo do claude-revisor): tenta Groq → Cerebras, sem instrução de idioma
  * (evita interferir na saída, que deve ser só código). A rede de segurança contra código
