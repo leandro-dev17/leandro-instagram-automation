@@ -2452,5 +2452,37 @@
       ],
       "publishedAt": "2026-07-16T16:08:57.902Z"
     }
+  },
+  "2026-07-17": {
+    "kling-reel": {
+      "postId": "18021673832896651",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Treino de Glúteo Inteligente: Qual Exercício Funciona em Cada Fase",
+      "videoId": "10-loira-verde-rotacao",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-17T16:06:37.697Z"
+    }
   }
 }
