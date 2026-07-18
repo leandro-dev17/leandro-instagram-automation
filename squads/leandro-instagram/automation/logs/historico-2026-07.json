@@ -300,6 +300,126 @@
           "runId": 29204636272
         }
       }
+    },
+    "2026-07-14": {
+      "data": "2026-07-14",
+      "geradoEm": "2026-07-14T01:05:44.727Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "success",
+          "concluiuEm": "2026-07-13T12:24:28Z",
+          "runId": 29249634163
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "success",
+          "concluiuEm": "2026-07-13T17:04:57Z",
+          "runId": 29268892981
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "success",
+          "concluiuEm": "2026-07-13T19:13:27Z",
+          "runId": 29277477074
+        }
+      }
+    },
+    "2026-07-15": {
+      "data": "2026-07-15",
+      "geradoEm": "2026-07-15T01:03:05.580Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "success",
+          "concluiuEm": "2026-07-14T11:15:06Z",
+          "runId": 29328134763
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "success",
+          "concluiuEm": "2026-07-14T16:07:40Z",
+          "runId": 29348236563
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "success",
+          "concluiuEm": "2026-07-14T19:04:49Z",
+          "runId": 29360207614
+        }
+      }
+    },
+    "2026-07-16": {
+      "data": "2026-07-16",
+      "geradoEm": "2026-07-16T01:11:48.236Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "success",
+          "concluiuEm": "2026-07-15T11:19:07Z",
+          "runId": 29411068358
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "success",
+          "concluiuEm": "2026-07-15T16:12:14Z",
+          "runId": 29431324900
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "success",
+          "concluiuEm": "2026-07-15T18:56:56Z",
+          "runId": 29442436057
+        }
+      }
+    },
+    "2026-07-17": {
+      "data": "2026-07-17",
+      "geradoEm": "2026-07-17T01:15:45.127Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "success",
+          "concluiuEm": "2026-07-16T11:28:43Z",
+          "runId": 29494188515
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "success",
+          "concluiuEm": "2026-07-16T16:09:00Z",
+          "runId": 29514237230
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "success",
+          "concluiuEm": "2026-07-16T18:57:22Z",
+          "runId": 29525899712
+        }
+      }
+    },
+    "2026-07-18": {
+      "data": "2026-07-18",
+      "geradoEm": "2026-07-18T01:08:02.140Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "success",
+          "concluiuEm": "2026-07-17T16:02:10Z",
+          "runId": 29593790998
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "success",
+          "concluiuEm": "2026-07-17T16:06:40Z",
+          "runId": 29594779265
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "success",
+          "concluiuEm": "2026-07-17T18:54:06Z",
+          "runId": 29605421825
+        }
+      }
     }
   }
 }

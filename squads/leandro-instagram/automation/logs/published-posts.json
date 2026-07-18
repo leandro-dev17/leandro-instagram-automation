@@ -2356,5 +2356,133 @@
       ],
       "publishedAt": "2026-07-13T17:04:53.581Z"
     }
+  },
+  "2026-07-14": {
+    "kling-reel": {
+      "postId": "18211858081339981",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Treino de Força na Fase Folicular: Seu Superpoder Mensal",
+      "videoId": "12-morena-escura-coral-ombro",
+      "hook": [
+        {
+          "l1": "Você treina forte",
+          "l2": "todos os dias.",
+          "l3": "Mas desperdiça"
+        },
+        {
+          "l1": "Sua amiga malha",
+          "l2": "menos que você.",
+          "l3": "E ganha mais"
+        },
+        {
+          "l1": "Seu personal sabe.",
+          "l2": "Não te contou.",
+          "l3": "Funciona demais."
+        },
+        {
+          "l1": "Você já sentiu",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-14T16:07:37.742Z"
+    }
+  },
+  "2026-07-15": {
+    "kling-reel": {
+      "postId": "18062768855718022",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Força vs Cardio: Qual Realmente Emagrece Mais",
+      "videoId": "13-loira-curta-azul-angulo-baixo",
+      "hook": [
+        {
+          "l1": "Você faz cardio",
+          "l2": "todo dia.",
+          "l3": "E nada muda."
+        },
+        {
+          "l1": "O problema",
+          "l2": "não é esforço.",
+          "l3": "É o método."
+        },
+        {
+          "l1": "Força queima",
+          "l2": "mais gordura",
+          "l3": "que cardio."
+        },
+        {
+          "l1": "Você sabia?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-15T16:12:11.273Z"
+    }
+  },
+  "2026-07-16": {
+    "kling-reel": {
+      "postId": "18051178277556191",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "A Refeiç��o Perfeita: Proteína, Carboidrato e Gordura na Proporção Certa",
+      "videoId": "15-negra-vermelho-cintura-quadril",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-16T16:08:57.902Z"
+    }
+  },
+  "2026-07-17": {
+    "kling-reel": {
+      "postId": "18021673832896651",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Treino de Glúteo Inteligente: Qual Exercício Funciona em Cada Fase",
+      "videoId": "10-loira-verde-rotacao",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-17T16:06:37.697Z"
+    }
   }
 }

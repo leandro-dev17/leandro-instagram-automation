@@ -41,6 +41,10 @@
     {
       "path": "/api/cron/saude-pwa",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/observador-mercado",
+      "schedule": "0 9 * * 1"
     }
   ]
 }
