@@ -56,19 +56,36 @@ function validarAntesDeCommitar(caminho: string, codigoNovo: string, codigoAntig
   return { ok: true };
 }
 
-// Tipo de alerta → arquivo mais provável para corrigir
-const ARQUIVO_POR_TIPO: Record<string, string> = {
-  "codigo_seguranca":   `${BASE}/lib/auth.ts`,
-  "codigo_schema":      `${BASE}/app/api/admin/setup/route.ts`,
-  "codigo_logica":      `${BASE}/app/api/cron/agente-assinaturas/route.ts`,
-  "codigo_performance": `${BASE}/lib/agente-falha.ts`,
-  // codigo_estatico: arquivo vem no campo 'arquivo' do alerta → resolvido em runtime
+// Só tenta corrigir automaticamente quando dá pra derivar o arquivo real da mensagem do
+// alerta. codigo_schema, codigo_logica e codigo_performance são sintomas agregados (contagem,
+// taxa, fila, coluna de tabela) sem NENHUMA referência a um arquivo de código — mapear cada um
+// pra um arquivo fixo (como era antes) é um chute, e foi exatamente esse chute que corrompeu
+// lib/agente-falha.ts em 85 commits seguidos (alertas de fila/latência não têm nada a ver com
+// esse arquivo). Pra esses três tipos, claude-revisor agora escala direto pra revisão manual.
+
+// codigo_seguranca: cada check de fiscal-codigo-seguranca testa uma rota real específica —
+// mensagem vem como "[nome_do_check] motivo", mesmo formato do codigo_estatico.
+const ARQUIVO_POR_CHECK_SEGURANCA: Record<string, string> = {
+  cron_sem_secret_bloqueado:        `${BASE}/lib/auth-cron.ts`,
+  cron_com_secret_funciona:         `${BASE}/lib/auth-cron.ts`,
+  admin_sem_auth_bloqueado:         `${BASE}/app/api/admin/usuarios/route.ts`,
+  favoritos_sem_auth_bloqueado:     `${BASE}/app/api/usuarios/favoritos/route.ts`,
+  plano_semanal_sem_auth_bloqueado: `${BASE}/app/api/plano-semanal/route.ts`,
+  lista_compras_sem_auth_bloqueado: `${BASE}/app/api/lista-compras/route.ts`,
+  geladeira_sem_auth_bloqueado:     `${BASE}/app/api/geladeira/route.ts`,
+  webhook_mp_valida_assinatura:     `${BASE}/app/api/webhook/mercadopago/route.ts`,
 };
 
 // Extrai o nome do cron do alerta estático: "[nome-do-cron] problema"
 function extrairArquivoEstatico(mensagem: string): string | null {
   const m = mensagem.match(/^\[([^\]]+)\]/);
   return m ? `${BASE}/app/api/cron/${m[1]}/route.ts` : null;
+}
+
+// Extrai o check de segurança que falhou e resolve pro arquivo real da rota testada
+function extrairArquivoSeguranca(mensagem: string): string | null {
+  const m = mensagem.match(/^\[([^\]]+)\]/);
+  return m ? ARQUIVO_POR_CHECK_SEGURANCA[m[1]] || null : null;
 }
 
 async function lerArquivoGitHub(path: string): Promise<string> {
@@ -176,12 +193,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, motivo: "Escalado para intervenção manual" });
     }
 
-    // Determina arquivo principal a corrigir
+    // Determina arquivo principal a corrigir — só quando dá pra derivar com segurança da
+    // mensagem do alerta (ver comentário acima de ARQUIVO_POR_CHECK_SEGURANCA). Nada de
+    // fallback pra um arquivo fixo: se não dá pra saber qual arquivo é, não tenta adivinhar.
     const tipoAlerta = alertas[0].tipo;
-    // Para alertas estáticos, o arquivo vem codificado na mensagem: "[nome-cron] problema"
-    const arquivo = tipoAlerta === "codigo_estatico"
-      ? (extrairArquivoEstatico(alertas[0].mensagem) ?? `${BASE}/app/api/cron/agente-assinaturas/route.ts`)
-      : (ARQUIVO_POR_TIPO[tipoAlerta] || `${BASE}/lib/auth.ts`);
+    const arquivo =
+      tipoAlerta === "codigo_estatico" ? extrairArquivoEstatico(alertas[0].mensagem) :
+      tipoAlerta === "codigo_seguranca" ? extrairArquivoSeguranca(alertas[0].mensagem) :
+      null; // codigo_schema / codigo_logica / codigo_performance: sintoma agregado, sem arquivo
+
+    if (!arquivo) {
+      await alertarTelegram(
+        "🟡",
+        "CLAUDE REVISOR — Sem arquivo derivável, revisão manual necessária",
+        `Tipo: ${tipoAlerta}\n` +
+        alertas.map(a => `❌ ${a.mensagem}`).join("\n") +
+        `\n\n<b>Esse tipo de alerta é um sintoma agregado (métrica, contagem, tabela) e não ` +
+        `aponta pra um arquivo específico — corrigir automaticamente aqui seria só um chute.</b>\n\n` +
+        `<b>Passos para resolver:</b>\n1. Abra o Claude Code\n2. Execute: /BioNexus Digital\n3. Descreva o problema acima para o BioNexus resolver`
+      );
+      await sql`
+        INSERT INTO falhas_agentes (agente, erro, dados, tentativas)
+        VALUES ('claude-revisor', ${`sem arquivo derivável para ${tipoAlerta}`}, ${JSON.stringify({ tipoAlerta })}, 1)
+      `;
+      return NextResponse.json({ ok: false, motivo: "Sem arquivo derivável — escalado para revisão manual" });
+    }
 
     // Lê arquivo do GitHub
     let codigoAtual = "";
@@ -195,7 +231,7 @@ export async function POST(req: NextRequest) {
     // Groq/Cerebras (Llama 3.3 70B) gera o fix
     const problema = alertas.map(a => a.mensagem).join("\n");
     const codigoCorrigido = (await gerarCodigo({
-      max_tokens: 3000,
+      max_tokens: 8000,
       messages: [{
         role: "user",
         content: `Você é um engenheiro sênior do app Receitinhas da Vovó Teresinha (Next.js 16, Neon PostgreSQL, Vercel).
@@ -205,7 +241,7 @@ ${problema}
 
 ARQUIVO ATUAL (${arquivo}):
 \`\`\`typescript
-${codigoAtual.substring(0, 3000)}
+${codigoAtual}
 \`\`\`
 
 Retorne APENAS o código TypeScript corrigido completo, sem explicação, sem markdown, sem \`\`\`.
