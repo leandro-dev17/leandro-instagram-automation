@@ -2484,5 +2484,37 @@
       ],
       "publishedAt": "2026-07-17T16:06:37.697Z"
     }
+  },
+  "2026-07-18": {
+    "kling-reel": {
+      "postId": "18140524180483256",
+      "youtubeId": null,
+      "type": "kling-reel",
+      "topic": "Metabolismo feminino em ação: como seu corpo realmente funciona",
+      "videoId": "11-ruiva-lilas-caminhada-frontal",
+      "hook": [
+        {
+          "l1": "Isso vai mudar",
+          "l2": "seu treino.",
+          "l3": "A maioria ignora."
+        },
+        {
+          "l1": "Os resultados",
+          "l2": "provam isso",
+          "l3": "todo dia."
+        },
+        {
+          "l1": "Você ainda nao",
+          "l2": "fez isso?",
+          "l3": "Hora de mudar."
+        },
+        {
+          "l1": "Ja fez antes?",
+          "l2": "",
+          "l3": ""
+        }
+      ],
+      "publishedAt": "2026-07-18T15:43:13.584Z"
+    }
   }
 }
