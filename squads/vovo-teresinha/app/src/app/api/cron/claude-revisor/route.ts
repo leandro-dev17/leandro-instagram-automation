@@ -228,8 +228,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "Não conseguiu ler arquivo no GitHub" }, { status: 500 });
     }
 
-    // Groq/Cerebras (Llama 3.3 70B) gera o fix
-    const problema = alertas.map(a => a.mensagem).join("\n");
+    // Groq/Cerebras (Llama 3.3 70B) gera o fix — só com os alertas do MESMO tipo que gerou
+    // `arquivo` acima. Alertas de outro tipo vindos no mesmo lote (ex: schema junto com
+    // seguranca) não têm nada a ver com este arquivo e não devem entrar no prompt nem ser
+    // marcados como resolvidos mais abaixo.
+    const alertasDoTipo = alertas.filter(a => a.tipo === tipoAlerta);
+    const problema = alertasDoTipo.map(a => a.mensagem).join("\n");
     const codigoCorrigido = (await gerarCodigo({
       max_tokens: 8000,
       messages: [{
@@ -275,12 +279,19 @@ O código deve compilar sem erros TypeScript.`,
     `;
 
     if (commitOk) {
-      // Resolve alertas dos fiscais
+      // Resolve só os alertas que este fix realmente endereçou (mesmo agente fiscal + mesma
+      // mensagem processada no prompt acima). Antes marcava TODOS os alertas não resolvidos
+      // de seguranca/schema/logica de uma vez, mesmo quando só um tipo (às vezes só um alerta)
+      // tinha sido de fato corrigido — chegava a resolver falhas que nunca foram tocadas.
+      // Neste ponto tipoAlerta só pode ser "codigo_estatico" ou "codigo_seguranca" (os outros
+      // três tipos escalam antes, na checagem de `arquivo` null acima).
+      const agenteFiscal = tipoAlerta === "codigo_estatico" ? "fiscal-codigo-estatico" : "fiscal-codigo-seguranca";
       await sql`
         UPDATE falhas_agentes
         SET resolvido = true, resolvido_em = NOW()
-        WHERE agente IN ('fiscal-codigo-seguranca','fiscal-codigo-schema','fiscal-codigo-logica')
+        WHERE agente = ${agenteFiscal}
           AND resolvido = false
+          AND erro = ANY(${alertasDoTipo.map(a => a.mensagem)})
       `;
 
       await enviarTelegram(

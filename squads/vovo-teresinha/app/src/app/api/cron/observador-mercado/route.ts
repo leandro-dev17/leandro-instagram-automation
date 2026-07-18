@@ -8,9 +8,8 @@ import { gerarTexto } from "@/lib/ai";
 // Monitora o mercado de apps de receitas saudáveis no Brasil semanalmente.
 // Usa Groq/Cerebras (Llama 3.3 70B) + métricas internas do app como contexto.
 
-// Declara maxDuration de 60s para esta rota (necessário pois o endpoint não está
-// listado no vercel.json como cron — sem isso a Vercel aplica o timeout padrão de
-// 10s, que pode abortar a chamada à IA antes dela completar → AbortError HTTP 0).
+// Declara maxDuration de 60s: sem isso a Vercel aplica o timeout padrão de 10s,
+// que pode abortar a chamada à IA antes dela completar → AbortError HTTP 0.
 export const maxDuration = 60;
 
 async function analisarMercado(

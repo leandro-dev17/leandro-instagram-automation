@@ -43,7 +43,7 @@
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/observador-mercado",
+      "path": "/api/cron/observador-mercado",
       "schedule": "0 9 * * 1"
     }
   ]
