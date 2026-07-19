@@ -1,6 +1,12 @@
 {
-  "falhas": {},
-  "ultimaVerificacao": "2026-07-19T12:09:58.960Z",
+  "falhas": {
+    "story-07h": {
+      "data": "2026-07-19",
+      "count": 1,
+      "ultimaFalha": "2026-07-19T13:48:14.376Z"
+    }
+  },
+  "ultimaVerificacao": "2026-07-19T13:48:15.291Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
