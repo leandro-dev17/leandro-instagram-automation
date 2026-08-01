@@ -1,0 +1,29 @@
+{
+  "mes": "2026-08",
+  "dias": {
+    "2026-08-01": {
+      "data": "2026-08-01",
+      "geradoEm": "2026-08-01T01:19:44.611Z",
+      "publicacoes": {
+        "story": {
+          "label": "Story",
+          "status": "failure",
+          "concluiuEm": "2026-07-31T22:56:09Z",
+          "runId": 30671128916
+        },
+        "kling": {
+          "label": "Kling Reel",
+          "status": "failure",
+          "concluiuEm": "2026-07-31T22:50:15Z",
+          "runId": 30671134808
+        },
+        "carousel": {
+          "label": "Carrossel",
+          "status": "failure",
+          "concluiuEm": "2026-07-31T22:55:05Z",
+          "runId": 30671139401
+        }
+      }
+    }
+  }
+}
