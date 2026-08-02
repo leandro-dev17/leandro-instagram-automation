@@ -12,32 +12,32 @@ function getInstancia(plano: Plano | string): string {
   return plano === "elite" ? EVO_INST_ELITE : EVO_INST_VIP;
 }
 
-// IDs dos grupos por plano
 const GROUP_IDS: Record<Plano, string> = {
   vip: process.env.WPP_GROUP_VIP || "",
   elite: process.env.WPP_GROUP_ELITE || "",
 };
 
-// Links de convite por plano
 const GROUP_LINKS: Record<Plano, string> = {
   vip: process.env.WPP_LINK_VIP || "",
   elite: process.env.WPP_LINK_ELITE || "",
 };
 
-// ─── FUNÇÕES BASE ─────────────────────────────────────────────────────────────
-
-// FASE 21: antes, qualquer falha (rede ou HTTP) era engolida silenciosamente (`catch { return false }`),
-// sem retry e sem alerta — cliente pagava e não entrava no grupo, ou perguntava e nunca recebia
-// resposta, sem que ninguém soubesse. Agora tenta de novo uma vez e, se persistir, alerta no Telegram.
 async function chamarEvolution(url: string, options: RequestInit, contexto: string, tentativas = 2): Promise<boolean> {
   let ultimoErro: unknown = null;
   for (let i = 1; i <= tentativas; i++) {
     try {
-      const res = await fetch(url, { ...options, signal: AbortSignal.timeout(8000) });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
       if (res.ok) return true;
       ultimoErro = `HTTP ${res.status}`;
     } catch (e) {
-      ultimoErro = e;
+      if (e instanceof Error && e.name === 'AbortError') {
+        ultimoErro = 'Timeout';
+      } else {
+        ultimoErro = e;
+      }
     }
     if (i < tentativas) await new Promise((r) => setTimeout(r, 1500));
   }
@@ -45,12 +45,6 @@ async function chamarEvolution(url: string, options: RequestInit, contexto: stri
   return false;
 }
 
-// FASE 27.7: hardcoded em EVO_INST_VIP sempre, ignorando o getInstancia(plano) que já existe
-// e que enviarMensagemGrupo usa corretamente. Mascarado hoje porque EVOLUTION_INSTANCIA e
-// EVOLUTION_INSTANCIA_ELITE apontam pro mesmo valor em produção — mas campanha-recuperacao,
-// sequencia-nao-conversao, preditor-churn e engajamento mandam mensagem privada pra membros/leads
-// Elite reais, e webhook/mercadopago manda a boas-vindas logo após o pagamento. `plano` é opcional
-// (default "vip") pra não quebrar call sites que genuinamente não têm essa info (ex: trial D-6).
 export async function enviarMensagemPrivada(telefone: string, texto: string, plano?: Plano | string): Promise<boolean> {
   if (!EVO_URL || !EVO_KEY) return false;
   const numero = telefone.replace(/\D/g, "");
@@ -66,16 +60,8 @@ export async function enviarMensagemPrivada(telefone: string, texto: string, pla
   }, `enviarMensagemPrivada → ${numero}`);
 }
 
-// Defesa contra valores de plano fora de "vip"/"elite" vindos de dados externos (ex: webhook MP)
 const GRUPOS_ATIVOS: Plano[] = ["vip", "elite"];
 
-// Fase 34 (backlog seg/infra, item 1): ~19 rotas diferentes chamam esta função sem
-// nenhuma coordenação entre si — se 2+ crons disparam quase ao mesmo tempo, o mesmo
-// grupo recebe várias mensagens em rajada, risco real de bloqueio anti-spam da Meta.
-// Claim atômico via UPDATE condicional (funciona entre invocações serverless distintas,
-// ao contrário de um throttle em memória): só prossegue quem conseguir mover
-// ultimo_envio pra agora; quem perder a corrida espera e tenta de novo, com orçamento
-// curto pra não comprometer o maxDuration da rota chamadora.
 const THROTTLE_MIN_MS = 3000;
 
 async function aguardarThrottleGrupo(plano: Plano): Promise<void> {
@@ -110,29 +96,29 @@ export async function enviarMensagemGrupo(plano: Plano, texto: string): Promise<
   }, `enviarMensagemGrupo → plano ${plano}`);
 }
 
-// FASE 24: a Evolution API v2.3.7 não tem rota PUT /group/updateParticipant (404) — o método
-// correto é POST com groupJid como query string. Além disso, números BR salvos sem o "9" extra
-// (formato antigo de cadastro no WhatsApp) geram um JID ${numero}@s.whatsapp.net que não corresponde
-// a nenhum participante real do grupo, então a Baileys recusa com 400 "internal-server-error".
-// Por isso o JID é sempre resolvido via /chat/whatsappNumbers antes de qualquer ação no grupo,
-// em vez de montar o JID adivinhando o formato do número.
 async function resolverJid(telefone: string, instancia: string): Promise<string | null> {
   const numero = telefone.replace(/\D/g, "");
   if (!numero) return null;
   const comDDI = numero.startsWith("55") ? numero : `55${numero}`;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(`${EVO_URL}/chat/whatsappNumbers/${instancia}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY! },
       body: JSON.stringify({ numbers: [comDDI] }),
-      signal: AbortSignal.timeout(8000),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!res.ok) return null;
     const data = await res.json();
     const item = Array.isArray(data) ? data[0] : null;
     return item?.exists ? item.jid : null;
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      return null;
+    }
     return null;
   }
 }
@@ -185,8 +171,6 @@ export async function enviarEnqueteGrupo(plano: Plano, pergunta: string, opcoes:
 export function getLinkGrupo(plano: Plano): string {
   return GROUP_LINKS[plano] || APP_URL;
 }
-
-// ─── MENSAGENS DA PERSONA ──────────────────────────────────────────────────────
 
 export function buildBoasVindas(plano: Plano, nome: string): string {
   const link = getLinkGrupo(plano);
