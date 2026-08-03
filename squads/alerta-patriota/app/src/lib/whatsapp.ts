@@ -54,7 +54,7 @@ export async function enviarMensagemPrivada(telefone: string, texto: string, pla
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: EVO_KEY },
     body: JSON.stringify({
-      number: `${numero}@s.whatsapp.net`,
+      number: `${numero}@c.us`,
       text: texto,
     }),
   }, `enviarMensagemPrivada → ${numero}`);
