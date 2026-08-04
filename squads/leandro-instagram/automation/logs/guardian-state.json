@@ -2,16 +2,21 @@
   "falhas": {
     "daily-generator": {
       "data": "2026-08-04",
-      "count": 4,
-      "ultimaFalha": "2026-08-04T16:44:48.822Z"
+      "count": 5,
+      "ultimaFalha": "2026-08-04T18:20:15.429Z"
     },
     "story-07h": {
       "data": "2026-08-04",
-      "count": 2,
-      "ultimaFalha": "2026-08-04T16:44:49.589Z"
+      "count": 3,
+      "ultimaFalha": "2026-08-04T18:20:16.117Z"
+    },
+    "kling-reel-20h": {
+      "data": "2026-08-04",
+      "count": 1,
+      "ultimaFalha": "2026-08-04T18:20:17.731Z"
     }
   },
-  "ultimaVerificacao": "2026-08-04T16:44:50.791Z",
+  "ultimaVerificacao": "2026-08-04T18:20:18.837Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
