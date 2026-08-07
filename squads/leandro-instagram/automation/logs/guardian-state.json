@@ -1,17 +1,6 @@
 {
-  "falhas": {
-    "daily-generator": {
-      "data": "2026-08-06",
-      "count": 2,
-      "ultimaFalha": "2026-08-06T13:26:07.850Z"
-    },
-    "story-07h": {
-      "data": "2026-08-06",
-      "count": 1,
-      "ultimaFalha": "2026-08-06T13:26:09.030Z"
-    }
-  },
-  "ultimaVerificacao": "2026-08-06T13:26:10.136Z",
+  "falhas": {},
+  "ultimaVerificacao": "2026-08-07T00:31:28.560Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
@@ -46,5 +35,6 @@
   "schedule_alerta_2026-08-04": "2026-08-03",
   "schedule_alerta_2026-08-05": "2026-08-04",
   "schedule_alerta_2026-08-06": "2026-08-05",
-  "schedule_alerta_2026-08-07": "2026-08-06"
+  "schedule_alerta_2026-08-07": "2026-08-06",
+  "schedule_alerta_2026-08-08": "2026-08-07"
 }
