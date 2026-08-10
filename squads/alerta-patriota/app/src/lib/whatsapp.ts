@@ -177,7 +177,7 @@ export function buildBoasVindas(plano: Plano, nome: string): string {
 
   if (plano === "elite") {
     return (
-      `🎖️ *Bem-vindo ao Elite Global, ${nome}.*\n\n` +
+      `*Bem-vindo ao Elite Global, ${nome}.*\n\n` +
       `Sou o Prof. Bernardo Cavalcanti. A partir de agora você recebe análises que a mídia brasileira filtra — direto das fontes que importam: Washington, Buenos Aires, Londres.\n\n` +
       `6 análises por dia. Dossiê semanal em PDF. Zero ruído.\n\n` +
       `Grupo: ${link}\n\n` +
@@ -186,10 +186,10 @@ export function buildBoasVindas(plano: Plano, nome: string): string {
   }
 
   return (
-    `🔥 *${nome}, seja bem-vindo ao VIP Premium!*\n\n` +
+    `*${nome}, seja bem-vindo ao VIP Premium!*\n\n` +
     `Aqui é o Capitão Braga. A partir de agora você vai saber o que realmente está acontecendo no Brasil — sem filtro e sem censura.\n\n` +
     `Todo dia, nos horários certos, você recebe as notícias que a mídia grande esconde, com meu comentário direto.\n\n` +
-    `📲 Seu grupo: ${link}\n\n` +
+    `Seu grupo: ${link}\n\n` +
     `_Deus, Pátria e Família — sempre._`
   );
 }
@@ -197,7 +197,7 @@ export function buildBoasVindas(plano: Plano, nome: string): string {
 export function buildBoasVindasGrupo(plano: Plano, nome: string): string {
   if (plano === "elite") {
     return (
-      `🎖️ *Bem-vindo, ${nome}.*\n\n` +
+      `*Bem-vindo, ${nome}.*\n\n` +
       `Prof. Bernardo Cavalcanti aqui. É uma honra ter você conosco no Elite Global.\n\n` +
       `Você está entre os brasileiros que escolheram enxergar o mundo como ele realmente é.\n\n` +
       `_O mundo muda para quem enxerga antes._`
@@ -205,16 +205,16 @@ export function buildBoasVindasGrupo(plano: Plano, nome: string): string {
   }
 
   return (
-    `🔥 *${nome}, bem-vindo ao VIP Premium!*\n\n` +
+    `*${nome}, bem-vindo ao VIP Premium!*\n\n` +
     `Capitão Braga aqui. Você está no grupo mais completo do Alerta Patriota. Notícias, comentários, alertas urgentes quando deputados de direita fazem algo importante — e você pode participar, perguntar, opinar.\n\n` +
-    `Fico honrado com sua confiança. Vamo junto! 💪🇧🇷\n\n` +
+    `Fico honrado com sua confiança. Vamo junto!\n\n` +
     `_Deus, Pátria e Família — sempre._`
   );
 }
 
 export function buildModosCrise(informacao: string): string {
   return (
-    `🚨 *ATUALIZAÇÃO DE CRISE — ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}*\n\n` +
+    `*ATUALIZAÇÃO DE CRISE — ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}*\n\n` +
     `${informacao}\n\n` +
     `_Capitão Braga — Alerta Patriota_\n` +
     `_Deus, Pátria e Família — sempre._`
