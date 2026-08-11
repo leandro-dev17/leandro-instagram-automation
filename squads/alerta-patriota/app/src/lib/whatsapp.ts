@@ -27,7 +27,7 @@ async function chamarEvolution(url: string, options: RequestInit, contexto: stri
   for (let i = 1; i <= tentativas; i++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); 
+      const timeoutId = setTimeout(() => controller.abort(), 30000); 
       const res = await fetch(url, { ...options, signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.ok) return true;
@@ -103,7 +103,7 @@ async function resolverJid(telefone: string, instancia: string): Promise<string 
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); 
+    const timeoutId = setTimeout(() => controller.abort(), 30000); 
     const res = await fetch(`${EVO_URL}/chat/whatsappNumbers/${instancia}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVO_KEY! },
