@@ -41,7 +41,9 @@ async function chamarEvolution(url: string, options: RequestInit, contexto: stri
     }
     if (i < tentativas) await new Promise((r) => setTimeout(r, 1500));
   }
-  await alertarTelegram("🔴", `Evolution API falhou — ${contexto}`, `Após ${tentativas} tentativas: ${String(ultimoErro)}`).catch(() => {});
+  if (ultimoErro !== null) {
+    await alertarTelegram("🔴", `Evolution API falhou — ${contexto}`, `Após ${tentativas} tentativas: ${String(ultimoErro)}`).catch(() => {});
+  }
   return false;
 }
 
