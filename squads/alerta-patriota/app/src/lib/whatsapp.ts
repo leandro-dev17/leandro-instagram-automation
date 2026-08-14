@@ -52,7 +52,10 @@ export async function enviarMensagemPrivada(telefone: string, texto: string, pla
   const numero = telefone.replace(/\D/g, "");
   if (!numero || numero.length < 10) return false;
 
-  return chamarEvolution(`${EVO_URL}/message/sendText/${getInstancia(plano || "vip")}`, {
+  const instancia = getInstancia(plano || "vip");
+  if (!instancia) return false;
+
+  return chamarEvolution(`${EVO_URL}/message/sendText/${instancia}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: EVO_KEY },
     body: JSON.stringify({
