@@ -2,11 +2,11 @@
   "falhas": {
     "daily-generator": {
       "data": "2026-08-16",
-      "count": 4,
-      "ultimaFalha": "2026-08-16T11:09:15.693Z"
+      "count": 5,
+      "ultimaFalha": "2026-08-16T11:31:41.361Z"
     }
   },
-  "ultimaVerificacao": "2026-08-16T11:09:16.436Z",
+  "ultimaVerificacao": "2026-08-16T11:31:42.025Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
