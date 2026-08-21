@@ -1,6 +1,12 @@
 {
-  "falhas": {},
-  "ultimaVerificacao": "2026-08-21T09:49:41.926Z",
+  "falhas": {
+    "daily-generator": {
+      "data": "2026-08-21",
+      "count": 1,
+      "ultimaFalha": "2026-08-21T10:16:35.040Z"
+    }
+  },
+  "ultimaVerificacao": "2026-08-21T10:16:36.181Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
