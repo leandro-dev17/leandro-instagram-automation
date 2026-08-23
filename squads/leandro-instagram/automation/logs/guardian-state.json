@@ -2,31 +2,36 @@
   "falhas": {
     "daily-generator": {
       "data": "2026-08-23",
-      "count": 25,
-      "ultimaFalha": "2026-08-23T19:52:44.945Z"
+      "count": 26,
+      "ultimaFalha": "2026-08-23T20:07:30.692Z"
     },
     "story-07h": {
       "data": "2026-08-23",
-      "count": 18,
-      "ultimaFalha": "2026-08-23T19:52:45.713Z"
+      "count": 19,
+      "ultimaFalha": "2026-08-23T20:07:31.534Z"
     },
     "kling-reel-20h": {
       "data": "2026-08-23",
-      "count": 8,
-      "ultimaFalha": "2026-08-23T19:52:46.512Z"
+      "count": 9,
+      "ultimaFalha": "2026-08-23T20:07:32.343Z"
     },
     "fiscal-temas-repetidos": {
       "data": "2026-08-23",
-      "count": 3,
-      "ultimaFalha": "2026-08-23T19:52:47.260Z"
+      "count": 4,
+      "ultimaFalha": "2026-08-23T20:07:34.167Z"
     },
     "fiscal-hooks-kling": {
       "data": "2026-08-23",
-      "count": 3,
-      "ultimaFalha": "2026-08-23T19:52:47.843Z"
+      "count": 4,
+      "ultimaFalha": "2026-08-23T20:07:34.911Z"
+    },
+    "carousel-12h": {
+      "data": "2026-08-23",
+      "count": 1,
+      "ultimaFalha": "2026-08-23T20:07:33.179Z"
     }
   },
-  "ultimaVerificacao": "2026-08-23T19:52:48.470Z",
+  "ultimaVerificacao": "2026-08-23T20:07:35.659Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
