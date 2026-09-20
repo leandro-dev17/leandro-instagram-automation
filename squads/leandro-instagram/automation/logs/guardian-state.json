@@ -2,11 +2,21 @@
   "falhas": {
     "daily-generator": {
       "data": "2026-09-20",
+      "count": 2,
+      "ultimaFalha": "2026-09-20T15:11:26.227Z"
+    },
+    "story-07h": {
+      "data": "2026-09-20",
       "count": 1,
-      "ultimaFalha": "2026-09-20T11:57:34.758Z"
+      "ultimaFalha": "2026-09-20T15:11:27.631Z"
+    },
+    "fiscal-temas-repetidos": {
+      "data": "2026-09-20",
+      "count": 1,
+      "ultimaFalha": "2026-09-20T15:11:28.960Z"
     }
   },
-  "ultimaVerificacao": "2026-09-20T11:57:36.002Z",
+  "ultimaVerificacao": "2026-09-20T15:11:29.650Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
