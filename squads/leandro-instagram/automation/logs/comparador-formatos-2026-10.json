@@ -1,0 +1,49 @@
+{
+  "anoMes": "2026-10",
+  "geradoEm": "2026-10-20T03:01:26.133Z",
+  "mediaGeral": 9,
+  "medias": {
+    "carousel": {
+      "quantidade": 9,
+      "mediaLikes": 1,
+      "mediaComentarios": 0,
+      "mediaAlcance": 169,
+      "mediaSalvamentos": 0,
+      "mediaEngaj": 1
+    },
+    "kling": {
+      "quantidade": 8,
+      "mediaLikes": 6,
+      "mediaComentarios": 0,
+      "mediaAlcance": 299,
+      "mediaSalvamentos": 0,
+      "mediaEngaj": 6
+    },
+    "reel-receita": {
+      "quantidade": 3,
+      "mediaLikes": 1,
+      "mediaComentarios": 0,
+      "mediaAlcance": 265,
+      "mediaSalvamentos": 0,
+      "mediaEngaj": 1
+    },
+    "story": {
+      "quantidade": 10,
+      "mediaLikes": 25,
+      "mediaComentarios": 2,
+      "mediaAlcance": 709,
+      "mediaSalvamentos": 1,
+      "mediaEngaj": 28
+    }
+  },
+  "ranking": [
+    "story",
+    "kling",
+    "carousel",
+    "reel-receita"
+  ],
+  "alertas": [
+    "📋 Carrossel está 89% abaixo da média geral — revise conteúdo ou frequência",
+    "🍳 Reel Receita está 89% abaixo da média geral — revise conteúdo ou frequência"
+  ]
+}
