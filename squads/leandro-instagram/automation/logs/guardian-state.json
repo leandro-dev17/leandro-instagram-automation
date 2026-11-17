@@ -1,22 +1,6 @@
 {
-  "falhas": {
-    "daily-generator": {
-      "data": "2026-11-16",
-      "count": 1,
-      "ultimaFalha": "2026-11-16T17:34:39.035Z"
-    },
-    "story-07h": {
-      "data": "2026-11-16",
-      "count": 1,
-      "ultimaFalha": "2026-11-16T17:34:40.392Z"
-    },
-    "kling-reel-20h": {
-      "data": "2026-11-16",
-      "count": 1,
-      "ultimaFalha": "2026-11-16T17:34:41.715Z"
-    }
-  },
-  "ultimaVerificacao": "2026-11-16T17:34:42.994Z",
+  "falhas": {},
+  "ultimaVerificacao": "2026-11-17T01:03:43.647Z",
   "schedule_alerta_2026-06-09": "2026-06-06",
   "schedule_alerta_2026-06-14": "2026-06-11",
   "schedule_alerta_2026-06-19": "2026-06-16",
@@ -153,5 +137,6 @@
   "schedule_alerta_2026-11-14": "2026-11-13",
   "schedule_alerta_2026-11-15": "2026-11-14",
   "schedule_alerta_2026-11-16": "2026-11-15",
-  "schedule_alerta_2026-11-17": "2026-11-16"
+  "schedule_alerta_2026-11-17": "2026-11-16",
+  "schedule_alerta_2026-11-18": "2026-11-17"
 }
